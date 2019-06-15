@@ -1,0 +1,33 @@
+CON
+' P2EVAL #64000-ES
+' Parallax #64000-ES
+' Clock settings
+    XTAL        = 20_000_000
+    XDIV        = 2
+    XMUL        = 16
+    XDIVP       = 1
+    XOSC        = %10
+    XSEL        = %11
+    XPPPP       = ((XDIVP >> 1) + 15) & $F
+    CLOCKFREQ   = XTAL / XDIV * XMUL / XDIVP
+    SETFREQ     = 1 << 24 + (XDIV-1) << 18 + (XMUL-1) << 8 + XPPPP << 4 + XOSC << 2
+    ENAFREQ     = SETFREQ
+
+    LED1        = 56    ' 8 Blue LEDs
+    LED2        = 57
+    LED3        = 58
+    LED4        = 59
+    LED5        = 60
+    LED6        = 61
+    LED7        = 62
+    LED8        = 63
+
+    SD_MISO     = 58
+    SD_MOSI     = 59
+    SD_CS       = 60
+    SD_CLK      = 61
+
+    FLASH_DO    = 58
+    FLASH_DI    = 59
+    FLASH_CLK   = 60
+    FLASH_CS    = 61

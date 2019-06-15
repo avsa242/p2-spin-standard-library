@@ -1,0 +1,55 @@
+' Original author: Jeff Martin
+{{
+    This object provides basic time functions for Spin.
+
+    Sleep methods are adjusted for method cost and freeze-protected.
+
+    P2/SPIN2 version
+    Valid down to about 110MHz fsys
+}}
+VAR
+
+    long sync
+
+CON
+
+    WMIN = 160'TBD                                                                  ' WAITCNT-expression overhead minimum
+
+PUB Sleep(secs)
+{{
+    Sleep for `secs` seconds.
+}}
+
+    waitx_(_clkfreq * secs - 400 #> WMIN)
+
+PUB MSleep(msecs)
+{{
+    Sleep for `msecs` milliseconds.
+}}
+
+    waitx_(_clkfreq / 1_000 * msecs - 400 #> WMIN)
+
+PUB USleep(usecs)
+{{
+    Sleep for `usecs` microseconds.
+}}
+
+    waitx_((_clkfreq / 1_000_000 * usecs) - 391 #> WMIN)
+
+PUB SetSync
+{{
+    Set starting point for synchronized time delays.
+    Wait for the start of the next window with `WaitForSync`.
+}}
+
+    sync := getcnt
+
+PUB WaitForSync(secs)
+{{
+    Wait until start of the next `secs`-long time period.
+
+    Must call `SetSync` before calling `WaitForSync` the first time.
+}}
+
+    waitx_((sync += _clkfreq * secs) #> WMIN) 
+
