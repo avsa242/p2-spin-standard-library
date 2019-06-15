@@ -1,0 +1,163 @@
+''
+'' clock frequency settings using "reduced blanking"
+'' for 25 MHz pixel clock and 848x480 (952x484) we end up with vsync of 54.26 Hz
+'' which x4 gives a 100 MHz system clock
+CON
+  _XTALFREQ     = 20_000_000                                    ' crystal frequency
+  _XDIV         = 20                                            ' crystal divider to give 1MHz
+  _XMUL         = 112                                           ' crystal / div * mul
+  _XDIVP        = 1                                             ' crystal / div * mul /divp to give _CLKFREQ (1,2,4..30)
+  _XOSC         = %10                                   'OSC    ' %00=OFF, %01=OSC, %10=15pF, %11=30pF
+  _XSEL         = %11                                   'XI+PLL ' %00=rcfast(20+MHz), %01=rcslow(~20KHz), %10=XI(5ms), %11=XI+PLL(10ms)
+  _XPPPP        = ((_XDIVP>>1) + 15) & $F                       ' 1->15, 2->0, 4->1, 6->2...30->14
+  _CLOCKFREQ    = _XTALFREQ / _XDIV * _XMUL / _XDIVP            ' internal clock frequency                
+  _SETFREQ      = 1<<24 + (_XDIV-1)<<18 + (_XMUL-1)<<8 + _XPPPP<<4 + _XOSC<<2  ' %0000_000e_dddddd_mmmmmmmmmm_pppp_cc_00  ' setup  oscillator
+
+  sys_clock_freq = _CLOCKFREQ
+  sys_clock_mode = _SETFREQ
+  pixel_clock_freq = 28_000_000
+
+''
+'' demo of the vga tile driver at 800x600
+'' using a 15 character high font
+''
+
+CON
+	COLS = 106   ' (8*106 == 848)
+	ROWS = 32    ' (32*15 == 480)
+        FONT_HEIGHT = 15
+
+DAT
+'
+'
+' Bitmap
+'
+        orgh
+'
+' font buffer
+'
+	long
+fontdata
+	file "unscii-16.bin"
+
+'=================================================================================================================
+' BELOW HERE IS THE DEMO CODE
+'=================================================================================================================
+democolors
+    long $FF000000, $FFFF0000, $00FF0000, $00FFFF00
+    long $0000FF00, $FF00FF00, $FFFFFF00, $00000000
+    long $7F000000, $007F7F00, $007F0000, $FFFF0000
+
+VAR
+    long params[40]
+    long screen[COLS*ROWS*2]
+
+OBJ
+    vga: "vga_tile_driver.spin2"
+
+PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
+    clkset(sys_clock_mode, sys_clock_freq)
+
+    initparams
+    vga.start(@params)
+    ch := 0
+    cls
+    pausems(1000)
+    cls
+
+    ch := 0
+    repeat y from 0 to ROWS-1
+        grey := y<<2
+        bgcol := (grey<<24) | (grey<<16) | (grey<<8)
+        repeat x from 0 to COLS-1
+          grey := (x & 15)
+	  idx := x / 16
+          col1 := democolors[idx]
+	  col2 := democolors[idx+1]
+	  fgcol := colorblend(col1, col2, (grey<<4) + grey)
+          glyphat(x, y, ch++, fgcol, bgcol)
+	  if (ch => 255)
+    	    ch := 0
+    runtext
+
+'
+' calculate ($8000_0000 * a) / (b)
+'
+CON PIXSHIFT = 31
+
+PRI calcscale(a, b) | shiftcnt
+  shiftcnt := PIXSHIFT
+  ' remove factors of 5 (will be pretty common)
+  repeat while 0 == (a // 5) and 0 == (b // 5)
+    a := a / 5
+    b := b / 5
+
+  ' scale a up as much as we can
+  repeat while ((a & $4000_0000) == 0) and shiftcnt > 0
+    a := a << 1
+    shiftcnt--
+  repeat while ((b & 1) == 0) and shiftcnt > 0
+    b := b>>1
+    shiftcnt--
+  return (a / b) << shiftcnt
+      
+PUB initparams | i, pclkscale, pclk, sysclk, x, fontptr
+  ' calculate clock frequency
+  pclk := pixel_clock_freq
+  sysclk := clkfreq  ' system clock
+  ' calculate scale := $8000_0000 * pclk / sysclk
+
+  pclkscale := calcscale(pclk, sysclk)
+
+  fontptr := @fontdata
+  if FONT_HEIGHT == 15
+    fontptr += 256 ' skip a row
+
+  i := 0
+  params[i++] := @screen	' screen buffer
+  params[i++] := COLS           ' screen columns
+  params[i++] := ROWS           ' screen rows
+  params[i++] := fontptr	' font data: skip first row
+  params[i++] := 8		' font width
+  params[i++] := FONT_HEIGHT    ' font height
+  params[i++] := pclkscale 'fset           ' pixel clock scaling value
+  params[i++] := 8              ' horizontal front porch
+  params[i++] := 16             ' hsync pulse
+  params[i++] := 80             ' horizontal back porch   952x500
+  params[i++] := 2              ' vertical front porch
+  params[i++] := 2              ' vertical sync lines
+  params[i++] := 16             ' vertical back porch
+  params[i++] := %11            ' vertical/horizontal polarity
+  
+PUB colorblend(a, b, mix)
+  asm
+    setpiv mix
+    blnpix a, b
+  endasm
+  return a
+
+#define screen_buffer screen
+#include "vga_text_routines.spinh"
+#include "std_text_routines.spinh"
+
+PUB runtext | n, fgcol, bgcol
+  pausems(11000)
+  fgcol:=3
+  bgcol:=0
+  init_terminal
+  repeat
+    str(string(27, "["))
+    dec(fgcol+31)
+    tx(";")
+    dec(bgcol+41)
+    tx("m")
+
+    n := 33
+    repeat COLS
+      tx(n & $FF)
+      n++
+    pausems(2000)
+    fgcol++
+    bgcol++
+    fgcol &= 7
+    bgcol &= 7

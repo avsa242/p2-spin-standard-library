@@ -1,0 +1,288 @@
+{{
+'******************************
+'*  VGA tiled image driver
+'******************************
+
+Runs in its own COG. See README.txt for theory of operation.
+
+Quick configuration: change basepin to the appropriate base pin for your VGA setup.
+
+}}
+
+CON
+   basepin = 0
+   vsync = basepin + 4 ' vsync pin
+
+  intensity = 80    '0..128
+
+
+DAT     
+        org 0
+
+entry
+	' read parameters
+buffer_base
+        rdlong  buffer_base, ptra++
+text_cols
+	rdlong  text_cols, ptra++
+text_rows
+	rdlong  text_rows, ptra++
+font_base
+        rdlong	font_base, ptra++
+font_width
+        rdlong  font_width, ptra++
+font_height
+	rdlong  font_height, ptra++
+fpix_scale
+        rdlong  fpix_scale, ptra++
+hfront_porch
+	rdlong  hfront_porch, ptra++
+hsync_pulse
+        rdlong  hsync_pulse, ptra++
+hback_porch
+	rdlong  hback_porch, ptra++
+vfront_porch
+	rdlong  vfront_porch, ptra++
+vsync_pulse
+	rdlong  vsync_pulse, ptra++
+vback_porch
+	rdlong  vback_porch, ptra++
+polarity
+        rdlong  polarity, ptra++
+'
+' Setup 
+'
+
+vga_start
+        ' calculate things based on parameters
+        mov	stride, text_cols
+        mul     stride, #8
+        mov     stride_chunks, stride
+        add     stride_chunks, #63
+        shr     stride_chunks, #6 ' divide by 64
+
+        mov     hpixels, text_cols
+        mul     hpixels, font_width
+        mov     vpixels, text_rows
+        mul     vpixels, font_height
+
+	' copy parameters into settings
+	add	m_rf_orig, font_width
+	mov	m_rf, m_rf_orig
+	add	m_bs, hfront_porch
+	add	m_sn, hsync_pulse
+	add	m_bv, hback_porch
+	add	m_vi, hpixels
+
+	' put our COG id into the DAC info
+	cogid	mycogid
+	shl	mycogid, #8
+	or 	dacmode_s, mycogid
+	or	dacmode_c, mycogid
+
+        setxfrq fpix_scale       'set transfer frequency
+
+        ' set up initial polarity
+        test    polarity, #%10 wc
+        drvc    #vsync
+        test    polarity, #1 wc
+        muxc    cmodval, #1
+
+        'set up level scaling
+        setcy   ##intensity << 24   'r  set colorspace for rgb
+        setci   ##intensity << 16   'g
+        setcq   ##intensity << 08   'b
+        setcmod cmodval             'enable colorspace conversion
+
+        'RJA dacmodes changed for real P2
+        wrpin   dacmode_s,#basepin      'enable dac modes in pins 0..3
+        wrpin   dacmode_c,#basepin + 1
+        wrpin   dacmode_c,#basepin + 2
+        wrpin   dacmode_c,#basepin + 3
+	dirh	#basepin + 0
+	dirh	#basepin + 1
+	dirh	#basepin + 2
+	dirh	#basepin + 3
+
+'
+'
+' Field loop
+'
+field   
+	mov     y,vfront_porch           'top blanks
+        call    #blank
+	mov	buffer_ptr, buffer_base
+	mov	font_ptr, font_base
+	mov	font_line_counter, font_height
+
+        mov     y,vpixels          'set visible line
+line    
+        call    #hsync          'do horizontal sync; also loads up next font line
+
+	' now read the character data
+	' this is stored as 8 byte per character;
+	' two longs, first containing 24 bit color + character glyph,
+        ' second containing the 24 bit color and a reserved field
+	rdfast stride_chunks, buffer_ptr
+
+	sub	font_line_counter, #1 wz
+if_z	mov	font_line_counter, font_height
+if_z	mov	font_ptr, font_base
+if_z	add	buffer_ptr, stride ' next line
+
+	mov	m_rf, m_rf_orig
+
+	rep	@endchar, text_cols
+
+nextchar
+	' handles 8 pixels at a time
+	' at 65 MHz pixel clock and 200 MHz system clock, we have 3 cycles/pixel or 1.5 instructions/pixel
+
+	' so this loop must not be more than 16 instructions
+        ' if we can assume bgcolor has 0 in its low bits, we can just fit
+
+	rflong	fgcolor
+	rflong	bgcolor
+	getbyte char2, fgcolor, #0
+	andn	fgcolor, #$FF
+	'andn	bgcolor, #$FF ' handle in the glyphat code
+
+	altgb	char2, #font_line	' fetch from font table
+	getbyte	char2
+	xcont	m_rf, char2
+	wrlut	bgcolor, lutptr
+
+	add	lutptr, #1
+	wrlut	fgcolor, lutptr
+	xor	lutptr, luttoggle
+	xor	m_rf, m_rf_toggle
+	'' end of loop
+endchar
+
+        djnz    y,#line         'another line?
+
+        mov	y,vback_porch           'bottom blanks
+        call    #blank
+
+        drvnot  #vsync          'sync on
+
+        mov 	y,vsync_pulse            'sync blanks
+        call    #blank
+
+        drvnot  #vsync          'sync off
+
+        jmp     #field                  'loop
+'
+'
+' Subroutines
+'
+blank       call    #hsync          'blank lines
+            xcont   m_vi,#0
+    _ret_   djnz    y,#blank
+
+hsync       xcont   m_bs,#0         'horizontal sync
+            xcont   m_sn,#1
+	xcont m_bv, #0
+	setq	#63		' read 64 longs = 256 bytes from font table
+	rdlong	font_line, font_ptr
+	add	font_ptr, #256
+	ret
+'
+'
+' Initialized data
+'RJA:  New dacmodes for real P2
+dacmode_s       long    %0000_0000_000_1011000000000_01_00000_0         'hsync is 123-ohm, 3.3V
+dacmode_c       long    %0000_0000_000_1011100000000_01_00000_0         'R/G/B are 75-ohm, 2.0V
+
+m_bs        long    $CF000000 {+HFRONT_PORCH}        'before sync
+m_sn        long    $CF000000 {+HSYNC}        'sync
+m_bv        long    $CF000000 {+HBACK_PORCH}        'before visible
+m_vi        long    $CF000000 {+HPIXELS}       'visible
+
+m_rf	     long   $8F000000 {+FONT_WIDTH}     ' 1bpp
+m_rf_orig    long   $8F000000 {+FONT_WIDTH}     ' 1bpp LUT immediate
+m_rf_toggle  long   $00010000
+
+' cmod parameter for level scaling
+cmodval      long  %01_0_000_0
+
+' we use LUT elements 0,1 and 32,33 to hold the colors, ping-ponging back
+' between them
+' we have to use 32,33 because the granularity of changing the streamer
+' LUT pointer is 5 bits
+
+lutptr	     long $00
+luttoggle    long $21
+
+
+' values calculated from parameters
+stride
+        res 1   ' bytes per line
+stride_chunks
+        res 1   ' rdfast chunks per line
+hpixels
+        res 1
+vpixels
+        res 1
+buffer_ptr
+        res 1
+font_ptr
+        res 1
+'
+x       res 1
+y       res 1
+char2	res 1
+mycogid res 1
+bgcolor res 1
+fgcolor res 1
+font_line_counter
+        res 1
+
+' space for 256 bytes of font data
+font_line res 64
+
+
+	fit 496         ' make sure it all fits in COG
+
+'******************************************************************
+'* Spin interfaces
+'******************************************************************
+
+VAR
+  long mycog
+
+PUB start(params)
+  mycog := cognew(@entry, params) + 1
+  return mycog
+
+PUB stop
+  if mycog
+    cogstop(mycog-1)
+    mycog := 0
+
+''
+'' utility function
+'' calculates proper pixel scaling for
+'' pixel clock frequency a and system clock frequency b
+''
+
+'
+' calculate ($8000_0000 * a) / (b)
+'
+CON PIXSHIFT = 31
+
+PUB calcscale(a, b) | shiftcnt
+  shiftcnt := PIXSHIFT
+  ' remove factors of 5 (will be pretty common)
+  repeat while 0 == (a // 5) and 0 == (b // 5)
+    a := a / 5
+    b := b / 5
+
+  ' scale a up as much as we can
+  repeat while ((a & $4000_0000) == 0) and shiftcnt > 0
+    a := a << 1
+    shiftcnt--
+  repeat while ((b & 1) == 0) and shiftcnt > 0
+    b := b>>1
+    shiftcnt--
+  return (a / b) << shiftcnt
