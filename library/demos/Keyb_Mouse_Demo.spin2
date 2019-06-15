@@ -1,0 +1,261 @@
+'------------------------------------------------------------------------------
+' garryj 05/2019
+' TABs as space, width: 2.
+'------------------------------------------------------------------------------
+CON
+'------------------------------------------------------------------------------
+' Event types copied from the usb KbM host object CON block
+        #0, NO_EVENT, USB_ERROR, DEV_UNKNOWN, KB_READY, M_READY, KBM_READY
+        DEV_DISCONNECT, USB_DBG_INFO, M_DATA
+'------------------------------------------------------------------------------
+' Reference: "Device Class Definition for Human Interace Devices (HID), v1.11,
+' Appendix B: Boot Interface".
+'------------------------------------------------------------------------------
+' Boot protocol mouse constants:
+'------------------------------------------------------------------------------
+' Mouse button bit assignments (left, right, center):
+        #0, MOUSE_LBTNB, MOUSE_RBTNB, MOUSE_CBTNB       ' Button bits 3..7 device specific
+' Mouse button bitflags:
+        MOUSE_LBTNF = |< MOUSE_LBTNB
+        MOUSE_RBTNF = |< MOUSE_RBTNB
+        MOUSE_CBTNF = |< MOUSE_CBTNB
+'------------------------------------------------------------------------------
+' USB HID Keyboard/Keypad Page (0x07). The scancodes below are indexes into
+' the scancode->character/function look-up table.
+'------------------------------------------------------------------------------
+' USB boot protocol key scancode constants. IMPORTANT: these constants are the
+' keyboard scan codes per USB HID specification 1.11. The keypress value that
+' the USB cog writes to the kbd_keypress location will be a 7-bit ASCII value
+' if the key scancode represents an ASCII character e.g., TAB->$09,
+' BACKSPACE->$08, SPACE->$20, DELETE->$7f, etc. If there is NOT an ACSII match,
+' the keypress value will be the same as the key's HID scan code. In those
+' cases, it is up to the client program to implement the action required for
+' that key.
+'------------------------------------------------------------------------------
+' First four scancodes in the key lookup table are info/error indicators:
+        #0,   KEY_NO_KEY, KEY_ERR_ROLLOVER, KEY_POST_FAIL, KEY_ERR_UNDEF
+' Alpha scancodes are contiguous in the lookup table, and if the caps lock key
+' is toggled on, these are the only scancodes affected by it:
+        KEY_A_a     = $04
+        KEY_Z_z     = $1d
+' Digit scancodes and their shifted characters:
+        KEY_1       = $1e        ' 1 and !
+        KEY_0       = $27        ' 0 and )
+' Keyboard return (ENTER), tab, space, etc.:
+        KEY_ENTER   = $28
+        KEY_BKSPACE = $2a
+' Toggle keys:
+        KEY_CAPSLK  = $39
+        KEY_SCRLK   = $47
+        KEY_NUMLK   = $53
+' F1..F12 keys:
+        KEY_F1      = $3a
+        KEY_F12     = $45
+' More special keys and cursor movement:
+        KEY_PRTSCN  = $46
+        KEY_INSERT  = $49
+        KEY_DELETE  = $4c
+        KEY_UP      = $52
+' Keypad keys:
+        KEY_DOT_DEL = $63
+'------------------------------------------------------------------------------
+' Keyboard LED output report toggle key bit postions:
+        #0, LED_NUMLKB, LED_CAPSLKB, LED_SCRLKB, LED_COMPOSEB
+        LED_KANAB, LED_CONST0B, LED_CONST1B, LED_CONST2B
+' Keyboard LED output report toggle key bitflags:
+        LED_NUMLKF   = |< LED_NUMLKB
+        LED_CAPSLKF  = |< LED_CAPSLKB
+        LED_SCRLKF   = |< LED_SCRLKB
+        LED_COMPOSEF = |< LED_COMPOSEB
+        LED_KANAF    = |< LED_KANAB
+        LED_CONST0F  = |< LED_CONST0B
+        LED_CONST1F  = |< LED_CONST1B
+        LED_CONST2F  = |< LED_CONST2B
+' Keyboard modifier key bit positions:
+        #0, LEFT_CTRLB, LEFT_SHIFTB, LEFT_ALTB, LEFT_GUIB
+        RIGHT_CTRLB, RIGHT_SHIFTB, RIGHT_ALTB, RIGHT_GUIB
+' Keyboard modifier bitflags
+        LEFT_CTRLF   = |< LEFT_CTRLB
+        LEFT_SHIFTF  = |< LEFT_SHIFTB
+        LEFT_ALTF    = |< LEFT_ALTB
+        LEFT_GUIF    = |< LEFT_GUIB
+        RIGHT_CTRLF  = |< RIGHT_CTRLB
+        RIGHT_SHIFTF = |< RIGHT_SHIFTB
+        RIGHT_ALTF   = |< RIGHT_ALTB
+        RIGHT_GUIF   = |< RIGHT_GUIB
+' Keyboard modifier flag combinations:
+        KEY_CTRLMOD  = LEFT_CTRLF | RIGHT_CTRLF
+        KEY_SHIFTMOD = LEFT_SHIFTF | RIGHT_SHIFTF
+        KEY_ALTMOD   = LEFT_ALTF | RIGHT_ALTF
+' Keyboard buffer size:
+        KBD_BUFFMASK = $0f      ' Keyboard key data buffer
+'------------------------------------------------------------------------------
+' Terminal types. This client only supports basic CR and newline behaviour for
+' generic terminals and the Propeller Serial Terminal.
+'------------------------------------------------------------------------------
+        #0, TERM_DUMB, TERM_VT100, TERM_PST, TERM_END
+' ASCII control codes:
+        #3, PST_LCUR, PST_RCUR, PST_UCUR, PST_DCUR
+        #7, BELL, BSP, TAB, LF, VT, FF, CR, PST_GOTOX, PST_GOTOY, PST_CLS
+        #27, ESC
+'------------------------------------------------------------------------------
+' System stuff:
+        _clkmode = $010007f8
+        _clkfreq = 160_000_000
+        _fclkfreq = float(_clkfreq)
+        baud = 2_000_000'230_400
+        rx_pin = 63
+        tx_pin = 62
+        _1ms = _clkfreq / 1000
+        _1us = _1ms / 1000
+'------------------------------------------------------------------------------
+' USB port info bytes of the usbA VAR long:
+        #0, COGNUM, EVTPIN, KBCON, MCON
+'------------------------------------------------------------------------------
+OBJ
+  ser: "SmartSerial"
+  usb1: "1CogKbM"
+
+VAR
+  long usbA
+
+DAT
+  szversion     byte "v0.01", 0
+  szusbstart    byte "USB%u cogID: %u, event pin#: %u, version: %s\n", 0
+  szusbfail     byte "USB%u cog start failed\n", 0
+  szbackspace   byte BSP, " ", BSP, 0
+
+PUB KbMObjTest | event, data, eventa
+  clkset(_clkmode, _clkfreq)
+  waitcnt(clkfreq * 2 + cnt)                            ' Wait a bit for user to get the terminai ready
+  ser.start(rx_pin, tx_pin, 0, baud)
+  ser.printf("Sysclock: %u, baudrate: %u\n", clkfreq, baud)
+  ser.printf("Tiny client + USB low/full speed keyboard/mouse %s.\n", @szversion)
+
+  usb1.start(@usbA)
+  if (usbA.byte[COGNUM])
+    eventa := usbA.byte[EVTPIN]
+    ser.printf(@szusbstart, 1, usbA.byte[COGNUM] - 1, eventa, usb1.getVersion)
+  else
+    ser.printf(@szusbfail, 1)
+    repeat                                              ' Nothing to do...
+
+'' Main loop
+  repeat
+    asm
+      testp eventa wc
+      if_c rdpin event, eventa
+      if_nc mov event, #NO_EVENT
+    endasm
+
+    if event
+      USBEvent(@usbA, 1, event)
+
+    if (usbA.byte[KBCON] and (data := usb1.key))
+      handleKeyData(data)
+
+
+PRI handleKeyData(keydata) | tglstates, modkey, scancode, asciival
+  asciival := keydata.byte[0]
+  scancode := keydata.byte[1]
+  modkey := keydata.byte[2]
+  tglstates := keydata.byte[3]
+
+  case scancode
+    KEY_BKSPACE:
+      ser.str(@szbackspace)
+    KEY_ENTER:
+      ser.nl
+    KEY_CAPSLK, KEY_SCRLK, KEY_NUMLK:
+      ser.tx(BELL)                                      ' Ring the terminal bell on toggle key state change
+    other:
+      ser.tx(asciival)
+
+'' Unpack and output new mouse data
+PRI handleMouseUpdate(data) | b, x, y
+  b := data.byte[0]
+  x := ~data.byte[1]                                    ' X/Y direction and velocity is signed -127/+127
+  y := ~data.byte[2]
+{
+  ser.hex(b, 2)
+  ser.tx($20)
+  ser.hex(x, 2)
+  ser.tx($20)
+  ser.hex(y, 2)
+  ser.nl
+  return
+}
+' Adjust the mouse x/y "zero dead zone" to your liking
+  if (x =< 3 and x => -3)
+    x := 0
+
+  if (y =< 3 and y => -3)
+    y := 0
+
+  ser.str("Btn: ")
+  ser.bin(b, 8)
+  ser.str(", X: ")
+  ser.num(x, 10, "+", 3)
+  ser.str(", Y: ")
+  ser.num(y, 10, "+", 3)
+
+' Scroll the mouse data if middle button pressed
+  if b & MOUSE_CBTNF
+    ser.nl
+  else
+    ser.tx(CR)
+
+PRI usbEvent(portptr, portnum, event) | ptr, val
+  case event
+    DEV_DISCONNECT:
+      ser.printf("\nDevice disconnected\n")
+      byte[portptr][KBCON] := 0
+      byte[portptr][MCON] := 0
+    DEV_UNKNOWN:
+      ser.printf("Boot protocol keyboard/mouse not found\n")
+    KB_READY:
+      ser.printf("Keyboard configured\n")
+      byte[portptr][KBCON]++
+    M_READY:
+      ser.printf("Mouse configured\n")
+      byte[portptr][MCON]++
+    KBM_READY:
+      ser.printf("Keyboard and mouse configured\n")
+      byte[portptr][KBCON]++
+      byte[portptr][MCON]++
+    USB_ERROR:
+      if portnum == 1
+        ptr := usb1.getErrorCode
+      ser.printf("\nUSB%u error: %u\n", portnum, long[ptr])
+    USB_DBG_INFO:
+      if portnum == 1
+        (ptr, val) := usb1.getDebugInfo
+      ser.printf("PC%u: $", portnum)
+      ser.hex(ptr, 5)
+      ser.str(", val: ")
+      ser.hex(val)
+      ser.nl
+    M_DATA:
+      if portnum == 1
+        val := usb1.mouse
+        handleMouseUpdate(val)
+    other:
+      ser.printf("Event%u: %u\n", portnum, event)
+{
++----------------------------------------------------------------------------------------------------------------------+
+|                                             TERMS OF USE: MIT License                                                |
++----------------------------------------------------------------------------------------------------------------------+
+|Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated          |
+|documentation files (the "Software"), to deal in the Software without restriction, including without limitation the   |
+|rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit|
+|persons to whom the Software is furnished to do so, subject to the following conditions:                              |
+|                                                                                                                      |
+|The above copyright notice and this permission notice shall be included in all copies or substantial portions of the  |
+|Software.                                                                                                             |
+|                                                                                                                      |
+|THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE  |
+|WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR |
+|COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      |
+|OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.      |
++----------------------------------------------------------------------------------------------------------------------+
+}
