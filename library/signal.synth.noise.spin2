@@ -1,0 +1,94 @@
+CON
+    DITHER_NOISE  = %0000_0000_000_10100_00000000_01_00001_0
+    DITHER_MODE  = %0000_0000_000_10100_00000000_01_00010_0
+    DITHER_PWM   = %0000_0000_000_10100_00000000_01_00011_0
+    DAC_MODE     = %0000_0000_000_10100_00000000_00_00000_0
+
+    wait_del = $100
+    
+VAR
+    long  frq[16]    ' single RDFAST block
+
+
+PUB start(pin) | i
+    freq_addr := @frq
+    dac_pin := pin
+    i := 0
+    repeat 16
+      frq[i] := $927333 ' 4*$6E0070 ' $827000 
+      i += 1
+    cognew (@dac_cordic)
+
+
+DAT
+
+		ORG	0
+dac_cordic
+                WRPIN   ##DITHER_MODE, dac_pin   ' smaetpin mode, can left DIRB/OUTB as is for this one
+		'DIRH	dac_pin
+		'WXPIN	##100, dac_pin
+
+		RDFAST  ##1, freq_addr     ' need FIFO access to get a 2 cycle hub read in main loop
+                RFLONG  frequency          ' prime the FIFO
+		'DIRL	dac_pin
+
+	        mov     v, #4            ' queue 4 DDS+rotate every 16 cycles into CORDIC before pulling results
+setup
+		add     phase, frequency   ' DDS phase inc
+                QROTATE amplitude, phase   ' queue cosine
+		nop                        ' force 16 cycles, not 8, between entries
+                RFLONG  frequency
+		djnz    v, #setup
+		mov	frequency2, frequency
+		shr	frequency2, #3'8
+		add     frequency2, frequency
+'		mov  frequency, frequency2
+'		add frequency, ##$8000000
+' 4 cosines in flight in CORDIC module, can start consuming them and outputting to DAC indefinitely
+' in the main loop (16 cycles, so at 160MHz generates 10MSPS, Nyquist limit 5MHz
+
+'     	        getct   time
+'		addct1  time, #wait_del
+loop
+                GETQX   v                ' signed 16 bit cosine value, fetch just in time
+		add     phase, frequency
+                QROTATE amplitude, phase
+		xor     v, signbit       ' need offset value for DAC
+		'xor     v, signbit       ' need offset value for DAC
+		'WYPIN   v, dac_pin
+		'RFLONG  frequency          ' 2 cycle load of next frequency
+
+'		getrnd  t
+'		shr	t, #10
+'		and	t, #126	   ' dither the frequency of one of the peaks about
+'		sub	t, #63
+
+                GETQX   v2                ' signed 16 bit cosine value, fetch just in time
+		add     phase2, frequency2
+                QROTATE amplitude2, phase2
+		add	v, v2
+        and v, masky  
+
+'		waitct1
+'		addct1  time, #wait_del
+
+		WYPIN   v, dac_pin
+'  add frequency, t	'RFLONG  frequency          ' 2 cycle load of next frequency
+		jmp	#loop
+
+amplitude	long    $3FFF ' $6DB5   ' 1V rms with 3.3V full scale?        $3FFF
+amplitude2	long    $3FFF ' $6DB5/10   ' 0.1V rms with 3.3V full scale?   $3FFF
+signbit         long    $8000
+phase           long    0
+phase2          long    0
+freq_addr       long    0
+v               long	0
+v2		long	0
+frequency       long	0
+frequency2      long	$240000
+dac_pin         long    0
+t		long	0
+masky		long    $FFFF ' $FFE0
+time		res	1
+
+		FIT	$1E0

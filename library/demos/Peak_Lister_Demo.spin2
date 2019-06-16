@@ -1,0 +1,437 @@
+{{
+peak_lister.spin2
+}}
+
+CON
+    XTAL_FREQ = 20_000_000
+    VCO_divide = 2   ' 4 bit field, represents 2/4/6/8/10/....
+    PLL_divide = 4   ' 6 bit field, offset 1
+    PLL_mult = 64   ' 10 bit field, offset 1
+    
+    OSCMODE = %1_000000_0000000000_0000_01_00 | ((PLL_divide-1) << 18) | ((PLL_mult-1) << 8) | ((VCO_divide/2-1) << 4)
+    FREQ = XTAL_FREQ / PLL_divide * PLL_mult / VCO_divide  ' 160_000_000
+    BAUD = 2 * 115_200
+  
+    DAC_TESTPIN = 41
+    ADC_PIN     = 40
+    ADC_CYCLES =  500
+    ADC_READING_REPEAT_SHIFT = 3  ' 25us samples
+
+    N = 11
+    NN = 1 << N
+
+    FIXINT = 5
+    FIXFRACT = 32-FIXINT   ' assumed to be at least 16
+    maxfix = 1<<(FIXINT-1)
+    minfix = -maxfix
+
+    MAX_PEAKS = 12
+    PEAK_BIG_DIFF   = $20000000
+    PEAK_SMALL_DIFF = $04000000
+
+    'WINDOW_SPEC = fft#RECT_WINDOW
+    'WINDOW_SPEC = fft#HANN_WINDOW
+    'WINDOW_SPEC = fft#HAMMING_WINDOW
+    WINDOW_SPEC = fft#HFT95_WINDOW
+    'WINDOW_SPEC = fft#HFT116D_WINDOW
+    'WINDOW_SPEC = fft#HFT144D_WINDOW
+
+    AVERAGE_N = 0  ' average upto 2^AVERAGE_N times
+
+    X_LOG_SCALE = 0
+
+    FFT_WITH_MAGSQR = fft#GO | fft#DO_FORWARDS | fft#DO_SCALED | fft#DO_MAG_SQR | fft#DO_WINDOW
+    SLEEP = $FF
+
+
+OBJ
+    ser: "com.smartserial.spin2"
+    siggen: "signal.synth.noise.spin2"
+    acq: "signal.adc.smartpin.spin2"
+    fft: "signal.fft.windowed.spin2"
+
+VAR
+    long  sampling_rate
+
+    long  window_mu2
+    long  window_sig2
+    long  sample_freq
+
+    ' params for acquire
+    long  ACQ_N
+    long  ACQ_FIXINT
+    long  ACQ_buffer
+    long  ACQ_pin
+    long  ACQ_cycles
+    long  ACQ_ready_flag
+    long  ACQ_repeat
+
+    long  peaks_list [1 + 2 * MAX_PEAKS]
+    long  peaks_ready
+
+    long  scratch [2*NN + NN/2 + 2*(NN/2+1)]  ' hold NN complex fix8.24 values
+
+
+PUB main | i, j, k, pk_count
+    clkset (OSCMODE, FREQ)
+    pausems (10)
+    ser.start (63, 62, 0, BAUD)
+    sampling_rate := (freq / ADC_CYCLES) >> ADC_READING_REPEAT_SHIFT
+   
+    ser.str (string ("FFT peak detector, sampling at "))
+    ser.dec (sampling_rate)
+    ser.str (string ("Hz"))
+    ser.tx(13)
+    ser.tx(10)
+
+    siggen.start (DAC_TESTPIN)
+
+    ACQ_N      := N
+    ACQ_FIXINT := FIXINT
+    ACQ_buffer := @scratch
+    ACQ_pin    := ADC_PIN
+    ACQ_cycles := ADC_CYCLES
+    ACQ_ready_flag := 0
+    ACQ_repeat := ADC_READING_REPEAT_SHIFT   ' this is used in decod
+    acquire_start := @ACQ_ready_flag
+
+    acq.start (@ACQ_N)
+    pausems(2)
+
+    byte[@FFT_operation][0]  := 0
+    byte[@FFT_operation][1]  := FIXINT  '    fixint
+    byte[@FFT_operation][2]  := FIXINT  '    input fixint
+    byte[@FFT_operation][3]  := fft#INP_SHARED | 8   ' input flags
+    byte[@FFT_N][0]     := N
+    byte[@FFT_N][1]     := FIXINT               ' mag-square fixint
+    byte[@FFT_N][2]     := WINDOW_SPEC ' window_id
+    FFT_input_buffer  := @scratch
+    FFT_work_buffer   := @scratch
+    FFT_window_buffer := @scratch + (8 << N)
+    peak_table := @peaks_list
+    fft_start := @FFT_operation
+
+    fft.start (@FFT_operation)
+    pausems(2)
+
+    lutcode := @average
+    window_params := @window_mu2
+    window_mu2 := 0
+    window_sig2 := 0
+    
+    'log_mode := X_LOG_SCALE
+    peaks_flag := @peaks_ready
+    cognew (@entry, @scratch)
+
+    repeat
+        pausems(1000)
+	repeat until peaks_ready <> 0
+     
+        pk_count := peaks_list[0]
+	i := 1
+        repeat pk_count
+            j := dB_times_100(peaks_list[i+1])
+	    k := freq_for_col(peaks_list[i])
+
+	    if j > -7000   ' if > -70dB
+	        ser.dec(k)
+                ser.str (string("Hz "))
+		print_db_times_100(j)
+	        ser.tx(13)
+	        ser.tx(10)
+	    i += 2
+        ser.tx(13)
+	ser.tx(10)
+	peaks_ready := 0
+   
+
+PUB  freq_for_col(col)
+    col *= (sampling_rate >> 1)
+    result := col >> (N-1)
+
+PUB  dB_times_100(x)  ' convert 32 bit log values
+    result := ((1000 * (x >> 17) + 1024) >> 11) - 16000
+
+PUB print_db_times_100(x) | hundredths, units, absx
+    absx := abs (x)
+    if x < 0
+        ser.tx ($2D)
+    hundredths := absx // 100
+    units := absx / 100
+    ser.dec (units)
+    ser.tx ($2E)
+    ser.dec (hundredths / 10)
+    ser.dec (hundredths // 10)
+    ser.str (string(" dBV"))
+
+    
+    
+DAT
+    ' params for FFT
+
+FFT_operation long    0
+FFT_N         long    N
+FFT_input_buffer  long  0
+FFT_work_buffer   long  0
+FFT_window_buffer long	0
+FFT_timing  long 0
+
+                ORG     0
+
+entry           mov     base, PTRA
+
+                setq2	#$1FF      ' copy code to LUTram
+		rdlong	#0, lutcode
+
+		QDIV	##FREQ, ##ADC_CYCLES
+		GETQX	fs
+
+                decod   size, #N
+                shl     size, #3
+                mov     winptr, base
+                add     winptr, size
+                mov     accumptr, winptr
+                shr     size, #2
+                add     accumptr, size
+                shr     size, #1
+
+.loop           call    #acquire        ' read ADC samples
+                call    #do_fft         ' perform forward FFT
+                mov     half, #1
+
+		mov	iter_action, ##avg
+                call    #average        ' sum into accum
+
+                call    #logconvert     ' replace with log(x)
+		call	#peak_find
+		wrlong  #1, peaks_flag  ' signal peak table valid
+.waitpeaks
+		rdlong	t, peaks_flag  wz
+	if_nz	jmp	#.waitpeaks     ' wait till its read
+	
+                mov     half, #0
+                jmp     #.loop
+
+peaks_flag	long	0
+avgcount        long    0
+fs		long	0
+
+lutcode         long    @lutstart
+
+
+{ generic scan of array }
+
+iterate         cmp     iter_action, #0  wz
+        if_z    jmp     iterate_ret
+        
+                mov     count, size
+                cmp     half, #0  wz
+        if_nz   shr     count, #1
+        if_nz   add     count, #1
+                mov     PTRA, base
+.loop
+		setq	#2-1
+		rdlong  x, PTRA
+
+		call    iter_action
+
+		setq    #2-1
+		wrlong  x, PTRA
+		add	PTRA, #8
+                djnz    count, #.loop
+                mov     PTRA, base
+iterate_ret     ret
+
+iter_action     long    0
+half            long    0
+acquire_start   long    0
+
+acquire         wrbyte  #1, acquire_start
+                'waitx   ##100000000
+.wait           rdbyte  t, acquire_start
+                cmp     t, #0  wz
+        if_nz   jmp     #.wait
+		wrbyte  #SLEEP, acquire_start
+acquire_ret     ret
+
+
+{ logarithm }
+
+avg_divisor     long    0
+
+logconvert      mov     t, avgcount
+                shl     t, #32-AVERAGE_N    ' varies upto FF000000
+                QLOG    t
+                GETQX   avg_divisor  ' varies C0000000..FFF.....
+                sar     avg_divisor, #1
+                
+                mov     PTRB, accumptr
+                mov     iter_action, #logify
+                jmp     #iterate     ' tail call
+
+
+logify          'rdlong  x, PTRB++
+                'rdlong  y, PTRB++
+                setq    #2-1
+		rdlong  x, PTRB
+		add	PTRB, #8
+
+		or      y, #1
+                cmp     x, #0  wz
+        if_z    cmp     y, #0  wz
+        if_z    mov     y, #1 ' jmp     #logify_ret
+                mov     t, #0
+                testb   x, #31  wc
+        if_c    jmp     #.skip
+.loop           shl     y, #1  wc   ' scale till top bit set
+                rcl     x, #1
+                testb   x, #31  wc
+        if_nc   sub     t, #1
+        if_nc   jmp     #.loop
+.skip
+                QLOG    x           ' take log
+                GETQX   x
+                shr     x, #1     ' need 0..64 range
+                add     t, #32+(FIXINT-1)   ' compensate for fixpoint representation, -1 for why?
+                shl     t, #26
+                add     x, t
+                sub     x, avg_divisor  ' correct for avgcount
+	        sub	x, ##$00100000   ' correction as its overflowing on calib waveform?<
+
+ 		fge	x, ##$2B6587B4   ' scale to 160dB as fullscale
+		neg	t, x
+		shr	t, #16
+		mul	t, ##$3441
+		sub	x, t
+		ret
+
+
+fft_start       long    0
+
+do_fft          wrbyte  #FFT_WITH_MAGSQR, fft_start
+
+.wait           rdbyte  t, fft_start
+                cmp     t, #0  wz
+        if_nz   jmp     #.wait
+		wrbyte  #SLEEP, fft_start
+                ret
+
+
+winptr          long    0
+accumptr	long	0
+window_params	long	0
+
+size            long    NN
+
+peak_table	long	0
+peak_i		res	1
+peak_curr	res	1
+peak_prev	res	1
+peak_state	res	1
+peak_diff	res	1
+peak_count	res	1
+
+count           res     1
+time            res     1
+val             res     1
+t               res     1
+'tt             res     1
+x               res     1   ' x, y contiguous for setq/rdlong
+y               res     1
+hi              res     1
+lo              res     1
+base            res     1
+
+		FIT     $1F0
+		
+{{ LUT code }}
+                ORG     $200
+lutstart
+average         shl	avgcount, #1
+		zerox   avgcount, #AVERAGE_N
+		shr	avgcount, #1
+	        add     avgcount, #1
+		mov     PTRB, accumptr	
+                jmp     #iterate     ' tail call
+
+avg		setq	#2-1
+		rdlong	hi, PTRB   ' hi, lo contiguous
+	
+                cmp     avgcount, #1  wz
+        if_z    mov     hi, #0
+        if_z    mov     lo, #0
+
+                shr     y, #AVERAGE_N
+                mov     t, x
+                shl     t, #32-AVERAGE_N
+                or      y, t
+                shr     x, #AVERAGE_N
+
+                add     lo, y  wc
+                addx    hi, x
+
+		setq	#2-1
+		wrlong	hi, PTRB
+		add	PTRB, #8
+                ret
+
+
+peak_find	call	#peak_find_init
+		mov	iter_action, ##peak_find_step
+		call	#iterate
+		wrlong	#0, PTRB[2]
+		wrlong	#0, PTRB[3]
+		mov	PTRB, peak_table
+		wrlong	peak_count, PTRB
+		ret
+
+peak_find_init	mov	PTRB, peak_table
+		sub	PTRB, #4
+		mov	peak_count, #0
+		mov	peak_i, #0
+		mov	peak_state, ##peakfind_idle
+		mov	PTRA, base
+		rdlong	peak_prev, PTRA
+		ret
+
+peak_find_step	mov	peak_curr, x  ' x is log scale, y is irrelevant
+		mov	peak_diff, peak_curr
+		sub	peak_diff, peak_prev
+		jmp	peak_state
+peakfind_idle
+		cmps	peak_diff, ##PEAK_BIG_DIFF  wcz
+	if_b	jmp	#peak_find_ret
+		cmp	peak_count, #MAX_PEAKS  wcz
+	if_ae	mov	peak_state, ##peakfind_full
+	if_ae	jmp	peak_state
+		add	peak_count, #1
+		add	PTRB, #8
+		mov	peak_state, ##peakfind_start
+peakfind_newmax
+		wrlong	peak_i, PTRB[0]
+		wrlong	peak_curr, PTRB[1]
+		jmp	#peak_find_ret
+
+peakfind_start
+		cmps	peak_diff, ##PEAK_SMALL_DIFF  wcz
+	if_b	mov	peak_state, ##peakfind_peak
+	if_b	jmp	peak_state
+		jmp	#peakfind_newmax
+		
+peakfind_peak	neg	peak_diff
+		cmps	peak_diff, ##PEAK_SMALL_DIFF  wcz
+	if_ae	mov	peak_state, ##peakfind_idle
+		rdlong	t, PTRB[1]
+		cmp	peak_curr, t  wcz
+	if_a	jmp	#peakfind_newmax
+peak_find_ret
+		mov	peak_prev, peak_curr
+		add	peak_i, #1
+		ret
+
+peakfind_full   ret
+
+
+zero		long	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+                FIT     $400

@@ -1,0 +1,143 @@
+
+CON
+    
+    DITHER_MODE  = %0000_0000_000_10100_00000000_01_00010_0
+    SLEEP	 = $FF
+
+    '    DAC_PIN = 44
+    'DISPLAY_CYCLES = 1600
+
+
+{ params
+N		long
+buffer		long
+pin		long
+cycles		long
+ready_flag	long
+}
+
+PUB  start(params)
+    cognew (@output_entry, params)
+    
+DAT
+
+                ORG     0
+		
+output_entry	rdlong  N, PTRA++
+		rdlong  t, PTRA++
+		rdlong  dac_pin, PTRA++
+		rdlong  cycles, PTRA++
+		mov     ready_addr, PTRA
+
+		mov	half, #1
+
+		mov	base, t
+		decod	size, N
+		'		dirh	dac_pin
+		
+
+.loop		rdbyte	t, ready_addr
+		cmp	t, #0  wz
+	if_z	jmp	#.loop
+
+		cmp	t, #SLEEP  wz
+	if_z	waitx	##1024
+	if_z	jmp	#.loop
+
+		call	#output
+
+		wrbyte	#0, ready_addr
+		jmp	#.loop
+
+
+{ generic scan of array }
+
+iterate         cmp     iter_action, #0  wz
+        if_z    jmp     iterate_ret
+        
+                mov     count, size
+                cmp     half, #0  wz
+        if_nz   shr     count, #1
+        if_nz   add     count, #1
+                mov     PTRA, base
+.loop
+                rdlong  x, PTRA++
+                rdlong  y, PTRA--
+                call    iter_action
+                wrlong  x, PTRA++
+                wrlong  y, PTRA++
+                djnz    count, #.loop
+                mov     PTRA, base
+iterate_ret     ret
+
+iter_action     long    0
+half            long    0
+                
+{ drive dac from sample vector, just the x values }
+
+output
+                WRPIN   ##DITHER_MODE, dac_pin   ' smartpin mode, can left DIRB/OUTB as is for this one
+                mov     count, #2
+                cmp     half, #0  wz
+        if_nz   shl     cycles, #1
+        if_nz   mov     count, #11
+                getct   time
+                addct1  time, cycles
+                'WYPIN  ##$FFFF, dac_pin
+
+                mov     t, ##$0fff
+.L1             waitct1
+                addct1  time, cycles
+                addct1  time, cycles
+                addct1  time, cycles
+                addct1  time, cycles
+                WYPIN   t, dac_pin
+                add     t, ##$1800
+                djnz    count, #.L1
+                waitct1
+                addct1  time, cycles
+                
+                WYPIN   #0, dac_pin
+                mov     count, #2
+.L2             waitct1
+                addct1  time, cycles
+                djnz    count, #.L2
+
+                mov     iter_action, #outsample
+                call    #iterate
+                waitct1
+                WYPIN   #0, dac_pin    ' down to zero till next time
+                cmp     half, #0  wz
+        if_nz   shr     cycles, #1
+output_ret      ret
+
+
+
+
+outsample       mov     t, x
+                cmp     offset, #0  wz
+        if_z    shr     t, #16
+        if_nz   sar     t, #16
+                add     t, offset
+                waitct1
+                addct1  time, cycles
+                WYPIN   t, dac_pin     
+outsample_ret   ret
+
+
+offset		long	0
+
+N		res	1
+ready_addr	res	1
+size            res	1
+count           res     1
+dac_pin		res	1
+cycles		res	1
+time            res     1
+val             res     1
+x		res	1
+y		res	1
+t               res     1
+base            res     1
+
+                FIT     $1F0

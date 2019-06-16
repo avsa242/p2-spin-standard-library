@@ -1,0 +1,1714 @@
+{{ fft_and_window.spin2 }}
+
+{{
+params as vector of long:
+
++-----------+-----------+-----------+-----------+
+| inp flags | inp fixint|   fixint  | operation |  (operation has address offset 0, little endian)
++-----------+-----------+-----------+-----------+
+|  status   | windowID  |mag2 fixint|     N     |
++-----------+-----------+-----------+-----------+
+|              input vector addr                |  must be same as work vector if shared
++-----------------------------------------------+
+|              work vector addr                 |
++-----------------------------------------------+
+|             window vector addr                |  optional window vector
++-----------------------------------------------+
+
+fixpoint values are used throughout, signed except for squared magnitudes, with fixint denoting the
+number of integer bits before the binary point.
+
+Thus fixint = 4 means fix4.28 for a 32 bit value or fix4.12 for a 16 bit value.
+
+For instance in fixint=4 case, a 16 bit value of %0010_100000000000 represents +2.5
+fixint=6 case, a 32 bit value %11100_100000000000000000000000000 represents -3.5
+
+complex values are stored as a pair of long fixpoint values, real then imaginary, so if fixint = 8,
++---------------------------------+
+|11111100_000000000000000000000000|  -4.0
++---------------------------------+
+|00000010_000000000000000000000000|  +2.0
++---------------------------------+
+repesents -4.0 + 2.0j
+
+magnitude squared values are represented as unsigned 64 bit fixpoints, high first, so if mag2 fixint = 16:
++---------------------------------+
+|0000000000000100_1000000000000000|
++---------------------------------+
+|10000000000000000000000000000000 |  represents 4.500007629394531 (4.5 + 1/2^17)
++---------------------------------+
+
+logarithms are in base 2, as a signed fixpoint 8.24 number:
+
+00000011_100000000000000000000000  represents 3.5, = log2(x), therefore x = 11.3137085
+
+To convert to dB, assuming the log is of a power (ie mag squared), multiply by 10 log10(2) = 3.01029996
+(which is 00000011_000000101010001100000100 in fix8.24)
+
+
+input flags
++-----+-----+-----+-----+-----+-----+-----+-----+
+|     |     |share|compl| element size in bytes |  size can be 2, 4, 8, if complex or shared must be 8
++-----+-----+-----+-----+-----+-----+-----+-----+
+share if 1 means input vector addr must equal work vector addr, and there is no need to copy data (only to zero
+out the imaginary component if the input data is not complex).
+complex means the input data is real,imag pairs of signed fixpoint longs
+element size being 4 implies non-shared, non-complex, array of 2^N signed fixpoint longs
+element size being 2 implies non-shared, non-complex, array of 2^N signed fixpoint words
+The fixpoint binary point is given by input fixint for the input array (if shared input fixint must = fixint)
+The working vector fixpoint binary point is given by fixint
+The magnitude-squared fixpoint binary point is given by mag2 fixint
+The logarithm values are always fix8.24 log base 2, corresponding to a range of +/- 380dB
+
+operation flags
++-----+-------+-----+-----+-----+-----+-----+-----+
+| go  |sym/win| log |whole| mag |mag^2|scale| inv |
++-----+-------+-----+-----+-----+-----+-----+-----+
+
+The FFT cog waits for the operation byte to become non-zero, representing a command, and then checks
+it for validity, setting status bits on invalid, or performs the action.  Then it sets the operation
+byte to zero to signal completion.
+
+whole means any log/mag/mag^2 operation done on negative frequencies too
+log   means take log of mag or mag^2, error if neither specified   - NOTE NOT YET IMPLEMENTED
+mag   means take mag/phase of entries                              - NOTE NOT YET IMPLEMENTED
+mag^2 means take 64 bit magnitude squared of entries, times 2  (error to specify both mag and mag^2)
+go   only needs to be set if all other flags zero, to distinguish from idle state, no harm to always use this
+inv   means do inverse FFT, none of log, whole, mag and mag^2 are compatible with this
+sym   means make frequency bins conjugate symmetrical for negative frequencies (only valid for inv) - NOT YET IMPL
+win   means apply the window vector (only valid for forwards)
+The special value of %11111111 puts the cog into a sleep/wake cycle to save power, so that it only checks
+the operation byte every 1000 cycles or so.
+
+Thus %10000000  means forward FFT to complex result
+     %x0000110  means forward FFT with 1/N scaling and then squared magnitude on non-negative frequency bins
+     %x0011010  means forward FFT with 1/N scaling followed by converting all bins to (magnitude,phase)
+     %x0000001  means inverse FFT on complex frequency samples
+     %x0000011  means inverse FFT on complex frequency samples with 1/N scaling
+     %x1000001  means inverse FFT after setting negative bins to conjugates of positive bins, to give real results
+     %11111111  means save power mode.  Can be cancelled by writing any operation or zero
+     %00000000  means idle - the FFT cog waits for this to change.
+
+If you do %10000000 (forwards no scale) followed by %x0000011 (inverse scaled)
+       or %x0000010 (forwards scaled)   followed by %x0000001 (inverse no scale),
+you should get back the the starting values within rounding error (assuming no overflow)
+
+If a non-zero window vector and valid windowID is supplied when the start method is called, then the
+chosen window is expanded into the vector (only the first half is written, the windows are symmetrical,
+thus the window vector length is N/2 longs)
+This expansion also scales the window to the fixint resolution so that the mean is 1.0, and calculates
+the variance of the window into window_sig2.  The square of the mean is stored into window_mu2, currently
+assumed always unity.
+
+The supported windowIDs are:
+    RECT_WINDOW
+    HANN_WINDOW
+    HAMMING_WINDOW
+    BLACKMAN_HARRIS_WINDOW
+    NUTTALL4C_WINDOW
+    SFT3F_WINDOW
+    SFT3M_WINDOW
+    SFT5M_WINDOW
+    FTNI_WINDOW
+    FTHP_WINDOW
+    FTSRS_WINDOW
+    HFT70_WINDOW
+    HFT90D_WINDOW
+    HFT95_WINDOW
+    HFT116D_WINDOW
+    HFT144D_WINDOW
+
+Recommended reading:  http://holometer.fnal.gov/GH_FFT.pdf
+
+
+
+
+as byte addresses, its:
+
+0:   operation/ready flag
+1:   fixint
+2:   input fixint
+3:   input flags
+4:   N
+5-7: status
+8:   longs...
+
+}}
+
+CON
+    SYM_BIT        = 6
+    WIN_BIT        = 6  ' same as SYM_BIT
+    LOG_BIT	   = 5
+    WHOLE_BIT      = 4
+    MAG_BIT        = 3
+    MAGSQR_BIT     = 2
+    SCALED_BIT     = 1
+    SENSE_BIT      = 0
+    
+    GO             = $80  ' set this in case all the others are zero which is idle state
+    SLEEP          = $FF  ' use waitx until this operation removed
+    DO_SYMMETRIC   = 1 << SYM_BIT
+    DO_WINDOW      = 1 << WIN_BIT
+    DO_LOGARITHM   = 1 << LOG_BIT
+    DO_WHOLE_ARRAY = 1 << WHOLE_BIT
+    DO_MAGNITUDE   = 1 << MAG_BIT
+    DO_MAG_SQR     = 1 << MAGSQR_BIT
+    DO_SCALED      = 1 << SCALED_BIT
+    DO_INVERSE     = 1 << SENSE_BIT
+    DO_FORWARDS    = 0 << SENSE_BIT
+
+    INP_SHARED_BIT = 5
+    INP_COMPLEX_BIT = 4
+
+    INP_SHARED = 1 << INP_SHARED_BIT
+    INP_COMPLEX = 1 << INP_COMPLEX_BIT
+
+
+    RECT_WINDOW = 0
+    HANN_WINDOW = 1
+    HAMMING_WINDOW = 2
+    BLACKMAN_HARRIS_WINDOW = 3
+    NUTTALL4C_WINDOW = 4
+    SFT3F_WINDOW = 5
+    SFT3M_WINDOW = 6
+    SFT5M_WINDOW = 7
+    FTNI_WINDOW = 8
+    FTHP_WINDOW = 9
+    FTSRS_WINDOW = 10
+    HFT70_WINDOW = 11
+    HFT90D_WINDOW = 12
+    HFT95_WINDOW = 13
+    HFT116D_WINDOW = 14
+    HFT144D_WINDOW = 15
+
+    MAX_WINDOW = 15
+
+
+PUB start(params)
+    lutcode := @lutstart
+    window_ptr := @window_table
+    result := cognew (@fft_entry, params)
+
+
+PUB  module_name
+    result := string ("fft_and_window")
+
+
+PUB  window_name(win_id)
+    case win_id
+      RECT_WINDOW    : result := string ("Rectangular")
+      HANN_WINDOW : result := string ("Hann")
+      HAMMING_WINDOW : result := string ("Hamming")
+      BLACKMAN_HARRIS_WINDOW : result := string ("Blackman-Harris")
+      NUTTALL4C_WINDOW : result := string ("Nuttall 4C")
+      SFT3F_WINDOW   : result := string ("SFT 3F")
+      SFT3M_WINDOW   : result := string ("SFT 3M")
+      SFT5M_WINDOW   : result := string ("SFT 5M")
+      FTNI_WINDOW    : result := string ("NI flattop")
+      FTHP_WINDOW    : result := string ("HP flattop")
+      FTSRS_WINDOW   : result := string ("SRS flattop")
+      HFT70_WINDOW   : result := string ("HFT70")
+      HFT90D_WINDOW  : result := string ("HFT90D")
+      HFT95_WINDOW   : result := string ("HFT95")
+      HFT116D_WINDOW : result := string ("HFT116D")
+      HFT144D_WINDOW : result := string ("HFT144D")
+
+
+
+DAT
+
+window_table
+' Hann
+                long    $80000000 ' 1.0 / 2
+                long    $80000000 ' 1.0 / 2
+                long    0
+                long    0
+                long    0
+                long    0
+                long    0
+' Hamming
+                long    $80000000 ' 1.0 / 2
+                long    $6d097b42 ' 0.8518518518518519 / 2
+                long    0
+                long    0
+                long    0
+                long    0
+                long    0
+' Blackman Harris
+                long    $80000000 ' 1.0 / 2
+                long    $ae381a34 ' 1.3610871080139373 / 2
+                long    $32686d35 ' 0.39381184668989544 / 2
+                long    $042ad808 ' 0.0325574912891986 / 2
+                long    0
+                long    0
+                long    0
+' Nuttall4C
+                long    $80000000 ' 1.0 / 2
+                long    $ac375db6 ' 1.3454396382218146 / 2
+                long    $30171919 ' 0.3757048962008285 / 2
+                long    $03bf08d1 ' 0.029267408526112 / 2
+                long    0
+                long    0
+                long    0
+' SFT3F
+                long    $80000000 ' 1.0 / 2
+                long    $f145d08e ' 1.8849430747191436 / 2
+                long    $7145d08e ' 0.8849430747191435 / 2
+                long    0
+                long    0
+                long    0
+                long    0
+' SFT3M
+                long    $80000000 ' 1.0 / 2
+                long    $ec363820 ' 1.845404639631663 / 2
+                long    $591f2997 ' 0.6962635027448202 / 2
+                long    0
+                long    0
+                long    0
+                long    0
+' SFT5M
+                long    $80000000 ' 1.0 / 2
+                long    $f8aae2b8 ' 1.9427150154289339 / 2
+                long    $abaeab5d ' 1.3412679865122026 / 2
+                long    $38929569 ' 0.44197337733878317 / 2
+                long    $058ebcc4 ' 0.043418498504800375 / 2
+                long    0
+                long    0
+' FTNI
+                long    $80000000 ' 1.0 / 2
+                long    $ed391b34 ' 1.8533052448215512 / 2
+                long    $5a309921 ' 0.7046080980161451 / 2
+                long    0
+                long    0
+                long    0
+                long    0
+' FTHP
+                long    $80000000 ' 1.0 / 2
+                long    $f4cd2894 ' 1.912510941 / 2
+                long    $8a22598b ' 1.079173272 / 2
+                long    $17752a35 ' 0.1832630879 / 2
+                long    0
+                long    0
+                long    0
+' FTSRS
+                long    $80000000 ' 1.0 / 2
+                long    $f70a3d71 ' 1.93 / 2
+                long    $a51eb852 ' 1.29 / 2
+                long    $31a9fbe7 ' 0.388 / 2
+                long    $03958106 ' 0.028 / 2
+                long    0
+                long    0
+' HFT70
+                long    $80000000 ' 1.0 / 2
+                long    $f4380885 ' 1.90796 / 2
+                long    $89681ecd ' 1.07349 / 2
+                long    $174b72c5 ' 0.18199 / 2
+                long    0
+                long    0
+                long    0
+' HFT90D
+                long    $80000000 ' 1.0 / 2
+                long    $f8a73f75 ' 1.942604 / 2
+                long    $ab8f8a4c ' 1.340318 / 2
+                long    $386c7eae ' 0.440811 / 2
+                long    $058433d7 ' 0.043097 / 2
+                long    0
+                long    0
+' HFT95
+                long    $80000000 ' 1.0 / 2
+                long    $f81b74d1 ' 1.9383379 / 2
+                long    $a6fa8496 ' 1.3045202 / 2
+                long    $338fd5cb ' 0.402827 / 2
+                long    $047d0f1f ' 0.0350665 / 2
+                long    0
+                long    0
+' HFT116D
+                long    $80000000 ' 1.0 / 2
+                long    $fa9096bc ' 1.9575375 / 2
+                long    $bd316a05 ' 1.4780705 / 2
+                long    $5180cc43 ' 0.6367431 / 2
+                long    $0fb92f61 ' 0.1228389 / 2
+                long    $00d93668 ' 0.0066288 / 2
+                long    0
+' HFT144D
+                long    $80000000 ' 1.0 / 2
+                long    $fbda53de ' 1.96760033 / 2
+                long    $ca38117f ' 1.57983607 / 2
+                long    $67d6987e ' 0.81123644 / 2
+                long    $1ce82e27 ' 0.22583558 / 2
+                long    $038cef3c ' 0.02773848 / 2
+                long    $001d9bf2 ' 0.0009036 / 2
+
+
+		ORG     0
+
+fft_entry	SETQ2	#$1FF      ' copy code to LUTram
+		rdlong	#0, lutcode
+
+		mov     ready_addr, PTRA
+		rdbyte  operation, PTRA++
+                rdbyte  fixint, PTRA++
+                rdbyte  inp_fixint, PTRA++
+                rdbyte  inp_flags, PTRA++
+
+		rdbyte  N, PTRA++
+		rdbyte  mag2_fixint, PTRA++
+		rdbyte	window_id, PTRA++
+                add     PTRA, #1     ' skip status byte
+
+                rdlong  inp_base, PTRA++
+                rdlong  base, PTRA++
+		rdlong  win_base, PTRA++
+		mov	timing, PTRA
+		mov	PTRA, base
+
+		call	#setup_N_dependent
+		
+                mov     fixfract, #32
+                sub     fixfract, fixint
+                decod   one_value, fixfract
+		mov	inp_stride, inp_flags
+		and	inp_stride, #15
+
+		decod	window_mu2, fixfract    ' default window stats for a rectangular (null) window
+		decod	window_sig2, fixfract
+		cmp	win_base, #0  wz
+	if_nz	call	#gen_window
+
+                ' no checking of input details yet
+                
+.loop           rdbyte  operation, ready_addr
+                cmp     operation, #0  wz
+        if_z    jmp     #.loop
+
+
+                cmp     operation, #SLEEP  wz  ' sleep for a while to reduce power consumption
+        if_z    waitx   ##1024
+        if_z    jmp     #.loop
+
+		getct	start_time
+                mov     half, #0
+
+		call	#input
+
+		cmp	win_base, #0  wz
+	if_z	jmp	#.skipwin
+		testb   operation, #WIN_BIT  wc
+	if_c	call	#window
+.skipwin
+		testb	inp_flags, #INP_COMPLEX_BIT  wc
+	if_nc   call    #fft_real
+		testb	inp_flags, #INP_COMPLEX_BIT  wc
+	if_c    call    #fft_complex
+
+
+                testb   operation, #WHOLE_BIT  wc  ' whole array for magnitude?
+        if_nc   mov     half, #1
+
+                testb   operation, #MAG_BIT  wc  ' do magnitude   NYI
+        if_nc   jmp     #.skip
+		call    #magnitude
+        	jmp     #.done_mag
+.skip
+                testb   operation, #MAGSQR_BIT  wc  ' do mag squared
+        if_c    call    #sqr_mag
+.done_mag
+		getct   end_time
+		sub	end_time, start_time
+		wrlong	end_time, timing
+		
+                wrbyte  #0, ready_addr
+                jmp     #.loop
+
+setup_N_dependent
+                decod   size, N
+                mov     rev_shift, #32-(2*3)
+                sub     rev_shift, N
+		ret
+
+{ generic scan of array of complex }
+
+iterate_vec_rw  mov     PTRA, base
+                cmp     iter_action, #0  wz
+        if_z    jmp     #.done
+        
+                mov     count, size
+                cmp     half, #0  wz
+       if_nz    shr     count, #1
+       if_nz    add     count, #1
+.loop
+		SETQ	#2-1
+                rdlong  x, PTRA
+		call    iter_action
+		SETQ	#2-1
+                wrlong  x, PTRA
+		add	PTRA, #8
+                djnz    count, #.loop
+.done
+                ret
+
+iterate_vec_wo  mov     PTRA, base
+                cmp     iter_action, #0  wz
+        if_z    jmp     #.done
+        
+                mov     count, size
+                cmp     half, #0  wz
+       if_nz    shr     count, #1
+       if_nz    add     count, #1
+.loop		
+              	call    iter_action
+		SETQ	#2-1
+                wrlong  x, PTRA
+		add	PTRA, #8
+                djnz    count, #.loop
+.done
+                ret
+
+iterate_vec_ro  mov     PTRA, base
+                cmp     iter_action, #0  wz
+        if_z    jmp     #.done
+        
+                mov     count, size
+                cmp     half, #0  wz
+       if_nz    shr     count, #1
+       if_nz    add     count, #1
+.loop		
+		SETQ	#2-1
+                rdlong  x, PTRA
+		add	PTRA, #8
+		call    iter_action
+                djnz    count, #.loop
+.done
+                ret
+
+
+{ generic input convert }
+
+input	  	testb	inp_flags, #INP_SHARED_BIT  wc
+	if_nc	jmp	#.needs_copying
+
+		' we know the stride is 8 for shared
+		testb	inp_flags, #INP_COMPLEX_BIT  wc
+	if_nc	jmp	#.shared32       ' real so have to process to clear imag
+		cmp	inp_fixint, fixint  wz
+	if_nz	jmp	#.shared32       ' shifting needed, so have to process
+		ret			' complex, same fixint, nothing to do...
+		
+.needs_copying
+		cmp	inp_stride, #2  wz  ' expand 16 bit
+	if_z	jmp	#input16    ' tail call
+		jmp	#input32    ' tail call - stride 4 and 8 both handled by input32
+
+.shared32	mov	t, inp_fixint
+		sub	t, fixint   ' t is the amount to shift left by (or right if neg)
+		cmps	t, #0  wcz
+	if_e	ret		    ' if no shift needed, return
+	if_ae	mov	iter_action, #inplace_32_shl  ' select iter_action routine
+	if_b	not	t	    ' t <- -t-1
+	if_b	mov	iter_action, #inplace_32_sar
+		jmp	#iterate_vec_rw  ' tail call
+
+
+' inplace, only have to shift and perhaps zero imaginary
+inplace_32_shl	shl	x, t
+		testb	inp_flags, #INP_COMPLEX_BIT  wc
+	if_c	shl	y, t
+	if_nc	mov	y, #0
+		ret
+
+inplace_32_sar	sar	x, t
+		add	x, #1
+		sar	x, #1
+		testb	inp_flags, #INP_COMPLEX_BIT  wc
+	if_c	shl	y, t
+	if_c	add	y, #1
+	if_c	sar	y, #1
+	if_nc	mov	y, #0
+		ret
+		
+
+
+{ convert/copy 16 bit values to work vector }
+
+input16	        mov     PTRB, inp_base  ' copying from input buffer using PTRB explicitly
+		mov	t, #16
+		add	t, inp_fixint
+		sub	t, fixint   ' t is the amount to shift left by (or right if neg)
+		cmps	t, #0  wcz
+	if_ae	mov	iter_action, #conv_16_shl   ' this also handles zero-shift case
+	if_b	not	t	    ' t <- -t-1
+	if_b	mov	iter_action, #conv_16_sar
+		jmp	#iterate_vec_wo   ' tail call (note the write-only iterator)
+
+
+conv_16_shl	rdword	x, PTRB++     ' pull words from PTRB
+		signx	x, #15  ' sign extend
+		shl	x, t
+		mov	y, #0   ' no imaginary part
+		ret
+
+conv_16_sar	rdword  x, PTRB++
+		signx	x, #15  ' sign extend
+		sar	x, t    ' do all but one shift
+		add	x, #1   ' round up the MSB that's lost
+		sar	x, #1
+		mov	y, #0
+		ret
+		
+{ convert/copy 32 bit values to work_vector }
+
+input32	        mov     PTRB, inp_base
+		mov	t, inp_fixint
+		sub	t, fixint   ' t is the amount to shift left by (or right if neg)
+		cmps	t, #0  wcz
+	if_ae	mov	iter_action, #conv_32_shl
+	if_b	not	t	    ' t <- -t-1
+	if_b	mov	iter_action, #conv_32_sar
+		jmp	#iterate_vec_wo  ' tail call
+
+
+conv_32_shl	rdlong	x, PTRB++
+		shl	x, t
+		cmp	inp_stride, #8  wz
+	if_z	rdlong	y, PTRB++
+	if_z	shl	y, t
+		testb	inp_flags, #INP_COMPLEX_BIT  wc
+	if_nc	mov	y, #0   ' no imaginary part if input is real
+		ret
+
+conv_32_sar	rdlong  x, PTRB++
+		sar	x, t    ' do all but one shift
+		add	x, #1   ' round up the MSB that's lost
+		sar	x, #1
+		cmp	inp_stride, #8  wz  ' if stride is 8, copy other long
+	if_z	rdlong	y, PTRB++
+	if_z	sar	y, t
+	if_z	add	y, #1   ' round up the MSB that's lost
+	if_z	sar	y, #1
+		cmp	inp_flags, #INP_COMPLEX_BIT  wc
+	if_nc	mov	y, #0   ' no imaginary part if input not complex
+		ret
+
+
+{ for real FFT prepass, pack successive samples into real and imag }
+
+pack_down	mov	PTRA, base
+		mov	PTRB, base
+		mov	count, size
+		shr	count, #3
+.loop
+		SETQ	#16-1
+		rdlong  xt0, PTRA
+		add	PTRA, #64
+
+		'mov	xt0, xt0
+		mov	yt0, xt1
+		mov	xt1, xt2
+		mov	yt1, xt3
+		mov	xt2, xt4
+		mov	yt2, xt5
+		mov	xt3, xt6
+		mov	yt3, xt7
+
+		SETQ	#8-1
+		wrlong  xt0, PTRB
+		add	PTRB, #32
+		djnz	count, #.loop
+		ret
+
+{ the N/2 frequency sample needs synthesizing after real FFT, if the work array is large enough }
+
+last_sample	mov	PTRA, base
+		SETQ	#2-1
+		rdlong  x, PTRA   ' block read x,y
+
+		sub	x, y
+	        testb   operation, #SCALED_BIT  wc
+	if_c	sar	x, #1
+		mov	y, #0
+
+		decod	t, N
+		shl	t, #3
+		add	PTRA, t
+		SETQ	#2-1
+		wrlong	x, PTRA   ' block write x, 0
+		ret
+
+
+fft_real	call	#pack_down   ' move reals into both real/complex slots
+
+		sub	N, #1
+		call	#setup_N_dependent
+
+		call	#fft_complex
+		call	#last_sample  ' the Fs/2 entry (should suppress if shared, stride 4 real fft)
+
+		decod   phase_inc, #31
+		shr	phase_inc, N
+		
+		mov	PTRA, base
+		mov	PTRB, base
+
+		mov	PTRB, base  ' first entry wraps PTRB back to base
+		
+		mov	angle1, #0
+		mov	angle2, #0  ' angle2 initially zero
+
+		call	#adjust     ' first entries processed, this call steps PTRA, PTRB, angle1, angle2
+
+		decod	t, N	    ' then PTRB steps back from end of array
+		shl	t, #3
+		add	PTRB, t
+
+		decod	angle2, #31 ' set angle2 to what it should be, stepping back from pi, to match PTRB
+		sub	angle2, phase_inc
+		
+		decod	count, N
+		shr	count, #1
+adj_loop
+		call	#adjust     ' process all other entries
+		djnz	count, #adj_loop
+
+		' restore normal size FFT
+		add	N, #1
+		call	#setup_N_dependent
+		ret
+
+
+
+adjust		rdlong  x1, PTRA[0] ' adjust from complex FFT to real of twice the size with postpass stitch-together
+		rdlong	y1, PTRA[1]
+
+		rdlong  x2, PTRB[0]
+		rdlong  y2, PTRB[1]
+
+		' REMOVE THESE OVERLOAD SAFEGUARDS
+
+		mov	rdif, x1    ' rotations applied to sums/differences scaled by 0.5
+		sub	rdif, x2
+		sar	rdif, #2
+		QROTATE rdif, angle1
+		mov	isum, y1
+		add	isum, y2
+		sar	isum, #2
+		QROTATE rdif, angle2
+		mov	idif, y1
+		sub	idif, y2
+		sar	idif, #2
+		QROTATE isum, angle1
+		mov	rsum, x1
+		add	rsum, x2
+		sar	rsum, #2
+		QROTATE isum, angle2
+
+		mov	re, rsum
+		mov	im, idif
+		mov	re2, rsum
+		neg	im2, idif
+
+		GETQX	x    ' real_diff * cos(angle1)
+		GETQY	y    ' real_diff * sin(angle1)
+		sub	im, x
+		sub	re, y
+
+		GETQX	x    ' real_diff * cos(angle2)
+		GETQY	y    ' real_diff * sin(angle2)
+		add	im2, x
+		add	re2, y
+
+		GETQX	x    ' imag_sum * cos(angle1)
+		GETQY	y    ' imag_sum * sin(angle1)
+		add	re, x
+		sub	im, y
+
+		GETQX	x    ' imag_sum * cos(angle2)
+		GETQY	y    ' imag_sum * sin(angle2)
+		add	re2, x
+		sub	im2, y
+
+		wrlong	re, PTRA[0]
+		wrlong  im, PTRA[1]
+
+		wrlong  re2, PTRB[0]
+		wrlong  im2, PTRB[1]
+
+		add	PTRA, #8   ' step the pointers and angles along
+		add	angle1, phase_inc
+		sub	PTRB, #8
+		sub	angle2, phase_inc
+		ret
+
+
+
+magnitude	mov	iter_action, ##mag
+		call	#iterate_vec_rw
+		
+		mov	count, size    ' do polar conversion on the negative frequencies, can use the phases 
+		shr	count, #1      ' if needed
+		add	count, #1
+		mov	PTRA, base
+		shl	count, #3
+		add	PTRA, count
+		shr	count, #3
+		sub	count, #2
+.atanloop
+		rdlong	x, PTRA++
+		rdlong  y, PTRA--
+		call	#polar_convert
+		wrlong  x, PTRA++
+		wrlong  y, PTRA++
+		
+		djnz	count, #.atanloop
+		ret
+
+mag		call	#mag_square
+		QSQRT	lo, hi
+		GETQX	x
+		mov	y, #0
+		ret
+
+
+polar_convert   
+		QVECTOR x, y
+		GETQX   x
+		GETQY   y
+		ret
+
+
+mag_square	abs     x       ' currently does 32 to 64 squaring, so for instance fix8.24 becomes fix16.48
+                QMUL    x, x
+                abs     y
+                QMUL    y, y
+
+                GETQX   lo
+                GETQY   hi
+
+		GETQX   b
+                GETQY   a
+                add     lo, b  wc     ' x^2 + y^2
+                addx    hi, a
+		
+                shl     lo, #1  wc    ' scale by two since spectrum reflected and we only look as positive frequencies
+                rcl     hi, #1        ' so we'd lose half the energy otherwise
+
+		' maybe do fixpoint conversion here?
+		mov	t, lo
+		shr	t, fixfract
+		shl	lo, fixint
+		shl	hi, fixint
+		or	hi, t
+
+                mov     x, hi
+                mov     y, lo
+                ret
+
+
+
+
+calc_mu_sigma   mov	count, N  ' N-1 because we only store half the values due to symmetry
+		sub	count, #1
+.sloop
+		sar	mu_h, #1  wc
+		rcr	mu_l, #1
+		shr	sig_h, #1  wc
+		rcr	sig_l, #1
+		djnz    count, #.sloop
+		
+		mov	val, mu_l
+		call	#square
+		mov     window_mu2, val
+		mov	window_sig2, sig_l
+                ret
+
+
+sum_mu_sigma
+		testb	val, #31  wz
+		add	mu_l, val  wc
+		addx	mu_h, #0       ' sum for mu
+	if_z	sub	mu_h, #1   ' sign correct
+
+		call	#square
+		add	sig_l, val  wc
+		addx	sig_h, #0      ' sum for sig^2
+		ret
+
+
+square		abs	val
+		QMUL	val, val
+		GETQX	lo
+		GETQY	val
+		shl	val, fixint
+		shr	lo, fixfract
+		or	val, lo
+		ret
+
+
+
+{ multiply fix8.24 }
+{
+mult            QMUL    a, b
+                testb   a, #31  wc
+                testb   b, #31  wz
+                GETQY   val
+                GETQX   lo
+        if_c    sub     val, b
+        if_z    sub     val, a
+                shl     val, fixint
+                shr     lo, fixfract
+                or      val, lo
+                ret
+}
+sqr_mag 	mov	PTRA, base   ' currently does 32 to 64 squaring, so for instance fix8.24 becomes fix16.48
+		mov	count, size
+		shr	count, #2    ' 4 per loop
+                cmp     half, #0  wz
+       if_nz    shr     count, #1
+		add	fixint, #1   ' combine the doubling into the fixpoint conversion
+		sub	fixfract, #1 ' scale by two since spectrum reflected and we only look as positive frequencies
+		                     ' so we'd lose half the energy otherwise
+.loop
+		call	#sqr_mag_unrolled_4
+
+		djnz	count, #.loop
+
+		cmp     half, #0  wz
+       if_nz    call	#sqr_mag_unrolled_4    ' need to do last entry at size//2 - do a few more due to unrolled loop
+		
+		sub	fixint, #1
+		add	fixfract, #1
+		ret
+
+
+fft_complex     call    #reorder
+		call	#fft_first
+		call	#fft_next_two
+		call	#fft_rest_unrolled
+		ret
+
+
+lutcode         long    @lutstart
+window_ptr	long	@window_table
+
+one_value       long    1  ' gets scaled to fixpoint 1.0 based on fixint/fixfract
+iter_action     res     1
+
+operation       res     1
+inp_fixint      res     1
+inp_flags       res     1
+inp_stride      res     1
+base            res     1
+prev_ptrb       res     1
+N               res     1
+inp_base        res     1
+win_base	res	1
+ready_addr      res     1
+size            res     1
+count           res     1
+fixint          res     1
+fixfract        res     1
+mag2_fixint	res	1
+window_id	res	1
+
+phase_inc       res     1
+rootph          res     1
+stride          res     1
+inner           res     1
+bcount          res     1
+half_size       res     1
+half_mask       res     1
+rev_shift       res     1
+half            res     1
+
+t               res     1
+val		res	1
+
+x
+xt0		res	1   ' these must be contiguous
+y
+yt0		res	1
+x1
+xt1		res	1
+y1
+yt1		res	1
+x2
+xt2		res	1
+y2
+yt2		res	1
+x3
+xt3		res	1
+y3
+yt3		res	1
+x4
+xt4		res	1
+y4
+yt4		res	1
+xx
+xt5		res	1
+yy
+yt5		res	1
+xt6		res	1
+yt6		res	1
+xt7		res	1
+yt7		res	1
+
+xb0		res	1   ' these must be contiguous
+yb0		res	1
+xb1		res	1
+yb1		res	1
+xb2		res	1
+yb2		res	1
+xb3		res	1
+yb3		res	1
+xb4		res	1
+yb4		res	1
+xb5		res	1
+yb5		res	1
+xb6		res	1
+yb6		res	1
+xb7		res	1
+yb7		res	1
+
+a0              res	1
+a1		res	1
+a2              res	1
+a3		res	1
+a4              res	1
+a5		res	1
+a6              res	1
+a7		res	1
+b0              res	1
+b1		res	1
+b2              res	1
+b3		res	1
+
+a               res     1
+b               res     1
+hi              res     1   ' these must be contiguous
+lo              res     1
+
+timing          res     1
+start_time      res     1
+end_time        res     1
+
+angle1		res	1
+angle2		res	1
+re		res	1
+im		res	1
+re2		res	1
+im2		res	1
+rsum		res	1
+rdif		res	1
+isum		res	1
+idif		res	1
+
+mu_h		res	1
+mu_l		res	1
+sig_h		res	1
+sig_l		res	1
+window_mu2	res	1
+window_sig2	res	1
+
+c0		res	1
+c1		res	1
+c2		res	1
+c3		res	1
+c4		res	1
+c5		res	1
+c6		res	1
+
+' 9 spare
+                FIT     $1F0
+		
+{{ LUT code }}
+                ORG     $200
+lutstart
+
+prattle		ret
+
+{ squaring and magnitude }
+
+
+sqr_mag_unrolled_4
+		SETQ	#8-1
+		rdlong  xt0, PTRA
+		
+		abs	xt0
+		QMUL	xt0, xt0
+		abs	yt0
+		QMUL    yt0, yt0
+		abs	xt1
+		QMUL	xt1, xt1
+		abs	yt1
+		QMUL    yt1, yt1
+		abs	xt2
+		QMUL	xt2, xt2
+		abs	yt2
+		QMUL    yt2, yt2
+		abs	xt3
+		QMUL	xt3, xt3
+		abs	yt3
+
+		GETQX   yt0
+                GETQY   xt0	' x is hi, y is lo
+
+		QMUL    yt3, yt3
+
+		GETQX   lo
+                GETQY   hi
+
+		add     yt0, lo  wc     ' x^2 + y^2
+                addx    xt0, hi
+
+		GETQX   yt1
+                GETQY   xt1
+
+		GETQX   lo
+                GETQY   hi
+
+		add     yt1, lo  wc     ' x^2 + y^2
+                addx    xt1, hi
+
+		GETQX   yt2
+                GETQY   xt2
+
+		GETQX   lo
+                GETQY   hi
+
+		add     yt2, lo  wc     ' x^2 + y^2
+                addx    xt2, hi
+
+		GETQX   yt3
+                GETQY   xt3
+
+		GETQX   lo
+                GETQY   hi
+
+		add     yt3, lo  wc     ' x^2 + y^2
+                addx    xt3, hi
+
+		mov	t, yt0	' x is hi, y is lo
+		shr	t, fixfract
+		shl	yt0, fixint
+		shl	xt0, fixint
+		or	xt0, t
+
+		mov	t, yt1	' x is hi, y is lo
+		shr	t, fixfract
+		shl	yt1, fixint
+		shl	xt1, fixint
+		or	xt1, t
+
+		mov	t, yt2	' x is hi, y is lo
+		shr	t, fixfract
+		shl	yt2, fixint
+		shl	xt2, fixint
+		or	xt2, t
+
+		mov	t, yt3	' x is hi, y is lo
+		shr	t, fixfract
+		shl	yt3, fixint
+		shl	xt3, fixint
+		or	xt3, t
+
+		SETQ	#8-1
+		wrlong	xt0, PTRA
+		add	PTRA, #32
+		ret
+
+
+{
+sqr_mag_unrolled_1
+		SETQ	#2-1
+		rdlong  xt0, PTRA
+		
+		abs	xt0
+		QMUL	xt0, xt0
+		abs	yt0
+		QMUL    yt0, yt0
+
+		GETQX   yt0
+                GETQY   xt0	' x is hi, y is lo
+
+		GETQX   lo
+                GETQY   hi
+
+		add     yt0, lo  wc     ' x^2 + y^2
+                addx    xt0, hi
+
+		mov	t, yt0	' x is hi, y is lo
+		shr	t, fixfract
+		shl	yt0, fixint
+		shl	xt0, fixint
+		or	xt0, t
+
+		SETQ	#2-1
+		wrlong	xt0, PTRA
+		add	PTRA, #32
+		ret
+}
+		
+{ bit reversal reorder pass for FFT, only affects x, not y  - that needs changing for complex input }
+
+reorder         mov     count, size
+                sub     count, #1
+                shl     count, #3    ' mult of 8 for complex address
+                mov     PTRA, base
+                mov     PTRB, base
+.loop
+                mov     t, count
+                rev     t
+                shr     t, rev_shift
+                cmp     t, count  wc
+        if_nc   jmp     #.skip       ' only swap once for each pair
+
+                add     PTRA, t
+                add     PTRB, count
+		SETQ	#2-1
+                rdlong  x, PTRA
+		SETQ	#2-1
+                rdlong  x2, PTRB
+		SETQ	#2-1
+                wrlong  x, PTRB
+		SETQ	#2-1
+                wrlong  x2, PTRA
+                sub     PTRA, t
+                sub     PTRB, count
+.skip
+                sub     count, #7
+                djnz    count, #.loop
+                ret
+
+
+
+
+fft_rest_unrolled
+		mov	bcount, N
+		sub	bcount, #3  wcz
+	if_le	ret		' should just assume at least 3 passes, lots of unrolled loops assume this
+
+bitloop2
+		mov     PTRA, base     ' more setup after pipeline fired up
+                mov     PTRB, base     ' PTRA and PTRB used in butterfly
+		add	PTRB, stride
+		decod	count, N
+		shr	count, #3     ' number of unrolled inner loops (each is 8 pieces of one butterfly)
+		shr	count, #1
+
+		mov	half_mask, half_size
+		shr	half_mask, #3
+		sub	half_mask, #1  ' ranges 0, 1, 3, 7, 15, 31,...
+
+		mov	rootph, #0
+		mov	inner, #0      ' loops 0,1,2,3,..,half_mask, 0,1,2,3,..., used to detect when to stride to next butterfly set
+
+.loop2		call	#inner_unrolled_8
+
+                incmod  inner, half_mask  wz
+        if_z    mov     rootph, #0     ' new butterfly set, so w set back to w0
+        if_z    add     PTRA, stride   ' stride PTRA
+        if_z    add     PTRB, stride   ' stride PTRB
+                djnz    count, #.loop2
+
+		shl	half_size, #1   ' shift the various powers of two along
+		shl	stride, #1
+                testb   operation, #SENSE_BIT  wc  ' inverse uses +ve angles, forwards uses -ve angles for roots of unity
+	if_nc   sar     phase_inc, #1   ' initial angle has top bit set, forwards uses SAR to preserve this
+	if_c	shr	phase_inc, #1
+		djnz	bcount, #bitloop2
+		ret
+
+
+inner_unrolled_8
+		SETQ	#16-1		' use fast block reads
+		rdlong	xt0, PTRA
+		SETQ	#16-1
+		rdlong	xb0, PTRB	' get 8 butterflies cached into regs
+
+		SETQ	yb0
+		QROTATE xb0, rootph
+		add	rootph, phase_inc  ' do the rotations by unity roots
+
+		SETQ	yb1
+		QROTATE xb1, rootph
+		add	rootph, phase_inc
+
+		SETQ	yb2
+		QROTATE xb2, rootph
+		add	rootph, phase_inc		
+
+		SETQ	yb3
+		QROTATE xb3, rootph
+		add	rootph, phase_inc		
+
+		SETQ	yb4
+		QROTATE xb4, rootph
+		add	rootph, phase_inc		
+		mov	t, phase_inc
+
+		SETQ	yb5
+		QROTATE xb5, rootph
+		add	rootph, phase_inc		
+		add	t, rootph         ' we need to avoid delaying the last QROTATE so t is used
+
+		SETQ	yb6
+		QROTATE xb6, rootph
+		GETQX	xb0              ' no space for phase increment here
+		GETQY	yb0
+
+		SETQ	yb7
+		QROTATE xb7, t
+		GETQX	xb1
+		GETQY	yb1
+
+		add	xt0, xb0    ' interleave fetching rotate results with addition
+		add	yt0, yb0
+
+		GETQX	xb2
+		GETQY	yb2
+		add	xt1, xb1
+		add	yt1, yb1
+
+		GETQX	xb3
+		GETQY	yb3
+		add	xt2, xb2
+		add	yt2, yb2
+
+		GETQX	xb4
+		GETQY	yb4
+		add	xt3, xb3
+		add	yt3, yb3
+
+		GETQX	xb5
+		GETQY	yb5
+		add	xt4, xb4
+		add	yt4, yb4
+
+		GETQX	xb6
+		GETQY	yb6
+		add	xt5, xb5
+		add	yt5, yb5
+
+		GETQX	xb7
+		GETQY	yb7
+		add	xt6, xb6
+		add	yt6, yb6
+		
+		add	xt7, xb7
+		add	yt7, yb7
+
+                testb   operation, #SCALED_BIT  wc
+	if_nc	jmp	#.noscale
+		sar	xt0, #1
+		sar	yt0, #1
+		sar	xt1, #1
+		sar	yt1, #1
+		sar	xt2, #1
+		sar	yt2, #1
+		sar	xt3, #1
+		sar	yt3, #1
+		sar	xt4, #1
+		sar	yt4, #1
+		sar	xt5, #1
+		sar	yt5, #1
+		sar	xt6, #1
+		sar	yt6, #1
+		sar	xt7, #1
+		sar	yt7, #1
+		jmp	#.donescale
+.noscale
+		shl	xb0, #1
+		shl	yb0, #1
+		shl	xb1, #1
+		shl	yb1, #1
+		shl	xb2, #1
+		shl	yb2, #1
+		shl	xb3, #1
+		shl	yb3, #1
+		shl	xb4, #1
+		shl	yb4, #1
+		shl	xb5, #1
+		shl	yb5, #1
+		shl	xb6, #1
+		shl	yb6, #1
+		shl	xb7, #1
+		shl	yb7, #1
+.donescale		
+
+		SETQ	#16-1
+		wrlong	xt0, PTRA	' write back the additions
+		add	PTRA, #64
+
+		subr	xb0, xt0
+		subr	yb0, yt0
+		subr	xb1, xt1
+		subr	yb1, yt1
+		subr	xb2, xt2
+		subr	yb2, yt2
+		subr	xb3, xt3
+		subr	yb3, yt3
+		subr	xb4, xt4
+		subr	yb4, yt4
+		subr	xb5, xt5
+		subr	yb5, yt5
+		subr	xb6, xt6
+		subr	yb6, yt6
+		subr	xb7, xt7
+		subr	yb7, yt7
+
+		SETQ	#16-1
+		wrlong	xb0, PTRB	' write back the subtractions
+		add	PTRB, #64
+
+		add	rootph, phase_inc  ' catch up on phase incs we missed
+		add	rootph, phase_inc
+		ret
+
+
+
+{ first FFT pass only involves addition and subtraction, so separately optimized avoiding waiting for cordic }
+
+fft_first	mov	PTRA, base
+		decod	count, N
+		shr	count, #3     ' process four butterflies of 2 at a time, so scale count to size/8
+
+.loop
+		SETQ	#16-1
+		rdlong	xt0, PTRA     ' block read 8 samples (4 butterflies)
+
+		add	xt0, xt1      ' calculate a+b, a-b from a, b.  Or if scaled, (a+b)/2, (a-b)/2
+		add	yt0, yt1
+		add	xt2, xt3      ' t0/t1 are a,b for first butterfly, t2/t3 are a,b for second
+		add	yt2, yt3
+		add	xt4, xt5
+		add	yt4, yt5
+		add	xt6, xt7
+		add	yt6, yt7
+                testb   operation, #SCALED_BIT  wc
+	if_nc	jmp	#.noscale
+		sar	xt0, #1
+		sar	yt0, #1
+		sar	xt2, #1
+		sar	yt2, #1
+		sar	xt4, #1
+		sar	yt4, #1
+		sar	xt6, #1
+		sar	yt6, #1
+		jmp	#.donescale
+.noscale
+		shl	xt1, #1
+		shl	yt1, #1
+		shl	xt3, #1
+		shl	yt3, #1
+		shl	xt5, #1
+		shl	yt5, #1
+		shl	xt7, #1
+		shl	yt7, #1
+.donescale
+		subr	xt1, xt0      ' a use for SUBR, get (a-b)/2 from (a+b)/2 and b
+		subr	yt1, yt0
+		subr	xt3, xt2
+		subr	yt3, yt2
+		subr	xt5, xt4
+		subr	yt5, yt4
+		subr	xt7, xt6
+		subr	yt7, yt6
+
+		setq	#16-1
+		wrlong	xt0, PTRA	' block write the results
+		add	PTRA, #64
+
+		djnz	count, #.loop
+		ret
+
+{ normal passes without 8-fold unrolled loop, used for 2nd and 3rd pass where the butterfly sets are 2 and 4 in number }
+
+fft_next_two
+                mov     bcount, N         ' loop N times
+		fle	bcount, #3	  ' but only first three stages at most
+
+		sub	bcount, #1
+		mov	half_size, #2  ' ranges 2,4,8,...
+		mov	stride, #16     ' ranges 16,32,...
+		decod   phase_inc, #31 ' ranges $40000000, $20000000, ...  (inverse FFT)
+				       ' or     $C0000000, $E0000000, ...  (forwards)
+                testb   operation, #SENSE_BIT  wc  ' inverse uses +ve angles, forwards uses -ve angles for roots of unity
+	if_nc   sar     phase_inc, #1   ' initial angle has top bit set, forwards uses SAR to preserve this
+	if_c	shr	phase_inc, #1
+bitloop                                ' for bit = 1 step 1 to N               
+                mov     PTRB, base     ' PTRA and PTRB used in butterfly
+		add	PTRB, stride
+		mov	prev_ptrb, PTRB
+		rdlong	x, PTRB++      ' queue up first rotate by root of unity
+		rdlong  y, PTRB++
+		SETQ    y
+  	        QROTATE x, #0          ' happens to be w0 first butterfly
+
+		mov	half_mask, half_size
+		sub	half_mask, #1  ' ranges 0, 1, 3, 7, 15, 31,...
+
+		mov     PTRA, base     ' more setup after pipeline fired up
+		decod	count, N
+		shr	count, #1
+		mov	rootph, phase_inc
+		mov	inner, #0      ' loops 0,1,2,3,..,half_mask, 0,1,2,3,..., used to detect when to stride to next butterfly set
+
+.loop
+                incmod  inner, half_mask  wz
+        if_z    mov     rootph, #0     ' new butterfly set, so w set back to w0
+        if_z    add     PTRB, stride   ' stride PTRB along early as its prefetching next butterfly
+
+		call    #inner_loopbody
+
+	if_z	add	PTRA, stride
+                djnz    count, #.loop
+
+                GETQX   xx
+                GETQY   yy          ' drain out last spurious pipeline output
+
+		shl	half_size, #1   ' shift the various powers of two along
+		shl	stride, #1
+                testb   operation, #SENSE_BIT  wc  ' inverse uses +ve angles, forwards uses -ve angles for roots of unity
+	if_nc   sar     phase_inc, #1   ' initial angle has top bit set, forwards uses SAR to preserve this
+	if_c	shr	phase_inc, #1
+		djnz	bcount, #bitloop
+		ret
+
+
+' note the inner body must preserve the Z flag from the incmod test above
+inner_loopbody  SETQ    #2-1
+		rdlong  x, PTRB     ' block read x, y
+
+                GETQX   xx          ' grab rotate result that was setup last time
+                GETQY   yy
+
+                SETQ    y           ' start root multiply for next time so pipeline overlaps nicely
+                QROTATE x, rootph
+
+		SETQ    #2-1
+		rdlong  x, PTRA     ' block read x, y
+
+                add     x, xx       ' add
+                add     y, yy
+
+                testb   operation, #SCALED_BIT  wc
+        if_c    sar     x, #1       ' halve all the values before the adds, so FFT scales down by 1/(1<<N) overall
+        if_c    sar     y, #1
+	if_nc	shl	xx, #1
+	if_nc	shl	yy, #1
+
+		SETQ	#2-1
+		wrlong  x, PTRA     ' block write x, y
+		add	PTRA, #8
+		
+                subr     xx, x      ' calculate differences
+                subr     yy, y
+		'                sub     x, xx       ' subtract
+		SETQ	#2-1
+                wrlong  xx, prev_ptrb ' write bot right of butterfly
+
+                mov     prev_ptrb, PTRB
+		add	PTRB, #8
+                                   
+                add     rootph, phase_inc  ' step w per butterfly
+		ret
+
+
+
+gen_window	cmp	window_id, #MAX_WINDOW  wcz
+	if_a	ret
+		cmp	window_id, #0  wz   ' zero is the rectangular
+	if_z	ret
+		mov	t, window_id    ' calculate address of cosine coefficients for the window
+		sub	t, #1
+		mul	t, #7*4
+		add	t, window_ptr
+
+		SETQ	#7-1		' load the coefficients
+		rdlong	c0, t
+
+		sub	fixint, #1
+                shr     c0, fixint      ' scale to closer to 1.0 to avoid overflows
+                shr     c1, fixint
+                shr     c2, fixint
+                shr     c3, fixint
+                shr     c4, fixint
+		shr	c5, fixint
+		shr	c6, fixint
+		add	fixint, #1
+
+		mov	mu_h, #0
+		mov	mu_l, #0
+		mov	sig_h, #0
+		mov	sig_l, #0
+                
+                mov     count, #1
+                mov     PTRB, win_base
+.loop
+                mov     rootph, count
+		mov	t, #32-1
+		sub	t, N
+                shl     rootph, t        ' convert index to binary radians
+                QROTATE c1, rootph       ' pipeline computing c1*cos(z), c2*cos(2z), c3*cos(3z) etc
+                mov     t, rootph
+                add     rootph, t
+                QROTATE c2, rootph
+                add     rootph, t
+                QROTATE c3, rootph
+                add     rootph, t
+                QROTATE c4, rootph
+                add     rootph, t
+                QROTATE c5, rootph
+                add     rootph, t
+                QROTATE c6, rootph
+
+                mov     val, c0     ' val = c0 - c1 cos(z) + c2 cos(2z) - c3 cos(3z) + c4 cos(4z) - c5 cos(5z) + c6 cos(6z)
+                GETQX   t
+                sub     val, t
+                GETQX   t
+                add     val, t
+                GETQX   t
+                sub     val, t
+                GETQX   t
+                add     val, t
+                GETQX   t
+                sub     val, t
+                GETQX   t
+                add     val, t
+
+		wrlong	val, PTRB++
+		call    #sum_mu_sigma
+
+                add     count, #2
+                cmp     count, size  wcz
+        if_b    jmp     #.loop
+
+		' calculate mu = mu sum / (NN/2)
+		jmp	#calc_mu_sigma    ' tail call
+
+
+
+{ apply window using symmetry property }
+
+window          cmp	window_id, #0  wz   ' zero is the rectangular window
+	if_z	ret
+                mov     PTRA, base
+                mov     PTRB, win_base
+		
+		mov     count, size
+                shr     count, #3
+.loop1
+		SETQ	#4-1
+		rdlong  b0, PTRB
+		add	PTRB, #16
+		call	#wloop
+                djnz    count, #.loop1
+
+                mov     count, size
+                shr     count, #3
+.loop2
+		sub	PTRB, #16
+		SETQ	#4-1
+		rdlong  b0, PTRB
+		xor	b3, b0
+		xor	b0, b3
+		xor	b3, b0
+		xor	b2, b1
+		xor	b1, b2
+		xor	b2, b1
+	
+		call	#wloop
+                djnz    count, #.loop2
+		ret
+
+
+wloop		SETQ	#8-1
+                rdlong  a0, PTRA
+{
+		mov	a, a0
+		mov	b, b0
+                call    #mult
+		mov	a0, val
+
+		mov	a, a2
+		mov	b, b1
+                call    #mult
+		mov	a2, val
+
+		mov	a, a4
+		mov	b, b2
+                call    #mult
+		mov	a4, val
+
+		mov	a, a6
+		mov	b, b3
+                call    #mult
+		mov	a6, val
+}
+		QMUL	a0, b0
+		testb	a0, #31  wc
+		testb   b0, #31  wz
+	if_nz	mov	a0, #0
+	if_nc	mov	b0, #0
+	
+		QMUL	a2, b1
+		testb	a2, #31  wc
+		testb   b1, #31  wz
+	if_nz	mov	a2, #0
+	if_nc	mov	b1, #0
+
+		QMUL	a4, b2
+		testb	a4, #31  wc
+		testb   b2, #31  wz
+	if_nz	mov	a4, #0
+	if_nc	mov	b2, #0
+
+		QMUL	a6, b3
+		testb	a6, #31  wc
+		testb   b3, #31  wz
+	if_nz	mov	a6, #0
+	if_nc	mov	b3, #0
+
+		GETQY	val
+		GETQX	lo
+		sub	val, a0
+		sub	val, b0
+                shl     val, fixint
+                shr     lo, fixfract
+                or      val, lo
+		mov	a0, val
+
+		GETQY	val
+		GETQX	lo
+		sub	val, a2
+		sub	val, b1
+                shl     val, fixint
+                shr     lo, fixfract
+                or      val, lo
+		mov	a2, val
+
+		GETQY	val
+		GETQX	lo
+		sub	val, a4
+		sub	val, b2
+                shl     val, fixint
+                shr     lo, fixfract
+                or      val, lo
+		mov	a4, val
+
+		GETQY	val
+		GETQX	lo
+		sub	val, a6
+		sub	val, b3
+                shl     val, fixint
+                shr     lo, fixfract
+                or      val, lo
+		mov	a6, val
+
+		SETQ    #8-1
+                wrlong  a0, PTRA
+                add     PTRA, #32   ' skip the complex part
+		ret
+
+
+' 21 spare
+		FIT     $400

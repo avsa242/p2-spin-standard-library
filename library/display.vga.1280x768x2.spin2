@@ -1,0 +1,365 @@
+' Smartpin sync serial
+
+CON
+    CLK_PIN_NUM  = 47
+
+    RED_PIN_NUM  = 48
+    GREEN_PIN_NUM = 49
+    BLUE_PIN_NUM = 50
+    HSYNC_PIN_NUM = 54
+    VSYNC_PIN_NUM = 55
+
+    XPIXELS = 1280
+    XLONGS = XPIXELS / 32 + 1   ' use / 16 for dibits
+    YPIXELS = 768
+
+    VFRONT_COUNT = 3
+    VSYNC_COUNT	= 6
+    VBACK_COUNT = 22
+
+    HEADER_LINES   = 64
+    GRAPHICS_LINES = 512+1
+    TEXT_LINES  = YPIXELS - HEADER_LINES - GRAPHICS_LINES
+
+    'stream to bits 48 up, select lowest bit, in RDBYTE single bit mode
+    STREAM_MODE_D_BLUE  = %0001_0000_1110_0100_00000000_00000000 + XPIXELS
+    STREAM_MODE_D_GREEN = %0001_0000_1110_0010_00000000_00000000 + XPIXELS
+    STREAM_MODE_D_RED   = %0001_0000_1110_0000_00000000_00000000 + XPIXELS
+    STREAM_MODE_S = %00000  ' use 00001 for dibits
+    STREAM_MODE_NCO_FREQ = $40000000   ' every 2 clocks, 80MHz
+
+    PIX_NCO_FREQ =%0000_0000_000_00000_00000000_01_00110_0
+    SYNC_TX = %0000_1111_000_00000_00000000_01_11100_0  ' sync serial tx using pin-1 as clk
+
+VAR
+    long vidram [XLONGS * (YPIXELS+1)]  ' extra row for use in blanking time
+    
+
+PUB start
+    blank_addr := @is_blank
+    cognew (@vga_engine, @vidram)
+    result := @vidram
+
+PUB outputter (N, array, stride)
+    output_N := N
+    output_array := array
+    output_stride := stride
+    result := @vga_output
+
+PUB is_blanking
+    result := is_blank
+
+PUB blank_address
+    result := @is_blank
+
+
+DAT
+is_blank	long	0
+
+                ORG     0
+vga_engine
+		mov	video_ptr, PTRA
+		mov	blank_line, video_ptr
+		add	blank_line, ## 4 * (XLONGS * YPIXELS)
+
+		WRPIN   ##PIX_NCO_FREQ, #CLK_PIN_NUM
+                WXPIN   #1, #CLK_PIN_NUM  ' every cycle
+                WYPIN   ##$80000000, #CLK_PIN_NUM       ' toggle every other, so 80MHz
+		dirh	#CLK_PIN_NUM
+
+		
+		dirh	#RED_PIN_NUM
+	        dirh	#GREEN_PIN_NUM
+	        dirh	#BLUE_PIN_NUM
+	        dirh    #HSYNC_PIN_NUM
+		outh	#HSYNC_PIN_NUM
+		dirh	#VSYNC_PIN_NUM
+		outl	#VSYNC_PIN_NUM
+		
+		setxfrq nco_freq
+
+		getct	time
+		addct1	time, scanline_time
+
+vloop
+		mov	count, #VBACK_COUNT
+		mov	lineptr, blank_line  ' back porch loop
+vback		call	#scanline
+		djnz	count, #vback
+		wrlong	#0, blank_addr
+
+
+		mov	stream_d, ##STREAM_MODE_D_BLUE
+		mov	lineptr, video_ptr   ' active video loop
+		mov	count, ##HEADER_LINES
+active1		call	#scanline
+		add	lineptr, #XLONGS*4
+		djnz	count, #active1
+
+		mov	stream_d, ##STREAM_MODE_D_GREEN
+
+		dirl	#RED_PIN_NUM
+                WRPIN   ##SYNC_TX, #RED_PIN_NUM   ' synchonous serial
+                WXPIN   #32-1, #RED_PIN_NUM   ' 32 bits per wrpin
+
+		mov	count, ##GRAPHICS_LINES-1
+active2
+		mov	grat1, count
+		and	grat1, #31  wz
+	if_nz	and	grat1, #2
+	if_nz	xor	grat1, #2
+	if_nz	mov	grat2, #0
+	if_nz	mov	grat3, grat1
+	if_z	mov	grat1, gratpat
+	if_z	mov	grat2, gratpat
+	if_z	mov	grat3, #3
+		
+		call	#gscanline
+		add	lineptr, #XLONGS*4
+		djnz	count, #active2
+
+		mov	grat1, gratpat
+		mov	grat2, gratpat
+		mov	grat3, #3
+		call	#gscanline
+		add	lineptr, #XLONGS*4
+
+
+		WRPIN   #0, #RED_PIN_NUM   ' synchonous serial
+		dirh	#RED_PIN_NUM
+		
+		mov	stream_d, ##STREAM_MODE_D_RED
+		mov	count, ##TEXT_LINES
+active3		call	#scanline
+		add	lineptr, #XLONGS*4
+		djnz	count, #active3
+
+
+		wrlong	#1, blank_addr
+		mov	count, #VFRONT_COUNT  ' front porch loop
+		mov	lineptr, blank_line
+vfront		call	#scanline
+		djnz	count, #vfront
+
+		mov	count, #VSYNC_COUNT   ' VSYNC loop
+		outh	#VSYNC_PIN_NUM
+		mov	lineptr, blank_line
+vsync		call	#scanline
+		djnz	count, #vsync
+		outl	#VSYNC_PIN_NUM  ' end sync pulse
+		jmp	#vloop
+
+
+scanline        ' in back porch at this point
+		rdfast	#0, lineptr
+		waitct1
+		addct1	time, scanline_time  ' synchronize to start of active video
+
+		xinit	stream_d, stream_s   ' stream out the line
+		waitx	scan_time 	     
+		'xinit   #0, #0               ' kill streamer (needed?)
+		
+		waitx   hfront_time	     ' delay for front porch
+
+		outl	#HSYNC_PIN_NUM	     ' do the HSYNC pulse
+		waitx	hsync_time
+		outh	#HSYNC_PIN_NUM
+		ret
+
+
+gscanline        ' in back porch at this point
+		rdfast	#0, lineptr
+		waitct1
+		addct1	time, #4*64 ' scanline_time  ' synchronize to start of active video
+		xinit	stream_d, stream_s   ' stream out the line
+		WYPIN   grat1, #RED_PIN_NUM
+
+		waitct1
+		addct1  time, #64
+		dirh	#RED_PIN_NUM
+		mov	lcount, #15   ' loop through graph area
+.loop
+		waitct1
+		addct1  time, #64
+		WYPIN   grat2, #RED_PIN_NUM
+		waitct1
+		addct1  time, #64
+		WYPIN   grat1, #RED_PIN_NUM
+		djnz	lcount, #.loop
+
+		waitct1
+		addct1  time, #64
+		WYPIN   grat2, #RED_PIN_NUM
+		waitct1
+		addct1  time, #64
+		WYPIN   grat3, #RED_PIN_NUM
+
+		waitct1
+		addct1  time, #3*64
+		WYPIN   #0, #RED_PIN_NUM
+
+		waitct1
+		addct1  time, ##(1680-1280) * 2
+	
+	'	waitx	scan_time 	     
+		'xinit   #0, #0               ' kill streamer (needed?)
+		dirl	#RED_PIN_NUM
+		
+		waitx   hfront_time	     ' delay for front porch
+
+		outl	#HSYNC_PIN_NUM	     ' do the HSYNC pulse
+		waitx	hsync_time
+		outh	#HSYNC_PIN_NUM
+		ret
+
+		
+        
+scanline_time	long	1680 * 2  ' 1280 + 64 + 136 + 200
+scan_time       long	1280 * 2
+hfront_time	long	72 * 2
+hsync_time	long    128 * 2
+gratpat		long	$33333333
+
+stream_s 	long    STREAM_MODE_S
+stream_d 	long    STREAM_MODE_D_GREEN
+nco_freq	long    STREAM_MODE_NCO_FREQ
+
+blank_addr	long	0
+
+time		res	1
+video_ptr	res	1
+blank_line	res	1
+lineptr		res	1
+count		res	1
+lcount		res	1
+gmode		res	1
+grat1		res	1
+grat2		res	1
+grat3		res	1
+
+		FIT	$1F0
+
+' output routine, to run from caller's cog
+
+
+		ORG	$1E0  ' stick hub routines registers high in cog memory to be kind to caller
+rowcnt		long	0
+cnt		long	0
+miny		long	0
+maxy		long	0
+prev_y		long	0
+bitpatt		long	0
+longoff		long	0
+size		long	0
+val		long	0
+t		long	0
+		FIT	$1EC
+
+		' these need setting by caller
+		ORG	$1EC
+output_N	long	0
+output_array	long	0
+output_stride	long	0
+output_vidptr	long	0
+		FIT	$1F0
+
+
+		ORGH
+
+vga_output	call	#vga_clear
+
+		decod	size, output_N
+		fle	size, ##1024*2
+		shr	size, #1        ' half only, forward frequencies
+		
+		mov	longoff, #4
+		mov	bitpatt, #1   ' bit
+		mov	prev_y, #0
+
+		mov	cnt, size
+		mov	PTRA, output_array
+.loop
+		rdlong	val, PTRA
+		add	PTRA, output_stride
+		call	#vga_plot
+		sub	cnt, #1  wz
+	if_nz	jmp	#.loop   '	djnz	cnt, #.loop
+		ret
+
+
+
+vga_plot        shr     val, #32-9   ' scale to 512 range
+		mov	miny, ##512 + 64
+		sub	miny, val       ' invert sense and offset for screen pos
+
+		mov	t, miny
+                mov	maxy, miny
+
+		cmp	prev_y, #0  wz
+	if_z	mov	prev_y, t
+		fle     miny, prev_y
+		fge	maxy, prev_y
+		mov	prev_y, t
+
+		mov	rowcnt, maxy
+		sub	rowcnt, miny
+		add	rowcnt, #1
+	
+		mul	miny, #41
+		add	miny, longoff
+		shl	miny, #2
+		add	miny, output_vidptr
+.loop
+		rdlong  t, miny
+		or	t, bitpatt
+		wrlong	t, miny
+		add	miny, #41*4
+		sub	rowcnt, #1  wz
+	if_nz	jmp	#.loop        ' 	djnz    rowcnt, #.loop
+		
+		rol	bitpatt, #1
+	        cmp	bitpatt, #1  wz
+	if_z    add	longoff, #1
+		ret
+
+
+
+vga_clear 	mov	rowcnt, ##512+1 
+		mov	PTRB, output_vidptr
+		add	PTRB, ## 64 * 4*41 + 4*4
+clear
+		mov     cnt, #32
+		mov	t, rowcnt
+		and	t, #7  wz
+	if_nz	mov	t, #1
+		xor	t, #1
+clear2  
+		wrlong	t, PTRB++
+		wrlong	#0, PTRB++
+		sub     cnt, #2  wz
+	if_nz	jmp	#clear2 '	djnz	cnt, #clear2
+		rdlong	t, PTRB
+		andn    t, #1
+		wrlong  t, PTRB
+
+		add	PTRB, #4 * (41-32)
+		mov	t, rowcnt
+		and	t, #63  wz
+	if_nz	jmp     #skipclear
+
+		sub	PTRB, #4 * 41
+		mov	cnt, #32
+clear3
+		wrlong  ##$01010101, PTRB++
+		sub	cnt, #1  wz
+	if_nz	jmp	#clear3     '	djnz	cnt, #clear3
+
+		wrlong  ##$01010101, PTRB
+		add	PTRB, #4 * (41-32)
+
+skipclear
+		sub	rowcnt, #1  wz
+	if_nz	jmp	#clear     '	djnz    rowcnt, #clear
+		ret
+
+	
