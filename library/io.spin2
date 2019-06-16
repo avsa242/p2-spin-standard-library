@@ -15,12 +15,10 @@ PUB Input(pin): state
 ' Sets IO pin to an input and returns the current state
   if pin < 32
         dira[pin] := 0
-'       waitcnt(clkfreq / 10000 + cnt)
         time.USleep(100)                 ' Review - is 100us really necessary?
         state := ina[pin]
   else
         dirb[pin] := 0
-'       waitcnt(clkfreq / 10000 + cnt)
         time.USleep(100)                 ' Review - is 100us really necessary?
         state := inb[pin]
 
