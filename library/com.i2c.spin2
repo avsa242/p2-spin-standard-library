@@ -20,7 +20,7 @@
 ''   Author..... Jon "JonnyMac" McPhalen
 ''               Copyright (c) 2009-2014 Jon McPhalen
 ''               -- elements inspired by code from Mike Green
-''   E-mail.....  
+''   E-mail.....
 ''   Started.... 28 JUL 2009
 ''   Updated.... 06 APR 2014
 ''
@@ -50,7 +50,7 @@ PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000)
     fltl_ (_scl)                                                ' Float pins
     fltl_ (_sda)
     Reset
-  
+
 PUB Present(slave_addr)
 ' Pings device, returns true if ACK
     Start
@@ -59,7 +59,7 @@ PUB Present(slave_addr)
 
 PUB Read(ackbit) | i2cbyte
 ' Read byte from I2C bus
-'      Send ackbit to slave: ACK (0) or NAK (1) 
+'      Send ackbit to slave: ACK (0) or NAK (1)
     dira[_sda] := 0                                             ' Make SDA input
 
     repeat 8
@@ -70,7 +70,7 @@ PUB Read(ackbit) | i2cbyte
         dirh_(_scl)                                             ' SCL low
         qd
 
-    dira[_sda] := !ackbit                                       ' Output ack bit 
+    dira[_sda] := !ackbit                                       ' Output ack bit
     qd
     fltl_(_scl)                                                 ' Float SCL
     hd
@@ -88,7 +88,7 @@ PUB Reset
         hd
         if (ina[_sda])
             quit
-      
+
 PUB Start
 ' I2C Start condition (S, Sr)
 ' -- will wait if I2C bus SDA pin is held low
@@ -131,7 +131,7 @@ PUB Write(i2cbyte) | ackbit
         fltl_(_scl)                                              ' Float SCL
         hd
         dirh_(_scl)                                              ' SCL low
-    fltl_(_sda)                                                  ' Release SDA to read ack bit 
+    fltl_(_sda)                                                  ' Release SDA to read ack bit
     hd
     fltl_(_scl)                                                  ' Float SCL
     hd
@@ -167,6 +167,6 @@ DAT
   PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
   CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
-  OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
+  OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 }}

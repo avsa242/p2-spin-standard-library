@@ -45,12 +45,12 @@ pub dolife | i, j, s, r, b, rnd, endcnt, snaplife, snapint
         repeat s from 0 to 5
             repeat j from 0 to 6
                 r := charset[7 * (demo_string[i] - 32) + j] << 6 + charset[7 * (demo_string[i + 1] - 32) + j]
-                r := r -> 4 <- s 
+                r := r -> 4 <- s
                 bitmap[6-j] := r
             repeat 3
                 charlieplex
     outb[statusled]~
-    
+
     'initialize the life board
     endcnt := 0
     snaplife := 0
@@ -103,7 +103,7 @@ pub dolife | i, j, s, r, b, rnd, endcnt, snaplife, snapint
                 'apply the consequences
                 if b & j
                     'cell is alive
-                    if s == 2 or s == 3 
+                    if s == 2 or s == 3
                         'cell is still alive
                         nextmap[i] += j
                 else
@@ -142,7 +142,7 @@ pub dolife | i, j, s, r, b, rnd, endcnt, snaplife, snapint
                 'oscillation detected, show it for a bit
                 endcnt := 1
                 outb[oscled]~
-                
+
 pri charlieplex | row, outmask, dirmask
     'charlieplex the regularized bitmap to the LED matrix
     repeat row from 0 to 7 'charlieplex row, not bitmap row
@@ -153,15 +153,15 @@ pri charlieplex | row, outmask, dirmask
         'at the top and bottom nonexistent bitmap rows are loaded, but then are masked out
         dirmask := outmask + byte[@bitmap + row - 1] >> (8 - row) + (byte[@bitmap + row] & (127 >> row)) << (row + 1)
         if basepin < 32
-            outa[basepin..basepin+7] := outmask 
-            dira[basepin..basepin+7] := dirmask 
+            outa[basepin..basepin+7] := outmask
+            dira[basepin..basepin+7] := dirmask
         else
-            outb[basepin..basepin+7] := outmask 
-            dirb[basepin..basepin+7] := dirmask 
+            outb[basepin..basepin+7] := outmask
+            dirb[basepin..basepin+7] := dirmask
         waitcnt(clkfreq /500 + cnt)
         dira[basepin..basepin+7] := 0
 
-       
+
 DAT
 
 'Padding spaces needed at beginning and end for side-scrolling
@@ -386,7 +386,7 @@ charset
     byte %00000
     byte %00110
     byte %00110
-' ' 
+' '
     byte %00000
     byte %00000
     byte %00110
@@ -938,8 +938,8 @@ charset
     byte %11111
     byte %11111
     byte %11111
-' 
-             
+'
+
 
 
 

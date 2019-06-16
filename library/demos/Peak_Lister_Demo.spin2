@@ -7,11 +7,11 @@ CON
     VCO_divide = 2   ' 4 bit field, represents 2/4/6/8/10/....
     PLL_divide = 4   ' 6 bit field, offset 1
     PLL_mult = 64   ' 10 bit field, offset 1
-    
+
     OSCMODE = %1_000000_0000000000_0000_01_00 | ((PLL_divide-1) << 18) | ((PLL_mult-1) << 8) | ((VCO_divide/2-1) << 4)
     FREQ = XTAL_FREQ / PLL_divide * PLL_mult / VCO_divide  ' 160_000_000
     BAUD = 2 * 115_200
-  
+
     DAC_TESTPIN = 41
     ADC_PIN     = 40
     ADC_CYCLES =  500
@@ -77,7 +77,7 @@ PUB main | i, j, k, pk_count
     pausems (10)
     ser.start (63, 62, 0, BAUD)
     sampling_rate := (freq / ADC_CYCLES) >> ADC_READING_REPEAT_SHIFT
-   
+
     ser.str (string ("FFT peak detector, sampling at "))
     ser.dec (sampling_rate)
     ser.str (string ("Hz"))
@@ -118,7 +118,7 @@ PUB main | i, j, k, pk_count
     window_params := @window_mu2
     window_mu2 := 0
     window_sig2 := 0
-    
+
     'log_mode := X_LOG_SCALE
     peaks_flag := @peaks_ready
     cognew (@entry, @scratch)
@@ -126,7 +126,7 @@ PUB main | i, j, k, pk_count
     repeat
         pausems(1000)
 	repeat until peaks_ready <> 0
-     
+
         pk_count := peaks_list[0]
 	i := 1
         repeat pk_count
@@ -143,7 +143,7 @@ PUB main | i, j, k, pk_count
         ser.tx(13)
 	ser.tx(10)
 	peaks_ready := 0
-   
+
 
 PUB  freq_for_col(col)
     col *= (sampling_rate >> 1)
@@ -164,8 +164,8 @@ PUB print_db_times_100(x) | hundredths, units, absx
     ser.dec (hundredths // 10)
     ser.str (string(" dBV"))
 
-    
-    
+
+
 DAT
     ' params for FFT
 
@@ -208,7 +208,7 @@ entry           mov     base, PTRA
 .waitpeaks
 		rdlong	t, peaks_flag  wz
 	if_nz	jmp	#.waitpeaks     ' wait till its read
-	
+
                 mov     half, #0
                 jmp     #.loop
 
@@ -223,7 +223,7 @@ lutcode         long    @lutstart
 
 iterate         cmp     iter_action, #0  wz
         if_z    jmp     iterate_ret
-        
+
                 mov     count, size
                 cmp     half, #0  wz
         if_nz   shr     count, #1
@@ -264,7 +264,7 @@ logconvert      mov     t, avgcount
                 QLOG    t
                 GETQX   avg_divisor  ' varies C0000000..FFF.....
                 sar     avg_divisor, #1
-                
+
                 mov     PTRB, accumptr
                 mov     iter_action, #logify
                 jmp     #iterate     ' tail call
@@ -343,7 +343,7 @@ lo              res     1
 base            res     1
 
 		FIT     $1F0
-		
+
 {{ LUT code }}
                 ORG     $200
 lutstart
@@ -351,12 +351,12 @@ average         shl	avgcount, #1
 		zerox   avgcount, #AVERAGE_N
 		shr	avgcount, #1
 	        add     avgcount, #1
-		mov     PTRB, accumptr	
+		mov     PTRB, accumptr
                 jmp     #iterate     ' tail call
 
 avg		setq	#2-1
 		rdlong	hi, PTRB   ' hi, lo contiguous
-	
+
                 cmp     avgcount, #1  wz
         if_z    mov     hi, #0
         if_z    mov     lo, #0
@@ -417,7 +417,7 @@ peakfind_start
 	if_b	mov	peak_state, ##peakfind_peak
 	if_b	jmp	peak_state
 		jmp	#peakfind_newmax
-		
+
 peakfind_peak	neg	peak_diff
 		cmps	peak_diff, ##PEAK_SMALL_DIFF  wcz
 	if_ae	mov	peak_state, ##peakfind_idle

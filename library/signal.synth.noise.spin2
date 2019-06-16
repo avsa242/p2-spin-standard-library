@@ -5,7 +5,7 @@ CON
     DAC_MODE     = %0000_0000_000_10100_00000000_00_00000_0
 
     wait_del = $100
-    
+
 VAR
     long  frq[16]    ' single RDFAST block
 
@@ -15,7 +15,7 @@ PUB start(pin) | i
     dac_pin := pin
     i := 0
     repeat 16
-      frq[i] := $927333 ' 4*$6E0070 ' $827000 
+      frq[i] := $927333 ' 4*$6E0070 ' $827000
       i += 1
     cognew (@dac_cordic)
 
@@ -67,7 +67,7 @@ loop
 		add     phase2, frequency2
                 QROTATE amplitude2, phase2
 		add	v, v2
-        and v, masky  
+        and v, masky
 
 '		waitct1
 '		addct1  time, #wait_del

@@ -1,6 +1,6 @@
 
 CON
-    
+
     DITHER_MODE  = %0000_0000_000_10100_00000000_01_00010_0
     SLEEP	 = $FF
 
@@ -18,11 +18,11 @@ ready_flag	long
 
 PUB  start(params)
     cognew (@output_entry, params)
-    
+
 DAT
 
                 ORG     0
-		
+
 output_entry	rdlong  N, PTRA++
 		rdlong  t, PTRA++
 		rdlong  dac_pin, PTRA++
@@ -34,7 +34,7 @@ output_entry	rdlong  N, PTRA++
 		mov	base, t
 		decod	size, N
 		'		dirh	dac_pin
-		
+
 
 .loop		rdbyte	t, ready_addr
 		cmp	t, #0  wz
@@ -54,7 +54,7 @@ output_entry	rdlong  N, PTRA++
 
 iterate         cmp     iter_action, #0  wz
         if_z    jmp     iterate_ret
-        
+
                 mov     count, size
                 cmp     half, #0  wz
         if_nz   shr     count, #1
@@ -72,7 +72,7 @@ iterate_ret     ret
 
 iter_action     long    0
 half            long    0
-                
+
 { drive dac from sample vector, just the x values }
 
 output
@@ -96,7 +96,7 @@ output
                 djnz    count, #.L1
                 waitct1
                 addct1  time, cycles
-                
+
                 WYPIN   #0, dac_pin
                 mov     count, #2
 .L2             waitct1
@@ -121,7 +121,7 @@ outsample       mov     t, x
                 add     t, offset
                 waitct1
                 addct1  time, cycles
-                WYPIN   t, dac_pin     
+                WYPIN   t, dac_pin
 outsample_ret   ret
 
 

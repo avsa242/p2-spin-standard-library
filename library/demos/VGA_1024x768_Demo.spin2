@@ -11,18 +11,18 @@ CON
   _XOSC         = %10                                  'OSC    ' %00=OFF, %01=OSC, %10=15pF, %11=30pF
   _XSEL         = %11                                   'XI+PLL ' %00=rcfast(20+MHz), %01=rcslow(~20KHz), %10=XI(5ms), %11=XI+PLL(10ms)
   _XPPPP        = ((_XDIVP>>1) + 15) & $F                       ' 1->15, 2->0, 4->1, 6->2...30->14
-  _CLOCKFREQ    = _XTALFREQ / _XDIV * _XMUL / _XDIVP            ' internal clock frequency                
+  _CLOCKFREQ    = _XTALFREQ / _XDIV * _XMUL / _XDIVP            ' internal clock frequency
   _SETFREQ      = 1<<24 + (_XDIV-1)<<18 + (_XMUL-1)<<8 + _XPPPP<<4 + _XOSC<<2  ' %0000_000e_dddddd_mmmmmmmmmm_pppp_cc_00  ' setup  oscillator
 
   sys_clock_freq = _CLOCKFREQ
   sys_clock_mode = _SETFREQ
   pixel_clock_freq = 65_000_000
-  
+
 CON
 	COLS = 128
 	ROWS = 48
         FONT_HEIGHT = 16
-	
+
 DAT
 '
 '
@@ -95,7 +95,7 @@ PRI calcscale(a, b) | shiftcnt
     b := b>>1
     shiftcnt--
   return (a / b) << shiftcnt
-      
+
 '
 ' calculate ($8000_0000 * a) / (b)
 '
@@ -122,7 +122,7 @@ PUB initparams | i, pclkscale, pclk, sysclk, x
   params[i++] := 6              ' vertical sync lines
   params[i++] := 29             ' vertical back porch
   params[i++] := %11            ' vertical/horizontal polarity
-  
+
 PUB colorblend(a, b, mix)
   asm
     setpiv mix

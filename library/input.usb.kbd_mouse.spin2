@@ -1144,7 +1144,7 @@ hsave0          long    0                               ' Subroutine parameter s
 hsave1          long    0
 hsave2          long    0
 utx_tweak       long    0                               ' When sysclock speed above ~120MHz, need some fairy dust for USB tx
-isr_tmp         long    0  
+isr_tmp         long    0
 pkt_tmp         long    0                               ' Tmp storage for routines that deal with datax packets
 hr0             long    0                               ' Multi-purpose registers
 hr1             long    0
@@ -1185,9 +1185,9 @@ ep_addr_pid     long    0                                ' Endpoint and device a
 retval          long    0                               ' Global success/fail return parameter
 context_retval  long    0                               ' Operation contextual return parameter
 ' Keyboard/mouse stuff
-hctrl_ep_addr   long    0 
-hctrl_max_pkt   long    0 
-hconfig_base    long    0 
+hctrl_ep_addr   long    0
+hctrl_max_pkt   long    0
+hconfig_base    long    0
 hcon_tot_len    long    0                               ' Size of the complete config descriptor chain
 hhid_intf_idx   long    0                               ' Used during verbose descriptor terminal output
 hsearch_key     long    0                               ' Descriptor type to search for in the config chain
@@ -1926,7 +1926,7 @@ hget_kbd_in_report
                 mov     ep_addr_pid, hkbd_ep_addr
                 loc     ptra, #\@kbd_in_max_pkt
                 rdbyte  htmp, ptra++                    ' Always ask for max report size
-                rdbyte  hpar3, ptra            
+                rdbyte  hpar3, ptra
                 setword hpar3, htmp, #1                 ' Max IN packet size to expect
                 loc     ptra, #\@kbd_cur_report
                 mov     hpar2, ptra

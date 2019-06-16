@@ -55,7 +55,7 @@ acquire_entry	rdlong  N, PTRA++
 		sub	t, #16		' convert to fixpoint representation
 		shl	cal_voltage, t
 
-		
+
 .loop		rdbyte	t, ready_addr
 		cmp	t, #0  wz
 	if_z	jmp	#.loop
@@ -76,7 +76,7 @@ acquire_entry	rdlong  N, PTRA++
 
 iterate	        cmp	iter_action, #0  wz
 	if_z	jmp	iterate_ret
-	
+
 		mov	count, size
 		cmp	half, #0  wz
 	if_nz	shr	count, #1
@@ -126,7 +126,7 @@ acq_sample_cal
 		rdpin	x, adc_pin
 		zerox	x, #15
 		ret
-		
+
 acq_sample
 		waitct1
 		addct1  time, adc_cycles
@@ -158,7 +158,7 @@ acq_sample
 		mov	y, #0
 		ret
 
-calibrate	
+calibrate
 		WRPIN   ##ADC_MODE_VIO, adc_pin
 		WXPIN	adc_cycles, adc_pin
 		WYPIN	#0, adc_pin    ' count A high
@@ -170,7 +170,7 @@ calibrate
 		add	calib, x
 		djnz	count, #.loop1
 		dirl	adc_pin
-		
+
 		WRPIN   ##ADC_MODE_GND, adc_pin
 		WXPIN	adc_cycles, adc_pin  ' every 1us
 		WYPIN	#0, adc_pin    ' count A high
@@ -182,7 +182,7 @@ calibrate
 		djnz	count, #.loop2
 		dirl	adc_pin
 		WRPIN	#0, adc_pin
-		
+
 		mov	x, cal_voltage
 		call	#bitcount
 		mov	cal_shift, y
@@ -197,10 +197,10 @@ calibrate
 		add	cal_shift, #CAL_LOOP_SHIFT
 		QDIV	cal_voltage, calib
 		GETQX	cal_mult
-		
+
 '		shr	cal_mult, #1
 '		add	cal_shift, #1
-		
+
 calibrate_ret   ret
 
 
@@ -217,7 +217,7 @@ acquire		getct   time
 		call	#calibrate
 
 '		shr	adc_cycles, #2
-		
+
 		WRPIN   ##ADC_MODE, adc_pin
 		WXPIN	adc_cycles, adc_pin  ' sets sampling rate
 		WYPIN	#0, adc_pin    ' count A high indefinitely
@@ -230,7 +230,7 @@ acquire		getct   time
 
 .loop		call	#acq_sample
 		djnz	count, #.loop
-		
+
 		mov	iter_action, #acq_sample
 		call	#iterate
 

@@ -51,5 +51,5 @@ PUB WaitForSync(secs)
     Must call `SetSync` before calling `WaitForSync` the first time.
 }}
 
-    waitx_((sync += _clkfreq * secs) #> WMIN) 
+    waitx_((sync += _clkfreq * secs) #> WMIN)
 

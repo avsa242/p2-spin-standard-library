@@ -144,7 +144,7 @@ CON
     MAGSQR_BIT     = 2
     SCALED_BIT     = 1
     SENSE_BIT      = 0
-    
+
     GO             = $80  ' set this in case all the others are zero which is idle state
     SLEEP          = $FF  ' use waitx until this operation removed
     DO_SYMMETRIC   = 1 << SYM_BIT
@@ -363,7 +363,7 @@ fft_entry	SETQ2	#$1FF      ' copy code to LUTram
 		mov	PTRA, base
 
 		call	#setup_N_dependent
-		
+
                 mov     fixfract, #32
                 sub     fixfract, fixint
                 decod   one_value, fixfract
@@ -376,7 +376,7 @@ fft_entry	SETQ2	#$1FF      ' copy code to LUTram
 	if_nz	call	#gen_window
 
                 ' no checking of input details yet
-                
+
 .loop           rdbyte  operation, ready_addr
                 cmp     operation, #0  wz
         if_z    jmp     #.loop
@@ -416,7 +416,7 @@ fft_entry	SETQ2	#$1FF      ' copy code to LUTram
 		getct   end_time
 		sub	end_time, start_time
 		wrlong	end_time, timing
-		
+
                 wrbyte  #0, ready_addr
                 jmp     #.loop
 
@@ -431,7 +431,7 @@ setup_N_dependent
 iterate_vec_rw  mov     PTRA, base
                 cmp     iter_action, #0  wz
         if_z    jmp     #.done
-        
+
                 mov     count, size
                 cmp     half, #0  wz
        if_nz    shr     count, #1
@@ -450,12 +450,12 @@ iterate_vec_rw  mov     PTRA, base
 iterate_vec_wo  mov     PTRA, base
                 cmp     iter_action, #0  wz
         if_z    jmp     #.done
-        
+
                 mov     count, size
                 cmp     half, #0  wz
        if_nz    shr     count, #1
        if_nz    add     count, #1
-.loop		
+.loop
               	call    iter_action
 		SETQ	#2-1
                 wrlong  x, PTRA
@@ -467,12 +467,12 @@ iterate_vec_wo  mov     PTRA, base
 iterate_vec_ro  mov     PTRA, base
                 cmp     iter_action, #0  wz
         if_z    jmp     #.done
-        
+
                 mov     count, size
                 cmp     half, #0  wz
        if_nz    shr     count, #1
        if_nz    add     count, #1
-.loop		
+.loop
 		SETQ	#2-1
                 rdlong  x, PTRA
 		add	PTRA, #8
@@ -493,7 +493,7 @@ input	  	testb	inp_flags, #INP_SHARED_BIT  wc
 		cmp	inp_fixint, fixint  wz
 	if_nz	jmp	#.shared32       ' shifting needed, so have to process
 		ret			' complex, same fixint, nothing to do...
-		
+
 .needs_copying
 		cmp	inp_stride, #2  wz  ' expand 16 bit
 	if_z	jmp	#input16    ' tail call
@@ -525,7 +525,7 @@ inplace_32_sar	sar	x, t
 	if_c	sar	y, #1
 	if_nc	mov	y, #0
 		ret
-		
+
 
 
 { convert/copy 16 bit values to work vector }
@@ -554,7 +554,7 @@ conv_16_sar	rdword  x, PTRB++
 		sar	x, #1
 		mov	y, #0
 		ret
-		
+
 { convert/copy 32 bit values to work_vector }
 
 input32	        mov     PTRB, inp_base
@@ -645,12 +645,12 @@ fft_real	call	#pack_down   ' move reals into both real/complex slots
 
 		decod   phase_inc, #31
 		shr	phase_inc, N
-		
+
 		mov	PTRA, base
 		mov	PTRB, base
 
 		mov	PTRB, base  ' first entry wraps PTRB back to base
-		
+
 		mov	angle1, #0
 		mov	angle2, #0  ' angle2 initially zero
 
@@ -662,7 +662,7 @@ fft_real	call	#pack_down   ' move reals into both real/complex slots
 
 		decod	angle2, #31 ' set angle2 to what it should be, stepping back from pi, to match PTRB
 		sub	angle2, phase_inc
-		
+
 		decod	count, N
 		shr	count, #1
 adj_loop
@@ -742,8 +742,8 @@ adjust		rdlong  x1, PTRA[0] ' adjust from complex FFT to real of twice the size 
 
 magnitude	mov	iter_action, ##mag
 		call	#iterate_vec_rw
-		
-		mov	count, size    ' do polar conversion on the negative frequencies, can use the phases 
+
+		mov	count, size    ' do polar conversion on the negative frequencies, can use the phases
 		shr	count, #1      ' if needed
 		add	count, #1
 		mov	PTRA, base
@@ -757,7 +757,7 @@ magnitude	mov	iter_action, ##mag
 		call	#polar_convert
 		wrlong  x, PTRA++
 		wrlong  y, PTRA++
-		
+
 		djnz	count, #.atanloop
 		ret
 
@@ -768,7 +768,7 @@ mag		call	#mag_square
 		ret
 
 
-polar_convert   
+polar_convert
 		QVECTOR x, y
 		GETQX   x
 		GETQY   y
@@ -787,7 +787,7 @@ mag_square	abs     x       ' currently does 32 to 64 squaring, so for instance f
                 GETQY   a
                 add     lo, b  wc     ' x^2 + y^2
                 addx    hi, a
-		
+
                 shl     lo, #1  wc    ' scale by two since spectrum reflected and we only look as positive frequencies
                 rcl     hi, #1        ' so we'd lose half the energy otherwise
 
@@ -813,7 +813,7 @@ calc_mu_sigma   mov	count, N  ' N-1 because we only store half the values due to
 		shr	sig_h, #1  wc
 		rcr	sig_l, #1
 		djnz    count, #.sloop
-		
+
 		mov	val, mu_l
 		call	#square
 		mov     window_mu2, val
@@ -873,7 +873,7 @@ sqr_mag 	mov	PTRA, base   ' currently does 32 to 64 squaring, so for instance fi
 
 		cmp     half, #0  wz
        if_nz    call	#sqr_mag_unrolled_4    ' need to do last entry at size//2 - do a few more due to unrolled loop
-		
+
 		sub	fixint, #1
 		add	fixfract, #1
 		ret
@@ -1018,7 +1018,7 @@ c6		res	1
 
 ' 9 spare
                 FIT     $1F0
-		
+
 {{ LUT code }}
                 ORG     $200
 lutstart
@@ -1031,7 +1031,7 @@ prattle		ret
 sqr_mag_unrolled_4
 		SETQ	#8-1
 		rdlong  xt0, PTRA
-		
+
 		abs	xt0
 		QMUL	xt0, xt0
 		abs	yt0
@@ -1120,7 +1120,7 @@ sqr_mag_unrolled_4
 sqr_mag_unrolled_1
 		SETQ	#2-1
 		rdlong  xt0, PTRA
-		
+
 		abs	xt0
 		QMUL	xt0, xt0
 		abs	yt0
@@ -1146,7 +1146,7 @@ sqr_mag_unrolled_1
 		add	PTRA, #32
 		ret
 }
-		
+
 { bit reversal reorder pass for FFT, only affects x, not y  - that needs changing for complex input }
 
 reorder         mov     count, size
@@ -1234,20 +1234,20 @@ inner_unrolled_8
 
 		SETQ	yb2
 		QROTATE xb2, rootph
-		add	rootph, phase_inc		
+		add	rootph, phase_inc
 
 		SETQ	yb3
 		QROTATE xb3, rootph
-		add	rootph, phase_inc		
+		add	rootph, phase_inc
 
 		SETQ	yb4
 		QROTATE xb4, rootph
-		add	rootph, phase_inc		
+		add	rootph, phase_inc
 		mov	t, phase_inc
 
 		SETQ	yb5
 		QROTATE xb5, rootph
-		add	rootph, phase_inc		
+		add	rootph, phase_inc
 		add	t, rootph         ' we need to avoid delaying the last QROTATE so t is used
 
 		SETQ	yb6
@@ -1292,7 +1292,7 @@ inner_unrolled_8
 		GETQY	yb7
 		add	xt6, xb6
 		add	yt6, yb6
-		
+
 		add	xt7, xb7
 		add	yt7, yb7
 
@@ -1332,7 +1332,7 @@ inner_unrolled_8
 		shl	yb6, #1
 		shl	xb7, #1
 		shl	yb7, #1
-.donescale		
+.donescale
 
 		SETQ	#16-1
 		wrlong	xt0, PTRA	' write back the additions
@@ -1434,7 +1434,7 @@ fft_next_two
                 testb   operation, #SENSE_BIT  wc  ' inverse uses +ve angles, forwards uses -ve angles for roots of unity
 	if_nc   sar     phase_inc, #1   ' initial angle has top bit set, forwards uses SAR to preserve this
 	if_c	shr	phase_inc, #1
-bitloop                                ' for bit = 1 step 1 to N               
+bitloop                                ' for bit = 1 step 1 to N
                 mov     PTRB, base     ' PTRA and PTRB used in butterfly
 		add	PTRB, stride
 		mov	prev_ptrb, PTRB
@@ -1499,7 +1499,7 @@ inner_loopbody  SETQ    #2-1
 		SETQ	#2-1
 		wrlong  x, PTRA     ' block write x, y
 		add	PTRA, #8
-		
+
                 subr     xx, x      ' calculate differences
                 subr     yy, y
 		'                sub     x, xx       ' subtract
@@ -1508,7 +1508,7 @@ inner_loopbody  SETQ    #2-1
 
                 mov     prev_ptrb, PTRB
 		add	PTRB, #8
-                                   
+
                 add     rootph, phase_inc  ' step w per butterfly
 		ret
 
@@ -1540,7 +1540,7 @@ gen_window	cmp	window_id, #MAX_WINDOW  wcz
 		mov	mu_l, #0
 		mov	sig_h, #0
 		mov	sig_l, #0
-                
+
                 mov     count, #1
                 mov     PTRB, win_base
 .loop
@@ -1593,7 +1593,7 @@ window          cmp	window_id, #0  wz   ' zero is the rectangular window
 	if_z	ret
                 mov     PTRA, base
                 mov     PTRB, win_base
-		
+
 		mov     count, size
                 shr     count, #3
 .loop1
@@ -1615,7 +1615,7 @@ window          cmp	window_id, #0  wz   ' zero is the rectangular window
 		xor	b2, b1
 		xor	b1, b2
 		xor	b2, b1
-	
+
 		call	#wloop
                 djnz    count, #.loop2
 		ret
@@ -1649,7 +1649,7 @@ wloop		SETQ	#8-1
 		testb   b0, #31  wz
 	if_nz	mov	a0, #0
 	if_nc	mov	b0, #0
-	
+
 		QMUL	a2, b1
 		testb	a2, #31  wc
 		testb   b1, #31  wz

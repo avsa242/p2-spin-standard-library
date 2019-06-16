@@ -33,7 +33,7 @@ CON
 
 VAR
     long vidram [XLONGS * (YPIXELS+1)]  ' extra row for use in blanking time
-    
+
 
 PUB start
     blank_addr := @is_blank
@@ -67,7 +67,7 @@ vga_engine
                 WYPIN   ##$80000000, #CLK_PIN_NUM       ' toggle every other, so 80MHz
 		dirh	#CLK_PIN_NUM
 
-		
+
 		dirh	#RED_PIN_NUM
 	        dirh	#GREEN_PIN_NUM
 	        dirh	#BLUE_PIN_NUM
@@ -75,7 +75,7 @@ vga_engine
 		outh	#HSYNC_PIN_NUM
 		dirh	#VSYNC_PIN_NUM
 		outl	#VSYNC_PIN_NUM
-		
+
 		setxfrq nco_freq
 
 		getct	time
@@ -113,7 +113,7 @@ active2
 	if_z	mov	grat1, gratpat
 	if_z	mov	grat2, gratpat
 	if_z	mov	grat3, #3
-		
+
 		call	#gscanline
 		add	lineptr, #XLONGS*4
 		djnz	count, #active2
@@ -127,7 +127,7 @@ active2
 
 		WRPIN   #0, #RED_PIN_NUM   ' synchonous serial
 		dirh	#RED_PIN_NUM
-		
+
 		mov	stream_d, ##STREAM_MODE_D_RED
 		mov	count, ##TEXT_LINES
 active3		call	#scanline
@@ -156,9 +156,9 @@ scanline        ' in back porch at this point
 		addct1	time, scanline_time  ' synchronize to start of active video
 
 		xinit	stream_d, stream_s   ' stream out the line
-		waitx	scan_time 	     
+		waitx	scan_time
 		'xinit   #0, #0               ' kill streamer (needed?)
-		
+
 		waitx   hfront_time	     ' delay for front porch
 
 		outl	#HSYNC_PIN_NUM	     ' do the HSYNC pulse
@@ -200,11 +200,11 @@ gscanline        ' in back porch at this point
 
 		waitct1
 		addct1  time, ##(1680-1280) * 2
-	
-	'	waitx	scan_time 	     
+
+	'	waitx	scan_time
 		'xinit   #0, #0               ' kill streamer (needed?)
 		dirl	#RED_PIN_NUM
-		
+
 		waitx   hfront_time	     ' delay for front porch
 
 		outl	#HSYNC_PIN_NUM	     ' do the HSYNC pulse
@@ -212,8 +212,8 @@ gscanline        ' in back porch at this point
 		outh	#HSYNC_PIN_NUM
 		ret
 
-		
-        
+
+
 scanline_time	long	1680 * 2  ' 1280 + 64 + 136 + 200
 scan_time       long	1280 * 2
 hfront_time	long	72 * 2
@@ -271,7 +271,7 @@ vga_output	call	#vga_clear
 		decod	size, output_N
 		fle	size, ##1024*2
 		shr	size, #1        ' half only, forward frequencies
-		
+
 		mov	longoff, #4
 		mov	bitpatt, #1   ' bit
 		mov	prev_y, #0
@@ -304,7 +304,7 @@ vga_plot        shr     val, #32-9   ' scale to 512 range
 		mov	rowcnt, maxy
 		sub	rowcnt, miny
 		add	rowcnt, #1
-	
+
 		mul	miny, #41
 		add	miny, longoff
 		shl	miny, #2
@@ -316,7 +316,7 @@ vga_plot        shr     val, #32-9   ' scale to 512 range
 		add	miny, #41*4
 		sub	rowcnt, #1  wz
 	if_nz	jmp	#.loop        ' 	djnz    rowcnt, #.loop
-		
+
 		rol	bitpatt, #1
 	        cmp	bitpatt, #1  wz
 	if_z    add	longoff, #1
@@ -324,7 +324,7 @@ vga_plot        shr     val, #32-9   ' scale to 512 range
 
 
 
-vga_clear 	mov	rowcnt, ##512+1 
+vga_clear 	mov	rowcnt, ##512+1
 		mov	PTRB, output_vidptr
 		add	PTRB, ## 64 * 4*41 + 4*4
 clear
@@ -333,7 +333,7 @@ clear
 		and	t, #7  wz
 	if_nz	mov	t, #1
 		xor	t, #1
-clear2  
+clear2
 		wrlong	t, PTRB++
 		wrlong	#0, PTRB++
 		sub     cnt, #2  wz
@@ -362,4 +362,4 @@ skipclear
 	if_nz	jmp	#clear     '	djnz    rowcnt, #clear
 		ret
 
-	
+

@@ -23,7 +23,7 @@ PUB start(rxpin, txpin, mode, baudrate) | bitperiod, txmode, rxmode
     dirh  rxpin
   endasm
   return 1
-  
+
 PUB tx(val) | txpin, z
   txpin := tx_pin
   asm
@@ -72,7 +72,7 @@ PUB dec(value) | i, x
   i := 1_000_000_000                                                            'Initialize divisor
 
   repeat 10                                                                     'Loop for 10 digits
-    if value => i                                                               
+    if value => i
       tx(value / i + "0" + x*(i == 1))                                          'If non-zero digit, output digit; adjust for max negative
       value //= i                                                               'and digit from value
       result~~                                                                  'flag non-zero found

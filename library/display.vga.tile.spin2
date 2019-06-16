@@ -16,7 +16,7 @@ CON
   intensity = 80    '0..128
 
 
-DAT     
+DAT
         org 0
 
 entry
@@ -50,7 +50,7 @@ vback_porch
 polarity
         rdlong  polarity, ptra++
 '
-' Setup 
+' Setup
 '
 
 vga_start
@@ -108,7 +108,7 @@ vga_start
 '
 ' Field loop
 '
-field   
+field
 	mov     y,vfront_porch           'top blanks
         call    #blank
 	mov	buffer_ptr, buffer_base
@@ -116,7 +116,7 @@ field
 	mov	font_line_counter, font_height
 
         mov     y,vpixels          'set visible line
-line    
+line
         call    #hsync          'do horizontal sync; also loads up next font line
 
 	' now read the character data

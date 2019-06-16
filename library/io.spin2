@@ -1,0 +1,57 @@
+OBJ
+
+    time        : "time"
+
+PUB High(pin)
+' Sets IO pin high and an output
+  if pin < 32
+	outa[pin] := 1
+	dira[pin] := 1
+  else
+	outb[pin] := 1
+	dirb[pin] := 1
+
+PUB Input(pin): state
+' Sets IO pin to an input and returns the current state
+  if pin < 32
+        dira[pin] := 0
+'       waitcnt(clkfreq / 10000 + cnt)
+        time.USleep(100)                 ' Review - is 100us really necessary?
+        state := ina[pin]
+  else
+        dirb[pin] := 0
+'       waitcnt(clkfreq / 10000 + cnt)
+        time.USleep(100)                 ' Review - is 100us really necessary?
+        state := inb[pin]
+
+PUB Low(pin)
+' Sets IO pin low and an output
+  if pin < 32
+	outa[pin] := 0
+	dira[pin] := 1
+  else
+	outb[pin] := 0
+	dirb[pin] := 1
+
+PUB Output(pin)
+' Sets IO pin to an output
+  if pin < 32
+        dira[pin] := 1
+  else
+        dirb[pin] := 1
+
+PUB Set(pin, enabled)
+' Sets IO pin to state 'enabled'
+    if pin < 32
+        outa[pin] := enabled
+    else
+        outb[pin] := enabled
+
+PUB Toggle(pin)
+' Toggles IO pin high/low
+  if pin < 32
+  	!outa[pin]
+  	dira[pin] := 1
+  else
+  	!outb[pin]
+  	dirb[pin] := 1

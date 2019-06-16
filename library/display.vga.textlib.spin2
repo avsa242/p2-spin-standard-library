@@ -9,7 +9,7 @@ CON
 
   DEFAULT_FG_COLOR = $FFFFFF00
   DEFAULT_BG_COLOR = 0
-  
+
 VAR
   long curx, cury       ' cursor position
   long savex, savey
@@ -19,7 +19,7 @@ VAR
   long args[MAX_ESC_ARGS]
   long argidx
   long char_effects
-  
+
 PRI init_terminal
   reset_graphics_state
   cls
@@ -31,11 +31,11 @@ PRI reset_graphics_state
   bgcolor := DEFAULT_BG_COLOR
   fgcolor := DEFAULT_FG_COLOR
   char_effects := 0
-  
+
 PRI scrollup
   bytemove(screenptr, screenptr + 8*COLS, 8*(ROWS-1)*COLS)
   bytefill(screenptr + 8*(ROWS-1)*COLS, 0, 8*COLS)
-  
+
 PRI checkposition
   if curx => COLS
     curx := 0
@@ -47,7 +47,7 @@ PRI checkposition
     cury := ROWS-1
   elseif cury < 0
     cury := 0
-    
+
 PUB tx(c) | fg, bg
    if (state == STATE_NORMAL)
       if (c == 8) ' backspace
@@ -86,7 +86,7 @@ PRI handle_esc(c) | i
 
 PRI defaultval(arg, v)
   return (arg) ? arg : v
-  
+
 ' handle ANSI control sequences
 PRI handle_csi(c)
 {{
@@ -101,7 +101,7 @@ PRI handle_csi(c)
       --argidx
     if (c == ";")
       return
-    
+
     if (c == "A")
       cury -= defaultval(args[0], 1)
     elseif (c == "B")
@@ -187,7 +187,7 @@ PRI set_graphic_rendition(i) | code, a, b
     return
   code := fetcharg(i++)
 
-{{  
+{{
   a := hexdig(code & $F)
   b := hexdig((code >> 4) & $F)
   glyphat(41, 10, b, $ffffff00, $00202000)
@@ -219,7 +219,7 @@ PRI set_graphic_rendition(i) | code, a, b
   elseif code == 49
     bgcolor := DEFAULT_BG_COLOR
   set_graphic_rendition(i)
-  
+
 DAT
 colortab
   long $00000000, $7F000000, $007F0000, $7F7F0000
@@ -259,7 +259,7 @@ PRI GetArgColor(i) : col, newi | r, g, b, code
     r := fetcharg(i++) & $FF
     if (r =< 15)
       r := colortab[r]
-    elseif (r => 232) 
+    elseif (r => 232)
       r := 10 * (r - 232)
       r +- 8
       return (r<<24 | r<<16 | r<<8), i
@@ -268,4 +268,3 @@ PRI GetArgColor(i) : col, newi | r, g, b, code
       return r, i
   return 0, i  ' punt for now
 
-   

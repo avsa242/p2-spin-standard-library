@@ -14,10 +14,10 @@
 ''          to make it fit hub, reduce h & v visible pixels/lines, increase bank pixels/lines
 ''          mov x,#bottom_blanks --> ##bottom_blanks
 ''  VGS_gfx11_FHDb.spin2 1440x540 working but gets hot and starts to fail
-''               c       1680x540 cannot update fast enough so scrolls left (pix=clock=180MHz)        
+''               c       1680x540 cannot update fast enough so scrolls left (pix=clock=180MHz)
 ''               d       add xtal setup code
 '' RR20181117 VGA_base_1920x1080_001a.spin
-''            001b       scrolls left (pix=clock=180MHz)   
+''            001b       scrolls left (pix=clock=180MHz)
 ''               c       adj: no scrolling, stable, warm
 ''               f       try to get full width 1920x480  180MHz!!!  try 150MHz (not on Acer)
 ''                       Acer X233H:  165MHz= doesnt work
@@ -57,21 +57,21 @@ CON
   _XOSC         = %01                                   'OSC    ' %00=OFF, %01=OSC, %10=15pF, %11=30pF
   _XSEL         = %11                                   'XI+PLL ' %00=rcfast(20+MHz), %01=rcslow(~20KHz), %10=XI(5ms), %11=XI+PLL(10ms)
   _XPPPP        = ((_XDIVP>>1) + 15) & $F                       ' 1->15, 2->0, 4->1, 6->2...30->14
-  _CLOCKFREQ    = _XTALFREQ / _XDIV * _XMUL / _XDIVP            ' internal clock frequency                
+  _CLOCKFREQ    = _XTALFREQ / _XDIV * _XMUL / _XDIVP            ' internal clock frequency
   _SETFREQ      = 1<<24 + (_XDIV-1)<<18 + (_XMUL-1)<<8 + _XPPPP<<4 + _XOSC<<2  ' %0000_000e_dddddd_mmmmmmmmmm_pppp_cc_00  ' setup  oscillator
   _ENAFREQ      = _SETFREQ + _XSEL                                             ' %0000_000e_dddddd_mmmmmmmmmm_pppp_cc_ss  ' enable oscillator
 
 '' 1920x1080 60Hz mode @ 148.5MHz   from https://timetoexplore.net/blog/video-timings-vga-720p-1080p
 '' ----------------------------------------------------------------------------------
   PIXEL_CLK     = _CLOCKFREQ              '
-  H_DISP        = 1920  
-  H_FPORCH      = 88    
-  H_SYNC        = 44    
-  H_BPORCH      = 148   
-  V_DISP        = 1080   
-  V_FPORCH      = 4      
-  V_SYNC        = 5      
-  V_BPORCH      = 36     
+  H_DISP        = 1920
+  H_FPORCH      = 88
+  H_SYNC        = 44
+  H_BPORCH      = 148
+  V_DISP        = 1080
+  V_FPORCH      = 4
+  V_SYNC        = 5
+  V_BPORCH      = 36
 '' ----------------------------------------------------------------------------------
 
 {{
@@ -81,23 +81,23 @@ CON
   H_DISP        = 1920          '-480      '- 240 '480 '960
   H_FPORCH      = 32            '+120      '
   H_SYNC        = 696                     '
-  H_BPORCH      = 32            '+360      '+ 240 '480 '960 
-  V_DISP        = 1080              -600  '- 540 
+  H_BPORCH      = 32            '+360      '+ 240 '480 '960
+  V_DISP        = 1080              -600  '- 540
   V_FPORCH      = 22                +300  '
   V_SYNC        = 11                      '
-  V_BPORCH      = 22                +300  '+ 540   
+  V_BPORCH      = 22                +300  '+ 540
 '' ----------------------------------------------------------------------------------
 }}
 
   vsync         = 4                                     ' vsync pin
   intensity     = 80    '0..128
 
-  w             =  H_DISP           
+  w             =  H_DISP
 ' h             =  V_DISP             ' 1920x1080 2bpp = 506.35KB
   h             =  V_DISP / 2         ' 1920x 540 4bpp = 506.35KB
 
 {{
-' h             =  V_DISP           
+' h             =  V_DISP
   h             =  480                '\ screen too big for hub so break into 3 parts
   h2            =  300                '|
   h3            =  300                '/
@@ -109,13 +109,13 @@ CON
 }}
 
 
-  fpix          =  float(PIXEL_CLK) 
-  top_blanks    =  V_FPORCH         
-  sync_blanks   =  V_SYNC           
-  bottom_blanks =  V_BPORCH         
-  before_sync   =  H_FPORCH         
-  sync          =  H_SYNC           
-  before_visible = H_BPORCH         
+  fpix          =  float(PIXEL_CLK)
+  top_blanks    =  V_FPORCH
+  sync_blanks   =  V_SYNC
+  bottom_blanks =  V_BPORCH
+  before_sync   =  H_FPORCH
+  sync          =  H_SYNC
+  before_visible = H_BPORCH
 '' ----------------------------------------------------------------------------------
 
 
@@ -127,9 +127,9 @@ CON
         k = (w/8) * (h/16)      'number of lines per test bars
 
         'color palette names
-        #0,black,blue,green,cyan,red,magenta,brown,gray 
-        dark_gray,bright_blue,bright_green,bright_cyan 
-        bright_red,bright_magenta,Yellow,white 
+        #0,black,blue,green,cyan,red,magenta,brown,gray
+        dark_gray,bright_blue,bright_green,bright_cyan
+        bright_red,bright_magenta,Yellow,white
 
 '  fclk          = float(_CLOCKFREQ)
 '  fset          = (fpix / fclk * 2.0) * float($4000_0000)
@@ -142,7 +142,7 @@ CON
 DAT             org     0
 video_buffer                              ' $00000 Hub  ' 1920x1080 2bpp = 506.35KB
                                                         ' 1920x 540 4bpp = 506.35KB half screen
-'+-------[ Set Xtal ]----------------------------------------------------------+ 
+'+-------[ Set Xtal ]----------------------------------------------------------+
                 hubset  #0                              ' set 20MHz+ mode
                 hubset  ##_SETFREQ                      ' setup oscillator
                 waitx   ##20_000_000/100                ' ~10ms
@@ -196,7 +196,7 @@ video_buffer                              ' $00000 Hub  ' 1920x1080 2bpp = 506.3
                 rdfast  ##1920*540/128,##@video_buffer       'set rdfast to wrap on bitmap  '<<<<<<<<<<<<
 
 
-'+-------[ Display Screen ]----------------------------------------------------+ 
+'+-------[ Display Screen ]----------------------------------------------------+
 ' Field loop
 '?                xzero   m_bv,#0                 '???                            '<<<<<<<<<<<<
 field
@@ -280,7 +280,7 @@ gfx
                 call    #plot_box
                 waitx   ##_CLOCKFREQ/2
                 djnz    loops,#.loop
-                
+
                 jmp     #$                      ' stop here <<<<<<<<<<<<<<<
 
 n               long    0
@@ -428,7 +428,7 @@ plot_box        mov     x1a,x1
 
                 mov     y2,y1                   'top
                 call    #plot_line
-                
+
                 mov     x1,x1a
                 mov     y1,y2a
                 mov     x2,x2a
@@ -459,7 +459,7 @@ plot_box        mov     x1a,x1
 {{
 plot_char       testb   flags,#small      wc
         if_c    mov     font_h,#16
-        if_nc   mov     font_h,#32      
+        if_nc   mov     font_h,#32
                 loc     ptrb,#\@font
                 testb   ascii,#0          wz
                 bitl    ascii,#0
@@ -554,7 +554,7 @@ plot_dec        mov     r1,##1_000_000_000
                 rolnib  r3,temp,#0
                 qdiv    r1,#10
                 getqx   r1
-.sd2            
+.sd2
                 mov     digits,#2
                 mov     value,r4
                 call    #plot_hex_d
@@ -618,7 +618,7 @@ demo            waitx   ##pause
 
 'show 16 x color stripes
 
-demo_loop       
+demo_loop
 
                 loc     ptrb,#\@video_buffer
                 mov     pa,#16
@@ -717,7 +717,7 @@ again           getrnd  color
 
                 mov     x1,##496
                 mov     y1,#0 '100
-                loc     ptrb,#\@top_right              
+                loc     ptrb,#\@top_right
                 call    #plot_string
 
                 mov     x1,##0
@@ -859,24 +859,24 @@ DAT
 '====================================================================
 '24 bit color format = rr_gg_bb_00
 '====================================================================
-palette         long    0               'black 
-                long    $0000aa00       'blue 
-                long    $00aa0000       'green 
-                long    $00aaaa00       'cyan 
-                long    $aa000000       'red 
+palette         long    0               'black
+                long    $0000aa00       'blue
+                long    $00aa0000       'green
+                long    $00aaaa00       'cyan
+                long    $aa000000       'red
 ''                long    $aa000000       'red       reverse red/cyan
-''                long    $00aaaa00       'cyan 
-                long    $aa00aa00       'magenta 
-                long    $aa550000       'brown 
-                long    $aaaaaa00       'gray 
-                long    $55555500       'dark gray 
-                long    $5555ff00       'bright blue 
-                long    $55ff5500       'bright green 
-                long    $55ffff00       'bright cyan 
-                long    $ff555500       'bright red 
-                long    $ff55ff00       'bright magenta 
-                long    $ffff5500       'yellow 
-                long    $ffffff00       'white 
+''                long    $00aaaa00       'cyan
+                long    $aa00aa00       'magenta
+                long    $aa550000       'brown
+                long    $aaaaaa00       'gray
+                long    $55555500       'dark gray
+                long    $5555ff00       'bright blue
+                long    $55ff5500       'bright green
+                long    $55ffff00       'bright cyan
+                long    $ff555500       'bright red
+                long    $ff55ff00       'bright magenta
+                long    $ffff5500       'yellow
+                long    $ffffff00       'white
 '====================================================================
 
 DAT
@@ -893,7 +893,7 @@ top_right       byte    "Top right",0
 bottom_left     byte    "Bottom left",0
 bottom_right    byte    "Bottom right",0
 '====================================================================
-                alignl                                
+                alignl
 }}
 
 ''font            file "p1_font.dat"

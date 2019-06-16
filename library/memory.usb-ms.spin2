@@ -73,7 +73,7 @@ USB smart pin modes (scheduled for test chip v2):
   %11010 = USB host
   %11011 = USB device
   Low/Full speed is selected using X[15] of the NCO WXPIN value
-  
+
 These modes require that two adjacent pins be configured together to form a USB pair, whose OUTs
 will be overridden to control their output states. These pins must be an even/odd pair, having
 only the LSB of their pin numbers different. For example: pins 0 and 1, pins 2 and 3, pins 4
@@ -183,9 +183,9 @@ con
 '        _XDIV_1MHz    = 20
 '        _XDIV_2MHz    = 10
 '        _XDIV_1_25MHz = 16
-'        _XDIV_2_5MHz  = 8 
-'        _XDIV_4MHz    = 5 
-'        _XDIV_5MHz    = 4 
+'        _XDIV_2_5MHz  = 8
+'        _XDIV_4MHz    = 5
+'        _XDIV_5MHz    = 4
 '------------------------------------------------------------------------------
 '        _XPPPP = ((_XDIVP >> 1) + 15) & $f ' (_XDIVP = 1)->15, 2->0, 4->1, 6->2...30->14
 '       _FRQ_*  = 1 << 24 | (_XDIV - 1) << 18 | (_XMUL - 1) << 8 | _XPPPP << 4 | _XOSC << 2
@@ -194,10 +194,10 @@ con
 '        _FRQ_80    = 1<<24|(20-1)<<18|(160-1)<<8|((2>>1+15)&$f)<<4
 '        _FRQ_84    = 1<<24|(20-1)<<18|(168-1)<<8|((2>>1+15)&$f)<<4
 '        _FRQ_96    = 1<<24|(20-1)<<18|(192-1)<<8|((2>>1+15)&$f)<<4
-'        _FRQ_108   = 1<<24|(20-1)<<18|(108-1)<<8|((1>>1+15)&$f)<<4 
-'        _FRQ_120   = 1<<24|(20-1)<<18|(120-1)<<8|((1>>1+15)&$f)<<4 
-'        _FRQ_132   = 1<<24|(20-1)<<18|(132-1)<<8|((1>>1+15)&$f)<<4 
-'        _FRQ_144   = 1<<24|(20-1)<<18|(144-1)<<8|((1>>1+15)&$f)<<4 
+'        _FRQ_108   = 1<<24|(20-1)<<18|(108-1)<<8|((1>>1+15)&$f)<<4
+'        _FRQ_120   = 1<<24|(20-1)<<18|(120-1)<<8|((1>>1+15)&$f)<<4
+'        _FRQ_132   = 1<<24|(20-1)<<18|(132-1)<<8|((1>>1+15)&$f)<<4
+'        _FRQ_144   = 1<<24|(20-1)<<18|(144-1)<<8|((1>>1+15)&$f)<<4
 ' My USB analyzer flags the full-speed 1ms start-of-frame packets as having timing
 ' jitter if a fractional SYSCLOCK is set, e.g. 148.5Mhz. If the device type that's
 ' connected ignores the full-speed 1ms start-of-frame packets (it looks like mass
@@ -852,7 +852,7 @@ utx_byte
                 waitx   utx_tweak       ' Wait #3 if < 180MHz, wait #20 if 180MHz+
 '                waitx   #3              ' 108MHz..168MHz mostly OK, some 3.x parts flaky
 '                waitx   #13             ' minimum clean @300MHz
-'                waitx   #20             ' clean 180MHz..360MHz 
+'                waitx   #20             ' clean 180MHz..360MHz
         _ret_   wypin   utx, #DM
 ' /* urx_next
 '------------------------------------------------------------------------------
@@ -2692,7 +2692,7 @@ dret1           long    0                               ' Routine return paramet
 dret2           long    0
 dret3           long    0
 dpar_ptr        long    0                               ' Generic pointer register for parameter processing
-dirp_results    long    0                               ' Byte0 USB result, byte1 CSW result, word1 
+dirp_results    long    0                               ' Byte0 USB result, byte1 CSW result, word1
 dct3            long    0                               ' Driver main loop blinking LED timer
 dterm_type      long    TERM_DUMB                       ' TERM_VT100 or TERM_PST (Propeller Serial Terminal)
 dtxopts         long    0                               ' Value->text conversion option bitflags
@@ -4042,7 +4042,7 @@ dput_sectors
 '   cbw0 - start cluster number of the directory. A cluster number of zero
 '     implies the start of the root directory.
 ' On exit:
-'   dirent_cnt - the number of directory entry structures read into the buffer, 
+'   dirent_cnt - the number of directory entry structures read into the buffer,
 '     zero if an error occured.
 '   dir_next_clus - next directory cluster#, or #FILE_EOF if no more clusters.
 '   Z = (dirent_cnt == 0).
@@ -4850,7 +4850,7 @@ os_cmd_scanfat
 ' Read one or more sectors from the media and output the bytes read to the
 ' console. If more than one sector is read, the previous sector data will be
 ' overwritten.
-' 
+'
 '------------------------------------------------------------------------------
 ' On entry:
 '   Usage - GETSEC start_sec [sec_count]
@@ -6674,7 +6674,7 @@ sz_vt100_set_cursor     byte    ESC, "[999;999f", 0
 sz_vt100_query_curpos   byte    ESC, "[6n", 0
 sz_vt100_save_cursor    byte    ESC, "[s", 0
 sz_vt100_unsave_cursor  byte    ESC, "[u", 0
-sz_whitespace           byte    " ", TAB, CR, LF, VT, FF, 0 
+sz_whitespace           byte    " ", TAB, CR, LF, VT, FF, 0
 ' */
 ' /* Status messages:
 sz_fullspeed            byte    "<Full-Speed device connected.>", 0

@@ -45,12 +45,12 @@ PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
   '' if signflag is nonzero, it indicates we should treat
   '' val as signed; if it is > 1, it is a character we should
   '' print for positive numbers (typically "+")
-  
+
   if (signflag)
       if (val < 0)
         signflag := "-"
 	val := -val
-	
+
   '' make sure we will not overflow our buffer
   if (digitsNeeded > 32)
     digitsNeeded := 32
@@ -83,7 +83,7 @@ PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
   while (val <> 0 or digitsNeeded > 0) and (i < 32)
   if (signflag > 1)
     tx(signflag)
-    
+
   '' now print the digits in reverse order
   repeat while (i > 0)
     tx(buf[--i])
@@ -111,7 +111,7 @@ PUB bin(val, digits = 32) | mask
     mask := (|< digits) - 1
     val &= mask
   num(val, 2, 0, digits)
-  
+
 '' print a newline
 PUB nl
   tx(13)

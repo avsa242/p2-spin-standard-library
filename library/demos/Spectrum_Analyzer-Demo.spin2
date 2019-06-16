@@ -3,7 +3,7 @@ spectrum_analyzer.spin2
 
 Things to do:
 
-apply window mu and sigma/fs - apply mu^2 log to the log convert in first case, 
+apply window mu and sigma/fs - apply mu^2 log to the log convert in first case,
 with the window (ie an extra scaling multiply as the window is applied depending on which mode)
 
 }}
@@ -13,11 +13,11 @@ CON
     VCO_divide = 2   ' 4 bit field, represents 2/4/6/8/10/....
     PLL_divide = 4   ' 6 bit field, offset 1
     PLL_mult = 64   ' 10 bit field, offset 1
-    
+
     OSCMODE = %1_000000_0000000000_0000_01_00 | ((PLL_divide-1) << 18) | ((PLL_mult-1) << 8) | ((VCO_divide/2-1) << 4)
     FREQ = XTAL_FREQ / PLL_divide * PLL_mult / VCO_divide  ' 160_000_000
     BAUD = 2 * 115_200
-    
+
     DITHER_MODE  = %0000_0000_000_10100_00000000_01_00010_0   ' for 'scope output
 
     DAC_TESTPIN = 41
@@ -118,7 +118,7 @@ PUB main | i, j, k, x, y, s, fbase, caddr, caddr2, horizontal, row, col
     vidram := vga.start
     vga_out := vga.outputter (N, @scratch, 8)
     blanker := vga.blank_address
-    
+
     wrchar (0, 0, $2A)
     wrchar (79, 0, $2A)
     wrchar (0, 46, $2A)
@@ -160,18 +160,18 @@ PUB main | i, j, k, x, y, s, fbase, caddr, caddr2, horizontal, row, col
     wrstr (wrstr (SCR_COL_X, row, fft.module_name), row, string (" FFT module"))
     row += 1
     wrstr (wrstr (SCR_COL_X, row, acq.module_name), row, string (" Acquisition module"))
-    row += 2 
+    row += 2
     wrstr (wrdec (wrstr (wrdec (wrstr (SCR_COL_X, row, string("Fixpoint ")), row, FIXINT), 38, string(".")), row, FIXFRACT), row, string (" arith"))
     row += 1
     wrstr (wrdec (wrstr (wrdec (SCR_COL_X, row, minfix), row, string(".0 <= val < ")), row, maxfix), row, string(".0"))
     row += 1
     wrstr (wrdec (wrstr (SCR_COL_X, row, string ("Clock ")), row, freq/1_000_000), row, string (" MHz"))
-   
+
 
     repeat k from 1 to 15
         wrchar(3, 3 + 2*k, $2D)
         wrdec (4, 3 + 2*k, 10*k)
-    
+
 
     siggen.start (DAC_TESTPIN)
 
@@ -197,7 +197,7 @@ PUB main | i, j, k, x, y, s, fbase, caddr, caddr2, horizontal, row, col
     out.start (@OUT_N)
     pausems(2)
 
-   
+
     byte[@FFT_operation][0]  := 0
     byte[@FFT_operation][1]  := FIXINT  '    fixint
     byte[@FFT_operation][2]  := FIXINT  '    input fixint
@@ -218,7 +218,7 @@ PUB main | i, j, k, x, y, s, fbase, caddr, caddr2, horizontal, row, col
     window_params := @window_mu2
     window_mu2 := 0
     window_sig2 := 0
-    
+
     log_mode := X_LOG_SCALE
     cognew (@entry, @scratch)
     repeat
@@ -236,12 +236,12 @@ PUB main | i, j, k, x, y, s, fbase, caddr, caddr2, horizontal, row, col
         ser.str (string ("Hz"))
         ser.tx(32)
         ser.tx(32)
-    
+
         ser.dec (FFT_timing)
         ser.str (string (" clks"))
         ser.tx(13)
         ser.tx(10)
-     
+
         repeat until vga.is_blanking
 
         row := 37
@@ -270,12 +270,12 @@ PUB main | i, j, k, x, y, s, fbase, caddr, caddr2, horizontal, row, col
             wrstr (wrdecn (wrstr (wrdec (col, row, k), row, string(".")), row, j, 2), row, string(" dBV"))
             row += 1
             i += 2
-   
+
 
 PUB  freq_for_col(col)
     col *= (sampling_rate >> 1)
     result := col >> (N-1)
-    
+
 
 PUB  wrchar (x, y, c) | s, caddr, fbase, j,k, l
     fbase := font.get_base
@@ -305,7 +305,7 @@ PUB  wrdec (x, y, v)
     if v < 0
         wrchar (x, y, $2D)
         result := wrdec (x+1, y, -v)
-    else 
+    else
         if v < 10
             wrchar (x, y, $30+v)
             result := x+1
@@ -339,7 +339,7 @@ PUB  wrunit (x, y, v) | thou, units
         if thou < 10
             x += 1
         result := wrstr (wrdec3 (wrstr (wrdec (x, y, thou), y, string(".")), y, units), y, string(" k"))
-    
+
 DAT
     ' params for FFT
 
@@ -434,7 +434,7 @@ grat_ret        ret
 
 iterate         cmp     iter_action, #0  wz
         if_z    jmp     iterate_ret
-        
+
                 mov     count, size
                 cmp     half, #0  wz
         if_nz   shr     count, #1
@@ -501,7 +501,7 @@ logconvert      mov     t, #0
                 QLOG    t
                 GETQX   avg_divisor  ' varies C0000000..FFF.....
                 sar     avg_divisor, #1
-                
+
                 mov     PTRB, accumptr
                 mov     iter_action, #logify
                 jmp     #iterate     ' tail call
@@ -559,7 +559,7 @@ do_fft          wrbyte  #FFT_WITH_MAGSQR, fft_start
 output_start   long    0
 
 output          wrbyte  #1, output_start
-                
+
 .wait           rdbyte  t, output_start
                 cmp     t, #0  wz
         if_nz   jmp     #.wait
@@ -575,11 +575,11 @@ vga_clear       mov     PTRB, vidram
 		setq2	#32-1
 		wrlong  zero-lutstart, PTRB ' fast write 32 longs from a zero area in LUT
 		add	PTRB, #32*4
-		
+
 		rdlong	t, PTRB
 		andn	t, #1
 		wrlong	t, PTRB
-		
+
 		add	PTRB, #4 * (41-32)
 		djnz	count, #.rowloop
 		ret
@@ -623,7 +623,7 @@ log_xscale	mov	val, ind
 
 vgaplot
                 call	xscale
-		
+
 		mov	val, x
 	        shr     val, #32-9   ' scale to 512 range
 		mov	miny, ##512 + 64
@@ -641,7 +641,7 @@ vgaplot
 		mov	rowcnt, maxy
 		sub	rowcnt, miny
                 add     rowcnt, #1
-	
+
 		mul	miny, #41
 		add	miny, longoff
 		shl	miny, #2
@@ -740,7 +740,7 @@ a		res	1
 b		res	1
 
 		FIT	$1EC
-		
+
 		ORG	$1EC  ' parameters to new vga outputter
 output_N	long	0
 output_array	long	0
@@ -748,7 +748,7 @@ output_stride	long	0
 output_vidptr	long	0
 
                 FIT     $1F0
-		
+
 {{ LUT code }}
                 ORG     $200
 lutstart
@@ -756,12 +756,12 @@ average         shl	avgcount, #1
 		zerox   avgcount, #AVERAGE_N
 		shr	avgcount, #1
 	        add     avgcount, #1
-		mov     PTRB, accumptr	
+		mov     PTRB, accumptr
                 jmp     #iterate     ' tail call
 
 avg		setq	#2-1
 		rdlong	hi, PTRB   ' hi, lo contiguous
-	
+
                 cmp     avgcount, #1  wz
         if_z    mov     hi, #0
         if_z    mov     lo, #0
@@ -858,7 +858,7 @@ peakfind_start
 	if_b	mov	peak_state, ##peakfind_peak
 	if_b	jmp	peak_state
 		jmp	#peakfind_newmax
-		
+
 peakfind_peak	neg	peak_diff
 		cmps	peak_diff, ##PEAK_SMALL_DIFF  wcz
 	if_ae	mov	peak_state, ##peakfind_idle
