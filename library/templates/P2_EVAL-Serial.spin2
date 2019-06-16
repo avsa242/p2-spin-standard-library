@@ -1,0 +1,70 @@
+CON
+ 
+    XTAL        = cfg#XTAL
+    XDIV        = cfg#XDIV
+    XMUL        = cfg#XMUL
+    XDIVP       = cfg#XDIVP
+    XOSC        = cfg#XOSC
+    XSEL        = cfg#XSEL
+    XPPPP       = cfg#XPPPP
+    CLOCKFREQ   = cfg#CLOCKFREQ
+    SETFREQ     = cfg#SETFREQ
+    ENAFREQ     = cfg#ENAFREQ
+
+    LED         = cfg#LED1
+    SER_RX      = cfg#SER_RX
+    SER_TX      = cfg#SER_TX
+    SER_BAUD    = 2_000_000
+
+OBJ
+
+    ser         : "com.smartserial"
+    cfg         : "core.con.boardcfg.p2eval"
+    io          : "io"
+    time        : "time"
+
+VAR
+
+    long _ser_cog
+
+PUB Main
+
+    Setup
+    Flash(LED, 100)     ' Signal execution finished
+
+PUB Clear
+
+    ser.tx (27)
+    ser.tx ("[")
+    ser.tx ("2")
+    ser.tx ("J")
+    Position(0, 0)
+
+PUB NL
+
+    ser.tx (10)
+    ser.tx (13)
+
+PUB Position(x, y)
+' Position cursor at column x, row y (from top-left).
+    ser.tx (27)
+    ser.tx ("[")
+    ser.Dec (y)
+    ser.tx (";")
+    ser.Dec (x)
+    ser.tx ("f")
+
+PUB Setup
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    repeat until _ser_cog := ser.Start (SER_RX, SER_TX, 0, SER_BAUD)
+    Clear
+    ser.Str (string("Serial terminal started"))
+
+PUB Flash(led_pin, delay_ms)
+
+    io.Output(led_pin)
+    repeat
+        io.Toggle(led_pin)
+        time.MSleep(delay_ms)
+

@@ -31,3 +31,6 @@ CON
     FLASH_DI    = 59
     FLASH_CLK   = 60
     FLASH_CS    = 61
+
+    SER_TX      = 62
+    SER_RX      = 63
