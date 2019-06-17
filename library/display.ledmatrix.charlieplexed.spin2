@@ -1,0 +1,80 @@
+{
+    --------------------------------------------
+    Filename: display.ledmatrix.charlieplexed.spin2
+    Author: Jesse Burt
+    Description: Driver to write a buffer to an 8x7 charlieplexed LED matrix
+    Copyright (c) 2019
+    Started Jun 16, 2019
+    Updated Jun 17, 2019
+    See end of file for terms of use.
+    --------------------------------------------
+    NOTE: This was written specifically for the Parallax P2-EVAL add-on board #64006-ES(c),
+        but may work with other charlieplexed LED boards.
+    NOTE: This code uses excerpts from localroger's Conway's Game of Life demo for the same board.
+}
+
+CON
+
+    DIRX_ALL            = $FF_FF_FF_FF
+    BITS_MATRIX         = %1111111
+
+OBJ
+
+    time        : "time"
+
+VAR
+
+    byte _basepin
+
+PUB Start(basepin)
+' Set basepin for driver
+'       Valid values: 0..57
+'       Any other value returns 0
+    case basepin
+        0..57:
+            _basepin := basepin
+            return _basepin
+        OTHER:
+            return 0
+
+PUB WriteBuffer(buff_addr) | row, outmask, dirmask, mask_matrix
+' Charlieplex the regularized bitmap to the LED matrix
+    mask_matrix := DIRX_ALL ^ (BITS_MATRIX << _basepin)    ' Preserve all DIRx bits except the ones for the matrix
+    repeat row from 0 to 7                              ' Charlieplex row, not bitmap row
+        outmask := 1 << row                             ' outx byte gets only the positive drive bit on, all others off
+        'dirx must get the positive drive bit and all others that are set in the bitmap
+        'each charlieplex row consists of left and right parts of two bitmap rows
+        'at the top and bottom nonexistent bitmap rows are loaded, but then are masked out
+        dirmask := outmask + byte[buff_addr + row - 1] >> (8 - row) + (byte[buff_addr + row] & (127 >> row)) << (row + 1)
+        if _basepin < 32
+            outa := outmask << _basepin
+            dira := dirmask << _basepin
+            time.USleep (1000)
+            dira &= mask_matrix
+        else
+            outb := outmask << (_basepin & $1F)
+            dirb := dirmask << (_basepin & $1F)
+            time.USleep (1000)
+            dirb &= mask_matrix
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
