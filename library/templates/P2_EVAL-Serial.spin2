@@ -1,5 +1,5 @@
 CON
- 
+
     XTAL        = cfg#XTAL
     XDIV        = cfg#XDIV
     XMUL        = cfg#XMUL
