@@ -15,140 +15,138 @@
 }}
 
 '' output a string
-PUB str(s = string("")) | c
-  REPEAT WHILE ((c := byte[s++]) <> 0)
-    tx(c)
+PUB Str(s = string("")) | c
+
+    repeat while ((c := byte[s++]) <> 0)
+        Char(c)
 
 
-''
-'' print an number with a given base
-'' we do this by finding the remainder repeatedly
-'' this gives us the digits in reverse order
-'' so we store them in a buffer; the worst case
-'' buffer size needed is 32 (for base 2)
-''
-''
-'' signflag indicates how to handle the sign of the
-'' number:
-''   0 == treat number as unsigned
-''   1 == print nothing before positive numbers
-''   anything else: print before positive numbers
-'' for signed negative numbers we always print a "-"
-''
-'' we will print at least prec digits
-''
+' Print an number with a given base
+' We do this by finding the remainder repeatedly
+' This gives us the digits in reverse order
+'   so we store them in a buffer; the worst case
+'   buffer size needed is 32 (for base 2)
+'
+'
+' signflag indicates how to handle the sign of the
+' number:
+'   0 == treat number as unsigned
+'   1 == print nothing before positive numbers
+'   anything else: print before positive numbers
+' for signed negative numbers we always print a "-"
+'
+' we will print at least prec digits
+'
 VAR
-  byte buf[32]
+
+    byte buf[32]
 
 PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
+' If signflag is nonzero, it indicates we should treat
+' val as signed; if it is > 1, it is a character we should
+' print for positive numbers (typically "+")
+    if (signflag)
+        if (val < 0)
+            signflag := "-"
+            val := -val
 
-  '' if signflag is nonzero, it indicates we should treat
-  '' val as signed; if it is > 1, it is a character we should
-  '' print for positive numbers (typically "+")
+' Make sure we will not overflow our buffer
+    if (digitsNeeded > 32)
+        digitsNeeded := 32
 
-  if (signflag)
-      if (val < 0)
-        signflag := "-"
-	val := -val
+' Accumulate the digits
+    i := 0
+    repeat
+        if (val < 0)
+' Synthesize unsigned division from signed
+' Basically shift val right by 2 to make it positive
+' Then adjust the result afterwards by the bit we
+' shifted out
+            r1 := val&1  ' Capture low bit
+            q1 := val>>1 ' Divide val by 2
+            digit := r1 + 2*(q1 // base)
+            val := 2*(q1 / base)
+            if (digit => base)
+                val++
+                digit -= base
+        else
+            digit := val // base
+            val := val / base
 
-  '' make sure we will not overflow our buffer
-  if (digitsNeeded > 32)
-    digitsNeeded := 32
+        if (digit => 0 and digit =< 9)
+            digit += "0"
+        else
+            digit := (digit - 10) + "A"
+        buf[i++] := digit
+        --digitsNeeded
+    while (val <> 0 or digitsNeeded > 0) and (i < 32)
+    if (signflag > 1)
+        Char(signflag)
 
-  '' accumulate the digits
-  i := 0
-  repeat
-    if (val < 0)
-      ' synthesize unsigned division from signed
-      ' basically shift val right by 2 to make it positive
-      ' then adjust the result afterwards by the bit we
-      ' shifted out
-      r1 := val&1  ' capture low bit
-      q1 := val>>1 ' divide val by 2
-      digit := r1 + 2*(q1 // base)
-      val := 2*(q1 / base)
-      if (digit => base)
-        val++
-	digit -= base
-    else
-      digit := val // base
-      val := val / base
+' Now print the digits in reverse order
+    repeat while (i > 0)
+        Char(buf[--i])
 
-    if (digit => 0 and digit =< 9)
-       digit += "0"
-    else
-       digit := (digit - 10) + "A"
-    buf[i++] := digit
-    --digitsNeeded
-  while (val <> 0 or digitsNeeded > 0) and (i < 32)
-  if (signflag > 1)
-    tx(signflag)
+PUB Dec(val)
+' Print a signed decimal number
+    Num(val, 10, 1, 0)
 
-  '' now print the digits in reverse order
-  repeat while (i > 0)
-    tx(buf[--i])
+PUB DecUns(val, digits = 0)
+' Print an unsigned decimal number with the specified
+'   number of digits; 0 means just use as many as we need
+    Num(val, 10, 0, digits)
 
-'' print a signed decimal number
-PUB dec(val)
-  num(val, 10, 1, 0)
+PUB Hex(val, digits = 8) | mask
+' Print a hex number with the specified number
+'   of digits; 0 means just use as many as we need
 
-'' print an unsigned decimal number with the specified
-'' number of digits; 0 means just use as many as we need
-PUB decuns(val, digits = 0)
-  num(val, 10, 0, digits)
+    if digits > 0 and digits < 8
+        mask := (|< (4*digits)) - 1
+        val &= mask
+    Num(val, 16, 0, digits)
 
-'' print a hex number with the specified number
-'' of digits; 0 means just use as many as we need
-PUB hex(val, digits = 8) | mask
-  if digits > 0 and digits < 8
-    mask := (|< (4*digits)) - 1
-    val &= mask
-  num(val, 16, 0, digits)
+PUB Bin(val, digits = 32) | mask
+' Print a number in binary form
+    if digits > 0 and digits < 32
+        mask := (|< digits) - 1
+        val &= mask
+    Num(val, 2, 0, digits)
 
-'' print a number in binary form
-PUB bin(val, digits = 32) | mask
-  if digits > 0 and digits < 32
-    mask := (|< digits) - 1
-    val &= mask
-  num(val, 2, 0, digits)
+PUB NL
+' Print a newline
+    Char(13)
+    Char(10)
 
-'' print a newline
-PUB nl
-  tx(13)
-  tx(10)
-
-''
-'' C like formatted print
-''
-PUB printf(fmt = string(""), an=0, bn=0, cn=0, dn=0, en=0, fn=0) | c, valptr, val
-  valptr := @an
-  repeat
-    c := byte[fmt++]
-    if (c == 0)
-      quit
-    if c == "%"
-      c := byte[fmt++]
-      if (c == 0)
-        quit
-      if (c == "%")
-        tx(c)
-        next
-      val := long[valptr]
-      valptr += 4
-      case c
-	"d": dec(val)
-	"u": decuns(val)
-	"x": hex(val)
-	"s": str(val)
-        "c": tx(val)
-    elseif c == "\"
-      c := byte[fmt++]
-      if c == 0
-        quit
-      case c
-        "n": nl
-        "r": tx(13)
-        "t": tx(8)
-        other: tx(c)
-    else
-      tx(c)
+PUB PrintF(fmt = string(""), an=0, bn=0, cn=0, dn=0, en=0, fn=0) | c, valptr, val
+' C like formatted print
+    valptr := @an'1
+    repeat'1
+        c := byte[fmt++]'2
+        if (c == 0)'2
+            quit'3
+        if c == "%"'2
+            c := byte[fmt++]'3
+            if (c == 0)'3
+                quit'4
+            if (c == "%")'3
+                Char(c)'4
+                next'4
+            val := long[valptr]'3
+            valptr += 4'3
+            case c'3
+                "d": Dec(val)'4
+                "u": DecUns(val)
+                "x": Hex(val)
+                "s": Str(val)
+                "c": Char(val)
+        elseif c == "\"'2
+            c := byte[fmt++]'3
+            if c == 0'3
+                quit'4
+            case c'3
+                "n": NL'4
+                "r": Char(13)
+                "t": Char(8)
+                other: Char(c)
+        else'2
+            Char(c)'3
