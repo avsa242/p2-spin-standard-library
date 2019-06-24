@@ -63,4 +63,4 @@ PUB rx : v
 
 
 '' provide the usual str(), dec(), etc. routines
-#include "com.smartserial.terminal.spin2"
+#include "lib.terminalfunc.spin2"

@@ -1,163 +1,160 @@
-''
 '' clock frequency settings
 '' for 640x480 we use a 25 MHz pixel clock
 '' and just run the P2 at 100 MHz
 
 CON
-  _XTALFREQ     = 20_000_000                                    ' crystal frequency
-  _XDIV         = 1                                            ' crystal divider to give 1MHz
-  _XMUL         = 5                                          ' crystal / div * mul
-  _XDIVP        = 1                                             ' crystal / div * mul /divp to give _CLKFREQ (1,2,4..30)
-  _XOSC         = %10                                  'OSC    ' %00=OFF, %01=OSC, %10=15pF, %11=30pF
-  _XSEL         = %11                                   'XI+PLL ' %00=rcfast(20+MHz), %01=rcslow(~20KHz), %10=XI(5ms), %11=XI+PLL(10ms)
-  _XPPPP        = ((_XDIVP>>1) + 15) & $F                       ' 1->15, 2->0, 4->1, 6->2...30->14
-  _CLOCKFREQ    = _XTALFREQ / _XDIV * _XMUL / _XDIVP            ' internal clock frequency
-  _SETFREQ      = 1<<24 + (_XDIV-1)<<18 + (_XMUL-1)<<8 + _XPPPP<<4 + _XOSC<<2  ' %0000_000e_dddddd_mmmmmmmmmm_pppp_cc_00  ' setup  oscillator
+'  _XTALFREQ     = 20_000_000                                    ' crystal frequency
+'  _XDIV         = 1                                            ' crystal divider to give 1MHz
+'  _XMUL         = 5                                          ' crystal / div * mul
+'  _XDIVP        = 1                                             ' crystal / div * mul /divp to give _CLKFREQ (1,2,4..30)
+'  _XOSC         = %10                                  'OSC    ' %00=OFF, %01=OSC, %10=15pF, %11=30pF
+'  _XSEL         = %11                                   'XI+PLL ' %00=rcfast(20+MHz), %01=rcslow(~20KHz), %10=XI(5ms), %11=XI+PLL(10ms)
+'  _XPPPP        = ((_XDIVP>>1) + 15) & $F                       ' 1->15, 2->0, 4->1, 6->2...30->14
+'  _CLOCKFREQ    = _XTALFREQ / _XDIV * _XMUL / _XDIVP            ' internal clock frequency
+'  _SETFREQ      = 1<<24 + (_XDIV-1)<<18 + (_XMUL-1)<<8 + _XPPPP<<4 + _XOSC<<2  ' %0000_000e_dddddd_mmmmmmmmmm_pppp_cc_00  ' setup  oscillator
 
-  sys_clock_freq = _CLOCKFREQ
-  sys_clock_mode = _SETFREQ
-  pixel_clock_freq = 25_000_000
+    XTALFREQ    = cfg#XTAL
+    XDIV        = cfg#XDIV
+    XMUL        = cfg#XMUL
+    XDIVP       = cfg#XDIVP
+    XOSC        = cfg#XOSC
+    XSEL        = cfg#XSEL
+    XPPPP       = cfg#XPPPP
+    CLOCKFREQ   = cfg#CLOCKFREQ
+    SETFREQ     = cfg#SETFREQ
 
-CON
-	COLS = 80
-	ROWS = 30
-        FONT_HEIGHT = 16
+    PIX_CLOCK   = 25_000_000
 
-DAT
-'
-'
-' Bitmap
-'
-        orgh
-buffer
-	long 0[COLS*ROWS*2]
-'
-' font buffer
-'
-	long
-fontdata
-	file "unscii-16.bin"
-'	file "unscii-8-fantasy.bin"
+    COLS        = 80
+    ROWS        = 30
+    FONT_HEIGHT = 16
 
-'=================================================================================================================
-' BELOW HERE IS THE DEMO CODE
-'=================================================================================================================
-democolors
-    long $FF000000, $FFFF0000, $00FF0000, $00FFFF00
-    long $0000FF00, $FF00FF00, $FFFFFF00, $00000000
-    long $7F000000, $007F7F00, $007F0000
-
-VAR
-    long params[40] ' parameters for running the VGA tile driver
+    PIXSHIFT    = 31
 
 OBJ
-    vga: "vga_tile_driver.spin2"
 
-PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
-    clkset(sys_clock_mode, sys_clock_freq)  ' 20 MHz crystal * 8
+    cfg : "core.con.boardcfg.p2eval"
+    vga : "display.vga.tile"
+    time: "time"
+
+VAR
+
+    long params[40]             ' Parameters for running the VGA tile driver
+
+PUB Main | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
+
+    clkset(SETFREQ, CLOCKFREQ, XSEL)
 
     initparams
     vga.start(@params)
     ch := 0
     longfill(@buffer, 0, 80*30*2)
-    pausems(1000)
+    time.MSleep(1000)
     cls
 
     repeat y from 0 to ROWS-1
         grey := y<<3
         bgcol := (grey<<24) | (grey<<16) | (grey<<8)
         repeat x from 0 to COLS-1
-          grey := (x & 15)
-	  idx := x / 16
-          col1 := democolors[idx]
-	  col2 := democolors[idx+1]
-	  fgcol := colorblend(col1, col2, (grey<<4) + grey)
-          glyphat(x, y, ch++, fgcol, bgcol)
+            grey := (x & 15)
+            idx := x / 16
+            col1 := democolors[idx]
+            col2 := democolors[idx+1]
+            fgcol := colorblend(col1, col2, (grey<<4) + grey)
+            glyphat(x, y, ch++, fgcol, bgcol)
     runtext
 
-'
-' calculate ($8000_0000 * a) / (b)
-'
-CON PIXSHIFT = 31
+PRI CalcScale(a, b) | shiftcnt
+' Calculaate ($8000_0000 * a) / b
+    shiftcnt := PIXSHIFT
+' Remove factors of 5 (will be pretty common)
+    repeat while 0 == (a // 5) and 0 == (b // 5)
+        a := a / 5
+        b := b / 5
 
-PRI calcscale(a, b) | shiftcnt
-  shiftcnt := PIXSHIFT
-  ' remove factors of 5 (will be pretty common)
-  repeat while 0 == (a // 5) and 0 == (b // 5)
-    a := a / 5
-    b := b / 5
+' Scale a up as much as we can
+    repeat while ((a & $4000_0000) == 0) and shiftcnt > 0
+        a := a << 1
+        shiftcnt--
+    repeat while ((b & 1) == 0) and shiftcnt > 0
+        b := b>>1
+        shiftcnt--
+    return (a / b) << shiftcnt
 
-  ' scale a up as much as we can
-  repeat while ((a & $4000_0000) == 0) and shiftcnt > 0
-    a := a << 1
-    shiftcnt--
-  repeat while ((b & 1) == 0) and shiftcnt > 0
-    b := b>>1
-    shiftcnt--
-  return (a / b) << shiftcnt
+PUB InitParams | i, pclkscale, x
+' Calculate clock frequency
+' Calculate scale := $8000_0000 * pclk / sysclk
+' This is equal to pclk / (sysclk / $8000_000)
+    pclkscale := calcscale(PIX_CLOCK, CLKFREQ)
 
-'
-' calculate ($8000_0000 * a) / (b)
-'
-PUB initparams | i, pclkscale, pclk, sysclk, x
-  ' calculate clock frequency
-  pclk := pixel_clock_freq ' pixel clock
-  sysclk := clkfreq  ' system clock
-  ' calculate scale := $8000_0000 * pclk / sysclk
-  ' this is equal to pclk / (sysclk / $8000_000)
-  pclkscale := calcscale(pclk, sysclk)
+    i := 0
+    params[i++] := @buffer      ' screen buffer
+    params[i++] := COLS         ' screen columns
+    params[i++] := ROWS         ' screen rows
+    params[i++] := @fontdata	' font data
+    params[i++] := 8		' font width
+    params[i++] := FONT_HEIGHT  ' font height
+    params[i++] := pclkscale    ' fset - pixel clock scaling value
+    params[i++] := 16           ' horizontal front porch
+    params[i++] := 96           ' hsync pulse
+    params[i++] := 48           ' horizontal back porch
+    params[i++] := 10           ' vertical front porch
+    params[i++] := 2            ' vertical sync lines
+    params[i++] := 33           ' vertical back porch
+    params[i++] := %00          ' polarity (1 == negative)
 
-  i := 0
-  params[i++] := @buffer	' screen buffer
-  params[i++] := COLS           ' screen columns
-  params[i++] := ROWS           ' screen rows
-  params[i++] := @fontdata	' font data
-  params[i++] := 8		' font width
-  params[i++] := FONT_HEIGHT    ' font height
-  params[i++] := pclkscale 'fset           ' pixel clock scaling value
-  params[i++] := 16             ' horizontal front porch
-  params[i++] := 96             ' hsync pulse
-  params[i++] := 48             ' horizontal back porch
-  params[i++] := 10             ' vertical front porch
-  params[i++] := 2              ' vertical sync lines
-  params[i++] := 33             ' vertical back porch
-  params[i++] := %00            ' polarity (1 == negative)
+PUB ColorBlend(a, b, mix)
 
-PUB colorblend(a, b, mix)
-  asm
-    setpiv mix
-    blnpix a, b
-  endasm
-  return a
+    asm
+        setpiv mix
+        blnpix a, b
+    endasm
+    return a
 
 #define screen_buffer buffer
-#include "vga_text_routines.spinh"
-#include "std_text_routines.spinh"
+#include "display.vga.textlib.spin2"
+#include "lib.terminalfunc.spin2"
 
-PUB runtext | n
-  pausems(4000)
-  init_terminal
+PUB RunText | n
 
-  str(string(27, "[1;1H"))
-  str(string(27, "[0J"))
-  str(@teststring)
-  pausems(10000)
+    time.MSleep(4000)
+    init_terminal
 
-  n := 0
-  repeat
-    nl
-    str(string("Hello! ", 27, "[BCursor down"))
-    str(string(27, "[31mRed text "))
-    str(string(27, "[1;31mBright Red text"))
-    str(string(27, "[7mInverse "))
-    str(string(27, "[22;31mBold off "))
-    str(string(27, "[0mEffects off "))
-    dec(n)
-    n++
-    pausems(1000)
+    str(string(27, "[1;1H"))
+    str(string(27, "[0J"))
+    str(@teststring)
+    time.MSleep(10000)
+
+    n := 0
+    repeat
+        nl
+        str(string("Hello! ", 27, "[BCursor down"))
+        str(string(27, "[31mRed text "))
+        str(string(27, "[1;31mBright Red text"))
+        str(string(27, "[7mInverse "))
+        str(string(27, "[22;31mBold off "))
+        str(string(27, "[0mEffects off "))
+        dec(n)
+        n++
+        time.MSleep(1000) 
 
 
 DAT
-teststring
-  FILE "picture.ans"
-  long 0
+'
+'
+' Bitmap
+'
+    orgh
+    buffer      long 0[COLS*ROWS*2]
+'
+' font buffer
+'
+    long
+    fontdata    file "font.8x16.unscii.bin"
+
+    democolors  long $FF000000, $FFFF0000, $00FF0000, $00FFFF00
+                long $0000FF00, $FF00FF00, $FFFFFF00, $00000000
+                long $7F000000, $007F7F00, $007F0000
+
+    teststring  file "picture.ans"
+                long 0
