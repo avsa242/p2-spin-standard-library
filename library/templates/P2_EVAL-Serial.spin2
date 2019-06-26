@@ -34,30 +34,30 @@ PUB Main
 
 PUB Clear
 
-    ser.tx (27)
-    ser.tx ("[")
-    ser.tx ("2")
-    ser.tx ("J")
+    ser.Char (27)
+    ser.Char ("[")
+    ser.Char ("2")
+    ser.Char ("J")
     Position(0, 0)
 
 PUB NL
 
-    ser.tx (10)
-    ser.tx (13)
+    ser.Char (10)
+    ser.Char (13)
 
 PUB Position(x, y)
 ' Position cursor at column x, row y (from top-left).
-    ser.tx (27)
-    ser.tx ("[")
+    ser.Char (27)
+    ser.Char ("[")
     ser.Dec (y)
-    ser.tx (";")
+    ser.Char (";")
     ser.Dec (x)
-    ser.tx ("f")
+    ser.Char ("f")
 
 PUB Setup
 
     clkset(ENAFREQ, CLOCKFREQ, XSEL)
-    repeat until _ser_cog := ser.Start (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until _ser_cog := ser.Startx (SER_RX, SER_TX, 0, SER_BAUD)
     Clear
     ser.Str (string("Serial terminal started"))
 

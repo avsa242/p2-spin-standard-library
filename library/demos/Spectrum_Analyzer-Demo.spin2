@@ -16,7 +16,7 @@ CON
 
     OSCMODE = %1_000000_0000000000_0000_01_00 | ((PLL_divide-1) << 18) | ((PLL_mult-1) << 8) | ((VCO_divide/2-1) << 4)
     FREQ = XTAL_FREQ / PLL_divide * PLL_mult / VCO_divide  ' 160_000_000
-    BAUD = 2 * 115_200
+    BAUD = 2_000_000'2 * 115_200
 
     DITHER_MODE  = %0000_0000_000_10100_00000000_01_00010_0   ' for 'scope output
 
@@ -107,10 +107,10 @@ VAR
 PUB main | i, j, k, x, y, s, fbase, caddr, caddr2, horizontal, row, col
     clkset (OSCMODE, FREQ)
     pausems (10)
-    ser.start (63, 62, 0, BAUD)
-    ser.str (string ("Hello"))
-    ser.tx(13)
-    ser.tx(10)
+    ser.Startx (63, 62, 0, BAUD)
+    ser.Str (string ("Hello"))
+    ser.Char(13)
+    ser.Char(10)
 
     font.reverse_font
     fbase := font.get_base
@@ -223,24 +223,24 @@ PUB main | i, j, k, x, y, s, fbase, caddr, caddr2, horizontal, row, col
     cognew (@entry, @scratch)
     repeat
         pausems(200)
-        ser.str (string ("mu^2="))
-        ser.hex (window_mu2, 8)
-        ser.tx(32)
-        ser.dec ((((window_mu2+8000) >> 14) * 100000) >> (18-FIXINT))
-        ser.tx(32)
-        ser.str (string ("sigma^2="))
-        ser.dec ((((window_sig2+16000) >> 15) * 100000) >> (17-FIXINT))
-        ser.tx(32)
-        ser.str (string ("fs="))
-        ser.dec (sample_freq)
-        ser.str (string ("Hz"))
-        ser.tx(32)
-        ser.tx(32)
+        ser.Str (string ("mu^2="))
+        ser.Hex (window_mu2, 8)
+        ser.Char(32)
+        ser.Dec ((((window_mu2+8000) >> 14) * 100000) >> (18-FIXINT))
+        ser.Char(32)
+        ser.Str (string ("sigma^2="))
+        ser.Dec ((((window_sig2+16000) >> 15) * 100000) >> (17-FIXINT))
+        ser.Char(32)
+        ser.Str (string ("fs="))
+        ser.Dec (sample_freq)
+        ser.Str (string ("Hz"))
+        ser.Char(32)
+        ser.Char(32)
 
-        ser.dec (FFT_timing)
-        ser.str (string (" clks"))
-        ser.tx(13)
-        ser.tx(10)
+        ser.Dec (FFT_timing)
+        ser.Str (string (" clks"))
+        ser.Char(13)
+        ser.Char(10)
 
         repeat until vga.is_blanking
 

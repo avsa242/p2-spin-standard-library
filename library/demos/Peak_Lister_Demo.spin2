@@ -75,14 +75,14 @@ VAR
 PUB main | i, j, k, pk_count
     clkset (OSCMODE, FREQ)
     pausems (10)
-    ser.start (63, 62, 0, BAUD)
+    ser.Startx (63, 62, 0, BAUD)
     sampling_rate := (freq / ADC_CYCLES) >> ADC_READING_REPEAT_SHIFT
 
-    ser.str (string ("FFT peak detector, sampling at "))
-    ser.dec (sampling_rate)
-    ser.str (string ("Hz"))
-    ser.tx(13)
-    ser.tx(10)
+    ser.Str (string ("FFT peak detector, sampling at "))
+    ser.Dec (sampling_rate)
+    ser.Str (string ("Hz"))
+    ser.Char(13)
+    ser.Char(10)
 
     siggen.start (DAC_TESTPIN)
 
@@ -134,14 +134,14 @@ PUB main | i, j, k, pk_count
 	    k := freq_for_col(peaks_list[i])
 
 	    if j > -7000   ' if > -70dB
-	        ser.dec(k)
-                ser.str (string("Hz "))
+	        ser.Dec(k)
+                ser.Str (string("Hz "))
 		print_db_times_100(j)
-	        ser.tx(13)
-	        ser.tx(10)
+	        ser.Char(13)
+	        ser.Char(10)
 	    i += 2
-        ser.tx(13)
-	ser.tx(10)
+        ser.Char(13)
+	ser.Char(10)
 	peaks_ready := 0
 
 
@@ -155,14 +155,14 @@ PUB  dB_times_100(x)  ' convert 32 bit log values
 PUB print_db_times_100(x) | hundredths, units, absx
     absx := abs (x)
     if x < 0
-        ser.tx ($2D)
+        ser.Char ($2D)
     hundredths := absx // 100
     units := absx / 100
-    ser.dec (units)
-    ser.tx ($2E)
-    ser.dec (hundredths / 10)
-    ser.dec (hundredths // 10)
-    ser.str (string(" dBV"))
+    ser.Dec (units)
+    ser.Char ($2E)
+    ser.Dec (hundredths / 10)
+    ser.Dec (hundredths // 10)
+    ser.Str (string(" dBV"))
 
 
 

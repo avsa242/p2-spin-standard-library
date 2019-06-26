@@ -48,7 +48,7 @@ PRI checkposition
   elseif cury < 0
     cury := 0
 
-PUB tx(c) | fg, bg
+PUB Char(c) | fg, bg
    if (state == STATE_NORMAL)
       if (c == 8) ' backspace
          --curx

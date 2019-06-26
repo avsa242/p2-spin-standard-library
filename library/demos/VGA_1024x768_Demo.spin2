@@ -36,7 +36,7 @@ buffer
 '
 	long
 fontdata
-	file "unscii-16.bin"
+	file "font.8x16.unscii.bin"
 '	file "unscii-8-fantasy.bin"
 
 '=================================================================================================================
@@ -51,7 +51,7 @@ VAR
     long params[40] ' parameters for running the VGA tile driver
 
 OBJ
-    vga: "vga_tile_driver.spin2"
+    vga: "display.vga.tile"
 
 PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
     clkset(sys_clock_mode, sys_clock_freq)  ' 20 MHz crystal * 8
@@ -131,8 +131,8 @@ PUB colorblend(a, b, mix)
   return a
 
 #define screen_buffer buffer
-#include "vga_text_routines.spinh"
-#include "std_text_routines.spinh"
+#include "lib.vga.text.spin2"
+#include "lib.terminalfunc.spin2"
 
 PUB runtext | n, fgcol, bgcol
   pausems(8000)
@@ -140,15 +140,15 @@ PUB runtext | n, fgcol, bgcol
   bgcol:=0
   init_terminal
   repeat
-    str(string(27, "["))
-    dec(fgcol+31)
-    tx(";")
-    dec(bgcol+41)
-    tx("m")
+    Str(String(27, "["))
+    Dec(fgcol+31)
+    Char(";")
+    Dec(bgcol+41)
+    Char("m")
 
     n := 33
     repeat COLS
-      tx(n & $FF)
+      Char(n & $FF)
       n++
     pausems(2000)
     fgcol++

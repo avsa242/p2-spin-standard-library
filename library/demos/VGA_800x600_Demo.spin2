@@ -139,7 +139,7 @@ PUB colorblend(a, b, mix)
   return a
 
 #define screen_buffer screen
-#include "display.vga.textlib.spin2"
+#include "lib.vga.text.spin2"
 #include "lib.terminalfunc.spin2"
 
 PUB runtext | n, fgcol, bgcol
@@ -148,15 +148,15 @@ PUB runtext | n, fgcol, bgcol
   bgcol:=0
   init_terminal
   repeat
-    str(string(27, "["))
-    dec(fgcol+31)
-    tx(";")
-    dec(bgcol+41)
-    tx("m")
+    Str(string(27, "["))
+    Dec(fgcol+31)
+    Char(";")
+    Dec(bgcol+41)
+    Char("m")
 
     n := 33
     repeat COLS
-      tx(n & $FF)
+      Char(n & $FF)
       n++
     pausems(2000)
     fgcol++

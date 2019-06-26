@@ -113,8 +113,8 @@ CON
         #0, COGNUM, EVTPIN, KBCON, MCON
 '------------------------------------------------------------------------------
 OBJ
-  ser: "SmartSerial"
-  usb1: "1CogKbM"
+  ser: "com.smartserial"
+  usb1: "input.usb.kbd_mouse"
 
 VAR
   long usbA
@@ -128,16 +128,16 @@ DAT
 PUB KbMObjTest | event, data, eventa
   clkset(_clkmode, _clkfreq)
   waitcnt(clkfreq * 2 + cnt)                            ' Wait a bit for user to get the terminai ready
-  ser.start(rx_pin, tx_pin, 0, baud)
-  ser.printf("Sysclock: %u, baudrate: %u\n", clkfreq, baud)
-  ser.printf("Tiny client + USB low/full speed keyboard/mouse %s.\n", @szversion)
+  ser.Startx(rx_pin, tx_pin, 0, baud)
+  ser.PrintF("Sysclock: %u, baudrate: %u\n", clkfreq, baud)
+  ser.PrintF("Tiny client + USB low/full speed keyboard/mouse %s.\n", @szversion)
 
   usb1.start(@usbA)
   if (usbA.byte[COGNUM])
     eventa := usbA.byte[EVTPIN]
-    ser.printf(@szusbstart, 1, usbA.byte[COGNUM] - 1, eventa, usb1.getVersion)
+    ser.PrintF(@szusbstart, 1, usbA.byte[COGNUM] - 1, eventa, usb1.getVersion)
   else
-    ser.printf(@szusbfail, 1)
+    ser.PrintF(@szusbfail, 1)
     repeat                                              ' Nothing to do...
 
 '' Main loop
@@ -163,13 +163,13 @@ PRI handleKeyData(keydata) | tglstates, modkey, scancode, asciival
 
   case scancode
     KEY_BKSPACE:
-      ser.str(@szbackspace)
+      ser.Str(@szbackspace)
     KEY_ENTER:
       ser.nl
     KEY_CAPSLK, KEY_SCRLK, KEY_NUMLK:
-      ser.tx(BELL)                                      ' Ring the terminal bell on toggle key state change
+      ser.Char(BELL)                                      ' Ring the terminal bell on toggle key state change
     other:
-      ser.tx(asciival)
+      ser.Char(asciival)
 
 '' Unpack and output new mouse data
 PRI handleMouseUpdate(data) | b, x, y
@@ -177,11 +177,11 @@ PRI handleMouseUpdate(data) | b, x, y
   x := ~data.byte[1]                                    ' X/Y direction and velocity is signed -127/+127
   y := ~data.byte[2]
 {
-  ser.hex(b, 2)
-  ser.tx($20)
-  ser.hex(x, 2)
-  ser.tx($20)
-  ser.hex(y, 2)
+  ser.Hex(b, 2)
+  ser.Char($20)
+  ser.Hex(x, 2)
+  ser.Char($20)
+  ser.Hex(y, 2)
   ser.nl
   return
 }
@@ -192,55 +192,55 @@ PRI handleMouseUpdate(data) | b, x, y
   if (y =< 3 and y => -3)
     y := 0
 
-  ser.str("Btn: ")
+  ser.Str("Btn: ")
   ser.bin(b, 8)
-  ser.str(", X: ")
+  ser.Str(", X: ")
   ser.num(x, 10, "+", 3)
-  ser.str(", Y: ")
+  ser.Str(", Y: ")
   ser.num(y, 10, "+", 3)
 
 ' Scroll the mouse data if middle button pressed
   if b & MOUSE_CBTNF
     ser.nl
   else
-    ser.tx(CR)
+    ser.Char(CR)
 
 PRI usbEvent(portptr, portnum, event) | ptr, val
   case event
     DEV_DISCONNECT:
-      ser.printf("\nDevice disconnected\n")
+      ser.PrintF("\nDevice disconnected\n")
       byte[portptr][KBCON] := 0
       byte[portptr][MCON] := 0
     DEV_UNKNOWN:
-      ser.printf("Boot protocol keyboard/mouse not found\n")
+      ser.PrintF("Boot protocol keyboard/mouse not found\n")
     KB_READY:
-      ser.printf("Keyboard configured\n")
+      ser.PrintF("Keyboard configured\n")
       byte[portptr][KBCON]++
     M_READY:
-      ser.printf("Mouse configured\n")
+      ser.PrintF("Mouse configured\n")
       byte[portptr][MCON]++
     KBM_READY:
-      ser.printf("Keyboard and mouse configured\n")
+      ser.PrintF("Keyboard and mouse configured\n")
       byte[portptr][KBCON]++
       byte[portptr][MCON]++
     USB_ERROR:
       if portnum == 1
         ptr := usb1.getErrorCode
-      ser.printf("\nUSB%u error: %u\n", portnum, long[ptr])
+      ser.PrintF("\nUSB%u error: %u\n", portnum, long[ptr])
     USB_DBG_INFO:
       if portnum == 1
         (ptr, val) := usb1.getDebugInfo
-      ser.printf("PC%u: $", portnum)
-      ser.hex(ptr, 5)
-      ser.str(", val: ")
-      ser.hex(val)
+      ser.PrintF("PC%u: $", portnum)
+      ser.Hex(ptr, 5)
+      ser.Str(", val: ")
+      ser.Hex(val)
       ser.nl
     M_DATA:
       if portnum == 1
         val := usb1.mouse
         handleMouseUpdate(val)
     other:
-      ser.printf("Event%u: %u\n", portnum, event)
+      ser.PrintF("Event%u: %u\n", portnum, event)
 {
 +----------------------------------------------------------------------------------------------------------------------+
 |                                             TERMS OF USE: MIT License                                                |

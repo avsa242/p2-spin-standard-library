@@ -1,5 +1,5 @@
 CON
-' P2EVAL #64000-ES
+' P2 EVAL
 ' Parallax #64000-ES
 ' Clock settings
     XTAL        = 20_000_000
@@ -22,15 +22,15 @@ CON
     LED7        = 62
     LED8        = 63
 
-    SD_MISO     = 58
+    SD_MISO     = 58    ' uSD card slot
     SD_MOSI     = 59
     SD_CS       = 60
     SD_CLK      = 61
 
-    FLASH_DO    = 58
+    FLASH_DO    = 58    ' SPI Flash
     FLASH_DI    = 59
     FLASH_CLK   = 60
     FLASH_CS    = 61
 
-    SER_TX      = 62
+    SER_TX      = 62    ' UART pins
     SER_RX      = 63

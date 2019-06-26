@@ -42,6 +42,7 @@ OBJ
 
 VAR
 
+    long _keyinput_stack[50]
     byte _fmt
 
 PUB Main | slave_addr, flag, x, y, offsetx, offsety, start, end
@@ -55,12 +56,14 @@ PUB Main | slave_addr, flag, x, y, offsetx, offsety, start, end
     offsety := 3
     start := $02
     end := $FF
-    _fmt := 7                       '7 or 8 bit format Slave addreses (affects display only)
+    _fmt := 7                       '7 or 8 bit format Slave addresses (affects display only)
     ser.Str (string(" ("))
     ser.Dec (_fmt)
     ser.Str (string("-bit format)"))
     ser.Str(@grey)
     repeat
+        Position(14, 0)
+        ser.Dec(_fmt)
         repeat slave_addr from start to end step 2
             flag := i2c.present (slave_addr)
             x := ((slave_addr & $F) + (slave_addr & $F)) + offsetx
@@ -76,67 +79,77 @@ PUB PrintSA(x, y, slave_addr, flag)
                 TRUE:
                     Position (x, y)
                     ser.Str(@green)
-                    ser.tx ("/")
+                    ser.Char ("/")
                     ser.Hex (slave_addr >> 1, 2)
-                    ser.tx ("/")
+                    ser.Char ("/")
                     ser.Str(@grey)
 
                 FALSE:
                     Position (x, y)
-                    ser.tx (" ")
+                    ser.Char (" ")
                     ser.Hex (slave_addr >> 1, 2)
-                    ser.tx (" ")
+                    ser.Char (" ")
 
         8:
             case flag
                 TRUE:
                     Position (x, y)
                     ser.Str(@green)
-                    ser.tx ("/" )
+                    ser.Char ("/" )
                     ser.Hex (slave_addr, 2)
-                    ser.tx ("/")
+                    ser.Char ("/")
                     ser.Str(@grey)
 
                 FALSE:
                     Position (x, y)
-                    ser.tx (" ")
+                    ser.Char (" ")
                     ser.Hex (slave_addr, 2)
-                    ser.tx (" ")
+                    ser.Char (" ")
         OTHER:
 
 PUB CSI
 
-    ser.tx (27)
-    ser.tx ("[")
+    ser.Char (27)
+    ser.Char ("[")
 
 PUB Clear
 
     CSI
-    ser.tx ("2")
-    ser.tx ("J")
+    ser.Char ("2")
+    ser.Char ("J")
 
 PUB Home
 
     CSI
-    ser.tx ("f")
+    ser.Char ("f")
 
 PUB Position(x, y)
 ' Position cursor at column x, row y (from top-left).
     CSI
     ser.Dec (y)
-    ser.tx (";")
+    ser.Char (";")
     ser.Dec (x)
-    ser.tx ("f")
+    ser.Char ("f")
 
 PUB NL
 
-    ser.tx (10)
-    ser.tx (13)
+    ser.Char (10)
+    ser.Char (13)
+
+PUB KeyInput | tmp
+
+    repeat
+        repeat while ser.RXCheck == -1
+        tmp := ser.RX
+        case tmp
+            "7": _fmt := 7
+            "8": _fmt := 8
+            OTHER:
 
 PUB Setup
 
     clkset(ENAFREQ, CLOCKFREQ, XSEL)
-    ser.Start (63, 62, 0, SER_BAUD)
+    ser.Startx (63, 62, 0, SER_BAUD)
     time.MSleep(5)
     Clear
     ser.Str(string("Serial terminal started"))
@@ -144,6 +157,7 @@ PUB Setup
     i2c.Setup (I2C_SCL, I2C_SDA, I2C_HZ)
     ser.Str (string("I2C driver started"))
     NL
+    cognew (KeyInput, @_keyinput_stack)
 
 PUB Flash(led_pin, delay_ms)
 

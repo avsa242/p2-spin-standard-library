@@ -38,7 +38,7 @@ DAT
 '
 	long
 fontdata
-	file "unscii-16.bin"
+	file "font.8x16.unscii.bin"
 
 '=================================================================================================================
 ' BELOW HERE IS THE DEMO CODE
@@ -53,7 +53,7 @@ VAR
     long screen[COLS*ROWS*2]
 
 OBJ
-    vga: "vga_tile_driver.spin2"
+    vga: "display.vga.tile"
 
 PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
     clkset(sys_clock_mode, sys_clock_freq)
@@ -137,8 +137,8 @@ PUB colorblend(a, b, mix)
   return a
 
 #define screen_buffer screen
-#include "vga_text_routines.spinh"
-#include "std_text_routines.spinh"
+#include "lib.vga.text.spin2"
+#include "lib.terminalfunc.spin2"
 
 PUB runtext | n, fgcol, bgcol
   pausems(11000)
@@ -148,13 +148,13 @@ PUB runtext | n, fgcol, bgcol
   repeat
     str(string(27, "["))
     dec(fgcol+31)
-    tx(";")
+    Char(";")
     dec(bgcol+41)
-    tx("m")
+    Char("m")
 
     n := 33
     repeat COLS
-      tx(n & $FF)
+      Char(n & $FF)
       n++
     pausems(2000)
     fgcol++
