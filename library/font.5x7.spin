@@ -1,0 +1,801 @@
+{
+    --------------------------------------------
+    Filename: font.5x7.spin
+    Description: 5x7 bitmap font
+    Author: Jesse Burt
+    Bitmap font author unknown, reference localroger's
+    Conway's Game of Life demo for the P2 8x7 LED Matrix.
+    Copyright (c) 2019
+    Created: Jun 17, 2019
+    Updated: Jun 17, 2019
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+' Font definition: width, height in pixels, ASCII code of lowest and highest charactersi
+    WIDTH       = 5
+    HEIGHT      = 7
+    FIRSTCHAR   = 32
+    LASTCHAR    = 126
+
+PUB Null
+' This is not a top-level object
+
+PUB BaseAddr
+' Return base address of font table
+    return @fontaddr
+
+DAT
+
+fontaddr
+
+' space
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+' !
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00000
+    byte %00100
+' "
+    byte %01010
+    byte %01010
+    byte %01010
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+' #
+    byte %01010
+    byte %01010
+    byte %11111
+    byte %01010
+    byte %11111
+    byte %01010
+    byte %01010
+' $
+    byte %01010
+    byte %01111
+    byte %11010
+    byte %01110
+    byte %01011
+    byte %11110
+    byte %01010
+' byte %
+    byte %11001
+    byte %11001
+    byte %00010
+    byte %00100
+    byte %01000
+    byte %10011
+    byte %10011
+' &
+    byte %01100
+    byte %10010
+    byte %10100
+    byte %01000
+    byte %10101
+    byte %10010
+    byte %01101
+' '
+    byte %00100
+    byte %00100
+    byte %01000
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+' (
+    byte %00010
+    byte %00100
+    byte %01000
+    byte %01000
+    byte %01000
+    byte %00100
+    byte %00010
+' )
+    byte %01000
+    byte %00100
+    byte %00010
+    byte %00010
+    byte %00010
+    byte %00100
+    byte %01000
+' *
+    byte %00100
+    byte %10101
+    byte %01110
+    byte %11111
+    byte %01110
+    byte %10101
+    byte %00100
+' +
+    byte %00000
+    byte %00100
+    byte %00100
+    byte %11111
+    byte %00100
+    byte %00100
+    byte %00000
+' ,
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00110
+    byte %01100
+' -
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %11111
+    byte %00000
+    byte %00000
+    byte %00000
+' .
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00110
+    byte %00110
+' /
+    byte %00001
+    byte %00001
+    byte %00010
+    byte %00100
+    byte %01000
+    byte %10000
+    byte %10000
+' 0
+    byte %01110
+    byte %10001
+    byte %10011
+    byte %10101
+    byte %11001
+    byte %10001
+    byte %01110
+' 1
+    byte %00100
+    byte %01100
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %01110
+' 2
+    byte %01110
+    byte %10001
+    byte %00001
+    byte %00010
+    byte %00100
+    byte %01000
+    byte %11111
+' 3
+    byte %01110
+    byte %10001
+    byte %00001
+    byte %00110
+    byte %00001
+    byte %10001
+    byte %01110
+' 4
+    byte %00010
+    byte %00110
+    byte %01010
+    byte %10010
+    byte %11111
+    byte %00010
+    byte %00010
+' 5
+    byte %11111
+    byte %10000
+    byte %10000
+    byte %11110
+    byte %00001
+    byte %00001
+    byte %11110
+' 6
+    byte %00111
+    byte %01000
+    byte %10000
+    byte %11110
+    byte %10001
+    byte %10001
+    byte %01110
+' 7
+    byte %11111
+    byte %10001
+    byte %00001
+    byte %00010
+    byte %00100
+    byte %00100
+    byte %00100
+' 8
+    byte %01110
+    byte %10001
+    byte %10001
+    byte %01110
+    byte %10001
+    byte %10001
+    byte %01110
+' 9
+    byte %01110
+    byte %10001
+    byte %10001
+    byte %01111
+    byte %00001
+    byte %00010
+    byte %01100
+' :
+    byte %00000
+    byte %00000
+    byte %00110
+    byte %00110
+    byte %00000
+    byte %00110
+    byte %00110
+' ' 
+    byte %00000
+    byte %00000
+    byte %00110
+    byte %00110
+    byte %00000
+    byte %00110
+    byte %01100
+' <
+    byte %00011
+    byte %00100
+    byte %01000
+    byte %10000
+    byte %01000
+    byte %00100
+    byte %00011
+' =
+    byte %00000
+    byte %00000
+    byte %11111
+    byte %00000
+    byte %11111
+    byte %00000
+    byte %00000
+' >
+    byte %11000
+    byte %00100
+    byte %00010
+    byte %00001
+    byte %00010
+    byte %00100
+    byte %11000
+' ?
+    byte %01110
+    byte %10001
+    byte %00001
+    byte %00010
+    byte %00100
+    byte %00000
+    byte %00100
+' @
+    byte %01110
+    byte %10001
+    byte %10001
+    byte %10111
+    byte %10110
+    byte %10000
+    byte %01111
+' A
+    byte %00100
+    byte %01010
+    byte %10001
+    byte %10001
+    byte %11111
+    byte %10001
+    byte %10001
+' B
+    byte %11110
+    byte %10001
+    byte %10001
+    byte %11110
+    byte %10001
+    byte %10001
+    byte %11110
+' C
+    byte %01110
+    byte %10001
+    byte %10000
+    byte %10000
+    byte %10000
+    byte %10001
+    byte %01110
+' D
+    byte %11110
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %11110
+' E
+    byte %11111
+    byte %10000
+    byte %10000
+    byte %11110
+    byte %10000
+    byte %10000
+    byte %11111
+' F
+    byte %11111
+    byte %10000
+    byte %10000
+    byte %11110
+    byte %10000
+    byte %10000
+    byte %10000
+' G
+    byte %01110
+    byte %10001
+    byte %10000
+    byte %10111
+    byte %10001
+    byte %10001
+    byte %01111
+' H
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %11111
+    byte %10001
+    byte %10001
+    byte %10001
+' I
+    byte %01110
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %01110
+' J
+    byte %00001
+    byte %00001
+    byte %00001
+    byte %00001
+    byte %10001
+    byte %10001
+    byte %01110
+' K
+    byte %10001
+    byte %10010
+    byte %10100
+    byte %11000
+    byte %10100
+    byte %10010
+    byte %10001
+' L
+    byte %10000
+    byte %10000
+    byte %10000
+    byte %10000
+    byte %10000
+    byte %10000
+    byte %11111
+' M
+    byte %10001
+    byte %11011
+    byte %10101
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %10001
+' N
+    byte %10001
+    byte %10001
+    byte %11001
+    byte %10101
+    byte %10011
+    byte %10001
+    byte %10001
+' O
+    byte %01110
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %01110
+' P
+    byte %11110
+    byte %10001
+    byte %10001
+    byte %11110
+    byte %10000
+    byte %10000
+    byte %10000
+' Q
+    byte %01110
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %10101
+    byte %01110
+    byte %00011
+' R
+    byte %11110
+    byte %10001
+    byte %10001
+    byte %11110
+    byte %10010
+    byte %10001
+    byte %10001
+' S
+    byte %01110
+    byte %10001
+    byte %10000
+    byte %01110
+    byte %00001
+    byte %10001
+    byte %01110
+' T
+    byte %11111
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00100
+' U
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %01110
+' V
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %01010
+    byte %01010
+    byte %00100
+' W
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %10101
+    byte %10101
+    byte %11011
+' X
+    byte %10001
+    byte %10001
+    byte %01010
+    byte %00100
+    byte %01010
+    byte %10001
+    byte %10001
+' Y
+    byte %10001
+    byte %10001
+    byte %01010
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00100
+' Z
+    byte %11111
+    byte %00001
+    byte %00010
+    byte %00100
+    byte %01000
+    byte %10000
+    byte %11111
+' [
+    byte %01110
+    byte %01000
+    byte %01000
+    byte %01000
+    byte %01000
+    byte %01000
+    byte %01110
+' \
+    byte %10000
+    byte %10000
+    byte %01000
+    byte %00100
+    byte %00010
+    byte %00001
+    byte %00001
+' ]
+    byte %01110
+    byte %00010
+    byte %00010
+    byte %00010
+    byte %00010
+    byte %00010
+    byte %01110
+' ^
+    byte %00100
+    byte %01010
+    byte %10001
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+' _
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %11111
+' `
+    byte %00100
+    byte %00010
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+' a
+    byte %00000
+    byte %00000
+    byte %01110
+    byte %00001
+    byte %01011
+    byte %10001
+    byte %01111
+' b
+    byte %10000
+    byte %10000
+    byte %10000
+    byte %11110
+    byte %10001
+    byte %10001
+    byte %11110
+' c
+    byte %00000
+    byte %00000
+    byte %01111
+    byte %10000
+    byte %10000
+    byte %10000
+    byte %01111
+' d
+    byte %00001
+    byte %00001
+    byte %00001
+    byte %01111
+    byte %10001
+    byte %10001
+    byte %01111
+' e
+    byte %00000
+    byte %00000
+    byte %01110
+    byte %10001
+    byte %11111
+    byte %10000
+    byte %01111
+' f
+    byte %00110
+    byte %01001
+    byte %01000
+    byte %11100
+    byte %01000
+    byte %01000
+    byte %01000
+' g
+    byte %01111
+    byte %10001
+    byte %10001
+    byte %01111
+    byte %00001
+    byte %10001
+    byte %01110
+' h
+    byte %10000
+    byte %10000
+    byte %10000
+    byte %10110
+    byte %11001
+    byte %10001
+    byte %10001
+' i
+    byte %00000
+    byte %00100
+    byte %00000
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00100
+' j
+    byte %00010
+    byte %00000
+    byte %00010
+    byte %00010
+    byte %10010
+    byte %10010
+    byte %01100
+' k
+    byte %10000
+    byte %10000
+    byte %10001
+    byte %10010
+    byte %11100
+    byte %10010
+    byte %10001
+' l
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00100
+' m
+    byte %00000
+    byte %00000
+    byte %11010
+    byte %10101
+    byte %10101
+    byte %10101
+    byte %10001
+' n
+    byte %00000
+    byte %00000
+    byte %10110
+    byte %11001
+    byte %10001
+    byte %10001
+    byte %10001
+' o
+    byte %00000
+    byte %00000
+    byte %01110
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %01110
+' p
+    byte %00000
+    byte %10110
+    byte %11001
+    byte %10001
+    byte %10001
+    byte %11110
+    byte %10000
+' q
+    byte %00000
+    byte %01101
+    byte %10011
+    byte %10001
+    byte %10001
+    byte %01111
+    byte %00001
+' r
+    byte %00000
+    byte %00000
+    byte %10110
+    byte %11001
+    byte %10000
+    byte %10000
+    byte %10000
+' s
+    byte %00000
+    byte %00000
+    byte %01111
+    byte %10000
+    byte %01110
+    byte %00001
+    byte %11110
+' t
+    byte %00100
+    byte %00100
+    byte %01111
+    byte %00100
+    byte %00100
+    byte %00101
+    byte %00010
+' u
+    byte %00000
+    byte %00000
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %10001
+    byte %01110
+' v
+    byte %00000
+    byte %00000
+    byte %10001
+    byte %10001
+    byte %01010
+    byte %01010
+    byte %00100
+' w
+    byte %00000
+    byte %00000
+    byte %10001
+    byte %10001
+    byte %10101
+    byte %10101
+    byte %01010
+' x
+    byte %00000
+    byte %00000
+    byte %10001
+    byte %01010
+    byte %00100
+    byte %01010
+    byte %10001
+' y
+    byte %00000
+    byte %10001
+    byte %10001
+    byte %01111
+    byte %00001
+    byte %10001
+    byte %01110
+' z
+    byte %00000
+    byte %00000
+    byte %11111
+    byte %00010
+    byte %00100
+    byte %01000
+    byte %11111
+' {
+    byte %00010
+    byte %00100
+    byte %00100
+    byte %01000
+    byte %00100
+    byte %00100
+    byte %00010
+' |
+    byte %00100
+    byte %00100
+    byte %00100
+    byte %00000
+    byte %00100
+    byte %00100
+    byte %00100
+' }
+    byte %01000
+    byte %00100
+    byte %00100
+    byte %00010
+    byte %00100
+    byte %00100
+    byte %01000
+' ~
+    byte %01010
+    byte %10100
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+    byte %00000
+' blot
+    byte %11111
+    byte %11111
+    byte %11111
+    byte %11111
+    byte %11111
+    byte %11111
+    byte %11111
+'

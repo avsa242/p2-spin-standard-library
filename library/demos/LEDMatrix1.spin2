@@ -1,0 +1,146 @@
+CON
+ 
+    XTAL        = cfg#XTAL
+    XDIV        = cfg#XDIV
+    XMUL        = cfg#XMUL
+    XDIVP       = cfg#XDIVP
+    XOSC        = cfg#XOSC
+    XSEL        = cfg#XSEL
+    XPPPP       = cfg#XPPPP
+    CLOCKFREQ   = cfg#CLOCKFREQ
+    SETFREQ     = cfg#SETFREQ
+    ENAFREQ     = cfg#ENAFREQ
+
+    LED         = cfg#LED1
+    SER_RX      = cfg#SER_RX
+    SER_TX      = cfg#SER_TX
+    SER_BAUD    = 2_000_000
+
+    BASEPIN     = 0
+
+OBJ
+
+    ser         : "com.smartserial"
+    cfg         : "core.con.boardcfg.p2eval"
+    pins        : "io"
+    time        : "time"
+    matrix      : "display.ledmatrix.charlieplexed"
+    gfx         : "display.gfx.bitmap"
+    fnt         : "font.5x8"
+
+VAR
+
+    long _ser_cog
+    byte _disp_buff[7]
+
+PUB Main | x, y, c, r
+
+    Setup
+    repeat c from 0 to 127
+        gfx.Position(0, 0)
+        gfx.Char(c)
+        Position(0, 6)
+        DumpBuff
+        repeat 4
+            matrix.WriteBuffer(@_disp_buff)
+        time.MSleep(100)
+
+    repeat
+        repeat y from 0 to 6
+            gfx.Circle(0, 0, 5, 1)
+            Position(0, 6)
+            DumpBuff
+            matrix.WriteBuffer(@_disp_buff)
+            gfx.Clear
+'            time.MSleep(50)
+    repeat
+        repeat y from 0 to 6
+            repeat x from 0 to 7
+                gfx.Plot(x, y, 1)
+'                Position(0, 6)
+'                DumpBuff
+                matrix.WriteBuffer(@_disp_buff)
+                gfx.Clear
+        x:=y:=0
+        repeat x from 0 to 7
+            repeat y from 0 to 6
+                gfx.Plot(x, y, 1)
+'                Position(0, 6)
+'                DumpBuff
+                matrix.WriteBuffer(@_disp_buff)
+                gfx.Clear
+        x:=y:=0
+        repeat y from 6 to 0
+            repeat x from 7 to 0
+                gfx.Plot(x, y, 1)
+'                Position(0, 6)
+'                DumpBuff
+                matrix.WriteBuffer(@_disp_buff)
+                gfx.Clear
+        x:=y:=0
+        repeat x from 7 to 0
+            repeat y from 6 to 0
+                gfx.Plot(x, y, 1)
+'                Position(0, 6)
+'                DumpBuff
+                matrix.WriteBuffer(@_disp_buff)
+                gfx.Clear
+        x:=y:=0
+    Flash(LED, 100)     ' Signal execution finished
+
+PUB DumpBuff | x, y
+
+    repeat y from 0 to 6
+        ser.Bin(_disp_buff[y], 8)
+        NL
+
+PUB Clear
+
+    ser.Char (27)
+    ser.Char ("[")
+    ser.Char ("2")
+    ser.Char ("J")
+    Position(0, 0)
+
+PUB NL
+
+    ser.Char (10)
+    ser.Char (13)
+
+PUB Position(x, y)
+' Position cursor at column x, row y (from top-left).
+    ser.Char (27)
+    ser.Char ("[")
+    ser.Dec (y)
+    ser.Char (";")
+    ser.Dec (x)
+    ser.Char ("f")
+
+PUB Setup | tmp
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    repeat until ser.Startx (SER_RX, SER_TX, 0, SER_BAUD)
+    Clear
+    ser.Str (string("Serial terminal started"))
+    NL
+    ser.Dec (clkfreq/1_000_000)
+    ser.Str (string("MHz"))
+    NL
+    gfx.Start(8, 8, 1, @_disp_buff)
+    ser.Str (string("GFX buffer @"))
+    ser.Hex (gfx.Address(-2), 8)
+    NL
+    gfx.FontAddress(fnt.BaseAddr)
+    gfx.FontSize (5, 8)
+    ser.Str (string("Matrix start status: "))
+    ser.Dec(matrix.Start(BASEPIN))
+    NL
+    return
+
+PUB Flash(led_pin, delay_ms)
+
+    pins.Output(led_pin)
+    repeat
+        pins.Toggle(led_pin)
+        time.MSleep(delay_ms)
+
