@@ -1,0 +1,63 @@
+CON
+
+    XTAL        = cfg#XTAL
+    XDIV        = cfg#XDIV
+    XMUL        = cfg#XMUL
+    XDIVP       = cfg#XDIVP
+    XOSC        = cfg#XOSC
+    XSEL        = cfg#XSEL
+    XPPPP       = cfg#XPPPP
+    CLOCKFREQ   = cfg#CLOCKFREQ
+    SETFREQ     = cfg#SETFREQ
+    ENAFREQ     = cfg#ENAFREQ
+
+    LED         = cfg#LED1
+    SER_BAUD    = 2_000_000
+
+OBJ
+
+    cfg   : "core.con.boardcfg.p2eval"
+    term  : "com.smartserial"
+    ss    : "string.type"
+
+PUB Main
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    term.Start(SER_BAUD)
+
+    TestString(string("BACON"))
+    TestString(string("bacon"))
+    TestString(string("34545"))
+    TestString(string("345aaaa"))
+    TestString(string("       "))
+    repeat
+
+PUB TestString(stringptr)
+
+    term.Str    (string("        String: "))
+    term.Str    (stringptr)
+    term.Str    (string(10, 13))
+
+    term.Str    (string("----------------------", 10, 13))
+    PrintOutcome(string("  Alphanumeric"),ss.IsAlphaNumeric   (stringptr))
+    PrintOutcome(string("         Alpha"),ss.IsAlpha          (stringptr))
+    PrintOutcome(string("         Digit"),ss.IsDigit          (stringptr))
+    PrintOutcome(string("         Lower"),ss.IsLower          (stringptr))
+    PrintOutcome(string("         Upper"),ss.IsUpper          (stringptr))
+    PrintOutcome(string("         Space"),ss.IsSpace          (stringptr))
+    term.Str    (string("----------------------"))
+
+    term.Str    (string(10, 13, 10, 13))
+
+PUB PrintOutcome(stringptr, outcome)
+
+    term.Str (stringptr)
+    term.Str (string(": "))
+
+    if outcome
+        term.Str (string("true"))
+    else
+        term.Str (string("false"))
+
+    term.Str(string(10, 13))
+

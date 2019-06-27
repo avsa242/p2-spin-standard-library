@@ -1,0 +1,53 @@
+CON
+
+    XTAL        = cfg#XTAL
+    XDIV        = cfg#XDIV
+    XMUL        = cfg#XMUL
+    XDIVP       = cfg#XDIVP
+    XOSC        = cfg#XOSC
+    XSEL        = cfg#XSEL
+    XPPPP       = cfg#XPPPP
+    CLOCKFREQ   = cfg#CLOCKFREQ
+    SETFREQ     = cfg#SETFREQ
+    ENAFREQ     = cfg#ENAFREQ
+
+    LED         = cfg#LED1
+    SER_RX      = cfg#SER_RX
+    SER_TX      = cfg#SER_TX
+    SER_BAUD    = 2_000_000
+
+OBJ
+
+    cfg  : "core.con.boardcfg.p2eval"
+    term : "com.smartserial"
+    str  : "string"
+
+VAR
+
+    byte    str1[32]
+
+PUB Main
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    term.Start (SER_BAUD)
+
+    ' Create a string with the string() command
+
+    term.Str (string("String!"))
+    term.Str (string(10, 13))
+
+    ' Create a string in a DAT block and use the address.
+
+    term.Str (@magicstring)
+    term.Str (string(10, 13))
+
+    ' Get the size of a string with strsize()
+
+    term.Dec (strsize(@magicstring))
+    term.Str (string(10, 13))
+
+    repeat
+
+DAT
+
+    magicstring     byte    "another string!",0

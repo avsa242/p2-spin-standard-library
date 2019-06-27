@@ -1,0 +1,44 @@
+CON
+
+    XTAL        = cfg#XTAL
+    XDIV        = cfg#XDIV
+    XMUL        = cfg#XMUL
+    XDIVP       = cfg#XDIVP
+    XOSC        = cfg#XOSC
+    XSEL        = cfg#XSEL
+    XPPPP       = cfg#XPPPP
+    CLOCKFREQ   = cfg#CLOCKFREQ
+    SETFREQ     = cfg#SETFREQ
+    ENAFREQ     = cfg#ENAFREQ
+
+    LED         = cfg#LED1
+    SER_BAUD    = 2_000_000
+
+OBJ
+
+    cfg : "core.con.boardcfg.p2eval"
+    ser : "com.smartserial"
+
+PUB Main
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    ser.Start(SER_BAUD)
+
+    ser.Char("H")
+    ser.Char("e")
+    ser.Char("l")
+    ser.Char("l")
+    ser.Char("o")
+    ser.Char(" ")
+    ser.Char("w")
+    ser.Char("o")
+    ser.Char("r")
+    ser.Char("l")
+    ser.Char("d")
+    ser.Char("!")
+    ser.Char(10)
+    ser.Char(13)
+
+    ser.Str(string("Hello world!", 10, 13))
+
+    repeat

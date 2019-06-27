@@ -1,0 +1,40 @@
+CON
+
+    XTAL        = cfg#XTAL
+    XDIV        = cfg#XDIV
+    XMUL        = cfg#XMUL
+    XDIVP       = cfg#XDIVP
+    XOSC        = cfg#XOSC
+    XSEL        = cfg#XSEL
+    XPPPP       = cfg#XPPPP
+    CLOCKFREQ   = cfg#CLOCKFREQ
+    SETFREQ     = cfg#SETFREQ
+    ENAFREQ     = cfg#ENAFREQ
+    LED         = cfg#LED1
+    SER_RX      = cfg#SER_RX
+    SER_TX      = cfg#SER_TX
+    SER_BAUD    = 2_000_000
+
+OBJ
+
+    cfg  : "core.con.boardcfg.p2eval"
+    term : "com.smartserial"
+    str  : "string"
+
+VAR
+
+    byte    str1[64]
+
+PUB Main
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    term.Start (SER_BAUD)
+
+    str.Copy (@str1, @magicstring)
+    str.ReplaceAll (@str1, string("______"), string("donkey"))
+    term.Str (@str1)
+    repeat
+
+DAT
+
+    magicstring     byte    "Mary had a little ______, little ______, little ______",0

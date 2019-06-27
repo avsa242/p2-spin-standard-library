@@ -1,0 +1,55 @@
+{{
+    Calculate a table of frequency from their corresponding notes.
+
+        f(x) = f0 * (a)^n where f0 = 440, n = note, a = (2)^(1/12)
+}}
+CON
+
+    XTAL        = cfg#XTAL
+    XDIV        = cfg#XDIV
+    XMUL        = cfg#XMUL
+    XDIVP       = cfg#XDIVP
+    XOSC        = cfg#XOSC
+    XSEL        = cfg#XSEL
+    XPPPP       = cfg#XPPPP
+    CLOCKFREQ   = cfg#CLOCKFREQ
+    SETFREQ     = cfg#SETFREQ
+    ENAFREQ     = cfg#ENAFREQ
+
+    LED         = cfg#LED1
+    SER_BAUD    = 2_000_000
+
+OBJ
+
+    cfg   : "core.con.boardcfg.p2eval"
+    term  : "com.smartserial"
+    fp    : "math.float.extended"
+    fs    : "string.float"
+    num   : "string.integer"
+
+PUB Main | idx, f0, fn, a, n
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    term.Start(SER_BAUD)
+
+    f0 := fp.FFloat (440)
+    a  := fp.Pow (fp.FFloat(2), fp.FDiv (fp.FFloat(1), fp.FFloat (12)))
+
+    term.Str(string("f(x) = f0*(2^(1/12))^n, x = (0, 60)"))
+    term.Char(10)
+    term.Char(13)
+    term.Str(string("     x   f(x)"))
+    term.Char(10)
+    term.Char(13)
+ 
+    repeat idx from 0 to 60
+
+        n := fp.FFloat (idx)
+        fn := fp.FMul (f0, fp.Pow (a, n))
+
+        term.Str(string("   "))
+        term.Str(num.DecPadded(idx, 3))
+        term.Str(string("   "))
+        term.Str(fs.FloatToString(fn))
+        term.Char(10)
+        term.Char(13)
