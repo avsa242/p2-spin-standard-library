@@ -113,7 +113,7 @@ CON
         #0, COGNUM, EVTPIN, KBCON, MCON
 '------------------------------------------------------------------------------
 OBJ
-  ser: "com.smartserial"
+  ser: "com.serial"
   usb1: "input.usb.kbd_mouse"
 
 VAR

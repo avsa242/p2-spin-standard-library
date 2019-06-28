@@ -49,7 +49,7 @@ CON
 OBJ
 
     cfg         : "core.con.boardcfg.p2eval"
-    ser         : "com.smartserial"
+    ser         : "com.serial"
     time        : "time.spin2"
     oled        : "display.oled.ssd1306.i2c"
     int         : "string.integer"

@@ -17,7 +17,7 @@ CON
 OBJ
 
     cfg : "core.con.boardcfg.p2eval"
-    ser : "com.smartserial"
+    ser : "com.serial"
 
 PUB Main | ran
 

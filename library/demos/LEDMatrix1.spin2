@@ -20,7 +20,7 @@ CON
 
 OBJ
 
-    ser         : "com.smartserial"
+    ser         : "com.serial"
     cfg         : "core.con.boardcfg.p2eval"
     pins        : "io"
     time        : "time"

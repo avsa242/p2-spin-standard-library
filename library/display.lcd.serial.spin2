@@ -44,7 +44,7 @@ VAR
 
 OBJ
 
-  serial : "com.smartserial"
+  serial : "com.serial"
 
 PUB Start(pin, baud, lines): okay
 

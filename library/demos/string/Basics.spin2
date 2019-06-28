@@ -19,7 +19,7 @@ CON
 OBJ
 
     cfg  : "core.con.boardcfg.p2eval"
-    term : "com.smartserial"
+    term : "com.serial"
     str  : "string"
 
 VAR

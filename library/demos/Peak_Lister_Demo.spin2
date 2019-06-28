@@ -45,10 +45,10 @@ CON
 
 
 OBJ
-    ser: "com.smartserial.spin2"
-    siggen: "signal.synth.noise.spin2"
-    acq: "signal.adc.smartpin.spin2"
-    fft: "signal.fft.windowed.spin2"
+    ser: "com.serial"
+    siggen: "signal.synth.noise"
+    acq: "signal.adc.smartpin"
+    fft: "signal.fft.windowed"
 
 VAR
     long  sampling_rate

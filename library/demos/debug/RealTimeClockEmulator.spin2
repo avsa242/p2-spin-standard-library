@@ -24,7 +24,7 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     clock   : "debug.emulator.rtc"
-    term    : "com.smartserial"
+    term    : "com.serial"
 
 VAR
 

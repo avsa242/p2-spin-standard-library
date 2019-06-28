@@ -67,7 +67,7 @@ CON
 
 
 OBJ
-    ser: "com.smartserial.spin2"
+    ser: "com.serial"
     siggen: "signal.synth.noise.spin2"
     acq: "signal.adc.smartpin.spin2"
     fft: "signal.fft.windowed.spin2"
