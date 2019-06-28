@@ -18,7 +18,7 @@ CON
 
 OBJ
 
-    ser         : "com.serial"
+    ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
     io          : "io"
     time        : "time"
@@ -41,7 +41,7 @@ PUB Setup
 
     clkset(ENAFREQ, CLOCKFREQ, XSEL)
     repeat until _ser_cog := ser.Startx (SER_RX, SER_TX, 0, SER_BAUD)
-    Clear
+    ser.Clear
     ser.Str (string("Serial terminal started"))
 
 PUB Flash(led_pin, delay_ms)
