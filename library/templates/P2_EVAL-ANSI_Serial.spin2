@@ -42,7 +42,7 @@ PUB Setup
     clkset(ENAFREQ, CLOCKFREQ, XSEL)
     repeat until _ser_cog := ser.Startx (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear
-    ser.Str (string("Serial terminal started"))
+    ser.PrintF("Serial terminal started\n")
 
 PUB Flash(led_pin, delay_ms)
 

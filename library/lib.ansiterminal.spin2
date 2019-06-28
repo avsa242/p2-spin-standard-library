@@ -74,8 +74,8 @@ PUB Clear(mode=2)
     CSI
     Dec (mode)
     Char ("J")
-'    if mode == 2
-'        Position (0, 0)
+    if mode == 2
+        Position (0, 0)
 
 PUB ClearLine(mode=2)
 
