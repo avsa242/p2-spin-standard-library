@@ -1,0 +1,197 @@
+CON
+
+    LF                  = $0A
+    CR                  = $0D
+    ESC                 = $1B
+    LBRACKET            = $5B
+
+' Clear modes
+    CLR_CUR_TO_END      = 0
+    CLR_CUR_TO_BEG      = 1
+    CLR_ALL_HOME        = 2
+    CLR_ALL_DEL_SCRLB   = 3
+
+' Graphic Rendition modes
+    SGR_RESET           = 0
+    SGR_BOLD            = 1
+    SGR_FAINT           = 2
+    SGR_ITALIC          = 3
+    SGR_INVERSE         = 3
+    SGR_UNDERLINE       = 4
+    SGR_SLOWBLINK       = 5
+    SGR_RAPIDBLINK      = 6
+    SGR_REVERSEVIDEO    = 7
+    SGR_CONCEAL         = 8
+    SGR_CROSSEDOUT      = 9
+    SGR_PRI_FONT        = 10
+    SGR_DOUBLE_UNDERL   = 21
+    SGR_NORMAL_INTENSITY= 22
+    SGR_UNDERLINE_OFF   = 24
+    SGR_BLINK_OFF       = 25
+    SGR_INVERSE_OFF     = 27
+    SGR_REVEAL          = 28
+    SGR_NOT_CROSSEDOUT  = 29
+    SGR_FGCOLOR_DEF     = 39
+    SGR_BGCOLOR_DEF     = 49
+    SGR_FRAMED          = 51
+    SGR_ENCIRCLED       = 52
+    SGR_OVERLINED       = 53
+    SGR_NOFRAME_ENCIR   = 54
+    SGR_NOT_OVERLINED   = 55
+    FG_BLACK            = 30
+    FG_RED              = 31
+    FG_GREEN            = 32
+    FG_YELLOW           = 33
+    FG_BLUE             = 34
+    FG_MAGENTA          = 35
+    FG_CYAN             = 36
+    FG_WHITE            = 37
+    FG_TERM_DEFAULT     = 39    ' Not supported by all terminals
+    BG_BLACK            = 40
+    BG_RED              = 41
+    BG_GREEN            = 42
+    BG_YELLOW           = 43
+    BG_BLUE             = 44
+    BG_MAGENTA          = 45
+    BG_CYAN             = 46
+    BG_WHITE            = 47
+    BG_TERM_DEFAULT     = 49    ' Not supported by all terminals
+    BRIGHT              = 60
+
+PUB BGColor(color)
+
+    CSI
+    Char(";")
+    Dec (color)
+    Char("m")
+
+PUB Bold
+
+    SGR(1)
+
+PUB Clear(mode=2)
+
+    CSI
+    Dec (mode)
+    Char ("J")
+'    if mode == 2
+'        Position (0, 0)
+
+PUB ClearLine(mode=2)
+
+    CSI
+    Dec (mode)
+    Char ("K")
+
+PUB Color(fgcolor=FG_TERM_DEFAULT, bgcolor=BG_TERM_DEFAULT)
+
+    CSI
+    Dec (fgcolor)
+    Char (";")
+    Dec (bgcolor)
+    Char ("m")
+
+PUB CursorBack(columns=1)
+
+    CSI
+    Dec(columns)
+    Char("D")
+
+PUB CursorDown(rows=1)
+
+    CSI
+    Dec(rows)
+    Char("B")
+
+PUB CursorForward(columns=1)
+
+    CSI
+    Dec(columns)
+    Char("C")
+
+PUB CursorNextLine(rows=1)
+
+    CSI
+    Dec(rows)
+    Char("E")
+
+PUB CursorPrevLine(rows=1)
+
+    CSI
+    Dec(rows)
+    Char("F")
+
+PUB CursorUp(rows=1)
+
+    CSI
+    Dec(rows)
+    Char("A")
+
+PUB FGColor(color)
+
+    CSI
+    Dec (color)
+    Char("m")
+    
+PUB HideCursor
+
+    CSI
+    Char("?")
+    Dec (25)
+    Char("l")
+    
+PUB Home
+
+    Position(0, 0)
+
+PUB NewLine
+
+    Str(string(LF, CR))
+
+PUB Position(x, y)
+' Position cursor at column x, row y (from top-left).
+    CSI
+    Dec (x)
+    Char (";")
+    Dec (y)
+    Char ("f")
+
+PUB PositionX(column=1)
+
+    CSI
+    Dec (column)
+    Char ("G")
+
+PUB Reset
+' Reset terminal
+    CSI
+    Char("m")
+
+PUB ScrollDown(lines=1)
+
+    CSI
+    Dec (lines)
+    Char("T")
+
+PUB ScrollUp(lines=1)
+
+    CSI
+    Dec (lines)
+    Char("S")
+
+PUB ShowCursor
+
+    CSI
+    Char("?")
+    Dec (25)
+    Char("h")
+
+PRI CSI
+' Command Sequence Introducer
+    Str(string(ESC, LBRACKET))
+
+PRI SGR(mode)
+' Select Graphic Rendition
+    CSI
+    Dec (mode)
+    Char ("m")
