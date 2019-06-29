@@ -99,38 +99,39 @@ PRI handle_csi(c)
     argidx++
     if argidx == MAX_ESC_ARGS
       --argidx
-    if (c == ";")
-      return
+    case c
+        ";":
+            return
+        "A":
+            cury -= defaultval(args[0], 1)
+        "B":
+            cury += defaultval(args[0], 1)
+        "C":
+            curx += defaultval(args[0], 1)
+        "D":
+            curx -= defaultval(args[0], 1)
+        "E":
+            cury += defaultval(args[0], 1)
+            curx := 0
+        "F":
+            cury -= defaultval(args[0], 1)
+            curx := 0
+        "G":
+            curx := defaultval(args[0], 1) - 1
+        "H":
+            cury := defaultval(args[0], 1) - 1
+            curx := defaultval(args[1], 1) - 1
+        "J":
+            clear_in_display(defaultval(args[0], 0))
+        "m":
+            set_graphic_rendition(0)
+        "s":
+            savex := curx
+            savey := cury
+        "u":
+            curx := savex
+            cury := savey
 
-    if (c == "A")
-      cury -= defaultval(args[0], 1)
-    elseif (c == "B")
-      cury += defaultval(args[0], 1)
-    elseif (c == "C")
-      curx += defaultval(args[0], 1)
-    elseif (c == "D")
-      curx -= defaultval(args[0], 1)
-    elseif (c == "E")
-      cury += defaultval(args[0], 1)
-      curx := 0
-    elseif (c == "F")
-      cury -= defaultval(args[0], 1)
-      curx := 0
-    elseif (c == "G")
-      curx := defaultval(args[0], 1) - 1
-    elseif (c == "H")
-      cury := defaultval(args[0], 1) - 1
-      curx := defaultval(args[1], 1) - 1
-    elseif (c == "J")
-      clear_in_display(defaultval(args[0], 0))
-    elseif (c == "m")
-      set_graphic_rendition(0)
-    elseif (c == "s")
-      savex := curx
-      savey := cury
-    elseif (c == "u")
-      curx := savex
-      cury := savey
     state := STATE_NORMAL
 
 PUB glyphat(x, y, ch, fgcol, bgcol) | bufptr
