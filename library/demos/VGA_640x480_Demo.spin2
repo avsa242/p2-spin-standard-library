@@ -114,7 +114,7 @@ PUB ColorBlend(a, b, mix)
 
 #define screen_buffer buffer
 #include "lib.vga.text.spin2"
-#include "lib.terminalfunc.spin2"
+#include "lib.terminal.spin2"
 
 PUB RunText | n
 
