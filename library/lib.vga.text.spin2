@@ -160,16 +160,21 @@ PRI clear(a, b) | ptr, cnt
 ' clear from cursor to end of display (if n==0) or from start of screen to cursor (n == 1)
 ' n==2 clears whole display and resets cursor to top
 PRI clear_in_display(n) | startpix, endpix
-  if n==2
-    curx := cury := 0
-    n:=0
-  if n==1
-    startpix := 0
-    endpix := COLS*cury + curx
-  else
-    startpix := COLS*cury + curx
-    endpix := COLS*ROWS - 1
-  clear(startpix, endpix)
+
+    case n
+        2:
+            curx := cury := 0
+            n:=0
+            startpix := COLS*cury + curx
+            endpix := COLS*ROWS - 1
+        1:
+            startpix := 0
+            endpix := COLS*cury + curx
+        OTHER:
+            startpix := COLS*cury + curx
+            endpix := COLS*ROWS - 1
+
+    clear(startpix, endpix)
 
 ' get an argument that's already been set up, return -1 if not valid
 PRI fetcharg(i)
