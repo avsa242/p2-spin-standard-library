@@ -136,7 +136,7 @@ PUB KeyInput | tmp
 PUB Setup
 
     clkset(ENAFREQ, CLOCKFREQ, XSEL)
-    ser.Startx (63, 62, 0, SER_BAUD)
+    ser.StartRxTx (63, 62, 0, SER_BAUD)
     time.MSleep(5)
     ser.Clear
     ser.PrintF("Serial terminal started\n")

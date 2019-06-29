@@ -2,7 +2,8 @@
     --------------------------------------------
     Filename: com.serial.terminal.ansi.spin2
     Description: ANSI-compatible serial terminal,
-     using smartpins for low-level async serial
+     using com.serial smartpin-based serial driver
+     for low-level async serial.
     Author: Jesse Burt
     Copyright (c) 2018
     Created: Jun 15, 2019
@@ -12,70 +13,223 @@
 
     NOTE: Based on SmartSerial.spin2, by Eric Smith
 }
-'
+
+CON
+
+    CE  = 11
+    CB  = 12
+    CS  = 16
+
+    HM =  1  ' HoMe cursor
+    PC =  2  ' Position Cursor in x,y
+    PX = 14  ' Position cursor in X
+    PY = 15  ' Position cursor in Y
+
+    NL = 13  ' New Line
+    LF = 10  ' Line Feed
+    ML =  3  ' Move cursor Left
+    MR =  4  ' Move cursor Right
+    MU =  5  ' Move cursor Up
+    MD =  6  ' Move cursor Down
+    TB =  9  ' TaB
+    BS =  8  ' BackSpace
+
 OBJ
 
-    smartpin    : "core.con.smartpins"
+    ser : "com.serial"
+    int : "string.integer"
 
 VAR
 
-    long _rx_pin, _tx_pin
+    byte buf[32]
 
-PUB Start(baudrate)
-' Start with default serial pins and mode
-    return Startx(63, 62, 0, baudrate)
+PUB Start(baudrate) : okay
 
-PUB Startx(rxpin, txpin, mode, baudrate) | bitperiod, txmode, rxmode
-' Start with custom RX, TX pins, mode, baudrate
-    bitperiod := 7 + ((CLKFREQ / baudrate) << 16)
-    _rx_pin := rxpin
-    _tx_pin := txpin
-    txmode := smartpin#ASYNC_TX
-    rxmode := smartpin#ASYNC_RX
-    wrpin_(txmode, txpin)
-    wxpin_(bitperiod, txpin)
-    dirh_(txpin)
-    wrpin_(rxmode, rxpin)
-    wxpin_(bitperiod, rxpin)
-    dirh_(rxpin)
-    return 1
+    okay := ser.Start(baudrate)
+    Clear
+    return okay
 
-PUB Char(val) | txpin
-' Send one character
-    txpin := _tx_pin
-    wypin_(val, txpin)
-    waitx_(1)
-    TXFlush
+PUB StartRxTx(rxpin, txpin, mode, baudrate)
 
-PUB CharIn: v
-' Receive a byte (waits until one ready)
+    return ser.StartRxTx(rxpin, txpin, mode, baudrate)
+
+PUB Bin(val, digits = 32) | mask
+' Print a number in binary form
+    if digits > 0 and digits < 32
+        mask := (|< digits) - 1
+        val &= mask
+    Num(val, 2, 0, digits)
+
+PUB BinIn
+
+    StrInMax(@str_buffer, MAXSTR_LENGTH)
+    return int.StrToBase(@str_buffer, 2)
+
+PUB CharIn
+
+    return ser.CharIn
+
+PUB Chars(ch, size)
+
+    repeat size
+        ser.Char(ch)
+
+PUB Dec(val)
+' Print a signed decimal number
+    Num(val, 10, 1, 0)
+
+PUB DecIn
+
+    StrInMax(@str_buffer, MAXSTR_LENGTH)
+    return int.StrToBase(@str_buffer, 10)
+
+PUB DecUns(val, digits = 0)
+' Print an unsigned decimal number with the specified
+'   number of digits; 0 means just use as many as we need
+    Num(val, 10, 0, digits)
+
+PUB Hex(val, digits = 8) | mask
+' Print a hex number with the specified number
+'   of digits; 0 means just use as many as we need
+
+    if digits > 0 and digits < 8
+        mask := (|< (4*digits)) - 1
+        val &= mask
+    Num(val, 16, 0, digits)
+
+PUB HexIn
+
+    StrInMax(@str_buffer, MAXSTR_LENGTH)
+    return int.StrToBase(@str_buffer, 16)
+
+PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
+' Print an number with a given base
+' We do this by finding the remainder repeatedly
+' This gives us the digits in reverse order
+'   so we store them in a buffer; the worst case
+'   buffer size needed is 32 (for base 2)
+'
+'
+' signflag indicates how to handle the sign of the
+' number:
+'   0 == treat number as unsigned
+'   1 == print nothing before positive numbers
+'   anything else: print before positive numbers
+' for signed negative numbers we always print a "-"
+'
+' we will print at least prec digits
+'
+' If signflag is nonzero, it indicates we should treat
+' val as signed; if it is > 1, it is a character we should
+' print for positive numbers (typically "+")
+    if (signflag)
+        if (val < 0)
+            signflag := "-"
+            val := -val
+
+' Make sure we will not overflow our buffer
+    if (digitsNeeded > 32)
+        digitsNeeded := 32
+
+' Accumulate the digits
+    i := 0
     repeat
-        v := RXCheck
-    while v == -1
+        if (val < 0)
+' Synthesize unsigned division from signed
+' Basically shift val right by 2 to make it positive
+' Then adjust the result afterwards by the bit we
+' shifted out
+            r1 := val&1  ' Capture low bit
+            q1 := val>>1 ' Divide val by 2
+            digit := r1 + 2*(q1 // base)
+            val := 2*(q1 / base)
+            if (digit => base)
+                val++
+                digit -= base
+        else
+            digit := val // base
+            val := val / base
 
-PUB RXCheck: rxbyte | rxpin, z
-' Check if byte received (never waits)
-'   Returns:
-'       -1 if no byte, otherwise byte
-    rxbyte := -1
-    rxpin := _rx_pin
-    asm
-                testp rxpin wc  ' char ready?
-        if_c    rdpin rxbyte, rxpin
-        if_c    shr rxbyte, #24
-    endasm
+        if (digit => 0 and digit =< 9)
+            digit += "0"
+        else
+            digit := (digit - 10) + "A"
+        buf[i++] := digit
+        --digitsNeeded
+    while (val <> 0 or digitsNeeded > 0) and (i < 32)
+    if (signflag > 1)
+        ser.Char(signflag)
 
-PUB TXFlush | txpin, z
-' Flush transmit buffer
-    txpin := _tx_pin
-    z := 1
-    repeat while z <> 0
-        asm
-                        testp txpin wc
-            if_c        mov z, #0
-        endasm
+' Now print the digits in reverse order
+    repeat while (i > 0)
+        ser.Char(buf[--i])
 
-' Provide the usual Str(), Dec(), etc. routines
-#include "lib.terminalfunc.spin2"
-' Provide ANSI terminal text attributes and control sequences
+PUB PrintF(fmt = string(""), an=0, bn=0, cn=0, dn=0, en=0, fn=0) | c, valptr, val
+' C like formatted print
+    valptr := @an
+    repeat
+        c := byte[fmt++]
+        if (c == 0)
+            quit
+        if c == "%"
+            c := byte[fmt++]
+            if (c == 0)
+                quit
+            if (c == "%")
+                ser.Char(c)
+                next
+            val := long[valptr]
+            valptr += 4
+            case c
+                "d": Dec(val)
+                "u": DecUns(val)
+                "x": Hex(val)
+                "s": Str(val)
+                "c": ser.Char(val)
+        elseif c == "\"
+            c := byte[fmt++]
+            if c == 0
+                quit
+            case c
+                "n": NewLine
+                "r": ser.Char(13)
+                "t": ser.Char(8)
+                other: ser.Char(c)
+        else
+            ser.Char(c)
+
+PUB ReadLine(line, maxline) : size | c
+
+    repeat
+        case c := CharIn
+            BS:     if size
+                        size--
+                        ser.Char(c)
+            NL, LF: byte[line][size] := 0
+                    ser.Char(c)
+                    quit
+            other:  if size < maxline
+                        byte[line][size++] := c
+                        ser.Char(c)
+
+PUB RXCheck: rxbyte
+
+    return ser.RXCheck
+
+PUB Str(s = string("")) | c
+' Output a string
+    repeat while ((c := byte[s++]) <> 0)
+        ser.Char(c)
+
+PUB StrIn(stringptr)
+
+    StrInMax(stringptr, -1)
+
+PUB StrInMax(stringptr, maxcount)
+
+    repeat while (maxcount--)                                                     'While maxcount not reached
+        if (byte[stringptr++] := ser.CharIn) == NL                                      'Get chars until NL
+            quit
+    byte[stringptr+(byte[stringptr-1] == NL)]~                                    'Zero terminate string; overwrite NL or append 0 char
+
 #include "lib.ansiterminal.spin2"

@@ -73,9 +73,9 @@ CON
 PUB BGColor(color)
 ' Set background color
     CSI
-    Char(";")
-    Dec (color)
-    Char("m")
+    ser.Char(";")
+    Dec(color)
+    ser.Char("m")
 
 PUB Blink(mode=SGR_BLINKSLOW)
 ' Set Blink attribute
@@ -88,24 +88,24 @@ PUB Bold(mode=1)
 PUB Clear(mode=2)
 ' Clear screen
     CSI
-    Dec (mode)
-    Char ("J")
+    Dec(mode)
+    ser.Char("J")
     if mode == 2
         Position (0, 0)
 
 PUB ClearLine(mode=2)
 ' Clear line
     CSI
-    Dec (mode)
-    Char ("K")
+    Dec(mode)
+    ser.Char("K")
 
 PUB Color(fgcolor=39, bgcolor=49)
 ' Set foreground and background colors
     CSI
-    Dec (fgcolor)
-    Char (";")
-    Dec (bgcolor)
-    Char ("m")
+    Dec(fgcolor)
+    ser.Char(";")
+    Dec(bgcolor)
+    ser.Char("m")
 
 PUB Conceal(mode=8)
 ' Set Conceal attribute
@@ -115,19 +115,19 @@ PUB CursorBack(columns=1)
 ' Move cursor back/left 1 or more columns
     CSI
     Dec(columns)
-    Char("D")
+    ser.Char("D")
 
 PUB CursorDown(rows=1)
 ' Move cursor down 1 or more rows
     CSI
     Dec(rows)
-    Char("B")
+    ser.Char("B")
 
 PUB CursorForward(columns=1)
 ' Move cursor forward/right 1 or more columns
     CSI
     Dec(columns)
-    Char("C")
+    ser.Char("C")
 
 PUB CursorPosition(enabled=TRUE)
 ' Enable/disable mouse cursor position reporting
@@ -142,19 +142,19 @@ PUB CursorNextLine(rows=1)
 ' Move cursor to beginning of next row, or 'rows' number of rows down
     CSI
     Dec(rows)
-    Char("E")
+    ser.Char("E")
 
 PUB CursorPrevLine(rows=1)
 ' Move cursor to beginning of previous row, or 'rows' number of rows up
     CSI
     Dec(rows)
-    Char("F")
+    ser.Char("F")
 
 PUB CursorUp(rows=1)
 ' Move cursor up 1 or more rows
     CSI
     Dec(rows)
-    Char("A")
+    ser.Char("A")
 
 PUB Encircle
 ' Set Encircle attribute
@@ -163,8 +163,8 @@ PUB Encircle
 PUB FGColor(color)
 ' Set foreground color
     CSI
-    Dec (color)
-    Char("m")
+    Dec(color)
+    ser.Char("m")
 
 PUB Framed
 ' Set framed attribute
@@ -173,9 +173,9 @@ PUB Framed
 PUB HideCursor
 ' Hide cursor
     CSI
-    Char("?")
-    Dec (25)
-    Char("l")
+    ser.Char("?")
+    Dec(25)
+    ser.Char("l")
     
 PUB Home
 ' Move cursor to home/upper-left position
@@ -200,17 +200,17 @@ PUB Overline
 PUB Position(x, y)
 ' Position cursor at column x, row y (from top-left)
     CSI
-    Dec (y)
-    Char (";")
-    Dec (x)
-    Char ("f")
+    Dec(y)
+    ser.Char(";")
+    Dec(x)
+    ser.Char("f")
 
 PUB PositionX(column=1)
 ' Set horizontal position of cursor
 '   Default value: column 1
     CSI
-    Dec (column)
-    Char ("G")
+    Dec(column)
+    ser.Char("G")
 
 PUB RCP | tmp, token, place
 ' Report Current mouse position (press mouse button to update)
@@ -233,13 +233,13 @@ PUB RCP | tmp, token, place
             "0".."9":
                 case token
                     3:  'Mouse button
-                        Char(tmp)
+                        ser.Char(tmp)
                     4:  'X
-                        Char(tmp)
+                        ser.Char(tmp)
                     5:  'Y
-                        Char(tmp)
+                        ser.Char(tmp)
             ";":
-                Char(";")
+                ser.Char(";")
                 token++
                 place := 0
             "M":
@@ -250,26 +250,26 @@ PUB RCP | tmp, token, place
 PUB Reset
 ' Reset terminal attributes
     CSI
-    Char("m")
+    ser.Char("m")
 
 PUB ScrollDown(lines=1)
 ' Scroll display down 1 or more lines
     CSI
-    Dec (lines)
-    Char("T")
+    Dec(lines)
+    ser.Char("T")
 
 PUB ScrollUp(lines=1)
 ' Scroll display up 1 or more lines
     CSI
-    Dec (lines)
-    Char("S")
+    Dec(lines)
+    ser.Char("S")
 
 PUB ShowCursor
 ' Show cursor
     CSI
-    Char("?")
-    Dec (25)
-    Char("h")
+    ser.Char("?")
+    Dec(25)
+    ser.Char("h")
 
 PUB Strikethrough(mode=9)
 ' Set Strike-through attribute
@@ -286,5 +286,5 @@ PRI CSI
 PRI SGR(mode)
 ' Select Graphic Rendition
     CSI
-    Dec (mode)
-    Char ("m")
+    Dec(mode)
+    ser.Char("m")
