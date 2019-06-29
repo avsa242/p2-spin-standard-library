@@ -1,11 +1,12 @@
 {
     --------------------------------------------
-    Filename:
-    Author:
-    Description:
-    Copyright (c) 20__
-    Started Month Day, Year
-    Updated Month Day, Year
+    Filename: I2C-Scanner.spin2
+    Author: Jesse Burt
+    Description: Simple utility to scan for active slaves on an
+        I2C bus
+    Copyright (c) 2019
+    Started Jun 17, 2019
+    Updated Jun 29, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -35,41 +36,47 @@ CON
 OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
-    ser     : "com.serial"
-    i2c     : "com.i2c.spin2"
+    ser     : "com.serial.terminal.ansi"
+    i2c     : "com.i2c"
     time    : "time"
     int     : "string.integer"
 
 VAR
 
-    long _keyinput_stack[50]
+    long _key_cog, _keyinput_stack[50]
     byte _fmt
 
 PUB Main | slave_addr, flag, x, y, offsetx, offsety, start, end
 
     Setup
-    Clear
-    Position(0, 0)
-    ser.Str (@white)
-    ser.Str (string("I2C Scanner"))
+    ser.Clear
+    ser.Bold
+    ser.Underline
+    ser.PrintF ("I2C Scanner")
+    ser.Underline(FALSE)
     offsetx := 3
     offsety := 3
     start := $02
     end := $FF
     _fmt := 7                       '7 or 8 bit format Slave addresses (affects display only)
-    ser.Str (string(" ("))
-    ser.Dec (_fmt)
-    ser.Str (string("-bit format)"))
-    ser.Str(@grey)
+    ser.Italic
+    ser.PrintF (" (%d-bit format)", _fmt)
+    ser.Reset
+
+    ser.HideCursor
     repeat
-        Position(14, 0)
+        ser.Position(14, 0)
         ser.Dec(_fmt)
         repeat slave_addr from start to end step 2
             flag := i2c.present (slave_addr)
             x := ((slave_addr & $F) + (slave_addr & $F)) + offsetx
             y := (slave_addr >> 4) + offsety
             PrintSA (x, y, slave_addr, flag)
-        time.MSleep (100)
+        time.MSleep(100)
+    until _key_cog == 0
+
+    Stop
+    Flash(LED, 100)
 
 PUB PrintSA(x, y, slave_addr, flag)            
 
@@ -77,73 +84,53 @@ PUB PrintSA(x, y, slave_addr, flag)
         7:
             case flag
                 TRUE:
-                    Position (x, y)
-                    ser.Str(@green)
-                    ser.Char ("/")
+                    ser.Position (x, y)
+                    ser.Color (ser#FG_BLACK, ser#BG_GREEN)
+'                    ser.Char ("/")
                     ser.Hex (slave_addr >> 1, 2)
-                    ser.Char ("/")
-                    ser.Str(@grey)
+'                    ser.Char ("/")
+                    ser.Reset
 
                 FALSE:
-                    Position (x, y)
-                    ser.Char (" ")
+                    ser.Position (x, y)
+'                    ser.Char (" ")
                     ser.Hex (slave_addr >> 1, 2)
-                    ser.Char (" ")
+'                    ser.Char (" ")
 
         8:
             case flag
                 TRUE:
-                    Position (x, y)
-                    ser.Str(@green)
-                    ser.Char ("/" )
+                    ser.Position (x, y)
+                    ser.Color (ser#FG_BLACK, ser#BG_GREEN)
+ '                   ser.Char ("/")
                     ser.Hex (slave_addr, 2)
-                    ser.Char ("/")
-                    ser.Str(@grey)
+'                    ser.Char ("/")
+                    ser.Reset
 
                 FALSE:
-                    Position (x, y)
-                    ser.Char (" ")
+                    ser.Position (x, y)
+ '                   ser.Char (" ")
                     ser.Hex (slave_addr, 2)
-                    ser.Char (" ")
+'                    ser.Char (" ")
         OTHER:
 
-PUB CSI
-
-    ser.Char (27)
-    ser.Char ("[")
-
-PUB Clear
-
-    CSI
-    ser.Char ("2")
-    ser.Char ("J")
-
-PUB Home
-
-    CSI
-    ser.Char ("f")
-
-PUB Position(x, y)
-' Position cursor at column x, row y (from top-left).
-    CSI
-    ser.Dec (y)
-    ser.Char (";")
-    ser.Dec (x)
-    ser.Char ("f")
-
-PUB NL
-
-    ser.Char (10)
-    ser.Char (13)
-
 PUB KeyInput | tmp
-
+' Wait for keypress from user
+    dira[cfg#LED1] := 1
+    outa[cfg#LED1] := 1
     repeat
-        repeat while ser.RXCheck == -1
-        tmp := ser.RX
+        repeat
+            tmp := ser.RXCheck
+        until tmp <> -1
+
         case tmp
             "7": _fmt := 7
             "8": _fmt := 8
+            "q", "Q":
+                outa[cfg#LED1] := 0
+                dira[cfg#LED1] := 0
+                _key_cog := 0
+                cogstop(cogid)
             OTHER:
 
 PUB Setup
@@ -151,13 +138,18 @@ PUB Setup
     clkset(ENAFREQ, CLOCKFREQ, XSEL)
     ser.Startx (63, 62, 0, SER_BAUD)
     time.MSleep(5)
-    Clear
-    ser.Str(string("Serial terminal started"))
-    NL
+    ser.Clear
+    ser.PrintF("Serial terminal started\n")
     i2c.Setup (I2C_SCL, I2C_SDA, I2C_HZ)
-    ser.Str (string("I2C driver started"))
-    NL
-    cognew (KeyInput, @_keyinput_stack)
+    ser.PrintF("I2C driver started\n")
+    _key_cog := cognew (KeyInput, @_keyinput_stack)
+
+PUB Stop
+
+    ser.Reset
+    ser.ShowCursor
+    ser.Clear
+    ser.PrintF("Stopped\n")
 
 PUB Flash(led_pin, delay_ms)
 
@@ -174,11 +166,6 @@ PUB Flash(led_pin, delay_ms)
             repeat
                 !outb[led_pin]
                 time.MSleep (delay_ms)
-DAT
-
-    white       byte ESC, "[", "1", ";", "3", "7", "m", 0
-    grey        byte ESC, "[", "0", ";", "3", "7", "m", 0
-    green       byte ESC, "[", "0", ";", "3", "2", "m", 0
 
 DAT
 {
