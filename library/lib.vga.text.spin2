@@ -189,9 +189,10 @@ PRI hexdig(i)
    return (i-10) + "A"
 
 PRI set_graphic_rendition(i) | code, a, b
-  if i > argidx
-    return
-  code := fetcharg(i++)
+
+    if i > argidx
+        return
+    code := fetcharg(i++)
 
 {{
   a := hexdig(code & $F)
@@ -200,6 +201,43 @@ PRI set_graphic_rendition(i) | code, a, b
   glyphat(42, 10, a, $ffffff00, $00202000)
   pausems(1000)
 }}
+    case code
+        0:
+            reset_graphics_state
+
+        1:
+            char_effects |= CHAR_BOLD
+
+        7:
+            char_effects |= CHAR_INVERSE
+
+        21:
+            char_effects &= !CHAR_BOLD
+
+        22:
+            char_effects &= !CHAR_BOLD
+
+        27:
+            char_effects &= !CHAR_INVERSE
+
+        30..37:
+            fgcolor := AnsiColor(code - 30)
+
+        38:
+            fgcolor,i := GetArgColor(i)
+
+        39:
+            fgcolor := DEFAULT_FG_COLOR
+
+        40..47:
+            bgcolor := AnsiColor(code - 40)
+
+        48:
+            bgcolor,i := GetArgColor(i)
+
+        49:
+            bgcolor := DEFAULT_BG_COLOR
+{
   if code == 0
     reset_graphics_state
   elseif code == 1
@@ -224,7 +262,8 @@ PRI set_graphic_rendition(i) | code, a, b
     bgcolor,i := GetArgColor(i)
   elseif code == 49
     bgcolor := DEFAULT_BG_COLOR
-  set_graphic_rendition(i)
+}
+    set_graphic_rendition(i)
 
 DAT
 colortab
