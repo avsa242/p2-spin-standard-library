@@ -22,10 +22,6 @@ OBJ
     ser : "com.serial"
     int : "string.integer"
 
-VAR
-
-    byte buf[32]
-
 PUB Start(baudrate) : okay
 
     okay := ser.Start(baudrate)
@@ -58,11 +54,6 @@ PUB DecIn
 
     StrInMax(@str_buffer, MAXSTR_LENGTH)
     return int.StrToBase(@str_buffer, 10)
-
-PUB DecUns(val, digits = 0)
-' Print an unsigned decimal number with the specified
-'   number of digits; 0 means just use as many as we need
-    Num(val, 10, 0, digits)
 
 PUB HexIn
 
