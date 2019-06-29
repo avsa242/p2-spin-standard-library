@@ -119,7 +119,7 @@ PUB ColorBlend(a, b, mix)
 PUB RunText | n
 
     time.MSleep(4000)
-    init_terminal
+    InitTerminal
 
     str(string(27, "[1;1H"))
     str(string(27, "[0J"))

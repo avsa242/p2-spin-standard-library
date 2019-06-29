@@ -1,52 +1,58 @@
 CON
-  STATE_NORMAL = 0
-  STATE_ESCAPE = 1
-  STATE_CSI = 2
-  MAX_ESC_ARGS = 8
 
-  CHAR_INVERSE = $01
-  CHAR_BOLD = $02
+    STATE_NORMAL = 0
+    STATE_ESCAPE = 1
+    STATE_CSI = 2
+    MAX_ESC_ARGS = 8
 
-  DEFAULT_FG_COLOR = $FFFFFF00
-  DEFAULT_BG_COLOR = 0
+    CHAR_INVERSE = $01
+    CHAR_BOLD = $02
+
+    DEFAULT_FG_COLOR = $FFFFFF00
+    DEFAULT_BG_COLOR = 0
 
 VAR
-  long curx, cury       ' cursor position
-  long savex, savey
-  long bgcolor, fgcolor ' current color
-  long state
-  long screenptr
-  long args[MAX_ESC_ARGS]
-  long argidx
-  long char_effects
 
-PRI init_terminal
-  reset_graphics_state
-  cls
-  curx := cury := 0
-  state := STATE_NORMAL
-  screenptr := @screen_buffer
+    long curx, cury       ' cursor position
+    long savex, savey
+    long bgcolor, fgcolor ' current color
+    long state
+    long screenptr
+    long args[MAX_ESC_ARGS]
+    long argidx
+    long char_effects
 
-PRI reset_graphics_state
-  bgcolor := DEFAULT_BG_COLOR
-  fgcolor := DEFAULT_FG_COLOR
-  char_effects := 0
+PRI InitTerminal
 
-PRI scrollup
-  bytemove(screenptr, screenptr + 8*COLS, 8*(ROWS-1)*COLS)
-  bytefill(screenptr + 8*(ROWS-1)*COLS, 0, 8*COLS)
+    ResetGraphicsState
+    CLS
+    curx := cury := 0
+    state := STATE_NORMAL
+    screenptr := @screen_buffer
 
-PRI checkposition
-  if curx => COLS
-    curx := 0
-    cury++
-  elseif curx < 0
-    curx := 0
-  if cury => ROWS
-    scrollup
-    cury := ROWS-1
-  elseif cury < 0
-    cury := 0
+PRI ResetGraphicsState
+
+    bgcolor := DEFAULT_BG_COLOR
+    fgcolor := DEFAULT_FG_COLOR
+    char_effects := 0
+
+PRI ScrollUp
+
+    bytemove(screenptr, screenptr + 8*COLS, 8*(ROWS-1)*COLS)
+    bytefill(screenptr + 8*(ROWS-1)*COLS, 0, 8*COLS)
+
+PRI CheckPosition
+
+    if curx => COLS
+        curx := 0
+        cury++
+    elseif curx < 0
+        curx := 0
+    if cury => ROWS
+        scrollup
+        cury := ROWS-1
+    elseif cury < 0
+        cury := 0
 
 PUB Char(c) | fg, bg
 
@@ -67,32 +73,33 @@ PUB Char(c) | fg, bg
                 bg := bgcolor
                 if char_effects & CHAR_INVERSE
                     fg,bg := bg,fg  ' swap
-                checkposition
-                glyphat(curx, cury, c, fg, bg)
+                CheckPosition
+                GlyphAt(curx, cury, c, fg, bg)
                 curx++
     elseif (state == STATE_ESCAPE)
-        handle_esc(c)
+        HandleESC(c)
     elseif (state == STATE_CSI)
-        handle_csi(c)
+        HandleCSI(c)
 
-PRI handle_esc(c) | i
+PRI HandleESC(c) | i
 
-  if (c == "[")
-    repeat i from 0 to MAX_ESC_ARGS-1
-      args[i] := 0
-    argidx := 0
-    state := STATE_CSI
-  elseif (c == "c")
-    init_terminal
-  else
-    state := STATE_NORMAL
+    if (c == "[")
+        repeat i from 0 to MAX_ESC_ARGS-1
+            args[i] := 0
+        argidx := 0
+        state := STATE_CSI
+    elseif (c == "c")
+        InitTerminal
+    else
+        state := STATE_NORMAL
 
-PRI defaultval(arg, v)
+PRI DefaultVal(arg, v)
 
-  return (arg) ? arg : v
+    return (arg) ? arg : v
 
-' handle ANSI control sequences
-PRI handle_csi(c)
+PRI HandleCSI(c)
+' Handle ANSI control sequences
+
 {{
     glyphat(40, 10, c, $ffff0000, $00404000)
     pausems(1000)
@@ -126,9 +133,9 @@ PRI handle_csi(c)
             cury := defaultval(args[0], 1) - 1
             curx := defaultval(args[1], 1) - 1
         "J":
-            clear_in_display(defaultval(args[0], 0))
+            ClearInDisplay(defaultval(args[0], 0))
         "m":
-            set_graphic_rendition(0)
+            SetGraphicRendition(0)
         "s":
             savex := curx
             savey := cury
@@ -138,35 +145,34 @@ PRI handle_csi(c)
 
     state := STATE_NORMAL
 
-PUB glyphat(x, y, ch, fgcol, bgcol) | bufptr
-  bufptr := @screen_buffer
-  bufptr += (y*COLS + x) *8
-  fgcol |= (ch & $FF)
-  bgcol &= $FFFFFF00
-  long[bufptr] := fgcol
-  bufptr += 4
-  long[bufptr] := bgcol
+PUB GlyphAt(x, y, ch, fgcol, bgcol) | bufptr
 
-PUB cls
+    bufptr := @screen_buffer
+    bufptr += (y*COLS + x) *8
+    fgcol |= (ch & $FF)
+    bgcol &= $FFFFFF00
+    long[bufptr] := fgcol
+    bufptr += 4
+    long[bufptr] := bgcol
+
+PUB CLS
 
    longfill(@screen_buffer, 0, COLS*ROWS*2)
 
+PRI Clear(a, b) | ptr, cnt
 ' clear from position a to position b (inclusive)
-PRI clear(a, b) | ptr, cnt
+    ptr := @screen_buffer + a
+    cnt := b-a
+    repeat while cnt => 0
+        long[ptr] := fgcolor
+        ptr += 4
+        long[ptr] := bgcolor
+        ptr += 4
+        --cnt
 
-  ptr := @screen_buffer + a
-  cnt := b-a
-  repeat while cnt => 0
-    long[ptr] := fgcolor
-    ptr += 4
-    long[ptr] := bgcolor
-    ptr += 4
-    --cnt
-
-' clear from cursor to end of display (if n==0) or from start of screen to cursor (n == 1)
+PRI ClearInDisplay(n) | startpix, endpix
+' Clear from cursor to end of display (if n==0) or from start of screen to cursor (n == 1)
 ' n==2 clears whole display and resets cursor to top
-PRI clear_in_display(n) | startpix, endpix
-
     case n
         2:
             curx := cury := 0
@@ -182,21 +188,20 @@ PRI clear_in_display(n) | startpix, endpix
 
     clear(startpix, endpix)
 
-' get an argument that's already been set up, return -1 if not valid
-PRI fetcharg(i)
+PRI FetchArg(i)
+' Get an argument that's already been set up, return -1 if not valid
+    if i => argidx
+        return -1
+    return args[i]
 
-  if i => argidx
-    return -1
-  return args[i]
+PRI Hexdig(i)
+' Debug routine
 
-' debug routine
-PRI hexdig(i)
+    if i =< 10
+        return i + "0"
+    return (i-10) + "A"
 
-   if i =< 10
-     return i + "0"
-   return (i-10) + "A"
-
-PRI set_graphic_rendition(i) | code, a, b
+PRI SetGraphicRendition(i) | code, a, b
 
     if i > argidx
         return
@@ -211,42 +216,31 @@ PRI set_graphic_rendition(i) | code, a, b
 }}
     case code
         0:
-            reset_graphics_state
-
+            ResetGraphicsState
         1:
             char_effects |= CHAR_BOLD
-
         7:
             char_effects |= CHAR_INVERSE
-
         21:
             char_effects &= !CHAR_BOLD
-
         22:
             char_effects &= !CHAR_BOLD
-
         27:
             char_effects &= !CHAR_INVERSE
-
         30..37:
             fgcolor := AnsiColor(code - 30)
-
         38:
             fgcolor,i := GetArgColor(i)
-
         39:
             fgcolor := DEFAULT_FG_COLOR
-
         40..47:
             bgcolor := AnsiColor(code - 40)
-
         48:
             bgcolor,i := GetArgColor(i)
-
         49:
             bgcolor := DEFAULT_BG_COLOR
 
-    set_graphic_rendition(i)
+    SetGraphicRendition(i)
 
 DAT
 
@@ -256,47 +250,44 @@ DAT
         long $7F7F7F00, $FF000000, $00FF0000, $FFFF0000
         long $0000FF00, $FF00FF00, $00FFFF00, $FFFFFFFF
 
-' look up an ANSI color from the color table
-PRI AnsiColor(n) | ptr
+PRI ANSIColor(n) | ptr
+' Look up an ANSI color from the color table
+    if char_effects & CHAR_BOLD
+        n += 8
+    ptr := @colortab
+    return long[ptr + 4*n]
 
-  if char_effects & CHAR_BOLD
-    n += 8
-  ptr := @colortab
-  return long[ptr + 4*n]
-
-' calculate an RGB color from a 6,6,6 encoded 8 bit color
 PRI SixColor(x) | r, g, b
+' Calculate an RGB color from a 6,6,6 encoded 8 bit color
+    b := x // 6
+    x := x / 6
+    g := x // 6
+    r := x / 6
+    r := (255 * r)/6
+    g := (255 * g)/6
+    b := (255 * b)/6
+    return (r<<24) | (g<<16) | b
 
-  b := x // 6
-  x := x / 6
-  g := x // 6
-  r := x / 6
-  r := (255 * r)/6
-  g := (255 * g)/6
-  b := (255 * b)/6
-  return (r<<24) | (g<<16) | b
-
-' get a color out of arguments
-PRI GetArgColor(i) : col, newi | r, g, b, code
-
-  code := fetcharg(i++)
-  if code == 0
-    return 0, i
-  if code == 2
-     r := fetcharg(i++) & $FF
-     g := fetcharg(i++) & $FF
-     b := fetcharg(i++) & $FF
-     return (r<<24 | g<<16 | b<<8), i
-  if code == 5
-    r := fetcharg(i++) & $FF
-    if (r =< 15)
-      r := colortab[r]
-    elseif (r => 232)
-      r := 10 * (r - 232)
-      r +- 8
-      return (r<<24 | r<<16 | r<<8), i
-    else
-      r := SixColor(r)
-      return r, i
-  return 0, i  ' punt for now
+PRI GetArgColor(i): col, newi | r, g, b, code
+' Get a color out of arguments
+    code := fetcharg(i++)
+    if code == 0
+        return 0, i
+    if code == 2
+        r := fetcharg(i++) & $FF
+        g := fetcharg(i++) & $FF
+        b := fetcharg(i++) & $FF
+        return (r<<24 | g<<16 | b<<8), i
+    if code == 5
+        r := fetcharg(i++) & $FF
+        if (r =< 15)
+            r := colortab[r]
+        elseif (r => 232)
+            r := 10 * (r - 232)
+            r +- 8
+            return (r<<24 | r<<16 | r<<8), i
+        else
+            r := SixColor(r)
+            return r, i
+    return 0, i  ' punt for now
 
