@@ -7,32 +7,15 @@
     Author: Jesse Burt
     Copyright (c) 2018
     Created: Jun 15, 2019
-    Updated: Jun 26, 2019
+    Updated: Jun 29, 2019
     See end of file for terms of use.
     --------------------------------------------
 
     NOTE: Based on SmartSerial.spin2, by Eric Smith
 }
 
-CON
-
-    CE  = 11
-    CB  = 12
-    CS  = 16
-
-    HM =  1  ' HoMe cursor
-    PC =  2  ' Position Cursor in x,y
-    PX = 14  ' Position cursor in X
-    PY = 15  ' Position cursor in Y
-
-    NL = 13  ' New Line
-    LF = 10  ' Line Feed
-    ML =  3  ' Move cursor Left
-    MR =  4  ' Move cursor Right
-    MU =  5  ' Move cursor Up
-    MD =  6  ' Move cursor Down
-    TB =  9  ' TaB
-    BS =  8  ' BackSpace
+#include "lib.terminal.spin2"
+#include "lib.ansiterminal.spin2"
 
 OBJ
 
@@ -53,17 +36,14 @@ PUB StartRxTx(rxpin, txpin, mode, baudrate)
 
     return ser.StartRxTx(rxpin, txpin, mode, baudrate)
 
-PUB Bin(val, digits = 32) | mask
-' Print a number in binary form
-    if digits > 0 and digits < 32
-        mask := (|< digits) - 1
-        val &= mask
-    Num(val, 2, 0, digits)
-
 PUB BinIn
 
     StrInMax(@str_buffer, MAXSTR_LENGTH)
     return int.StrToBase(@str_buffer, 2)
+
+PUB Char(ch)
+
+    ser.Char(ch)
 
 PUB CharIn
 
@@ -73,10 +53,6 @@ PUB Chars(ch, size)
 
     repeat size
         ser.Char(ch)
-
-PUB Dec(val)
-' Print a signed decimal number
-    Num(val, 10, 1, 0)
 
 PUB DecIn
 
@@ -88,115 +64,10 @@ PUB DecUns(val, digits = 0)
 '   number of digits; 0 means just use as many as we need
     Num(val, 10, 0, digits)
 
-PUB Hex(val, digits = 8) | mask
-' Print a hex number with the specified number
-'   of digits; 0 means just use as many as we need
-
-    if digits > 0 and digits < 8
-        mask := (|< (4*digits)) - 1
-        val &= mask
-    Num(val, 16, 0, digits)
-
 PUB HexIn
 
     StrInMax(@str_buffer, MAXSTR_LENGTH)
     return int.StrToBase(@str_buffer, 16)
-
-PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
-' Print an number with a given base
-' We do this by finding the remainder repeatedly
-' This gives us the digits in reverse order
-'   so we store them in a buffer; the worst case
-'   buffer size needed is 32 (for base 2)
-'
-'
-' signflag indicates how to handle the sign of the
-' number:
-'   0 == treat number as unsigned
-'   1 == print nothing before positive numbers
-'   anything else: print before positive numbers
-' for signed negative numbers we always print a "-"
-'
-' we will print at least prec digits
-'
-' If signflag is nonzero, it indicates we should treat
-' val as signed; if it is > 1, it is a character we should
-' print for positive numbers (typically "+")
-    if (signflag)
-        if (val < 0)
-            signflag := "-"
-            val := -val
-
-' Make sure we will not overflow our buffer
-    if (digitsNeeded > 32)
-        digitsNeeded := 32
-
-' Accumulate the digits
-    i := 0
-    repeat
-        if (val < 0)
-' Synthesize unsigned division from signed
-' Basically shift val right by 2 to make it positive
-' Then adjust the result afterwards by the bit we
-' shifted out
-            r1 := val&1  ' Capture low bit
-            q1 := val>>1 ' Divide val by 2
-            digit := r1 + 2*(q1 // base)
-            val := 2*(q1 / base)
-            if (digit => base)
-                val++
-                digit -= base
-        else
-            digit := val // base
-            val := val / base
-
-        if (digit => 0 and digit =< 9)
-            digit += "0"
-        else
-            digit := (digit - 10) + "A"
-        buf[i++] := digit
-        --digitsNeeded
-    while (val <> 0 or digitsNeeded > 0) and (i < 32)
-    if (signflag > 1)
-        ser.Char(signflag)
-
-' Now print the digits in reverse order
-    repeat while (i > 0)
-        ser.Char(buf[--i])
-
-PUB PrintF(fmt = string(""), an=0, bn=0, cn=0, dn=0, en=0, fn=0) | c, valptr, val
-' C like formatted print
-    valptr := @an
-    repeat
-        c := byte[fmt++]
-        if (c == 0)
-            quit
-        if c == "%"
-            c := byte[fmt++]
-            if (c == 0)
-                quit
-            if (c == "%")
-                ser.Char(c)
-                next
-            val := long[valptr]
-            valptr += 4
-            case c
-                "d": Dec(val)
-                "u": DecUns(val)
-                "x": Hex(val)
-                "s": Str(val)
-                "c": ser.Char(val)
-        elseif c == "\"
-            c := byte[fmt++]
-            if c == 0
-                quit
-            case c
-                "n": NewLine
-                "r": ser.Char(13)
-                "t": ser.Char(8)
-                other: ser.Char(c)
-        else
-            ser.Char(c)
 
 PUB ReadLine(line, maxline) : size | c
 
@@ -216,11 +87,6 @@ PUB RXCheck: rxbyte
 
     return ser.RXCheck
 
-PUB Str(s = string("")) | c
-' Output a string
-    repeat while ((c := byte[s++]) <> 0)
-        ser.Char(c)
-
 PUB StrIn(stringptr)
 
     StrInMax(stringptr, -1)
@@ -232,4 +98,3 @@ PUB StrInMax(stringptr, maxcount)
             quit
     byte[stringptr+(byte[stringptr-1] == NL)]~                                    'Zero terminate string; overwrite NL or append 0 char
 
-#include "lib.ansiterminal.spin2"

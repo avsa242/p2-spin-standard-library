@@ -1,3 +1,15 @@
+{
+    --------------------------------------------
+    Filename: ANSITerminal-Demo.spin2
+    Description: Demo of the ANSI serial terminal driver
+    Author: Jesse Burt
+    Copyright (c) 2018
+    Created: Jun 18, 2019
+    Updated: Jun 29, 2019
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
 CON
 
     XTAL        = cfg#XTAL
@@ -22,10 +34,6 @@ OBJ
     cfg         : "core.con.boardcfg.p2eval"
     io          : "io"
     time        : "time"
-
-VAR
-
-    long _ser_cog
 
 PUB Main | fg, bg, rx_char, mb, mx, my
 
@@ -82,10 +90,10 @@ PUB Main | fg, bg, rx_char, mb, mx, my
     ser.Color
 
     repeat 5
-        ser.CursorUp
+        ser.MoveUp
         time.Sleep(1)
     repeat 5
-        ser.CursorDown
+        ser.MoveDown
         time.Sleep(1)
 
     ser.Printf("Hide Cursor\n")
@@ -125,7 +133,7 @@ PUB Demo_Text(inp_text)
 PUB Setup
 
     clkset(ENAFREQ, CLOCKFREQ, XSEL)
-    repeat until _ser_cog := ser.Startx (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.StartRxTx (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Reset
     ser.Clear
     ser.PrintF("Serial terminal started\n")
