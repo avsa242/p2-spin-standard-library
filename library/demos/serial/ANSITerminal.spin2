@@ -1,0 +1,139 @@
+CON
+
+    XTAL        = cfg#XTAL
+    XDIV        = cfg#XDIV
+    XMUL        = cfg#XMUL
+    XDIVP       = cfg#XDIVP
+    XOSC        = cfg#XOSC
+    XSEL        = cfg#XSEL
+    XPPPP       = cfg#XPPPP
+    CLOCKFREQ   = cfg#CLOCKFREQ
+    SETFREQ     = cfg#SETFREQ
+    ENAFREQ     = cfg#ENAFREQ
+
+    LED         = cfg#LED1
+    SER_RX      = cfg#SER_RX
+    SER_TX      = cfg#SER_TX
+    SER_BAUD    = 2_000_000
+
+OBJ
+
+    ser         : "com.serial.terminal.ansi"
+    cfg         : "core.con.boardcfg.p2eval"
+    io          : "io"
+    time        : "time"
+
+VAR
+
+    long _ser_cog
+
+PUB Main | fg, bg, rx_char, mb, mx, my
+
+    Setup
+
+    ser.CursorPosition(FALSE)
+    ser.PrintF("ANSI serial terminal demo\n\n")
+    ser.PrintF("NOTE: Not all attributes supported by all terminals.\n\n")
+
+    ser.Bold
+    Demo_Text(string("BOLD"))
+
+    ser.Bold(ser#SGR_INTENSITY_FAINT)
+    Demo_Text(string("FAINT"))
+
+    ser.Italic
+    Demo_Text(string("ITALIC (or INVERSE)"))
+
+    ser.Underline
+    Demo_Text(string("UNDERLINED"))
+ 
+    ser.Underline(ser#SGR_UNDERLINE_DBL)
+    Demo_Text(string("DOUBLE UNDERLINED"))
+
+    ser.Blink(ser#SGR_BLINKSLOW)
+    Demo_Text(string("SLOW BLINKING"))
+
+    ser.Blink(ser#SGR_BLINKFAST)
+    Demo_Text(string("FAST BLINKING"))
+
+    ser.Inverse
+    Demo_Text(string("INVERSE"))
+
+    ser.Conceal
+    Demo_Text(string("CONCEALED"))
+
+    ser.Strikethrough
+    Demo_Text(string("STRIKETHROUGH"))
+
+    ser.Framed
+    Demo_Text(string("FRAMED"))
+
+    ser.Encircle
+    Demo_Text(string("ENCIRCLED"))
+
+    ser.Overline
+    Demo_Text(string("OVERLINED"))
+
+    repeat bg from 40 to 47
+        repeat fg from 30 to 37
+            ser.Color(fg, bg)
+            ser.Printf(" COLORED ")
+        ser.Newline
+    ser.Color
+
+    repeat 5
+        ser.CursorUp
+        time.Sleep(1)
+    repeat 5
+        ser.CursorDown
+        time.Sleep(1)
+
+    ser.Printf("Hide Cursor\n")
+    ser.HideCursor
+    time.Sleep(3)
+
+    ser.Printf("Show cursor\n")
+    ser.ShowCursor
+    time.Sleep(3)
+
+    repeat 5
+        ser.ScrollUp
+        time.Sleep(1)
+
+    repeat 5
+        ser.ScrollDown
+        time.Sleep(1)
+
+    ser.Newline
+    ser.CursorPosition(TRUE)
+    rx_char := 0
+
+    ser.Position(0, 28)
+    ser.PrintF("Mouse reporting:\n")
+    repeat
+        ser.Position(0, 29)
+        ser.RCP
+        ser.ClearLine(ser#CLR_CUR_TO_END)
+
+    Flash(LED, 100)
+
+PUB Demo_Text(inp_text)
+
+    ser.PrintF("This is %s text\n", inp_text)
+    ser.Reset
+
+PUB Setup
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    repeat until _ser_cog := ser.Startx (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.Reset
+    ser.Clear
+    ser.PrintF("Serial terminal started\n")
+
+PUB Flash(led_pin, delay_ms)
+
+    io.Output(led_pin)
+    repeat
+        io.Toggle(led_pin)
+        time.MSleep(delay_ms)
+

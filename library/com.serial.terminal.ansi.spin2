@@ -1,0 +1,81 @@
+{
+    --------------------------------------------
+    Filename: com.serial.terminal.ansi.spin2
+    Description: ANSI-compatible serial terminal,
+     using smartpins for low-level async serial
+    Author: Jesse Burt
+    Copyright (c) 2018
+    Created: Jun 15, 2019
+    Updated: Jun 26, 2019
+    See end of file for terms of use.
+    --------------------------------------------
+
+    NOTE: Based on SmartSerial.spin2, by Eric Smith
+}
+'
+OBJ
+
+    smartpin    : "core.con.smartpins"
+
+VAR
+
+    long _rx_pin, _tx_pin
+
+PUB Start(baudrate)
+' Start with default serial pins and mode
+    return Startx(63, 62, 0, baudrate)
+
+PUB Startx(rxpin, txpin, mode, baudrate) | bitperiod, txmode, rxmode
+' Start with custom RX, TX pins, mode, baudrate
+    bitperiod := 7 + ((CLKFREQ / baudrate) << 16)
+    _rx_pin := rxpin
+    _tx_pin := txpin
+    txmode := smartpin#ASYNC_TX
+    rxmode := smartpin#ASYNC_RX
+    wrpin_(txmode, txpin)
+    wxpin_(bitperiod, txpin)
+    dirh_(txpin)
+    wrpin_(rxmode, rxpin)
+    wxpin_(bitperiod, rxpin)
+    dirh_(rxpin)
+    return 1
+
+PUB Char(val) | txpin
+' Send one character
+    txpin := _tx_pin
+    wypin_(val, txpin)
+    waitx_(1)
+    TXFlush
+
+PUB CharIn: v
+' Receive a byte (waits until one ready)
+    repeat
+        v := RXCheck
+    while v == -1
+
+PUB RXCheck: rxbyte | rxpin, z
+' Check if byte received (never waits)
+'   Returns:
+'       -1 if no byte, otherwise byte
+    rxbyte := -1
+    rxpin := _rx_pin
+    asm
+                testp rxpin wc  ' char ready?
+        if_c    rdpin rxbyte, rxpin
+        if_c    shr rxbyte, #24
+    endasm
+
+PUB TXFlush | txpin, z
+' Flush transmit buffer
+    txpin := _tx_pin
+    z := 1
+    repeat while z <> 0
+        asm
+                        testp txpin wc
+            if_c        mov z, #0
+        endasm
+
+' Provide the usual Str(), Dec(), etc. routines
+#include "lib.terminalfunc.spin2"
+' Provide ANSI terminal text attributes and control sequences
+#include "lib.ansiterminal.spin2"
