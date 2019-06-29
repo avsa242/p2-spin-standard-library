@@ -49,31 +49,34 @@ PRI checkposition
     cury := 0
 
 PUB Char(c) | fg, bg
-   if (state == STATE_NORMAL)
-      if (c == 8) ' backspace
-         --curx
-      elseif (c == 10) ' line feed
-         cury++
-      elseif (c == 13) ' carriage return
-         curx := 0
-      elseif (c == 20) ' tab
-         curx := (curx + 8) & ~7
-      elseif (c == 27)
-         state := STATE_ESCAPE
-      else
-         fg := fgcolor
-         bg := bgcolor
-         if char_effects & CHAR_INVERSE
-           fg,bg := bg,fg  ' swap
-         checkposition
-         glyphat(curx, cury, c, fg, bg)
-         curx++
-   elseif (state == STATE_ESCAPE)
-      handle_esc(c)
-   elseif (state == STATE_CSI)
-      handle_csi(c)
+
+    if (state == STATE_NORMAL)
+        case c
+            8:
+                --curx
+            10:
+                cury++
+            13:
+                curx := 0
+            20:
+                curx := (curx + 8) & ~7
+            27:
+                state := STATE_ESCAPE
+            OTHER:
+                fg := fgcolor
+                bg := bgcolor
+                if char_effects & CHAR_INVERSE
+                    fg,bg := bg,fg  ' swap
+                checkposition
+                glyphat(curx, cury, c, fg, bg)
+                curx++
+    elseif (state == STATE_ESCAPE)
+        handle_esc(c)
+    elseif (state == STATE_CSI)
+        handle_csi(c)
 
 PRI handle_esc(c) | i
+
   if (c == "[")
     repeat i from 0 to MAX_ESC_ARGS-1
       args[i] := 0
@@ -85,6 +88,7 @@ PRI handle_esc(c) | i
     state := STATE_NORMAL
 
 PRI defaultval(arg, v)
+
   return (arg) ? arg : v
 
 ' handle ANSI control sequences
@@ -144,10 +148,12 @@ PUB glyphat(x, y, ch, fgcol, bgcol) | bufptr
   long[bufptr] := bgcol
 
 PUB cls
+
    longfill(@screen_buffer, 0, COLS*ROWS*2)
 
 ' clear from position a to position b (inclusive)
 PRI clear(a, b) | ptr, cnt
+
   ptr := @screen_buffer + a
   cnt := b-a
   repeat while cnt => 0
@@ -178,12 +184,14 @@ PRI clear_in_display(n) | startpix, endpix
 
 ' get an argument that's already been set up, return -1 if not valid
 PRI fetcharg(i)
+
   if i => argidx
     return -1
   return args[i]
 
 ' debug routine
 PRI hexdig(i)
+
    if i =< 10
      return i + "0"
    return (i-10) + "A"
@@ -237,43 +245,20 @@ PRI set_graphic_rendition(i) | code, a, b
 
         49:
             bgcolor := DEFAULT_BG_COLOR
-{
-  if code == 0
-    reset_graphics_state
-  elseif code == 1
-    char_effects |= CHAR_BOLD
-  elseif code == 7
-    char_effects |= CHAR_INVERSE
-  elseif code == 21
-    char_effects &= !CHAR_BOLD
-  elseif code == 22
-    char_effects &= !CHAR_BOLD
-  elseif code == 27
-    char_effects &= !CHAR_INVERSE
-  elseif code => 30 and code =< 37
-    fgcolor := AnsiColor(code - 30)
-  elseif code == 38
-    fgcolor,i := GetArgColor(i)
-  elseif code == 39
-    fgcolor := DEFAULT_FG_COLOR
-  elseif code => 40 and code =< 47
-    bgcolor := AnsiColor(code - 40)
-  elseif code == 48
-    bgcolor,i := GetArgColor(i)
-  elseif code == 49
-    bgcolor := DEFAULT_BG_COLOR
-}
+
     set_graphic_rendition(i)
 
 DAT
-colortab
-  long $00000000, $7F000000, $007F0000, $7F7F0000
-  long $00007F00, $7F007F00, $007F7F00, $C0C0C000
-  long $7F7F7F00, $FF000000, $00FF0000, $FFFF0000
-  long $0000FF00, $FF00FF00, $00FFFF00, $FFFFFFFF
+
+    colortab
+        long $00000000, $7F000000, $007F0000, $7F7F0000
+        long $00007F00, $7F007F00, $007F7F00, $C0C0C000
+        long $7F7F7F00, $FF000000, $00FF0000, $FFFF0000
+        long $0000FF00, $FF00FF00, $00FFFF00, $FFFFFFFF
 
 ' look up an ANSI color from the color table
 PRI AnsiColor(n) | ptr
+
   if char_effects & CHAR_BOLD
     n += 8
   ptr := @colortab
@@ -281,6 +266,7 @@ PRI AnsiColor(n) | ptr
 
 ' calculate an RGB color from a 6,6,6 encoded 8 bit color
 PRI SixColor(x) | r, g, b
+
   b := x // 6
   x := x / 6
   g := x // 6
@@ -292,6 +278,7 @@ PRI SixColor(x) | r, g, b
 
 ' get a color out of arguments
 PRI GetArgColor(i) : col, newi | r, g, b, code
+
   code := fetcharg(i++)
   if code == 0
     return 0, i
