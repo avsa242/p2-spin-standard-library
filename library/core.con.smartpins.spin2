@@ -1,6 +1,108 @@
 CON
+'     28   24  21            8  6     1
+'     |    |   |             |  |     |
+' %AAAA_BBBB_FFF_PPPPPPPPPPPPP_TT_MMMMM_0
+    PCTL                        = 8
+    PCTL_CLKD_IO                = 16
+    PCTL_INV_IN_OUTPUT          = 15
+    PCTL_INV_OUT_OUTPUT         = 14
+    PCTL_HI_FLT_DRIVEN_HIGH     = 11
+    PCTL_LO_FLT_DRIVEN_LOW      = 8
+    PCTL_DIGITALMODE            = %000 << 18
+    PCTL_DACMODE                = %101 << 18
 
+' Smartpin modes:
+    MODE                        = 1
+' Noise source
+    MODE_DAC_NOISE              = %00001 << MODE
+    MODE_DAC16B_DITH_NOISE      = %00010 << MODE
+    MODE_DAC16B_DITH_PWM        = %00011 << MODE
+    MODE_PULSE_CYCLE_OUT        = %00100 << MODE
+    MODE_TRANSITION_OUT         = %00101 << MODE
+    MODE_NCO_FREQ               = %00110 << MODE
+    MODE_NCO_DUTY               = %00111 << MODE
+' Pulse-Width Modulation
+'   Triangle, Sawtooth, Switch-Mode Power Supply
+    MODE_PWM_TRI                = %01000 << MODE
+    MODE_PWM_SAW                = %01001 << MODE
+    MODE_PWM_SMPS               = %01010 << MODE
+
+    MODE_AB_QUADRATURE          = %01011 << MODE
+    MODE_INC_A_HIGH             = %01100 << MODE
+
+' Analog to Digital Converter
+    MODE_ADC                    = MODE_INC_A_HIGH << MODE
+    MODE_INC_A_RISE             = %01101 << MODE
+    MODE_INC_A_HIGH_DEC_B_HIGH  = %01110 << MODE
+    MODE_INC_A_RISE_DEC_B_RISE  = %01111 << MODE
+    MODE_TIME_A_STATES          = %10000 << MODE
+    MODE_TIME_A_HIGH_STATES     = %10001 << MODE
+    MODE_TIME_X_A_HIGHS         = %10010 << MODE
+    MODE_X_PERIODS_CT_TIME      = %10011 << MODE
+    MODE_X_PERIODS_CT_STATES    = %10100 << MODE
+    MODE_PER_XPLUSCLKS_CT_TIME  = %10101 << MODE
+    MODE_PER_XPLUSCLKS_CT_STATES= %10110 << MODE
+    MODE_PER_XPLUSCLKS_CT_PERIOD= %10111 << MODE
+' USB Host
+    MODE_USBHOST_LS             = %11000 << MODE
+    MODE_USBHOST_HS             = %11001 << MODE
+' USB Device
+    MODE_USBDEV_LS              = %11010 << MODE
+    MODE_USBDEV_HS              = %11011 << MODE
+' Synchronous serial
+    MODE_SYNCSER_TX             = %11100 << MODE
+    MODE_SYNCSER_RX             = %11101 << MODE
 ' Asynchronous serial
-    ASYNC_TX    = %0000_0000_000_0000000000000_01_11110_0
-    ASYNC_RX    = %0000_0000_000_0000000000000_00_11111_0
+    MODE_ASYNCSER_TX            = %11110 << MODE
+    MODE_ASYNCSER_RX            = %11111 << MODE
+
+    TT                          = 6
+    TT_OUTPUT_DISABLED          = 0 << TT
+    TT_OUTPUT_ENABLED           = 1 << TT
+    TT_DAC_OUT_ENABLES_ADC      = 0 << TT+1
+    TT_DAC_OTHER_ENABLES_ADC    = 1 << TT+1
+    TT_SMART_OUT_DRIVE          = 0 << TT+1
+    TT_SMART_OTHER_DRIVE        = 1 << TT+1
+
+    P                           = 8
+    LLL                         = 8
+    HHH                         = 11
+
+    FILT                        = 21
+    FILT_AB                     = %000 << FILT
+    FILT_A_AND_B_B              = %001 << FILT
+    FILT_A_OR_B_B               = %010 << FILT
+    FILT_A_XOR_B_B              = %011 << FILT
+    FILT_AB_3OF3_CLKDIV1        = %100 << FILT
+    FILT_AB_3OF3_CLKDIV8        = %101 << FILT
+    FILT_AB_30F3_CLKDIV64       = %110 << FILT
+    FILT_AB_3OF3_CLKDIV512      = %111 << FILT
+
+    BINP                        = 24
+    BINP_TRUE                   = 0 << (BINP+3)
+    BINP_INVERTED               = 1 << (BINP+3)
+    BINP_THISPIN_READ           = %000 << BINP
+    BINP_RELPLS1_READ           = %001 << BINP
+    BINP_RELPLS2_READ           = %010 << BINP
+    BINP_RELPLS3_READ           = %011 << BINP
+    BINP_THISPIN_OUT            = %100 << BINP
+    BINP_RELMIN3_READ           = %101 << BINP
+    BINP_RELMIN2_READ           = %110 << BINP
+    BINP_RELMIN1_READ           = %111 << BINP
+
+    AINP                        = 28
+    AINP_TRUE                   = 0 << (AINP+3)
+    AINP_INVERTED               = 1 << (AINP+3)
+    AINP_THISPIN_READ           = %000 << AINP
+    AINP_RELPLS1_READ           = %001 << AINP
+    AINP_RELPLS2_READ           = %010 << AINP
+    AINP_RELPLS3_READ           = %011 << AINP
+    AINP_THISPIN_OUT            = %100 << AINP
+    AINP_RELMIN3_READ           = %101 << AINP
+    AINP_RELMIN2_READ           = %110 << AINP
+    AINP_RELMIN1_READ           = %111 << AINP
+
+
+PUB Null
+' This is not a top-level object
 
