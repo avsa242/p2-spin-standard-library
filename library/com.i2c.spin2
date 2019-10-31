@@ -41,7 +41,7 @@ VAR
 
 PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000)
 ' Define I2C SCL (clock) and SDA (data) pins
-    _delay := (_clkfreq/I2C_HZ)                                 ' Calculate delays based on clock freq
+    _delay := (clkfreq/I2C_HZ)                                 ' Calculate delays based on clock freq
     _hdelay := _delay >> 1
     _qdelay := _delay >> 2
 
