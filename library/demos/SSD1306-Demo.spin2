@@ -49,7 +49,7 @@ CON
 OBJ
 
     cfg         : "core.con.boardcfg.p2eval"
-    ser         : "com.serial"
+    ser         : "com.serial.terminal.ansi"
     time        : "time.spin2"
     oled        : "display.oled.ssd1306.i2c"
     int         : "string.integer"
@@ -364,31 +364,28 @@ PUB NL
 
 PUB fps_mon
 '' Sit in another cog and tell us (more or less) how many frames per second we're rendering
-    Position (0, 4)
-    ser.Str (string("FPS: "))
+    ser.Clear
     repeat
         time.MSleep (1000)
-        Position (5, 4)
-        ser.Str (int.DecZeroed (_fps, 3))
+        Position (0, 4)
+        ser.Printf ("FPS: %d", _fps)
         _fps := 0
 
 PUB Setup
 
     clkset(ENAFREQ, CLOCKFREQ, XSEL)
-    repeat until ser.Startx (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     Clear
-    ser.Str (string("Serial terminal started"))
-    NL
+    ser.Printf ("Serial terminal started\n")
     gfx.Start (WIDTH, HEIGHT, 1, @_framebuff)
     gfx.FontSize (6, 8)
     gfx.FontAddress (fnt5x8.BaseAddr)
     if oled.Start (WIDTH, HEIGHT, I2C_SCL, I2C_SDA, I2C_HZ, 0)
         oled.Defaults
         oled.OSCFreq (407)
-        ser.Str (string("SSD1306 object started"))
-        NL
+        ser.Printf("SSD1306 object started\n")
     else
-        ser.Str (string("SSD1306 object failed to start - halting"))
+        ser.Printf("SSD1306 object failed to start - halting\n")
         Stop
         Flash(LED, 500)
 
