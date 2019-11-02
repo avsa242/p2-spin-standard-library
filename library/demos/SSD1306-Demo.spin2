@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2018
     Created: Jun 15, 2019
-    Updated: Oct 31, 2019
+    Updated: Nov 2, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,7 +13,7 @@
 #error "Sorry, this source requires FastSpin to compile."
 #endif
 
-#define FPS_MON_ENABLE  ' Optionally undef/comment out to disable the terminal framerate monitor
+#undef FPS_MON_ENABLE  ' Optionally undef/comment out to disable the terminal framerate monitor
 
 CON
 
@@ -53,7 +53,6 @@ OBJ
     time        : "time.spin2"
     oled        : "display.oled.ssd1306.i2c"
     int         : "string.integer"
-    gfx         : "display.gfx.bitmap"
     fnt5x8      : "font.5x8"
 
 VAR
@@ -74,46 +73,61 @@ PUB Main | x, y, ch
     oled.MirrorH(TRUE)
     oled.MirrorV(TRUE)
 
+    ser.printf("Demo_Greet\n")
     Demo_Greet
     time.Sleep (5)
     ClearScreen
 
+    ser.printf("Demo_Sine\n")
     Demo_Sine (500)
     ClearScreen
 
+    ser.printf("Demo_Wave\n")
     Demo_Wave (500)
     ClearScreen
 
+    ser.printf("Demo_MEMScroller\n")
     Demo_MEMScroller($0_00_00, $0_40_00)
     ClearScreen
 
+    ser.printf("Demo_DrawBitmap\n")
     Demo_DrawBitmap (@Beanie, 500)
     ClearScreen
 
+    ser.printf("Demo_LineSweep\n")
     Demo_LineSweep(2)
     ClearScreen
 
+    ser.printf("Demo_LineRND\n")
     Demo_LineRND (500)
     ClearScreen
 
+    ser.printf("Demo_PlotRND\n")
     Demo_PlotRND (500)
     ClearScreen
 
+    ser.printf("Demo_BouncingBall\n")
     Demo_BouncingBall (500, 5)
     ClearScreen
 
+    ser.printf("Demo_ExpandingCircle\n")
     Demo_ExpandingCircle(5)
     ClearScreen
 
+    ser.printf("Demo_Wander\n")
     Demo_Wander (1000)
     ClearScreen
 
+    ser.printf("Demo_Text\n")
     Demo_Text (300)
 
+    ser.printf("Demo_Contrast\n")
     Demo_Contrast(2, 1)
     ClearScreen
 
+    ser.printf("Stop\n")
     Stop
+    ser.printf("Flash\n")
     Flash(LED, 100)
 
 PUB Demo_BouncingBall(frames, radius)
@@ -131,19 +145,17 @@ PUB Demo_BouncingBall(frames, radius)
         if (bx =< radius OR bx => WIDTH - radius)           'Ditto with the left or right sides
             dx *= -1
 
-        gfx.Circle (bx, by, radius, 1)
-        oled.WriteBuffer(@_framebuff, BUFFSZ)
+        oled.Circle (bx, by, radius, 1)
+        oled.Update
         _fps++
-        gfx.Clear
+        oled.Clear
 
 PUB Demo_DrawBitmap(addr_bitmap, reps)' XXX stock bitmap unsuitable for 64-height display
 '' Continuously redraws bitmap at address 'addr_bitmap' (e.g., Demo_DrawBitmap(@bitmap1, 500)
 '' Visually unexciting - just for demonstrating the max blit speed
     repeat reps
-'        bytemove(@_framebuff, BUFFSZ, addr_bitmap, BUFFSZ)
-'        oled.DrawBitmap (addr_bitmap)
-        gfx.Bitmap(addr_bitmap, BUFFSZ)
-        oled.WriteBuffer(@_framebuff, BUFFSZ)
+        oled.Bitmap(addr_bitmap, BUFFSZ)
+        oled.Update
         _fps++
 
 PUB Demo_ExpandingCircle(reps) | i, x, y
@@ -152,10 +164,10 @@ PUB Demo_ExpandingCircle(reps) | i, x, y
         x := rnd(XMAX)
         y := rnd(YMAX)
         repeat i from 1 to 31
-            gfx.Circle (x, y, ||i, -1)
-            oled.WriteBuffer(@_framebuff, BUFFSZ)
+            oled.Circle (x, y, ||i, -1)
+            oled.Update
             _fps++
-            gfx.Clear
+            oled.Clear
 
 PUB Demo_Contrast(reps, delay_ms) | contrast_level
 '' Fades out and in display contrast
@@ -169,32 +181,32 @@ PUB Demo_Contrast(reps, delay_ms) | contrast_level
 
 PUB Demo_Greet
 '                    |0   |5  1|0  1|5
-    gfx.Position (0, 0)
-    gfx.Str (string("SSD1306 on the"))
+    oled.Position (0, 0)
+    oled.Str (string("SSD1306 on the"))
 
-    gfx.Position (0, 1)
-    gfx.Str (string("Parallax"))
+    oled.Position (0, 1)
+    oled.Str (string("Parallax"))
 
-    gfx.Position (0, 2)
-    gfx.Str (string("P2X8C4M64P @ "))
-    gfx.Str (int.Dec(clkfreq/1_000_000))
-    gfx.Str (string("MHz"))
+    oled.Position (0, 2)
+    oled.Str (string("P2X8C4M64P @ "))
+    oled.Str (int.Dec(clkfreq/1_000_000))
+    oled.Str (string("MHz"))
 
-    gfx.Position (0, 3)
-    gfx.Str (int.DecPadded (WIDTH, 3))
+    oled.Position (0, 3)
+    oled.Str (int.DecPadded (WIDTH, 3))
 
-    gfx.Position (3, 3)
-    gfx.Str (string("x"))
+    oled.Position (3, 3)
+    oled.Str (string("x"))
 
-    gfx.Position (4, 3)
-    gfx.Str (int.DecPadded (HEIGHT, 2))
-    oled.WriteBuffer (@_framebuff, BUFFSZ)
+    oled.Position (4, 3)
+    oled.Str (int.DecPadded (HEIGHT, 2))
+    oled.Update
 
 PUB Demo_LineRND (reps)
 '' Draws random lines with color -1 (invert)
     repeat reps
-        gfx.Line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), -1)
-        oled.WriteBuffer(@_framebuff, BUFFSZ)
+        oled.Line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), -1)
+        oled.Update
         _fps++
 
 PUB Demo_LineSweep (reps) | x, y
@@ -202,13 +214,13 @@ PUB Demo_LineSweep (reps) | x, y
 ''  from the top-down
     repeat reps
         repeat x from 0 to XMAX step 1
-            gfx.Line (x, 0, XMAX-x, YMAX, -1)
-            oled.WriteBuffer(@_framebuff, BUFFSZ)
+            oled.Line (x, 0, XMAX-x, YMAX, -1)
+            oled.Update
             _fps++
 
         repeat y from 0 to YMAX step 1
-            gfx.Line (XMAX, y, 0, YMAX-y, -1)
-            oled.WriteBuffer(@_framebuff, BUFFSZ)
+            oled.Line (XMAX, y, 0, YMAX-y, -1)
+            oled.Update
             _fps++
 
 PUB Demo_MEMScroller(start_addr, end_addr) | pos, st, en
@@ -216,15 +228,15 @@ PUB Demo_MEMScroller(start_addr, end_addr) | pos, st, en
 '' Very meta/introspective/magic mirror-looking if dumping covers the area of RAM
 ''  occupied by this program's variables!
     repeat pos from start_addr to end_addr step 128
-        gfx.Bitmap(pos, BUFFSZ)
-        oled.WriteBuffer(@_framebuff, BUFFSZ)
+        oled.Bitmap(pos, BUFFSZ)
+        oled.Update
         _fps++
 
 PUB Demo_PlotRND (reps) | x, y
 '' Draws random pixels to the screen, with color -1 (invert)
     repeat reps
-        gfx.Plot (rnd(XMAX), rnd(YMAX), -1)
-        oled.WriteBuffer(@_framebuff, BUFFSZ)
+        oled.Plot (rnd(XMAX), rnd(YMAX), -1)
+        oled.Update
         _fps++
 
 PUB Demo_Sine(reps) | x, y, modifier, offset, div
@@ -244,16 +256,16 @@ PUB Demo_Sine(reps) | x, y, modifier, offset, div
         repeat x from 0 to XMAX
             modifier := (||cnt / 1_000_000)           ' Use system counter as modifier
             y := offset + sin(x * modifier) / div
-            gfx.Plot(x, y, 1)
-        oled.WriteBuffer(@_framebuff, BUFFSZ)
+            oled.Plot(x, y, 1)
+        oled.Update
         _fps++
-        gfx.Clear
+        oled.Clear
 
 PUB Demo_Text(reps) | col, row, maxcol, maxrow, ch, st
 '' Sequentially draws the whole font table to the screen, for half of 'reps'
 ''  then random characters for the second half
-    maxcol := (WIDTH/gfx.FontWidth)-1   'XXX In the future, pull part of this from a font def file,
-    maxrow := (HEIGHT/gfx.FontHeight)-1  ' based on its size
+    maxcol := (WIDTH/oled.FontWidth)-1   'XXX In the future, pull part of this from a font def file,
+    maxrow := (HEIGHT/oled.FontHeight)-1  ' based on its size
     ch := $00
     repeat reps/2
         repeat row from 0 to maxrow
@@ -261,17 +273,17 @@ PUB Demo_Text(reps) | col, row, maxcol, maxrow, ch, st
                 ch++
                 if ch > $7F
                     ch := $00
-                gfx.Position (col, row)
-                gfx.Char (ch)
-        oled.WriteBuffer(@_framebuff, BUFFSZ)
+                oled.Position (col, row)
+                oled.Char (ch)
+        oled.Update
         _fps++
 
     repeat reps/2
         repeat row from 0 to maxrow
             repeat col from 0 to maxcol
-                gfx.Position (col, row)
-                gfx.Char (rnd(127))
-        oled.WriteBuffer(@_framebuff, BUFFSZ)
+                oled.Position (col, row)
+                oled.Char (rnd(127))
+        oled.Update
         _fps++
 
 PUB Demo_Wave(frames) | x, y, ydir
@@ -285,10 +297,10 @@ PUB Demo_Wave(frames) | x, y, ydir
             if y == 0
                 ydir := 1
             y := y + ydir
-            gfx.Plot (x, y, 1)
-        oled.WriteBuffer(@_framebuff, BUFFSZ)
+            oled.Plot (x, y, 1)
+        oled.Update
         _fps++
-        gfx.Clear
+        oled.Clear
 
 PUB Demo_Wander(reps) | x, y, d
 '' Draws randomly wandering pixels
@@ -312,16 +324,16 @@ PUB Demo_Wander(reps) | x, y, d
                 y -= 2
                 if y < 0
                     y := YMAX
-        gfx.Plot (x, y, -1)
-        oled.WriteBuffer(@_framebuff, BUFFSZ)
+        oled.Plot (x, y, -1)
+        oled.Update
 
 PUB ClearScreen
-
-    gfx.Clear
-    oled.WriteBuffer(@_framebuff, BUFFSZ)
+' Clear the display buffer and immediately write it to the OLED
+    oled.Clear
+    oled.Update
 
 PUB Sin(angle) | tmp
-
+' Return the sine of angle
     asm
         shl angle, #20
         qrotate ##100000, angle
@@ -329,8 +341,8 @@ PUB Sin(angle) | tmp
     endasm
     return tmp
 
-PUB RND(maxval) | i       'Returns a random number between 0 and upperlimit
-
+PUB RND(maxval) | i
+' Return random number up to maxval
     asm
         getrnd i
         shr i, #16
@@ -377,13 +389,15 @@ PUB Setup
     repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     Clear
     ser.Printf ("Serial terminal started\n")
-    gfx.Start (WIDTH, HEIGHT, 1, @_framebuff)
-    gfx.FontSize (6, 8)
-    gfx.FontAddress (fnt5x8.BaseAddr)
-    if oled.Start (WIDTH, HEIGHT, I2C_SCL, I2C_SDA, I2C_HZ, 0)
+    oled.FontSize (6, 8)
+    oled.FontAddress (fnt5x8.BaseAddr)
+    if oled.Start (WIDTH, HEIGHT, I2C_SCL, I2C_SDA, I2C_HZ, @_framebuff, 0)
         oled.Defaults
         oled.OSCFreq (407)
-        ser.Printf("SSD1306 object started\n")
+        oled.Address(@_framebuff)
+        oled.FontSize (6, 8)
+        oled.FontAddress (fnt5x8.BaseAddr)
+        ser.Printf("SSD1306 object started. Framebuffer (%d bytes) at $%x\n", BUFFSZ, @_framebuff)
     else
         ser.Printf("SSD1306 object failed to start - halting\n")
         Stop

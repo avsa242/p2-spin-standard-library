@@ -5,17 +5,18 @@
     Author: Jesse Burt
     Copyright (c) 2018
     Created: Apr 26, 2018
-    Updated: Mar 12, 2019
+    Updated: Nov 2, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
-
+#include "library.gfx.bitmap.spin2"
 CON
 
     SLAVE_WR        = core#SLAVE_ADDR
     SLAVE_RD        = core#SLAVE_ADDR|1
 
     DEF_HZ          = 400_000
+    MAX_COLOR       = 1
 
 OBJ
 
@@ -27,14 +28,14 @@ OBJ
 VAR
 
     long _draw_buffer
+    word _buff_sz
     byte _disp_width, _disp_height
-    word _buffsz
     byte _sa0
 
 PUB Null
 ' This is not a top-level object
 
-PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, SLAVE_LSB): okay
+PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, dispbuffer_address, SLAVE_LSB=0): okay
 ' Start the driver with custom settings
 ' Valid values:
 '       width: 0..128
@@ -51,7 +52,8 @@ PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, SLAVE_LSB): okay
             if i2c.Present (SLAVE_WR | _sa0)                                         'Response from device?
                 _disp_width := width
                 _disp_height := height
-                _buffsz := ((_disp_width * _disp_height)/8)
+                _buff_sz := (_disp_width * _disp_height) / 8
+                Address(dispbuffer_address)
                 return TRUE
     return FALSE                                                'If we got here, something went wrong
 
@@ -92,6 +94,16 @@ PUB Defaults
             PageRange (0, 3)
     DisplayOn
 
+PUB Address(addr)
+' Set framebuffer address
+    case addr
+        $0004..$7FFFF:
+            _draw_buffer := addr
+        OTHER:
+            return _draw_buffer
+
+    _draw_buffer := addr
+
 PUB AddrMode(mode)
 ' Set Memory Addressing Mode
 '   0: Horizontal addressing mode
@@ -106,7 +118,7 @@ PUB AddrMode(mode)
 
 PUB BufferSize
 ' Get size of buffer
-    return _buffsz
+    return _buff_sz
 
 PUB ChargePumpReg(enabled)
 ' Enable Charge Pump Regulator when display power enabled
@@ -187,7 +199,7 @@ PUB DisplayStartLine(start_line)
 
 PUB DrawBitmap(addr_bitmap)
 ' Blits bitmap to display buffer
-    bytemove(_draw_buffer, addr_bitmap, _buffsz)
+    bytemove(_draw_buffer, addr_bitmap, _buff_sz)
 
 PUB EntireDisplayOn(enabled)
 ' TRUE    - Turns on all pixels (doesn't affect GDDRAM contents)
@@ -257,12 +269,12 @@ PUB OSCFreq(kHz)
 PUB PageRange(pgstart, pgend)
 
     case pgstart
-        0..7:{1..7}
+        0..7:
         OTHER:
             pgstart := 0
 
     case pgend
-        0..7:{0..6}
+        0..7:
         OTHER:
             pgend := 7
 
@@ -299,8 +311,20 @@ PUB VCOMHDeselectLevel(level)
 
     writeReg(core#CMD_SETVCOMDESEL, 1, level)
 
+PUB Update | tmp
+' Write display buffer to display
+    ColumnStartEnd (0, _disp_width-1)
+    PageRange (0, 7)
+
+    i2c.start
+    i2c.write (SLAVE_WR | _sa0)
+    i2c.write (core#CTRLBYTE_DATA)
+    repeat tmp from 0 to _buff_sz-1
+        i2c.write (byte[_draw_buffer][tmp])
+    i2c.stop
+
 PUB WriteBuffer(buff_addr, buff_sz) | tmp
-' Write buff_sz bytes of display buffer at buff_addr to display
+' Write buff_sz bytes of buff_addr to display
     ColumnStartEnd (0, _disp_width-1)
     PageRange (0, 7)
 
