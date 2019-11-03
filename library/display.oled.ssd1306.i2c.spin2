@@ -9,7 +9,7 @@
     See end of file for terms of use.
     --------------------------------------------
 }
-#include "library.gfx.bitmap.spin2"
+#include "lib.gfx.bitmap.spin2"
 CON
 
     SLAVE_WR        = core#SLAVE_ADDR
