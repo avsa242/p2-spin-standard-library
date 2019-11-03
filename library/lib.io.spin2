@@ -1,0 +1,27 @@
+PRI in(pin): state
+
+    asm
+        testp   pin     wc
+        wrc     state
+    endasm
+
+    return state
+
+PRI dir(pin, direction)
+
+    case pin
+        0..31:
+            dira[pin] := direction
+        32..63:
+            dirb[pin] := direction
+        OTHER: return
+
+PRI out(pin, state)
+
+    case_fast pin
+        0..31:
+            outa[pin] := state
+        32..63:
+            outb[pin] := state
+        OTHER: return
+

@@ -17,10 +17,18 @@
 #include "lib.terminal.spin2"
 #include "lib.ansiterminal.spin2"
 
+CON
+
+    MAXSTR_LENGTH   = 49                                ' Max length of received numerical string (not including zero terminator)
+
 OBJ
 
     ser : "com.serial"
     int : "string.integer"
+
+VAR
+
+    byte    str_buffer[MAXSTR_LENGTH+1]                 ' String buffer for numerical strings
 
 PUB Start(baudrate) : okay
 

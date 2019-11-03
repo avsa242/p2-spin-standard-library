@@ -153,8 +153,8 @@ PRI HexToStr(value, digits)
     value <<= (8 - digits) << 2                           ' prep most significant digit
     repeat digits
         nstr[idx++] := lookupz((value <-= 4) & $F : "0".."9", "A".."F")
-
-    return @nstr
+    result := @nstr
+    return result
 
 PRI BinToStr(value, digits)
 {{
