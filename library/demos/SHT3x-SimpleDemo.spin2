@@ -1,0 +1,135 @@
+{
+    --------------------------------------------
+    Filename: SHT3x-SimpleDemo.spin2
+    Author: Jesse Burt
+    Description: Simple demo of the SHT3x driver (P2 version)
+        Shows temperature and RH reading
+    Copyright (c) 2019
+    Started Nov 3, 2019
+    Updated Nov 3, 2019
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    XTAL            = cfg#XTAL
+    XDIV            = cfg#XDIV
+    XMUL            = cfg#XMUL
+    XDIVP           = cfg#XDIVP
+    XOSC            = cfg#XOSC
+    XSEL            = cfg#XSEL
+    XPPPP           = cfg#XPPPP
+    CLOCKFREQ       = cfg#CLOCKFREQ
+    SETFREQ         = cfg#SETFREQ
+    ENAFREQ         = cfg#ENAFREQ
+
+    LED             = cfg#LED1
+    SER_RX          = cfg#SER_RX
+    SER_TX          = cfg#SER_TX
+    SER_BAUD        = 2_000_000
+
+    COL_REG         = 0
+    COL_SET         = 12
+    COL_READ        = 24
+    COL_PF          = 40
+
+    SCL_PIN         = 27            ' Change these to match your I2C pin configuration
+    SDA_PIN         = 28
+    I2C_HZ          = 1_000_000     ' SHT3x supports I2C bus speeds up to FM+ (1MHz)
+
+    F               = 0
+    C               = 1
+    TEMP_SCALE      = F             ' Change this to one of F, or C
+
+    LOW             = sht3x#RPT_LOW
+    MED             = sht3x#RPT_MED
+    HIGH            = sht3x#RPT_HIGH
+    REPEATABILITY   = HIGH          ' Change this to one of LOW, MED, or HIGH
+
+OBJ
+
+    cfg     : "core.con.boardcfg.p2eval"
+    ser     : "com.serial.terminal.ansi"
+    time    : "time"
+    sht3x   : "sensor.temp_rh.sht3x.i2c.spin2"
+    int     : "string.integer"
+
+VAR
+
+    byte _ser_cog, _sht3x_cog
+
+PUB Main | temp, rh
+
+    Setup
+    sht3x.Repeatability (REPEATABILITY)
+    repeat
+        sht3x.Measure
+        ser.Position (0, 3)
+        case TEMP_SCALE
+            F:
+                temp := sht3x.TemperatureF
+                ser.printf("Temperature: ")
+                Frac(temp)
+            OTHER:
+                temp := sht3x.TemperatureC
+                ser.printf("Temperature: ")
+                Frac(temp)
+        ser.NewLine
+
+        rh := sht3x.Humidity
+        ser.printf("Relative humidity: ")
+        Frac(rh)
+        time.MSleep (100)
+
+PUB Frac(hundredths) | whole, part
+
+    whole := hundredths / 100
+    part := int.DecZeroed(hundredths // 100, 2)
+    ser.printf("%d.%s ", whole, part)
+
+PUB Setup
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.Clear
+    ser.printf("Serial terminal started\n")
+    if _sht3x_cog := sht3x.Startx(SCL_PIN, SDA_PIN, I2C_HZ, 0)
+        ser.printf("SHT3x driver (S/N %x) started\n", sht3x.SerialNum)
+    else
+        ser.printf("SHT3x driver failed to start - halting")
+        Flash(LED, 500)
+
+    sht3x.ClearStatus
+    sht3x.Heater (FALSE)
+
+#include "lib.io.spin2"
+
+PUB Flash(led_pin, delay_ms)
+
+    dir(led_pin, 1)
+    repeat
+        out(led_pin, !in(led_pin))
+        time.MSleep (delay_ms)
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
