@@ -66,7 +66,7 @@ CON
     SYNCW_Y         = DEVMODE_Y
     BANDW_X         = 0
     BANDW_Y         = DEVMODE_Y+1
-    SPREAD_X        = BANDW_X+18
+    SPREAD_X        = BANDW_X+20
     SPREAD_Y        = BANDW_Y
     TXPOWER_X       = SPREAD_X+10
     TXPOWER_Y       = BANDW_Y+1
@@ -98,7 +98,7 @@ VAR
 
     long _isr_stack[50], _keydaemon_stack[50]
     long _fifo[64]
-    byte _ser_cog
+    byte _ser_cog, _lora_cog
     byte _keydaemon_cog, _prev_state, _curr_state
     byte _irq_flags, _irq_flags_mask, _last_pkt_bytes
     byte _rf_outpin
@@ -365,16 +365,16 @@ PUB DisplaySettings | i, mdm_stat
         1: ser.printf("LoRa        ")
 
     ser.Position (FREQ_X, FREQ_Y)
-    ser.printf("Freq: %d", lora.CarrierFreq (QUERY))
+    ser.printf("Freq: %d ", lora.CarrierFreq (QUERY))
 
     ser.Position (SYNCW_X, SYNCW_Y)
     ser.printf("Syncword: $%x", lora.SyncWord (QUERY))
 
     ser.Position (BANDW_X, BANDW_Y+1)
-    ser.printf("Bandwidth: %d", lora.RXBandwidth (QUERY))
+    ser.printf("Bandwidth: %d  ", lora.RXBandwidth (QUERY))
 
     ser.Position (SPREAD_X, SPREAD_Y+1) 'temp hack until ansi terminal fixed
-    ser.printf("SF: %d", lora.SpreadingFactor (QUERY))
+    ser.printf("SF: %d  ", lora.SpreadingFactor (QUERY))
 
     if _curr_state == DO_TX
         ser.Position (TXPOWER_X, TXPOWER_Y)
@@ -415,9 +415,9 @@ PUB Receive | curr_rssi, min_rssi, max_rssi, len, tmp
             lora.FIFOAddrPointer (lora.FIFORXCurrentAddr)
             lora.RXData (len, @_fifo)
             lora.Interrupt (%0100_0000)
-
             DisplayRXStats
             DisplayFIFO
+
         if _irq_flags & %0010_0000      ' Payload CRC error
             lora.Interrupt (%0010_0000)
 
@@ -495,11 +495,6 @@ PRI keyDaemon | key_cmd
                 _curr_state := CYCLE_BW
                 repeat until _curr_state <> CYCLE_BW
 
-            "d", "D":
-                _prev_state := _curr_state
-                _curr_state := SET_DEFAULTS
-                repeat until _curr_state <> SET_DEFAULTS
-
             "h", "H":
                 _prev_state := _curr_state
                 _curr_state := DISP_HELP
@@ -523,7 +518,6 @@ PRI keyDaemon | key_cmd
             "r", "R":
                 _prev_state := _curr_state
                 _curr_state := DO_RX
-                repeat until _curr_state <> DO_RX
 
             "s", "S":
                 _prev_state := _curr_state
@@ -559,13 +553,13 @@ PUB Setup
     time.msleep(500)
     ser.Clear
     ser.printf("Serial terminal started\n")
-    if lora.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
+    if _lora_cog := lora.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
         ser.printf("sx1276 driver started\n")
     else
         ser.printf("sx1276 driver failed to start - halting\n")
         time.MSleep (500)
         Flash (LED, 500)
-    _keydaemon_cog := cognew(keyDaemon, @_keydaemon_stack)
+    _keydaemon_cog := cognew(keyDaemon, @_keydaemon_stack)+1
     ser.printf("key daemon started on cog %d\n", _keydaemon_cog)
 
 #include "lib.io.spin2"
