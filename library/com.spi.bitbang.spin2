@@ -1,0 +1,190 @@
+{                                                                                                                
+    --------------------------------------------
+    Filename: com.spi.bitbang.spin2
+    Description: SPI engine (bit-banged) for the Propeller 2
+    Author: Jesse Burt
+    Created: Nov 2, 2019
+    Updated: Nov 3, 2019
+    See end of file for terms of use.
+    --------------------------------------------
+
+    NOTE: Based on SPI_Spin.spin, by Beau Schwabe. The original
+        header is preserved below.
+}
+
+{{
+************************************************
+* Propeller SPI Engine  ... Spin Version  v1.0 *
+* Author: Beau Schwabe                         *
+* Copyright (c) 2009 Parallax                  *
+* See end of file for terms of use.            *
+************************************************
+
+Revision History:
+         V1.0   - original program
+
+}}
+CON
+
+' Bit order: Read/ShiftIn
+' MSBPRE   - Most Significant Bit first ; data is valid before the clock
+' LSBPRE   - Least Significant Bit first ; data is valid before the clock
+' MSBPOST  - Most Significant Bit first ; data is valid after the clock
+' LSBPOST  - Least Significant Bit first ; data is valid after the clock
+    #0, MSBPRE, LSBPRE, MSBPOST, LSBPOST
+
+' Bit order: Write/ShiftOut
+' LSBFIRST - Least Significant Bit first ; data is valid after the clock
+' MSBFIRST - Most Significant Bit first ; data is valid after the clock
+    #4, LSBFIRST, MSBFIRST
+
+
+VAR
+
+    long _clock_delay, _CPOL
+
+PUB Start(spi_clock, CPOL=0): okay
+
+    _CPOL := CPOL
+    _clock_delay := (clkfreq / spi_clock / 10) #> 2 ' xxx minimum??
+    okay := cogid + 1
+
+PUB Read(MISO, SCK, mode, nr_bits)
+
+    dir(MISO, 0)                                            ' Make MISO input
+    out(SCK, _CPOL)                                         ' Set initial clock state/clock polarity
+    dir(SCK, 1)                                             ' Make SCK output
+
+    result := 0
+
+    case_fast mode
+        MSBPRE:
+            repeat nr_bits
+                result := (result << 1) | in(MISO)  'xxx _pinr not recognized??
+                PostClock(SCK)
+
+        LSBPRE:
+            repeat nr_bits + 1
+                result := (result >> 1) | (in(MISO) << 31)
+                PostClock(SCK)
+                result >>= (32 - nr_bits)
+
+        MSBPOST:
+            repeat nr_bits
+                PreClock(SCK)
+                result := (result << 1) | in(MISO)
+
+
+        LSBPOST:
+            repeat nr_bits + 1
+                PreClock(SCK)
+                result := (result >> 1) | (in(MISO) << 31)
+                result >>= (32 - nr_bits)
+
+    return result
+
+PUB ShiftIn = Read
+
+PUB Write(MOSI, SCK, mode, nr_bits, val)
+
+    dir(MOSI, 1)                                         ' make Data pin output
+    out(SCK, _CPOL)                            ' set initial clock state
+    dir(SCK, 1)
+
+    case_fast mode
+        LSBFIRST:
+            val <-= 1                                       ' pre-align lsb
+            repeat nr_bits
+                out(MOSI, (val ->= 1) & 1)                 ' output data bit
+                PostClock(SCK)
+
+        MSBFIRST:
+            val <<= (32 - nr_bits)                             ' pre-align msb
+            repeat nr_bits
+                out(MOSI, (val <-= 1) & 1)                 ' output data bit
+                PostClock(SCK)
+
+PUB ShiftOut = Write
+
+PRI in(pin): state
+
+{    case pin
+        0..31:                                                                                                   
+'            return ina[pin]    'This doesn't work??
+'            return $DEAD0001
+            asm
+                testp   pin     wc
+                wrc     state
+            endasm
+            state := ina[pin]
+        32..63:
+'            return inb[pin]    'ditto
+'            return $DEAD0002
+            state := inb[pin]
+        OTHER:
+            state := 0
+}
+    asm
+        testp   pin     wc
+        wrc     state
+    endasm
+
+    return state
+
+PRI dir(pin, direction)
+
+    case pin
+        0..31:
+            dira[pin] := direction
+        32..63:
+            dirb[pin] := direction
+        OTHER: return
+
+PRI out(pin, state)
+
+    case pin
+        0..31:
+            outa[pin] := state
+        32..63:
+            outb[pin] := state
+        OTHER: return
+
+PRI postClock(SCK) | clkd
+
+    clkd := _clock_delay
+
+    asm
+        waitx   clkd
+        outnot  SCK
+        waitx   clkd
+        outnot  SCK
+    endasm
+'    waitx_(_clock_delay)   'despite a 1:1 relationship, using
+'    outnot_(SCK)           'the instrinsic method yields about 1/2 perf
+'    waitx_(_clock_delay)   'of the inline asm
+'    outnot_(SCK)
+
+PRI preClock(SCK) | clkd
+
+    clkd := _clock_delay
+
+    asm
+        outnot  SCK
+        waitx   clkd
+        outnot  SCK
+        waitx   clkd
+    endasm
+
+'    outnot_(SCK)
+'    waitx_(_clock_delay)
+'    outnot_(SCK)
+'    waitx_(_clock_delay)
+
+DAT
+{
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
