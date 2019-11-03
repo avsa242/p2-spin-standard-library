@@ -138,6 +138,7 @@ PUB Setup
     clkset(ENAFREQ, CLOCKFREQ, XSEL)
     ser.StartRxTx (63, 62, 0, SER_BAUD)
     time.MSleep(5)
+    ser.Str(string(27, "[0;0m"))
     ser.Clear
     ser.PrintF("Serial terminal started\n")
     i2c.Setup (I2C_SCL, I2C_SDA, I2C_HZ)

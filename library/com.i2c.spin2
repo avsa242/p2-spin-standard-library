@@ -50,6 +50,8 @@ PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000)
     fltl_ (_scl)                                                ' Float pins
     fltl_ (_sda)
     Reset
+    result := cogid + 1
+    return
 
 PUB Present(slave_addr)
 ' Pings device, returns true if ACK
