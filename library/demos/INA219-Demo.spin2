@@ -1,0 +1,181 @@
+{
+    --------------------------------------------
+    Filename: INA219-Demo.spin2
+    Author: Jesse Burt
+    Description: Demo of the INA219 driver (P2 version)
+    Copyright (c) 2019
+    Started Nov 4, 2019
+    Updated Nov 4, 2019
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    XTAL            = cfg#XTAL                                                                                   
+    XDIV            = cfg#XDIV
+    XMUL            = cfg#XMUL
+    XDIVP           = cfg#XDIVP
+    XOSC            = cfg#XOSC
+    XSEL            = cfg#XSEL
+    XPPPP           = cfg#XPPPP
+    CLOCKFREQ       = cfg#CLOCKFREQ
+    SETFREQ         = cfg#SETFREQ
+    ENAFREQ         = cfg#ENAFREQ
+
+    LED             = cfg#LED1
+    SER_RX          = cfg#SER_RX
+    SER_TX          = cfg#SER_TX
+    SER_BAUD        = 2_000_000
+
+    SCL_PIN         = 27
+    SDA_PIN         = 28
+    I2C_HZ          = 400_000
+
+    MEASUREMENT_COL = 0
+    CURR_MEAS_COL   = 20
+    MIN_MEAS_COL    = CURR_MEAS_COL + 20
+    MAX_MEAS_COL    = MIN_MEAS_COL + 20
+
+OBJ
+
+    cfg     : "core.con.boardcfg.p2eval"
+    ser     : "com.serial.terminal.ansi"
+    time    : "time"
+    ina219  : "sensor.power.ina219.i2c.spin2"
+    int     : "string.integer"
+    io      : "io"
+
+VAR
+
+    byte _ser_cog, _row
+
+PUB Main | vbus, vbus_min, vbus_max, vshunt, vshunt_min, vshunt_max, i, i_min, i_max, p, p_min, p_max, cnf, cnf_init
+
+    Setup
+    ina219.Calibration (20480)
+    ina219.BusVoltageRange (32)
+    ina219.ShuntVoltageRange (320)
+    ina219.ShuntADCRes (12)
+'    ina219.ShuntSamples (128)
+    ina219.BusADCRes (12)
+
+    cnf_init := ina219.ConfigWord
+    _row := 5
+    ser.Position (MEASUREMENT_COL, _row)
+    ser.Str (string("Measurement:"))
+    ser.Position (CURR_MEAS_COL, _row)
+    ser.Str (string("Current val:"))
+    ser.Position (MIN_MEAS_COL, _row)
+    ser.Str (string("Min:"))
+    ser.Position (MAX_MEAS_COL, _row)
+    ser.Str (string("Max:"))
+
+    _row += 2
+    vbus_min := ina219.BusVoltage
+    vshunt_min := ina219.ShuntVoltage
+    i_min := ina219.Current
+    p_min := ina219.Power
+
+    repeat
+        vbus := ina219.BusVoltage
+        vshunt := ina219.ShuntVoltage
+        i := ina219.Current
+        p := ina219.Power
+        cnf := ina219.ConfigWord
+
+        vbus_min := vbus <# vbus_min
+        vbus_max := vbus #> vbus_max
+        vshunt_min := vshunt_min <# vshunt
+        vshunt_max := vshunt #> vshunt_max
+        i_min := i_min <# i
+        i_max := i #> i_max
+        p_min := p_min <# p
+        p_max := p #> p_max
+
+        ser.Position (MEASUREMENT_COL, _row)
+        ser.Str (string("Bus voltage"))
+        ser.Position (CURR_MEAS_COL+3, _row)
+        ser.Str (int.DecPadded(vbus, 7))
+        ser.Str (string("mV"))
+        ser.Position (MIN_MEAS_COL-3, _row)
+        ser.Str (int.DecPadded(vbus_min, 7))
+        ser.Position (MAX_MEAS_COL-3, _row)
+        ser.Str (int.DecPadded(vbus_max, 7))
+
+        _row++
+        ser.Position (MEASUREMENT_COL, _row)
+        ser.Str (string("Shunt voltage"))
+        ser.Position (CURR_MEAS_COL+3, _row)
+        ser.Str (int.DecPadded(vshunt, 7))
+        ser.Str (string("uV"))
+        ser.Position (MIN_MEAS_COL-3, _row)
+        ser.Str (int.DecPadded(vshunt_min, 7))
+        ser.Position (MAX_MEAS_COL-3, _row)
+        ser.Str (int.DecPadded(vshunt_max, 7))
+
+        _row++
+        ser.Position (MEASUREMENT_COL, _row)
+        ser.Str (string("Current"))
+        ser.Position (CURR_MEAS_COL+3, _row)
+        ser.Str (int.DecPadded(i, 7))
+        ser.Str (string("uA"))
+        ser.Position (MIN_MEAS_COL-3, _row)
+        ser.Str (int.DecPadded(i_min, 7))
+        ser.Position (MAX_MEAS_COL-3, _row)
+        ser.Str (int.DecPadded(i_max, 7))
+
+        _row++
+        ser.Position (MEASUREMENT_COL, _row)
+        ser.Str (string("Power"))
+        ser.Position (CURR_MEAS_COL+3, _row)
+        ser.Str (int.DecPadded(p, 7))
+        ser.Str (string("uW"))
+        ser.Position (MIN_MEAS_COL-3, _row)
+        ser.Str (int.DecPadded(p_min, 7))
+        ser.Position (MAX_MEAS_COL-3, _row)
+        ser.Str (int.DecPadded(p_max, 7))
+
+        _row := 7
+        time.MSleep (10)
+
+PUB Setup
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.Clear
+    ser.printf("Serial terminal started\n")
+    if ina219.Startx (SCL_PIN, SDA_PIN, I2C_HZ)
+        ser.printf("INA219 driver started\n")
+    else
+        ser.printf("INA219 driver failed to start - halting\n")
+        Flash (LED, 500)
+
+PUB Flash(pin, delay_ms)
+
+    io.Output(pin)
+    repeat
+        io.Toggle(pin)
+        time.MSleep (delay_ms)
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
