@@ -1,0 +1,182 @@
+{
+    --------------------------------------------
+    Filename: LSM9DS1-Demo.spin2
+    Author: Jesse Burt
+    Description: Simple demo of the LSM9DS1 driver that
+        outputs live data from the chip. (P2 version)
+    Copyright (c) 2019
+    Started Nov 3, 2019
+    Updated Nov 3, 2019
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    XTAL        = cfg#XTAL
+    XDIV        = cfg#XDIV
+    XMUL        = cfg#XMUL
+    XDIVP       = cfg#XDIVP
+    XOSC        = cfg#XOSC
+    XSEL        = cfg#XSEL
+    XPPPP       = cfg#XPPPP
+    CLOCKFREQ   = cfg#CLOCKFREQ
+    SETFREQ     = cfg#SETFREQ
+    ENAFREQ     = cfg#ENAFREQ
+
+    LED         = cfg#LED1
+    SER_RX      = cfg#SER_RX
+    SER_TX      = cfg#SER_TX
+    SER_BAUD    = 2_000_000
+
+    SCL_PIN     = 32
+    SDIO_PIN    = 33
+    CS_AG_PIN   = 34
+    CS_M_PIN    = 35
+    INT_AG_PIN  = 36
+    INT_M_PIN   = 37
+
+OBJ
+
+    cfg     : "core.con.boardcfg.p2eval"
+    ser     : "com.serial.terminal.ansi"
+    time    : "time"
+    imu     : "sensor.imu.9dof.lsm9ds1.3wspi.spin2"
+    int     : "string.integer"
+
+VAR
+
+    byte _ser_cog, _imu_cog
+
+PUB Main
+
+    Setup
+
+    waitkey(string("Press any key to calibrate Accelerometer & Gyroscope...", ser#NL))
+    ser.printf("Calibrating...")
+    imu.CalibrateAG
+
+    waitkey(string("Press any key to calibrate Magnetometer", ser#NL))
+    ser.printf("Calibrating...")
+    imu.CalibrateMag (10)
+
+    ser.Clear
+
+{    repeat
+        ser.Position (0, 2)
+        AccelCalc
+        ser.Position (0, 3)
+        GyroCalc
+        ser.Position (0, 4)
+        MagCalc
+        ser.Position (0, 5)
+        TempRaw
+
+        time.MSleep (10)
+}
+    repeat
+        ser.Position (0, 2)
+        AccelRaw
+        ser.Position (0, 3)
+        GyroRaw
+        ser.Position (0, 4)
+        MagRaw
+        ser.Position (0, 5)
+        TempRaw
+
+        time.MSleep (10)
+
+PUB AccelCalc | ax, ay, az
+
+    imu.ReadAccelCalculated (@ax, @ay, @az)
+    ser.printf("Accel:  %s", int.DecPadded (ax, 7)) 'Combining all 3 lines into one printf doesn't work;
+    ser.printf(" %s", int.DecPadded (ay, 7))        'all values end up the same
+    ser.printf(" %s", int.DecPadded (az, 7))
+
+PUB GyroCalc | gx, gy, gz
+
+    imu.ReadGyroCalculated (@gx, @gy, @gz)
+    ser.printf("Gyro:  %s", int.DecPadded (gx, 7)) 'Combining all 3 lines into one printf doesn't work;
+    ser.printf(" %s", int.DecPadded (gy, 7))        'all values end up the same                                  
+    ser.printf(" %s", int.DecPadded (gz, 7))
+
+PUB MagCalc | mx, my, mz
+
+    imu.ReadMagCalculated (@mx, @my, @mz)
+    ser.printf("Mag:  %s", int.DecPadded (mx, 7)) 'Combining all 3 lines into one printf doesn't work;
+    ser.printf(" %s", int.DecPadded (my, 7))        'all values end up the same                                  
+    ser.printf(" %s", int.DecPadded (mz, 7))
+
+PUB AccelRaw | ax, ay, az
+
+    imu.ReadAccel (@ax, @ay, @az)
+    ser.printf("Accel:  %s", int.DecPadded (ax, 7)) 'Combining all 3 lines into one printf doesn't work;
+    ser.printf(" %s", int.DecPadded (ay, 7))        'all values end up the same
+    ser.printf(" %s", int.DecPadded (az, 7))
+
+PUB GyroRaw | gx, gy, gz
+
+    imu.ReadGyro (@gx, @gy, @gz)
+    ser.printf("Gyro:  %s", int.DecPadded (gx, 7)) 'Combining all 3 lines into one printf doesn't work;
+    ser.printf(" %s", int.DecPadded (gy, 7))        'all values end up the same                                  
+    ser.printf(" %s", int.DecPadded (gz, 7))
+
+PUB MagRaw | mx, my, mz
+
+    imu.ReadMag (@mx, @my, @mz)
+    ser.printf("Mag:  %s", int.DecPadded (mx, 7)) 'Combining all 3 lines into one printf doesn't work;
+    ser.printf(" %s", int.DecPadded (my, 7))        'all values end up the same                                  
+    ser.printf(" %s", int.DecPadded (mz, 7))
+
+PUB TempRaw
+
+    ser.printf("Temperature: %s", int.DecPadded(imu.Temperature, 7))
+
+PUB Setup
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.Clear
+    ser.printf("Serial terminal started\n")
+
+    if _imu_cog := imu.Start (SCL_PIN, SDIO_PIN, CS_AG_PIN, CS_M_PIN, INT_AG_PIN, INT_M_PIN, 5_000_000)
+        ser.printf("LSM9DS1 driver started\n")
+    else
+        ser.printf("LSM9DS1 driver failed to start- halting\n")
+        Flash(LED, 500)
+
+PUB waitkey(message)
+
+    ser.Str (message)
+    ser.CharIn
+
+#include "lib.io.spin2"
+
+PUB Flash(led_pin, delay_ms)
+
+    dir(led_pin, 1)
+    repeat
+        out(led_pin, !in(led_pin))
+        time.MSleep (delay_ms)
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
