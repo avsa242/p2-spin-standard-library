@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines
     Copyright (c) 2019
     Started May 19, 2019
-    Updated Nov 2, 2019
+    Updated Nov 8, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -37,7 +37,7 @@ PUB Char (ch) | glyph_col
         1:
             repeat glyph_col from 0 to _font_height-1 
                 byte[_draw_buffer][(_row * _disp_width) + (_col * _font_width) + glyph_col] := byte[_font_addr + 8 * ch + glyph_col]
-
+        '65535: XXX To be implemented
 PUB Circle(x0, y0, radius, color) | x, y, err, cdx, cdy
 ' Draw a circle at x0, y0
     x := radius - 1
@@ -113,75 +113,83 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
     if (y1 < y2)
         sy := 1
 
-    case c
+    case MAX_COLOR
         1:
+            case c
+                1:
+                    repeat until ((x1 == x2) AND (y1 == y2))
+                        byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] |= (1 << (y1&7))
+
+                        e2 := err << 1
+
+                        if e2 > -ddy
+                            err := err - ddy
+                            x1 := x1 + sx
+
+                        if e2 < ddx
+                            err := err + ddx
+                            y1 := y1 + sy
+
+                0:
+                    repeat until ((x1 == x2) AND (y1 == y2))
+                        byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] &= (1 << (y1&7))
+
+                        e2 := err << 1
+
+                        if e2 > -ddy
+                            err := err - ddy
+                            x1 := x1 + sx
+
+                        if e2 < ddx
+                            err := err + ddx
+                            y1 := y1 + sy
+                -1:
+                    repeat until ((x1 == x2) AND (y1 == y2))
+                        byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] ^= (1 << (y1&7))
+
+                        e2 := err << 1
+
+                        if e2 > -ddy
+                            err := err - ddy
+                            x1 := x1 + sx
+
+                        if e2 < ddx
+                            err := err + ddx
+                            y1 := y1 + sy
+
+                OTHER:
+                    return
+        65535:
             repeat until ((x1 == x2) AND (y1 == y2))
-                byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] |= (1 << (y1&7))
+                word[_draw_buffer][x1 + (y1 * _disp_width)] := c
 
-                e2 := err << 1
+                    e2 := err << 1
 
-                if e2 > -ddy
-                    err := err - ddy
-                    x1 := x1 + sx
+                    if e2 > -ddy
+                        err := err - ddy
+                        x1 := x1 + sx
 
-                if e2 < ddx
-                    err := err + ddx
-                    y1 := y1 + sy
-
-        0:
-            repeat until ((x1 == x2) AND (y1 == y2))
-                byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] &= (1 << (y1&7))
-
-                e2 := err << 1
-
-                if e2 > -ddy
-                    err := err - ddy
-                    x1 := x1 + sx
-
-                if e2 < ddx
-                    err := err + ddx
-                    y1 := y1 + sy
-        -1:
-            repeat until ((x1 == x2) AND (y1 == y2))
-                byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] ^= (1 << (y1&7))
-
-                e2 := err << 1
-
-                if e2 > -ddy
-                    err := err - ddy
-                    x1 := x1 + sx
-
-                if e2 < ddx
-                    err := err + ddx
-                    y1 := y1 + sy
-
-        OTHER:
-            return
+                    if e2 < ddx
+                        err := err + ddx
+                        y1 := y1 + sy
 
 PUB Plot (x, y, color)
 ' Plot pixel at x, y, color c
-    case x
-        0.._disp_width-1:
-        OTHER:
-            return
-    case y
-        0.._disp_height-1:
-        OTHER:
-            return
-
     x := 0 #> x <# _disp_width-1
     y := 0 #> y <# _disp_height-1
     case MAX_COLOR
         1:
             case color
                 1:
-                   byte[_draw_buffer][x + (y>>3{/8})*_disp_width] |= (1 << (y&7))
+                    byte[_draw_buffer][x + (y>>3{/8})*_disp_width] |= (1 << (y&7))
                 0:
                     byte[_draw_buffer][x + (y>>3{/8})*_disp_width] &= (1 << (y&7))
                 -1:
                     byte[_draw_buffer][x + (y>>3{/8})*_disp_width] ^= (1 << (y&7))
                 OTHER:
                     return
+        65535:
+            word[_draw_buffer][x + (y * _disp_width)] := color
 
 PUB Point (x, y, c)
 ' Get pixel value at x, y
@@ -191,10 +199,16 @@ PUB Point (x, y, c)
         OTHER:
             return
     case y
+
         0.._disp_height-1:
         OTHER:
             return
-    result := byte[_draw_buffer][x + (y>>3{/8}) * _disp_width]
+
+    case MAX_COLOR
+        1:
+            result := byte[_draw_buffer][x + (y>>3{/8}) * _disp_width]
+        65535:
+            result := word[_draw_buffer][x + (y * _disp_width)]
 
 PUB Position(col, row)
 ' Set text draw position, in character-cell col and row
