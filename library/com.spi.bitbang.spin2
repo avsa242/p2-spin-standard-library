@@ -38,15 +38,18 @@ CON
 ' MSBFIRST - Most Significant Bit first ; data is valid after the clock
     #4, LSBFIRST, MSBFIRST
 
-
 VAR
 
     long _clock_delay, _CPOL
 
-PUB Start(spi_clock, CPOL=0): okay
+PUB Start(MOSI, MISO, SCK, spi_clock, CPOL=0): okay
 
     _CPOL := CPOL
-    _clock_delay := (clkfreq / spi_clock / 10) #> 2 ' xxx minimum??
+    dir(MOSI, 1)
+    if MISO <> -1
+        dir(MISO, 0)
+    dir(SCK, 1)
+    _clock_delay := ((clkfreq / spi_clock) / 7) #> 2 ' xxx minimum??
     okay := cogid + 1
 
 PUB Read(MISO, SCK, mode, nr_bits)
@@ -85,11 +88,30 @@ PUB Read(MISO, SCK, mode, nr_bits)
 
 PUB ShiftIn = Read
 
-PUB Write(MOSI, SCK, mode, nr_bits, val)
+PUB Write(MOSI, SCK, mode, nr_bits, val) | clk_delay, tmp
+' ~ 6.6MHz max
+    clk_delay := _clock_delay
+    tmp := 32-(nr_bits-1)
+    case_fast mode
+        LSBFIRST:
+            val := val >< nr_bits
+        MSBFIRST:
+    asm
+            shl val, tmp wc             '2
+            rep #loop, nr_bits          '2
+            outc MOSI                   '2
+            outh SCK                    '2
+            shl val, #1 wc              '2
+            waitx clk_delay             '2+clk_delay
+            outl SCK                    '2
+        loop
+    endasm
 
-    dir(MOSI, 1)                                         ' make Data pin output
+{PUB Write(MOSI, SCK, mode, nr_bits, val)
+' ~ 600kHz max
+    output(MOSI)
     out(SCK, _CPOL)                            ' set initial clock state
-    dir(SCK, 1)
+    output(SCK)
 
     case_fast mode
         LSBFIRST:
@@ -103,7 +125,7 @@ PUB Write(MOSI, SCK, mode, nr_bits, val)
             repeat nr_bits
                 out(MOSI, (val <-= 1) & 1)                 ' output data bit
                 PostClock(SCK)
-
+}
 PUB ShiftOut = Write
 
 PRI in(pin): state
@@ -131,9 +153,21 @@ PRI in(pin): state
 
     return state
 
+PRI input(pin)
+
+    asm
+        dirl pin
+    endasm
+
+PRI output(pin)
+
+    asm
+        dirh pin
+    endasm
+
 PRI dir(pin, direction)
 
-    case pin
+    case_fast pin
         0..31:
             dira[pin] := direction
         32..63:
@@ -142,7 +176,7 @@ PRI dir(pin, direction)
 
 PRI out(pin, state)
 
-    case pin
+    case_fast pin
         0..31:
             outa[pin] := state
         32..63:
