@@ -27,9 +27,28 @@ PUB Bitmap(bitmap_addr, bitmap_size)
 
     bytemove(_draw_buffer, bitmap_addr, bitmap_size)
 
+PUB Box(x0, y0, x1, y1, color) | tmp
+
+    x0 := 0 #> x0 <# _disp_width-1
+    y0 := 0 #> y0 <# _disp_height-1
+    x1 := 0 #> x1 <# _disp_width-1
+    y1 := 0 #> y1 <# _disp_height-1
+    repeat tmp from x0 to x1
+        Plot(tmp, y0, color)
+        Plot(tmp, y1, color)
+    repeat tmp from y0 to y1
+        Plot(x0, tmp, color)
+        Plot(x1, tmp, color)
+
 PUB Clear
 ' Clear the display buffer
     bytefill(_draw_buffer, $00, _buff_sz)
+
+PUB ClearAll
+
+    ClearDirect
+    Clear
+    Update
 
 PUB Char (ch) | glyph_col
 ' Write a character to the display
@@ -193,16 +212,8 @@ PUB Plot (x, y, color)
 
 PUB Point (x, y, c)
 ' Get pixel value at x, y
-
-    case x
-        0.._disp_width-1:
-        OTHER:
-            return
-    case y
-
-        0.._disp_height-1:
-        OTHER:
-            return
+    x := 0 #> x <# _disp_width-1
+    y := 0 #> y <# _disp_height-1
 
     case MAX_COLOR
         1:
