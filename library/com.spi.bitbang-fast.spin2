@@ -1,10 +1,10 @@
 {                                                                                                                
     --------------------------------------------
-    Filename: com.spi.bitbang.spin2
-    Description: SPI engine (bit-banged) for the Propeller 2
+    Filename: com.spi.bitbang-fast.spin2
+    Description: SPI engine (bit-banged, faster) for the Propeller 2
     Author: Jesse Burt
-    Created: Nov 2, 2019
-    Updated: Nov 3, 2019
+    Created: Nov 9, 2019
+    Updated: Nov 9, 2019
     See end of file for terms of use.
     --------------------------------------------
 
@@ -88,24 +88,26 @@ PUB Read(MISO, SCK, mode, nr_bits)
 
 PUB ShiftIn = Read
 
-PUB Write(MOSI, SCK, mode, nr_bits, val)
-' ~ 600kHz max
-    output(MOSI)
-    out(SCK, _CPOL)                            ' set initial clock state
-    output(SCK)
+PUB Write(MOSI, SCK, mode, nr_bits, val) | clk_delay, tmp
+' ~ 6.6MHz max
+    clk_delay := _clock_delay
+    tmp := 32-(nr_bits-1)
 
     case_fast mode
         LSBFIRST:
-            val <-= 1                                       ' pre-align lsb
-            repeat nr_bits
-                out(MOSI, (val ->= 1) & 1)                 ' output data bit
-                PostClock(SCK)
-
+            val := val >< nr_bits
         MSBFIRST:
-            val <<= (32 - nr_bits)                             ' pre-align msb
-            repeat nr_bits
-                out(MOSI, (val <-= 1) & 1)                 ' output data bit
-                PostClock(SCK)
+    
+    asm
+            shl val, tmp wc             '2
+            rep #loop, nr_bits          '2
+            outc MOSI                   '2
+            outh SCK                    '2
+            shl val, #1 wc              '2
+            waitx clk_delay             '2+clk_delay
+            outl SCK                    '2
+        loop
+    endasm
 
 PUB ShiftOut = Write
 
