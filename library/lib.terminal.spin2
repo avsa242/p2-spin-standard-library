@@ -19,13 +19,13 @@ CON
     CE  = 11
     CB  = 12    
     CS  = 16    
-                
+
     HM =  1  ' HoMe cursor
     PC =  2  ' Position Cursor in x,y
     PX = 14  ' Position cursor in X
     PY = 15  ' Position cursor in Y
 
-    NL = 13  ' New Line
+    CR = 13  ' Carriage Return
     LF = 10  ' Line Feed
     ML =  3  ' Move cursor Left
     MR =  4  ' Move cursor Right

@@ -81,8 +81,8 @@ PUB MoveUp(y)
 
 PUB NewLine
 ' Print a newline
-    ser.Char(NL)
     ser.Char(CR)
+    ser.Char(LF)
 
 PUB ReadLine(line, maxline) : size | c
 
