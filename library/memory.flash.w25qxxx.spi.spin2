@@ -1,0 +1,240 @@
+{
+    --------------------------------------------
+    Filename: memory.flash.w25qxxx.spi.spin2
+    Author: Jesse Burt
+    Description: Driver for the Winbond W25Qxxx-series SPI FLASH memories
+    Copyright (c) 2019
+    Started Nov 09, 2019
+    Updated Nov 09, 2019
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    DEF_SPI_CLK         = 1_000_000
+
+' Erase units
+    SECTOR              = 1     '4KB
+    BLOCK32             = 2     '32KB
+    BLOCK64             = 3     '64KB
+    CHIP                = 4     'Entire chip
+
+VAR
+
+    byte _CS, _MOSI, _MISO, _SCK
+
+OBJ
+
+    spi : "com.spi.bitbang-fast"
+    core: "core.con.w25qxxx"
+    time: "time"
+    io  : "io"
+
+PUB Null
+''This is not a top-level object
+
+PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN) : okay
+
+    okay := Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, DEF_SPI_CLK, core#CPOL)
+
+PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ, SCK_CPOL): okay
+
+    if SCK_HZ => 1 and lookdown(SCK_CPOL: 0, 1)
+        if okay := spi.Start (MOSI_PIN, MISO_PIN, SCK_PIN, SCK_HZ, SCK_CPOL)              'SPI Object Started?
+            time.MSleep (1)                                     'Add startup delay appropriate to your device (consult its datasheet)
+            _CS := CS_PIN
+            _MOSI := MOSI_PIN
+            _MISO := MISO_PIN
+            _SCK := SCK_PIN
+
+            io.High(_CS)
+
+            return okay
+
+    return FALSE                                                'If we got here, something went wrong
+
+PUB Busy
+' Busy flag
+'   Returns: TRUE when flash chip is executing any of the following, FALSE otherwise:
+'       Page program, Erase, Write status reg, Erase/Program security reg
+    return (readStatusReg(1) & core#FLAG_BUSY) * TRUE
+
+PUB DeviceID
+' Read the device ID from the flash chip
+    readReg(core#MANUF_DEV_ID, 2, @result)
+    result >>= 8
+
+PUB Erase(erase_unit, flash_addr) | tmp
+' Erase flash memory starting at flash_addr, of size erase_unit
+'   Valid values:
+'       SECTOR (1) - Erase 4kBytes
+'       BLOCK32 (2) - Erase 32kBytes
+'       BLOCK64 (3) - Erase 64kBytes
+'       CHIP (4) - Erase entire chip
+'   Any other value is ignored
+'   NOTE: flash_addr is ignored when erase_unit is CHIP
+'   NOTE: Prior to calling this method, writes must be enabled with WritesEnabled(TRUE)
+'   NOTE: Erased state of a flash cell is $FF
+    case erase_unit
+        SECTOR, BLOCK32, BLOCK64:
+            erase_unit := lookup(erase_unit: core#SECTOR_ERASE, core#BLOCK32_ERASE, core#BLOCK64_ERASE)
+            erase_unit |= (flash_addr << 8)
+        CHIP:
+            erase_unit := core#CHIP_ERASE
+        OTHER:
+            return FALSE
+    writeReg(erase_unit, 0, 0)
+
+PUB GlobalUnlock
+
+    writeReg(core#GLOBAL_BLOCK_UNLOCK, 0, 0)
+
+PUB JEDECID
+' Read the JEDEC ID from the flash chip
+    readReg(core#JEDEC_ID, 3, @result)
+
+PUB ManufacturerID
+' Read the Mfr ID from the flash chip
+'   Known values: $EF (Winbond)
+    readReg(core#MANUF_DEV_ID, 1, @result)
+
+PUB ReadByte(flash_addr)
+' Read a byte of data from flash
+    readReg(core#READ_DATA | (flash_addr << 8), 1, @result)
+
+PRI readStatusReg(reg_nr) | tmp
+' Read status register
+'   Valid values: 1, 2, 3
+'   Any other value polls the chip and returns the current setting
+    case_fast reg_nr
+        1, 2, 3:
+            reg_nr := lookup(reg_nr: core#READ_STATUS1, core#READ_STATUS2, core#READ_STATUS3)
+        OTHER:
+            return FALSE
+    readReg(reg_nr, 1, @result)
+
+PUB UID(buff_addr)
+' Read unique 64-bit ID/serial number
+'   NOTE: Buffer at buff_addr must be at least 8 bytes in length
+    readReg(core#UNIQUE_ID, 8, buff_addr)
+
+PUB WriteByte(flash_addr, val) | tmp
+' Write one byte to the flash chip
+'   NOTE: WriteEnable must be called first before performing any writes
+'       The request will be ignored, otherwise
+    writeReg(core#PAGE_PROG | (flash_addr << 8), 1, @val)
+    return core#PAGE_PROG | (flash_addr << 8)
+
+PUB WritesEnabled(enabled=-2) | tmp
+' Enable writes to flash chip (page programming, sector/block/chip erase, write status reg, erase/program security registers)
+'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Any other value polls the chip and returns the current setting
+    tmp := $00
+    readReg(core#READ_STATUS1, 1, @tmp)
+    case_fast ||enabled
+        0, 1:
+            enabled := lookupz(||enabled: core#WRITE_DISABLE, core#WRITE_ENABLE)
+        OTHER:
+            result := ((tmp >> 1) & %1) * TRUE
+            return
+
+    writeReg(enabled, 0, 0)
+
+PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet[2], cmd_bytes, tmp
+' Read nr_bytes from register 'reg' to address 'buf_addr'
+
+' Handle quirky registers on a case-by-case basis
+    case reg.byte[0]
+        core#MANUF_DEV_ID:
+            cmd_bytes := 4
+            cmd_packet.byte[0] := reg
+            cmd_packet.byte[1] := $00
+            cmd_packet.byte[2] := $00
+            cmd_packet.byte[3] := $00
+        core#UNIQUE_ID:
+            cmd_bytes := 5
+            cmd_packet.byte[0] := reg
+            cmd_packet.byte[1] := $00
+            cmd_packet.byte[2] := $00
+            cmd_packet.byte[3] := $00
+            cmd_packet.byte[4] := $00
+        core#READ_DATA:
+            cmd_bytes := 4
+            cmd_packet.byte[0] := reg.byte[0]   ' Read Flash
+            cmd_packet.byte[1] := reg.byte[3]   '   address A23..A16
+            cmd_packet.byte[2] := reg.byte[2]   '   address A15..A8
+            cmd_packet.byte[3] := reg.byte[1]   '   address A7..A0
+        core#READ_STATUS1, core#READ_STATUS2, core#READ_STATUS3:
+            cmd_bytes := 1
+            cmd_packet.byte[0] := reg.byte[0]
+        OTHER:
+            cmd_bytes := 1
+            cmd_packet.byte[0] := reg
+
+    io.Low(_CS)
+    repeat tmp from 0 to cmd_bytes-1
+        spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, cmd_packet.byte[tmp])
+
+    repeat tmp from 0 to nr_bytes-1
+        byte[buff_addr][tmp] := spi.Read(_MISO, _SCK, core#MISO_BITORDER, 8)
+    io.High(_CS)
+
+PRI writeReg(reg, nr_bytes, buff_addr) | cmd_packet, cmd_bytes, tmp
+' Write nr_bytes to register 'reg' stored at buf_addr
+    case reg.byte[0]
+        core#WRITE_ENABLE, core#WRITE_DISABLE:
+            cmd_bytes := 1
+            cmd_packet.byte[0] := reg.byte[0]
+        core#PAGE_PROG:
+            cmd_bytes := 4
+            cmd_packet.byte[0] := reg.byte[0]   ' Write Flash
+            cmd_packet.byte[1] := reg.byte[3]   '   address A23..A16
+            cmd_packet.byte[2] := reg.byte[2]   '   address A15..A8
+            cmd_packet.byte[3] := reg.byte[1]   '   address A7..A0
+        core#SECTOR_ERASE, core#BLOCK32_ERASE, core#BLOCK64_ERASE, core#CHIP_ERASE, core#CHIP_ERASE2:
+            cmd_bytes := 4
+            cmd_packet.byte[0] := reg.byte[0]   ' Erase Flash
+            cmd_packet.byte[1] := reg.byte[3]   '   address A23..A16
+            cmd_packet.byte[2] := reg.byte[2]   '   address A15..A8
+            cmd_packet.byte[3] := reg.byte[1]   '   address A7..A0
+
+        core#GLOBAL_BLOCK_UNLOCK:
+            cmd_bytes := 1
+            cmd_packet.byte[0] := reg.byte[0]
+
+        OTHER:
+
+    io.Low(_CS)
+    repeat tmp from 0 to cmd_bytes-1
+        spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, cmd_packet.byte[tmp])
+
+    if nr_bytes == 0
+        io.High(_CS)
+        return
+
+    repeat tmp from 0 to nr_bytes-1
+        spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buff_addr][tmp])
+    io.High(_CS)
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
