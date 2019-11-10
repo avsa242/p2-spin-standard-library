@@ -5,7 +5,7 @@
     Description: Driver for the Winbond W25Qxxx-series SPI FLASH memories
     Copyright (c) 2019
     Started Nov 09, 2019
-    Updated Nov 09, 2019
+    Updated Nov 10, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -99,6 +99,11 @@ PUB ManufacturerID
 '   Known values: $EF (Winbond)
     readReg(core#MANUF_DEV_ID, 1, @result)
 
+PUB ReadBlock(flash_start_addr, nr_bytes, buff_addr)
+' Read a block of bytes from the flash chip
+'   NOTE: If the operation reaches the end of the flash chip, the address will restart at 0 and continue reading
+    readReg(core#READ_DATA | (flash_start_addr << 8), nr_bytes, buff_addr)
+
 PUB ReadByte(flash_addr)
 ' Read a byte of data from flash
     readReg(core#READ_DATA | (flash_addr << 8), 1, @result)
@@ -118,6 +123,16 @@ PUB UID(buff_addr)
 ' Read unique 64-bit ID/serial number
 '   NOTE: Buffer at buff_addr must be at least 8 bytes in length
     readReg(core#UNIQUE_ID, 8, buff_addr)
+
+PUB WriteBlock(flash_start_addr, nr_bytes, buff_addr)
+' Write a block of data to the flash chip
+'   Valid values:
+'       nr_bytes: 1..256
+'   Any other value will be ignored
+    if lookdown(nr_bytes: 1..256)
+        writeReg(core#PAGE_PROG | (flash_Addr << 8), nr_bytes, buff_addr)
+    else
+        return FALSE
 
 PUB WriteByte(flash_addr, val) | tmp
 ' Write one byte to the flash chip

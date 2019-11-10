@@ -1,4 +1,4 @@
-{                                                                                                                
+{
     --------------------------------------------
     Filename: W25Qxxx-Test.spin2
     Author: Jesse Burt
@@ -39,32 +39,72 @@ OBJ
     cfg         : "core.con.boardcfg.p2eval"
     io          : "io"
     time        : "time"
-    mem         : "memory.flash.w25qxxx.spi"
+    flash       : "memory.flash.w25qxxx.spi"
 
 VAR
 
-    long _ser_cog, _mem_cog
+    long _ser_cog, _flash_cog
+    byte _page[256]
 
-PUB Main | uid[2], base, seg, offs, rd_tmp, i, tmp
+PUB Main | uid[2], base, seg, offs, rd_tmp, i, tmp, s, e
 
     Setup
 
-    ser.printf("Dev ID: %x\n", mem.DeviceID)
-    ser.printf("Mfr ID: %x\n", mem.ManufacturerID)
-    ser.printf("JEDEC ID: %x\n", mem.JEDECID)
-    mem.UID(@uid)
+    ser.printf("Dev ID: %x\n", flash.DeviceID)
+    ser.printf("Mfr ID: %x\n", flash.ManufacturerID)
+    ser.printf("JEDEC ID: %x\n", flash.JEDECID)
+    flash.UID(@uid)
     ser.printf("UID: %x%x\n", uid[0], uid[1])
 
-    mem.WritesEnabled(FALSE)
-    ser.printf("Writes enabled? %d\n", mem.WritesEnabled)
+    flash.WritesEnabled(FALSE)
+    ser.printf("Writes enabled? %d\n", flash.WritesEnabled)
 
     seg := base := 0
     ser.position(0, 10)
 
+' Page method
+    repeat
+        s := cnt
+        flash.ReadBlock(base, 256, @_page)
+        e := cnt-s
+        repeat seg from 0 to 239 step 16
+            ser.printf("%x: ", base + seg)
+            repeat offs from 0 to 15
+                ser.hex(_page[seg + offs], 2)
+                ser.char(" ")
+            ser.newline
+
+        case ser.CharIn
+            "[":
+                base := base - 256
+                if base < 0
+                    base := 0
+            "]":
+                base := base + 256
+                if base > $FF_FF_00
+                    base := $FF_FF_00
+            "e":
+                base := $FF_FF_00
+            "s":
+                base := 0
+            "x":
+                EraseSector(base)
+            "w":
+                WriteTest(base)
+            "q":
+                ser.printf("Halting\n")
+                quit
+            OTHER:
+        MessageWritesEna
+        ser.printf("Reading done (%d cycles).\n", e)
+        ser.Clear(ser#CLR_CUR_TO_END)
+        ser.Position(0, 10)
+
+{' Byte method
     repeat
         ser.printf("%x: ", base + seg)
         repeat offs from 0 to 15
-            rd_tmp := mem.ReadByte(base + seg + offs)
+            rd_tmp := flash.ReadByte(base + seg + offs)
             ser.hex(rd_tmp, 2)
             ser.char(" ")
         ser.newline
@@ -93,33 +133,32 @@ PUB Main | uid[2], base, seg, offs, rd_tmp, i, tmp
                     quit
                 OTHER:
             ser.Position(0, 10)
-
-    Flash(LED, 100)     ' Signal execution finished
+}
+    FlashLED(LED, 100)     ' Signal execution finished
 
 PUB EraseSector(start_addr) | s, e
 
-    mem.WritesEnabled(TRUE)
+    flash.WritesEnabled(TRUE)
     MessageWritesEna
 
     ser.printf("Erasing...")
     s := cnt
-    mem.Erase(mem#SECTOR, start_addr)
-    repeat until not mem.Busy
+    flash.Erase(flash#SECTOR, start_addr)
+    repeat until not flash.Busy
     e := cnt-s
     ser.printf("done (%d cycles).\n", e)
     ser.Clear(ser#CLR_CUR_TO_END)
 
 PUB WriteTest(start_addr) | i, s, e, tmp
 
-    mem.WritesEnabled(TRUE)
-    MessageWritesEna
-
     tmp := $DE_AD_BE_EF
     ser.printf("Writing test value...")
+    repeat until not flash.Busy
     s := cnt
-    repeat i from start_addr to start_addr + 3
-        mem.WritesEnabled(TRUE)
-        mem.WriteByte(i, tmp.byte[3-i])
+    repeat i from 0 to 3
+        flash.WritesEnabled(TRUE)
+        MessageWritesEna
+        flash.WriteByte(start_addr + i, tmp.byte[3-i])
     e := cnt-s
     ser.printf("done (%d cycles).\n", e)
     ser.Clear(ser#CLR_CUR_TO_END)
@@ -127,7 +166,7 @@ PUB WriteTest(start_addr) | i, s, e, tmp
 PUB MessageWritesEna
 
     ser.printf("Writes enabled? ")
-    case mem.WritesEnabled
+    case flash.WritesEnabled
         TRUE:
             ser.printf("Yes\n")
         FALSE:
@@ -138,13 +177,13 @@ PUB Setup
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear
     ser.PrintF("Serial terminal started\n")
-    if _mem_cog := mem.Startx (CS, SCK, MOSI, MISO, 5_000_000, 0)
+    if _flash_cog := flash.Startx (CS, SCK, MOSI, MISO, 5_000_000, 0)
         ser.Printf("W25Qxxx driver started\n")
     else
         ser.Printf("W25Qxxx driver failed to start - halting\n")
-        Flash(LED, 500)
+        FlashLED(LED, 500)
 
-PUB Flash(led_pin, delay_ms)
+PUB FlashLED(led_pin, delay_ms)
 
     io.Output(led_pin)
     repeat
