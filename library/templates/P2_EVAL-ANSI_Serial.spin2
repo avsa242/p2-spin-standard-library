@@ -35,7 +35,7 @@ PUB Main
 '   Code
 '   Here
 
-    Flash(LED, 100)     ' Signal execution finished
+    FlashLED(LED, 100)     ' Signal execution finished
 
 PUB Setup
 
@@ -44,7 +44,7 @@ PUB Setup
     ser.Clear
     ser.PrintF("Serial terminal started\n")
 
-PUB Flash(led_pin, delay_ms)
+PUB FlashLED(led_pin, delay_ms)
 
     io.Output(led_pin)
     repeat
