@@ -77,7 +77,7 @@ PUB BGColor(color)
     Dec(color)
     Char("m")
 
-PUB Blink(mode=SGR_BLINKSLOW)
+PUB Blink(mode=5)
 ' Set Blink attribute
     SGR(mode)
 
