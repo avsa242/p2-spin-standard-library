@@ -1,0 +1,231 @@
+{
+    --------------------------------------------
+    Filename: sensor.power.ina260.i2c.spin2
+    Author: Jesse Burt
+    Description: Test app for the INA260 driver (P2 version)
+    Copyright (c) 2019
+    Started Nov 13, 2019
+    Updated Nov 14, 2019                                                                                         
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    XTAL        = cfg#XTAL
+    XDIV        = cfg#XDIV
+    XMUL        = cfg#XMUL
+    XDIVP       = cfg#XDIVP
+    XOSC        = cfg#XOSC
+    XSEL        = cfg#XSEL
+    XPPPP       = cfg#XPPPP
+    CLOCKFREQ   = cfg#CLOCKFREQ
+    SETFREQ     = cfg#SETFREQ
+    ENAFREQ     = cfg#ENAFREQ
+
+    LED         = cfg#LED1
+    SER_RX      = cfg#SER_RX
+    SER_TX      = cfg#SER_TX
+    SER_BAUD    = 2_000_000
+
+    COL_REG     = 0
+    COL_SET     = 12
+    COL_READ    = 24
+    COL_PF      = 40
+
+    I2C_SCL     = 27
+    I2C_SDA     = 28
+    I2C_HZ      = 400_000
+
+OBJ
+
+    ser         : "com.serial.terminal.ansi"
+    cfg         : "core.con.boardcfg.p2eval"
+    io          : "io"
+    time        : "time"
+    ina260      : "sensor.power.ina260.i2c.spin2"
+
+VAR
+
+    long _ser_cog, _ina260_cog, _expanded, _fails
+    byte _row
+
+PUB Main
+
+    Setup
+
+    ina260.Reset
+    _row := 3
+    ser.Position(0, _row)
+    _expanded := FALSE
+
+    ALERTLIMIT(1)
+    LEN(1)
+    APOL(1)
+    MASKENABLE(1)
+    MODE(1)
+    ISHCT(1)
+    VBUSCT(1)
+    AVG(1)
+    FlashLED(LED, 100)     ' Signal execution finished
+
+PUB ALERTLIMIT(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 65535
+            ina260.IntThresh(tmp)
+            read := ina260.IntThresh
+            Message ("ALERTLIMIT", tmp, read)
+
+PUB LEN(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from -1 to 0
+            ina260.IntsLatched(tmp)
+            read := ina260.IntsLatched
+            Message ("LEN", tmp, read)
+
+PUB APOL(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 1
+            ina260.IntLevel(tmp)
+            read := ina260.IntLevel
+            Message ("APOL", tmp, read)
+
+PUB MASKENABLE(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 5
+            ina260.IntSource(1 << tmp)
+            read := ina260.IntSource
+            Message ("MASKENABLE", 1 << tmp, read)
+
+PUB MODE(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 7
+            ina260.Opmode(tmp)
+            read := ina260.OpMode
+            Message ("MODE", tmp, read)
+
+PUB ISHCT(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 7
+            ina260.CurrentConvTime(lookupz(tmp: 140, 204, 332, 588, 1100, 2116, 4156, 8244))
+            read := ina260.CurrentConvTime
+            Message ("ISHCT", lookupz(tmp: 140, 204, 332, 588, 1100, 2116, 4156, 8244), read)
+
+PUB VBUSCT(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 7
+            ina260.VoltageConvTime(lookupz(tmp: 140, 204, 332, 588, 1100, 2116, 4156, 8244))
+            read := ina260.VoltageConvTime
+            Message ("VBUSCT", lookupz(tmp: 140, 204, 332, 588, 1100, 2116, 4156, 8244), read)
+
+PUB AVG(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 7
+            ina260.SamplesAveraged(lookupz(tmp: 1, 4, 16, 64, 128, 256, 512, 1024))
+            read := ina260.SamplesAveraged
+            Message ("AVG", lookupz(tmp: 1, 4, 16, 64, 128, 256, 512, 1024), read)
+
+PUB TrueFalse(num)
+
+    case num
+        0: ser.printf("FALSE")
+        -1: ser.printf("TRUE")
+        OTHER: ser.printf("???")
+
+PUB Message(field=string(""), arg1, arg2)
+
+   case _expanded
+        TRUE:
+            ser.PositionX (COL_REG)
+            ser.Str (field)
+
+            ser.PositionX (COL_SET)
+            ser.printf("SET: %d", arg1)
+
+            ser.PositionX (COL_READ)
+            ser.printf("READ: %d", arg2)
+
+            ser.Chars (32, 3)
+            ser.PositionX (COL_PF)
+            PassFail (arg1 == arg2)
+            ser.NewLine
+
+        FALSE:
+            ser.Position (COL_REG, _row)
+            ser.Str (field)
+
+            ser.Position (COL_SET, _row)
+            ser.printf("SET: %d", arg1)
+
+            ser.Position (COL_READ, _row)
+            ser.printf("READ: %d", arg2)
+
+            ser.Position (COL_PF, _row)
+            PassFail (arg1 == arg2)
+            ser.NewLine
+        OTHER:
+            ser.printf("DEADBEEF")
+
+PUB PassFail(num)
+
+    case num
+        0: ser.printf("FAIL")
+        -1: ser.printf("PASS")
+        OTHER: ser.printf("???")
+
+PUB Setup
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.Clear
+    ser.PrintF("Serial terminal started\n")
+    if _ina260_cog := ina260.Start(I2C_SCL, I2C_SDA, I2C_HZ)
+        ser.Printf("INA260 driver started\n")
+    else
+        ser.Printf("INA260 driver failed to start - halting\n")
+        FlashLED(LED, 500)
+
+PUB FlashLED(led_pin, delay_ms)
+
+    io.Output(led_pin)
+    repeat
+        io.Toggle(led_pin)
+        time.MSleep(delay_ms)
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
