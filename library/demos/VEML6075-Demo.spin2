@@ -1,0 +1,133 @@
+{
+    --------------------------------------------
+    Filename: VEML6075-Demo.spin2
+    Author: Jesse Burt
+    Description: Test of the VEML6075 driver (P2 version)
+    Copyright (c) 2019
+    Started Nov 14, 2019
+    Updated Nov 14, 2019
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    XTAL        = cfg#XTAL
+    XDIV        = cfg#XDIV
+    XMUL        = cfg#XMUL
+    XDIVP       = cfg#XDIVP
+    XOSC        = cfg#XOSC
+    XSEL        = cfg#XSEL
+    XPPPP       = cfg#XPPPP
+    CLOCKFREQ   = cfg#CLOCKFREQ
+    SETFREQ     = cfg#SETFREQ
+    ENAFREQ     = cfg#ENAFREQ
+
+    LED         = cfg#LED1
+    SER_RX      = cfg#SER_RX
+    SER_TX      = cfg#SER_TX
+    SER_BAUD    = 2_000_000
+
+    SCL_PIN     = 27
+    SDA_PIN     = 28
+    I2C_HZ      = 400_000
+
+    TEXT_COL    = 0
+    DATA_COL    = 9
+
+OBJ
+
+    cfg     : "core.con.boardcfg.p2eval"
+    ser     : "com.serial.terminal.ansi"
+    time    : "time"
+    uv      : "sensor.uv.veml6075.i2c.spin2"
+    int     : "string.integer"
+    io      : "io"
+
+VAR
+
+    long _fails, _expanded
+    byte _ser_cog, _row
+
+PUB Main | uva, uvb, vis, ir, i
+
+    Setup
+    uv.Power (TRUE)
+    uv.Dynamic (uv#DYNAMIC_NORM)
+    uv.IntegrationTime (100)
+    uv.MeasureMode (uv#MMODE_CONT)
+
+    repeat
+        uva := uv.UVA
+        uvb := uv.UVB
+        vis := uv.Visible
+        ir := uv.IR
+
+        ser.Position (TEXT_COL, 5)
+        ser.PrintF("UVA:")
+        ser.Position (DATA_COL, 5)
+        ser.Str(int.DecPadded (uva, 5))
+        ser.NewLine
+
+        ser.Position (TEXT_COL, 6)
+        ser.PrintF("UVB:")
+        ser.Position (DATA_COL, 6)
+        ser.Str(int.DecPadded (uvb, 5))
+        ser.NewLine
+
+        ser.Position (TEXT_COL, 7)
+        ser.PrintF("Visible:")
+        ser.Position (DATA_COL, 7)
+        ser.Str(int.DecPadded (vis, 5))
+        ser.NewLine
+
+        ser.Position (TEXT_COL, 8)
+        ser.PrintF("IR:")
+        ser.Position (DATA_COL, 8)
+        ser.Str(int.DecPadded (ir, 5))
+        time.MSleep (50)
+    FlashLED (LED, 100)
+
+PUB Setup
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.Clear
+    ser.PrintF("Serial terminal started\n")
+
+    if uv.Start (SCL_PIN, SDA_PIN, I2C_HZ)
+        ser.PrintF("VEML6075 driver started\n")
+    else
+        ser.PrintF("VEML6075 driver failed to start - halting\n")
+        uv.Stop
+        time.MSleep (500)
+        FlashLED (LED, 500)
+
+PUB FlashLED(led_pin, delay_ms)
+
+    io.Output(led_pin)
+    repeat
+        io.Toggle(led_pin)
+        time.MSleep(delay_ms)
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
