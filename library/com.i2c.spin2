@@ -33,6 +33,10 @@ CON
 
     #0, ACK, NAK
 
+OBJ
+
+    time    : "time"
+
 VAR
 
     long _scl                                                   ' Bus pins
@@ -122,6 +126,20 @@ PUB Wait(slave_addr) | ackbit
         Start
         ackbit := write(slave_addr)
     until (ackbit == ACK)
+
+PUB WaitTimeout(slave_addr, us) | ackbit, tmp, timeout
+' Wait for I2C device to be ready for new command, up to a maximum timeout of 'us' microseconds
+'   Returns:
+'       1st return value: TRUE if slave acknowledged, FALSE otherwise
+'       2nd return value: Duration waited, in microseconds
+    timeout := us
+    repeat
+        Start
+        ackbit := write(slave_addr)
+        time.USleep(1)
+        timeout--
+    until (ackbit == ACK) OR (timeout == 0)
+    return (ackbit == ACK), us-timeout
 
 PUB Write(i2cbyte) | ackbit
 ' Write byte to I2C bus
