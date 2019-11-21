@@ -93,7 +93,7 @@ PUB StrIn(stringptr)
 PUB StrInMax(stringptr, maxcount)
 
     repeat while (maxcount--)                                                     'While maxcount not reached
-        if (byte[stringptr++] := ser.CharIn) == NL                                      'Get chars until NL
+        if (byte[stringptr++] := ser.CharIn) == CR                                'Get chars until CR
             quit
-    byte[stringptr+(byte[stringptr-1] == NL)]~                                    'Zero terminate string; overwrite NL or append 0 char
+    byte[stringptr+(byte[stringptr-1] == CR)]~                                    'Zero terminate string; overwrite CR or append 0 char
 
