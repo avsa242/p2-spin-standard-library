@@ -1,0 +1,142 @@
+{
+    --------------------------------------------
+    Filename: MAX31856-Demo.spin
+    Description: Demo for the MAX31856 driver
+    Author: Jesse Burt
+    Copyright (c) 2019
+    Created Sep 30, 2018
+    Updated Jun 11, 2019
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    XTAL        = cfg#XTAL
+    XDIV        = cfg#XDIV
+    XMUL        = cfg#XMUL
+    XDIVP       = cfg#XDIVP
+    XOSC        = cfg#XOSC
+    XSEL        = cfg#XSEL
+    XPPPP       = cfg#XPPPP
+    CLOCKFREQ   = cfg#CLOCKFREQ
+    SETFREQ     = cfg#SETFREQ
+    ENAFREQ     = cfg#ENAFREQ
+
+    LED         = cfg#LED1
+    SER_RX      = cfg#SER_RX
+    SER_TX      = cfg#SER_TX
+    SER_BAUD    = 2_000_000
+
+    CS_PIN      = 38
+    SDI_PIN     = 34
+    SDO_PIN     = 33
+    SCK_PIN     = 35
+    SCK_HZ      = 5_000_000
+
+    LED         = cfg#LED1
+
+' Temperature scale readings
+    C           = 0
+    F           = 1
+    SCALE       = C
+
+OBJ
+
+    cfg     : "core.con.boardcfg.p2eval"
+    ser     : "com.serial.terminal.ansi"
+    time    : "time"
+    max31856: "sensor.thermocouple.max31856.spi.spin2"
+    io      : "io"
+    int     : "string.integer"
+
+VAR
+
+    byte _ser_cog
+
+PUB Main | cj_temp, tc_temp
+
+    Setup
+
+    max31856.NotchFilter (60)
+    max31856.ConversionMode(max31856#CMODE_AUTO)
+
+    repeat
+        cj_temp := max31856.ColdJuncTemp
+        tc_temp := max31856.ThermoCoupleTemp
+
+        ser.Position (0, 3)
+        case SCALE
+            F:
+                ser.PrintF("Cold junction temp: ")
+                Frac(CtoF(cj_temp))
+                ser.NewLine
+
+                ser.PrintF("Thermocouple temp: ")
+                Frac(CtoF(tc_temp))
+
+            OTHER:
+                ser.PrintF("Cold junction temp: ")
+                Frac(cj_temp)
+                ser.NewLine
+
+                ser.PrintF("Thermocouple temp: ")
+                Frac(tc_temp)
+        time.MSleep (100)
+
+PUB CtoF (deg_c): deg_f
+'T(°F) = T(°C) × 9/5 + 32
+' 9/5 = 1800 + 32
+'    deg_f := math.FAdd (math.FMul (deg_c, 1.8), 32.0)
+'    deg_f := 32 + (deg_c * 180)
+    deg_f := deg_c * 9 / 5 + 32_00
+
+PUB Frac(hundredths) | whole, part
+
+    whole := hundredths / 100
+    part := int.DecZeroed(hundredths // 100, 2)
+    ser.printf("%d.%s ", whole, part)
+
+PUB Setup
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.Clear
+    ser.PrintF("Serial terminal started\n")
+
+    if max31856.start (CS_PIN, SDI_PIN, SDO_PIN, SCK_PIN)
+        ser.PrintF("MAX31856 driver started\n")
+    else
+        ser.PrintF("MAX31856 driver failed to start - halting\n")
+        max31856.Stop
+        time.MSleep (5)
+        FlashLED (LED, 500)
+
+PUB FlashLED(led_pin, delay_ms)
+
+    io.Output(led_pin)
+    repeat
+        io.Toggle(led_pin)
+        time.MSleep(delay_ms)
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
