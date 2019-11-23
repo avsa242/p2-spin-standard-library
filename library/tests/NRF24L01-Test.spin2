@@ -33,11 +33,11 @@ CON
     COL_READ    = 24
     COL_PF      = 40
 
-    CE_PIN      = 32
-    CSN_PIN     = 35
+    CE_PIN      = 36
+    CSN_PIN     = 37
     SCK_PIN     = 34
-    MOSI_PIN    = 33
-    MISO_PIN    = 36
+    MOSI_PIN    = 32
+    MISO_PIN    = 33
 
 OBJ
 
@@ -83,8 +83,8 @@ PUB RF_PWR(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from -18 to 0 step 6
-            nrf24.RFPower (tmp)
-            read := nrf24.RFPower (-2)
+            nrf24.TXPower (tmp)
+            read := nrf24.TXPower (-2)
             Message ("RF_PWR", tmp, read)
 
 PUB RF_DR(reps) | tmp, read
@@ -173,8 +173,8 @@ PUB CRCO(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from 1 to 2
-            nrf24.CRCEncoding (tmp)
-            read := nrf24.CRCEncoding (-2)
+            nrf24.CRCLength (tmp)
+            read := nrf24.CRCLength (-2)
             Message ("CRCO", tmp, read)
 
 PUB CW(reps) | tmp, read
@@ -218,8 +218,8 @@ PUB EN_CRC(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from 0 to -1
-            nrf24.EnableCRC (tmp)
-            read := nrf24.EnableCRC (-2)
+            nrf24.CRCCheckEnabled (tmp)
+            read := nrf24.CRCCheckEnabled (-2)
             Message ("EN_CRC", tmp, read)
 
 PUB RPD(reps) | tmp, read
@@ -306,7 +306,7 @@ PUB Setup
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear
     ser.printf("Serial terminal started\n")
-    if nrf24.Startx (CE_PIN, CSN_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, 5_000_000)
+    if nrf24.Start (CE_PIN, CSN_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, 5_000_000)
         ser.printf("nRF24L01+ driver started\n")
     else
         ser.printf("nRF24L01+ driver failed to start - halting\n")

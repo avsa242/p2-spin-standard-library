@@ -633,17 +633,17 @@ PUB TXPower(dBm) | tmp
 '   Valid values: -18, -12, -6, 0
 '   Any other value polls the chip and returns the current setting
     readReg (core#NRF24_RF_SETUP, 1, @tmp)
-    case power
+    case dBm
         -18, -12, -6, 0:
-            power := lookdownz(power: -18, -12, -6, 0)
-            power := power << core#FLD_RF_PWR
+            dBm := lookdownz(dBm: -18, -12, -6, 0)
+            dBm := dBm << core#FLD_RF_PWR
         OTHER:
             tmp := (tmp >> core#FLD_RF_PWR) & core#BITS_RF_PWR
             result := lookupz(tmp: -18, -12, -6, 0)
             return
 
     tmp &= core#MASK_RF_PWR
-    tmp := (tmp | power) & core#NRF24_RF_SETUP_MASK
+    tmp := (tmp | dBm) & core#NRF24_RF_SETUP_MASK
     writeReg (core#NRF24_RF_SETUP, 1, @tmp)
 
 PUB TXReuse
