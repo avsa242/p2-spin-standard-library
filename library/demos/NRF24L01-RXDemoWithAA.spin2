@@ -1,0 +1,194 @@
+{                                                                                                                
+    --------------------------------------------
+    Filename: NRF24L01-RXWithAA.spin2
+    Author: Jesse Burt 
+    Description: nRF24L01+ Receive demo that uses the radio's
+        auto-acknowledge function (Enhanced ShockBurst - (TM) Nordic Semi)
+        Will display data from all 5 data pipes
+    Copyright (c) 2019 
+    Started Nov 23, 2019
+    Updated Nov 24, 2019
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    XTAL            = cfg#XTAL
+    XDIV            = cfg#XDIV
+    XMUL            = cfg#XMUL
+    XDIVP           = cfg#XDIVP
+    XOSC            = cfg#XOSC
+    XSEL            = cfg#XSEL
+    XPPPP           = cfg#XPPPP
+    CLOCKFREQ       = cfg#CLOCKFREQ
+    SETFREQ         = cfg#SETFREQ
+    ENAFREQ         = cfg#ENAFREQ
+
+    LED             = cfg#LED1
+    SER_RX          = cfg#SER_RX
+    SER_TX          = cfg#SER_TX
+    SER_BAUD        = 2_000_000
+
+    CS_PIN          = 37
+    SCK_PIN         = 34
+    MOSI_PIN        = 32
+    MISO_PIN        = 33
+    CE_PIN          = 36
+    SCK_FREQ        = 5_000_000
+
+    CLEAR           = 1
+    CHANNEL         = 2
+
+OBJ
+
+    ser         : "com.serial.terminal.ansi"
+    cfg         : "core.con.boardcfg.p2eval"
+    io          : "io"
+    time        : "time"
+    int         : "string.integer"
+    nrf24       : "wireless.transceiver.nrf24l01.spi.spin2"
+
+VAR
+
+    long _ser_cog, _nrf24_cog
+    long _fifo[16]
+    byte _pktlen
+
+PUB Main | choice
+
+    Setup
+
+    nrf24.Channel(CHANNEL)
+    ser.printf("Press any key to begin receiving\n")
+    ser.CharIn
+
+    Receive
+
+    FlashLED(LED, 100)
+
+PUB Receive | tmp, from_node, addr[2], i, count, recv_pipe
+
+    _pktlen := 10
+
+    nrf24.AddressWidth(5)                           ' Configure for 5-byte long addresses   
+    bytefill(@addr, 0, 8)
+    repeat i from 0 to 4
+        addr.byte[i] := $E7
+    nrf24.RXAddr (@addr, 0, nrf24#WRITE)            ' Set pipe 0 address
+
+    bytefill(@addr, 0, 8)
+    repeat i from 0 to 4
+        addr.byte[i] := $C2
+    nrf24.RXAddr (@addr, 1, nrf24#WRITE)            ' Set pipe 1 address
+
+    bytefill(@addr, 0, 8)
+    addr.byte[0] := $C3
+    nrf24.RXAddr (@addr, 2, nrf24#WRITE)            ' Set pipe 2 address
+
+    bytefill(@addr, 0, 8)
+    addr.byte[0] := $C4
+    nrf24.RXAddr (@addr, 3, nrf24#WRITE)            ' Set pipe 3 address
+
+    bytefill(@addr, 0, 8)
+    addr.byte[0] := $C5
+    nrf24.RXAddr (@addr, 4, nrf24#WRITE)            ' Set pipe 4 address
+
+    bytefill(@addr, 0, 8)
+    addr.byte[0] := $C6
+    nrf24.RXAddr (@addr, 5, nrf24#WRITE)            ' Set pipe 5 address
+
+
+    nrf24.RX
+    nrf24.FlushRX
+    nrf24.CRCCheckEnabled(TRUE)
+    nrf24.CRCLength(2)
+    nrf24.DataRate(2000)
+    nrf24.TXPower(-18)
+    nrf24.PipesEnabled(%111111)
+    nrf24.PowerUp (TRUE)
+    nrf24.PayloadReady (CLEAR)
+    nrf24.PayloadLen (_pktlen, 0)
+    nrf24.PayloadLen (_pktlen, 1)
+
+    ser.Clear
+    ser.Position(0, 0)
+    ser.printf("Receive mode - %dMHz\n", nrf24.CarrierFreq)
+    ser.printf("Listening for traffic on node address $")
+    bytefill(@addr, 0, 8)
+    nrf24.RXAddr(@addr, 0, nrf24#READ)              ' Read pipe 0 address back
+    repeat i from 4 to 0
+        ser.Hex(addr.byte[i], 2)
+    ser.Newline
+
+    repeat
+        bytefill (@_fifo, $00, 64)                  ' Clear RX fifo
+        repeat                                      ' Wait to proceed
+            ser.Position(0, 5)
+            ser.PrintF("RSSI: %d  \nPackets received: %d", nrf24.RSSI, count)
+        until nrf24.PayloadReady                    ' until we've received at least _pktlen bytes
+
+        recv_pipe := nrf24.RXPipePending
+        nrf24.RXPayload(_pktlen, @_fifo)
+        count++
+
+        from_node := _fifo.byte[1]                  ' Node we've received a packet from
+        ser.Position(0, 8 + (recv_pipe * 4))
+        ser.Printf("Received packet on pipe %d from node $", recv_pipe)
+        ser.Hex(from_node, 2)
+
+        repeat tmp from 0 to _pktlen-1
+            ser.Position(4+((tmp-1) * 3), 9 + (recv_pipe * 4))       ' XXX Work around a bug in the terminal output (the 4+)
+            ser.Char(" ")
+            ser.Hex(_fifo.byte[tmp], 2)
+            case _fifo.byte[tmp]
+                32..127:
+                    ser.Position(5+((tmp-1) * 3), 10 + (recv_pipe * 4))
+                    ser.Char(_fifo.byte[tmp])
+                OTHER:
+                    ser.Position(5+((tmp-1) * 3), 10 + (recv_pipe * 4))
+                    ser.Char(".")
+        nrf24.PayloadReady(CLEAR)
+        nrf24.FlushRX
+
+PUB Setup
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.Clear
+    ser.PrintF("Serial terminal started\n")
+    if _nrf24_cog := nrf24.Start (CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
+        ser.printf("nRF24L01+ driver started\n")
+    else
+        ser.printf("nRF42L01+ driver failed to start - halting\n")
+        FlashLED (LED, 500)
+
+PUB FlashLED(led_pin, delay_ms)
+
+    io.Output(led_pin)
+    repeat
+        io.Toggle(led_pin)
+        time.MSleep(delay_ms)
+
+DAT
+
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}                                                                                                                
