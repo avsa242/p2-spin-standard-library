@@ -23,22 +23,29 @@ PUB BGColor (col)
 ' Set background color for subsequent drawing
     return _bgcolor := col
 
-PUB Bitmap(bitmap_addr, bitmap_size)
+PUB Bitmap(bitmap_addr, bitmap_size, offset=0)
 
-    bytemove(_draw_buffer, bitmap_addr, bitmap_size)
+    bytemove(_draw_buffer + offset, bitmap_addr, bitmap_size)
 
-PUB Box(x0, y0, x1, y1, color) | tmp
+PUB Box(x0, y0, x1, y1, color, filled=0) | x, y
 
     x0 := 0 #> x0 <# _disp_width-1
     y0 := 0 #> y0 <# _disp_height-1
     x1 := 0 #> x1 <# _disp_width-1
     y1 := 0 #> y1 <# _disp_height-1
-    repeat tmp from x0 to x1
-        Plot(tmp, y0, color)
-        Plot(tmp, y1, color)
-    repeat tmp from y0 to y1
-        Plot(x0, tmp, color)
-        Plot(x1, tmp, color)
+
+    case_fast filled
+        FALSE:
+            repeat x from x0 to x1
+                Plot(x, y0, color)
+                Plot(x, y1, color)
+            repeat y from y0 to y1
+                Plot(x0, y, color)
+                Plot(x1, y, color)
+        TRUE:
+            repeat y from y0 to y1
+                repeat x from x0 to x1
+                    Plot(x, y, color)
 
 PUB Clear
 ' Clear the display buffer
@@ -57,6 +64,7 @@ PUB Char (ch) | glyph_col
             repeat glyph_col from 0 to _font_height-1 
                 byte[_draw_buffer][(_row * _disp_width) + (_col * _font_width) + glyph_col] := byte[_font_addr + 8 * ch + glyph_col]
         '65535: XXX To be implemented
+
 PUB Circle(x0, y0, radius, color) | x, y, err, cdx, cdy
 ' Draw a circle at x0, y0
     x := radius - 1
@@ -115,6 +123,8 @@ PUB FontWidth
 
 PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 ' Draw line from x1, y1 to x2, y2, in color c
+'   xxx add case for determining if a line is straight horiz or vert,
+'       and add code to draw those lines faster than using Bresenham's algo below
     x1 := 0 #> x1 <# _disp_width-1
     y1 := 0 #> y1 <# _disp_height-1
     x2 := 0 #> x2 <# _disp_width-1
