@@ -5,7 +5,7 @@
     Description: Simple demo for the SSD1331 driver
     Copyright (c) 2019
     Started Nov 3, 2019
-    Updated May 8, 2019
+    Updated Dec 2, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -50,7 +50,7 @@ OBJ
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
-    oled    : "display.oled.ssd1331.96x64.spin2"
+    oled    : "display.oled.ssd1331.spi.spin2"
     int     : "string.integer"
     fnt5x8  : "font.5x8"
 
