@@ -1,0 +1,427 @@
+{
+    --------------------------------------------
+    Filename: CC1101-Test.spin
+    Author: Jesse Burt
+    Description: Test app for the CC1101 driver
+    Copyright (c) 2019
+    Started Mar 25, 2019
+    Updated Dec 21, 2019
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    XTAL        = cfg#XTAL
+    XDIV        = cfg#XDIV
+    XMUL        = cfg#XMUL
+    XDIVP       = cfg#XDIVP
+    XOSC        = cfg#XOSC
+    XSEL        = cfg#XSEL
+    XPPPP       = cfg#XPPPP
+    CLOCKFREQ   = cfg#CLOCKFREQ
+    SETFREQ     = cfg#SETFREQ
+    ENAFREQ     = cfg#ENAFREQ
+
+    LED         = cfg#LED1
+    SER_RX      = cfg#SER_RX
+    SER_TX      = cfg#SER_TX
+    SER_BAUD    = 2_000_000
+
+    CS_PIN      = 8
+    SCK_PIN     = 11
+    MOSI_PIN    = 10
+    MISO_PIN    = 9
+    SCK_FREQ    = 5_000_000
+
+    COL_REG     = 0
+    COL_SET     = 25
+    COL_READ    = 37
+    COL_PF      = 52
+
+OBJ
+
+    cfg : "core.con.boardcfg.p2eval"
+    ser : "com.serial.terminal.ansi"
+    time: "time"
+    io  : "io"
+    cc1101  : "wireless.transceiver.cc1101.spi"
+
+VAR
+
+    long _fails, _expanded
+    byte _ser_cog, _row
+
+PUB Main
+
+    Setup
+    cc1101.Idle
+    _row := 3
+
+    RXOFF_MODE (1)
+    AUTOCAL (1)
+    DRATE (1)
+    CHANBW (1)
+    ADDR(1)
+    CHANNR (1)
+    CRC_EN (1)
+    DEM_DCFILT_OFF (1)
+    FEC_EN (1)
+    IOCFG0 (1)
+    IOCFG1 (1)
+    IOCFG2 (1)
+    MANCHESTER_EN (1)
+    MOD_FORMAT (1)
+    NUM_PREAMBLE (1)
+    SYNC1 (1)
+    TXOFF_MODE (1)
+    LENGTH_CONFIG (1)
+    PKTCTRL1_APPEND_STATUS (1)
+    CARRIER_SENSE_REL_THR (1)
+    CRC_AUTOFLUSH (1)
+    PQT (1)
+    SYNC_MODE (1)
+    PKTLEN (1)
+    ADR_CHK (1)
+
+    FlashLED (cfg#LED1, 100)
+
+PUB ADR_CHK(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 3
+            cc1101.AddressCheck (tmp)
+            read := cc1101.AddressCheck (-2)
+            Message (string("ADR_CHK"), tmp, read)
+
+PUB SYNC_MODE(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 7
+            cc1101.SyncMode (tmp)
+            read := cc1101.SyncMode (-2)
+            Message (string("SYNC_MODE"), tmp, read)
+
+PUB PQT(reps) | tmp, read
+
+'    _expanded := TRUE
+    _row++
+    repeat reps
+        repeat tmp from 1 to 8
+            cc1101.PreambleQual (lookup(tmp: 0, 4, 8, 12, 16, 20, 24, 28))
+            read := cc1101.PreambleQual (-2)
+            Message (string("PQT"), lookup(tmp: 0, 4, 8, 12, 16, 20, 24, 28), read)
+
+PUB CRC_AUTOFLUSH(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to -1
+            cc1101.CRCAutoFlush (tmp)
+            read := cc1101.CRCAutoFlush (-2)
+            Message (string("CRC_AUTOFLUSH"), tmp, read)
+
+PUB CARRIER_SENSE_REL_THR(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 1 to 4
+            cc1101.CarrierSense (lookup(tmp: 0, 6, 10, 14))
+            read := cc1101.CarrierSense (-2)
+            Message (string("CARRIER_SENSE_REL_THR"), lookup(tmp: 0, 6, 10, 14), read)
+
+PUB PKTCTRL1_APPEND_STATUS(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to -1
+            cc1101.AppendStatus (tmp)
+            read := cc1101.AppendStatus (-2)
+            Message (string("PKTCTRL1 (APPEND_STATUS)"), tmp, read)
+
+PUB PKTLEN(reps) | tmp, read
+
+    _row++
+'    _expanded := TRUE
+'    cc1101.Reset
+'    cc1101.Idle
+'    cc1101.PayloadLenCfg (rf#PKTLEN_FIXED)
+    repeat reps
+        repeat tmp from 1 to 255
+            cc1101.PayloadLen (tmp)
+            read := cc1101.PayloadLen (-2)
+            Message (string("PKTLEN"), tmp, read)
+'            time.MSleep (10)
+
+PUB LENGTH_CONFIG(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 2
+            cc1101.PayloadLenCfg (tmp)
+            read := cc1101.PayloadLenCfg (-2)
+            Message (string("LENGTH_CONFIG"), tmp, read)
+
+PUB TXOFF_MODE(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 3
+            cc1101.AfterTX (tmp)
+            read := cc1101.AfterTX (-2)
+            Message (string("TXOFF_MODE"), tmp, read)
+
+PUB SYNC1(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from $0000 to $00FF '$FFFF
+            cc1101.SyncWord (tmp)
+            read := cc1101.SyncWord (-2)
+            Message (string("SYNC1"), tmp, read)
+
+PUB NUM_PREAMBLE(reps) | tmp, read
+
+'    _expanded := TRUE
+    _row++
+    repeat reps
+        repeat tmp from 1 to 8
+            cc1101.PreambleLen (lookup(tmp: 2, 3, 4, 6, 8, 12, 16, 24))
+            read := cc1101.PreambleLen (-2)
+            Message (string("NUM_PREAMBLE"), lookup(tmp: 2, 3, 4, 6, 8, 12, 16, 24), read)
+
+PUB MOD_FORMAT(reps) | tmp, read
+
+    _row++
+    repeat tmp from 0 to 7
+        case tmp
+            0, 1, 3, 4, 7:
+                cc1101.Modulation (tmp)
+                read := cc1101.Modulation (-2)
+                Message (string("MOD_FORMAT"), tmp, read)
+
+            OTHER:
+                next
+
+PUB MANCHESTER_EN(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to -1
+            cc1101.ManchesterEnc (tmp)
+            read := cc1101.ManchesterEnc (-2)
+            Message (string("MANCHESTER_EN"), tmp, read)
+
+PUB IOCFG2(reps) | tmp, read
+
+    _row++
+    repeat tmp from $00 to $3F
+        case tmp
+            $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
+                cc1101.GPIO2 (tmp)
+                read := cc1101.GPIO2 (-2)
+                Message (string("IOCFG2"), tmp, read)
+
+            OTHER:
+                next
+
+PUB IOCFG1(reps) | tmp, read
+
+    _row++
+    repeat tmp from $00 to $3F
+        case tmp
+            $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
+                cc1101.GPIO1 (tmp)
+                read := cc1101.GPIO1 (-2)
+                Message (string("IOCFG1"), tmp, read)
+
+            OTHER:
+                next
+
+PUB IOCFG0(reps) | tmp, read
+
+    _row++
+    repeat tmp from $00 to $3F
+        case tmp
+            $00..$0F, $16..$17, $1B..$1D, $24..$27, $29, $2B, $2E..$3F:
+                cc1101.GPIO0 (tmp)
+                read := cc1101.GPIO0 (-2)
+                Message (string("IOCFG0"), tmp, read)
+
+            OTHER:
+                next
+
+PUB FEC_EN(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to -1
+            cc1101.FEC (tmp)
+            read := cc1101.FEC (-2)
+            Message (string("FEC_EN"), tmp, read)
+
+PUB DEM_DCFILT_OFF(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to -1
+            cc1101.DCBlock (tmp)
+            read := cc1101.DCBlock (-2)
+            Message (string("DEM_DCFILT_OFF"), tmp, read)
+
+PUB CRC_EN(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to -1
+            cc1101.CRCCheckEnabled (tmp)
+            read := cc1101.CRCCheckEnabled (-2)
+            Message (string("CRC_EN"), tmp, read)
+
+PUB CHANNR(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 255
+            cc1101.Channel (tmp)
+            read := cc1101.Channel (-2)
+            Message (string("CHANNR"), tmp, read)
+
+PUB ADDR(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 255
+            cc1101.NodeAddress (tmp)
+            read := cc1101.NodeAddress (-2)
+            Message (string("ADDR"), tmp, read)
+
+PUB RXOFF_MODE(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 3
+            cc1101.AfterRX (tmp)
+            read := cc1101.AfterRX (-2)
+            Message (string("RXOFF_MODE"), tmp, read)
+
+PUB AUTOCAL(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 0 to 3
+            cc1101.AutoCal (tmp)
+            read := cc1101.AutoCal (-2)
+            Message (string("FS_AUTOCAL"), tmp, read)
+
+PUB DRATE(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 1 to 11
+            cc1101.DataRate (lookup(tmp: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000))
+            read := cc1101.DataRate (-2)
+            Message (string("DRATE"), lookup(tmp: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000), read)
+
+PUB CHANBW(reps) | tmp, read
+
+    _row++
+    repeat reps
+        repeat tmp from 1 to 16
+            cc1101.RXBandwidth (lookup(tmp: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58))
+            read := cc1101.RXBandwidth (-2)
+            Message (string("CHANBW"), lookup(tmp: 812, 650, 541, 464, 406, 325, 270, 232, 203, 162, 135, 116, 102, 81, 68, 58), read)
+
+PUB Message(field, arg1, arg2)
+
+    case _expanded
+        TRUE:
+            ser.PositionX (COL_REG)
+            ser.Str (field)
+
+            ser.PositionX (COL_SET)
+            ser.PrintF("SET: ")
+            ser.Dec (arg1)
+
+            ser.PositionX (COL_READ)
+            ser.PrintF("READ: ")
+            ser.Dec (arg2)
+            ser.Chars (32, 3)
+            ser.PositionX (COL_PF)
+            PassFail (arg1 == arg2)
+            ser.NewLine
+
+        FALSE:
+            ser.Position (COL_REG, _row)
+            ser.Str (field)
+
+            ser.Position (COL_SET, _row)
+            ser.PrintF("SET: ")
+            ser.Dec (arg1)
+
+            ser.Position (COL_READ, _row)
+            ser.PrintF("READ: ")
+            ser.Dec (arg2)
+
+            ser.Position (COL_PF, _row)
+            PassFail (arg1 == arg2)
+            ser.NewLine
+        OTHER:
+            ser.PrintF("DEADBEEF")
+PUB PassFail(num)
+
+    case num
+        0:
+            ser.PrintF("FAIL")
+            _fails++
+
+        -1:
+            ser.PrintF("PASS")
+
+        OTHER:
+            ser.PrintF("???")
+
+PUB Setup
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.Clear
+    ser.PrintF("Serial terminal started\n")
+    if cc1101.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
+        ser.PrintF("CC1101 driver started\n")
+    else
+        ser.PrintF("CC1101 driver failed to start - halting\n")
+        cc1101.Stop
+        time.MSleep (5)
+        FlashLED(LED, 500)
+
+PUB FlashLED(led_pin, delay_ms)
+
+    io.Output(led_pin)
+    repeat
+        io.Toggle(led_pin)
+        time.MSleep(delay_ms)
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
