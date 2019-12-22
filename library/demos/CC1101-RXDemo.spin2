@@ -55,7 +55,6 @@ PUB Main | choice
     Setup
 
     cc1101.GPIO0 (cc1101#IO_HI_Z)                   ' Set CC1101 GPIO0 to Hi-Z mode
-    ser.printf("Version: %x\n", cc1101.Version)
     cc1101.AutoCal(cc1101#IDLE_RXTX)                ' Perform auto-calibration when transitioning from Idle to RX
     ser.printf("Autocal setting: %d\n", cc1101.AutoCal)
     cc1101.Idle
