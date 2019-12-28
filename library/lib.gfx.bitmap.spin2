@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines
     Copyright (c) 2019
     Started May 19, 2019
-    Updated Nov 8, 2019
+    Updated Dec 3, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -53,7 +53,7 @@ PUB Clear
 
 PUB ClearAll
 
-    ClearDirect
+    ClearAccel
     Clear
     Update
 
@@ -93,6 +93,22 @@ PUB Circle(x0, y0, radius, color) | x, y, err, cdx, cdy
             cdx += 2
             err += cdx - (radius << 1)
 
+PUB Copy (sx, sy, ex, ey, dx, dy) | x, y, tmp
+' Copy rectangular region at (sx, sy, ex, ey) to (dx, dy)
+    repeat y from sy to ey
+        repeat x from sx to ex
+            tmp := Point(x, y)
+            Plot((dx + x)-sx, (dy + y)-sy, tmp)
+
+PUB Cut (sx, sy, ex, ey, dx, dy) | x, y, tmp
+' Cut region of size width, height starting at sx, sy to dx, dy
+'   Clears original region to background color
+    repeat y from sy to ey
+        repeat x from sx to ex
+            tmp := Point(x, y)
+            Plot((dx + x)-sx, (dy + y)-sy, tmp)             ' Copy to destination region
+            Plot(x, y, _bgcolor)                            ' Cut the original region
+
 PUB FGColor (col)
 
     return _fgcolor := col
@@ -130,77 +146,86 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
     x2 := 0 #> x2 <# _disp_width-1
     y2 := 0 #> y2 <# _disp_height-1
 
-    ddx := ||(x2-x1)
-    ddy := ||(y2-y1)
-    err := ddx-ddy
+    case_fast x1 == x2 or y1 == y2
+        TRUE:
+            if x1 == x2                     ' X's are the same - use Plot to draw a straight V-line
+                repeat sy from y1 to y2
+                    Plot(x1, sy, c)
+            if y1 == y2                     ' Y's are the same - use Plot to draw a straight H-line
+                repeat sx from x1 to x2
+                    Plot(sx, y1, c)
+        FALSE:                              ' Both are different - use Bresenham's line algo to draw diag. line
+            ddx := ||(x2-x1)
+            ddy := ||(y2-y1)
+            err := ddx-ddy
 
-    sx := -1
-    if (x1 < x2)
-        sx := 1
+            sx := -1
+            if (x1 < x2)
+                sx := 1
 
-    sy := -1
-    if (y1 < y2)
-        sy := 1
+            sy := -1
+            if (y1 < y2)
+                sy := 1
 
-    case MAX_COLOR
-        1:
-            case c
+            case MAX_COLOR
                 1:
+                    case c
+                        1:
+                            repeat until ((x1 == x2) AND (y1 == y2))
+                                byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] |= (1 << (y1&7))
+
+                                e2 := err << 1
+
+                                if e2 > -ddy
+                                    err := err - ddy
+                                    x1 := x1 + sx
+
+                                if e2 < ddx
+                                    err := err + ddx
+                                    y1 := y1 + sy
+
+                        0:
+                            repeat until ((x1 == x2) AND (y1 == y2))
+                                byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] &= (1 << (y1&7))
+
+                                e2 := err << 1
+
+                                if e2 > -ddy
+                                    err := err - ddy
+                                    x1 := x1 + sx
+
+                                if e2 < ddx
+                                    err := err + ddx
+                                    y1 := y1 + sy
+                        -1:
+                            repeat until ((x1 == x2) AND (y1 == y2))
+                                byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] ^= (1 << (y1&7))
+
+                                e2 := err << 1
+
+                                if e2 > -ddy
+                                    err := err - ddy
+                                    x1 := x1 + sx
+
+                                if e2 < ddx
+                                    err := err + ddx
+                                    y1 := y1 + sy
+
+                        OTHER:
+                            return
+                65535:
                     repeat until ((x1 == x2) AND (y1 == y2))
-                        byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] |= (1 << (y1&7))
+                        word[_draw_buffer][x1 + (y1 * _disp_width)] := c
 
-                        e2 := err << 1
+                            e2 := err << 1
 
-                        if e2 > -ddy
-                            err := err - ddy
-                            x1 := x1 + sx
+                            if e2 > -ddy
+                                err := err - ddy
+                                x1 := x1 + sx
 
-                        if e2 < ddx
-                            err := err + ddx
-                            y1 := y1 + sy
-
-                0:
-                    repeat until ((x1 == x2) AND (y1 == y2))
-                        byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] &= (1 << (y1&7))
-
-                        e2 := err << 1
-
-                        if e2 > -ddy
-                            err := err - ddy
-                            x1 := x1 + sx
-
-                        if e2 < ddx
-                            err := err + ddx
-                            y1 := y1 + sy
-                -1:
-                    repeat until ((x1 == x2) AND (y1 == y2))
-                        byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] ^= (1 << (y1&7))
-
-                        e2 := err << 1
-
-                        if e2 > -ddy
-                            err := err - ddy
-                            x1 := x1 + sx
-
-                        if e2 < ddx
-                            err := err + ddx
-                            y1 := y1 + sy
-
-                OTHER:
-                    return
-        65535:
-            repeat until ((x1 == x2) AND (y1 == y2))
-                word[_draw_buffer][x1 + (y1 * _disp_width)] := c
-
-                    e2 := err << 1
-
-                    if e2 > -ddy
-                        err := err - ddy
-                        x1 := x1 + sx
-
-                    if e2 < ddx
-                        err := err + ddx
-                        y1 := y1 + sy
+                            if e2 < ddx
+                                err := err + ddx
+                                y1 := y1 + sy
 
 PUB Plot (x, y, color)
 ' Plot pixel at x, y, color c
@@ -220,8 +245,8 @@ PUB Plot (x, y, color)
         65535:
             word[_draw_buffer][x + (y * _disp_width)] := color
 
-PUB Point (x, y, c)
-' Get pixel value at x, y
+PUB Point (x, y)
+' Get color of pixel at x, y
     x := 0 #> x <# _disp_width-1
     y := 0 #> y <# _disp_height-1
 
@@ -239,6 +264,27 @@ PUB Position(col, row)
     row := 0 #> row <# (_disp_height / _font_height)-1
     _col := col
     _row := row
+
+PUB RGB565_R5 (rgb565)
+' Return 5-bit red component of 16-bit RGB color
+    return (((rgb565 & $F800) >> 11) * 527 + 23 ) >> 6
+
+PUB RGB565_G6 (rgb565)
+' Return 6-bit green component of 16-bit RGB color
+    return (((rgb565 & $7E0) >> 5)  * 259 + 33 ) >> 6
+
+PUB RGB565_B5 (rgb565)
+' Return 5-bit blue component of 16-bit RGB color
+    return ((rgb565 & $1F) * 527 + 23 ) >> 6
+
+PUB Scale (sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
+' Scale a region of the display up by size
+    repeat y from sy to ey
+        repeat x from sx to ex
+            in := Point(x, y)
+            dx := offsx + (x*size)-(sx*size)
+            dy := offsy + (y*size)-(sy*size)
+            Box(dx, dy, dx + size, dy + size, in, TRUE)
 
 PUB Str (string_addr) | i
 ' Write string at string_addr to the display @ row and column.
