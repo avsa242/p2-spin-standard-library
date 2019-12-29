@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: SSD1306-OLED-Demo.spin2
-    Description: Demo of the ssd1306 i2c driver
+    Filename: SSD1306-Demo.spin2
+    Description: Demo of the SSD1306 driver (P2 version)
     Author: Jesse Burt
-    Copyright (c) 2018
+    Copyright (c) 2019
     Created: Jun 15, 2019
-    Updated: Nov 2, 2019
+    Updated: Dec 28, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,7 +13,7 @@
 #error "Sorry, this source requires FastSpin to compile."
 #endif
 
-#undef FPS_MON_ENABLE  ' Optionally undef/comment out to disable the terminal framerate monitor
+#define FPS_MON_ENABLE  ' Optionally undef/comment out to disable the terminal framerate monitor
 
 CON
 
@@ -34,7 +34,7 @@ CON
 
 ' User modifiable constants:
     WIDTH       = 128
-    HEIGHT      = 64
+    HEIGHT      = 32
 
     I2C_SCL     = 27
     I2C_SDA     = 28
@@ -50,7 +50,8 @@ OBJ
 
     cfg         : "core.con.boardcfg.p2eval"
     ser         : "com.serial.terminal.ansi"
-    time        : "time.spin2"
+    time        : "time"
+    io          : "io"
     oled        : "display.oled.ssd1306.i2c"
     int         : "string.integer"
     fnt5x8      : "font.5x8"
@@ -59,79 +60,68 @@ VAR
 
     long _fps_mon_stack[50]
     long _rndSeed
-    long bx, by, dx, dy
     byte _framebuff[BUFFSZ]
-    byte _fps, _fps_mon_cog, _ser_cog
+    byte _frames, _fps_mon_cog, _ser_cog
+    byte _ser_row
 
+PUB Main
 
-PUB Main | x, y, ch
-
-    _fps := 0
+    _frames := 0
+    _ser_row := 3
     Setup
-    ClearScreen
+    oled.ClearAll
 
     oled.MirrorH(TRUE)
     oled.MirrorV(TRUE)
 
-    ser.printf("Demo_Greet\n")
     Demo_Greet
     time.Sleep (5)
-    ClearScreen
+    oled.ClearAll
 
-    ser.printf("Demo_Sine\n")
-    Demo_Sine (500)
-    ClearScreen
+    Demo_Sinewave (500)
+    oled.ClearAll
 
-    ser.printf("Demo_Wave\n")
-    Demo_Wave (500)
-    ClearScreen
+    Demo_TriWave (500)
+    oled.ClearAll
 
-    ser.printf("Demo_MEMScroller\n")
-    Demo_MEMScroller($0_00_00, $0_40_00)
-    ClearScreen
+    Demo_MEMScroller($0_00_00, $1_00_00)
+    oled.ClearAll
 
-    ser.printf("Demo_DrawBitmap\n")
-    Demo_DrawBitmap (@Beanie, 500)
-    ClearScreen
+    Demo_Bitmap (@Beanie, 500)
+    oled.ClearAll
 
-    ser.printf("Demo_LineSweep\n")
     Demo_LineSweep(2)
-    ClearScreen
+    oled.ClearAll
 
-    ser.printf("Demo_LineRND\n")
-    Demo_LineRND (500)
-    ClearScreen
+    Demo_Line (500)
+    oled.ClearAll
 
-    ser.printf("Demo_PlotRND\n")
-    Demo_PlotRND (500)
-    ClearScreen
+    Demo_Plot (500)
+    oled.ClearAll
 
-    ser.printf("Demo_BouncingBall\n")
     Demo_BouncingBall (500, 5)
-    ClearScreen
+    oled.ClearAll
 
-    ser.printf("Demo_ExpandingCircle\n")
-    Demo_ExpandingCircle(5)
-    ClearScreen
+    Demo_Circle(500)
+    oled.ClearAll
 
-    ser.printf("Demo_Wander\n")
     Demo_Wander (1000)
-    ClearScreen
+    oled.ClearAll
 
-    ser.printf("Demo_Text\n")
     Demo_Text (300)
 
-    ser.printf("Demo_Contrast\n")
     Demo_Contrast(2, 1)
-    ClearScreen
+    oled.ClearAll
 
-    ser.printf("Stop\n")
     Stop
-    ser.printf("Flash\n")
-    Flash(LED, 100)
+    FlashLED(LED, 100)
 
-PUB Demo_BouncingBall(frames, radius)
-'' Draws a simple ball bouncing off screen edges
+PUB Demo_BouncingBall(frames, radius) | bx, by, dx, dy
+' Draws a simple ball bouncing off screen edges
+    _ser_row++
+    ser.Position(0, _ser_row)
+    ser.printf("Demo_BouncingBall\n")
+
     bx := (rnd(XMAX) // (WIDTH - radius * 4)) + radius * 2  'Pick a random screen location to
     by := (rnd(YMAX) // (HEIGHT - radius * 4)) + radius * 2 ' start from
     dx := rnd(4) // 2 * 2 - 1                               'Pick a random direction to
@@ -147,30 +137,41 @@ PUB Demo_BouncingBall(frames, radius)
 
         oled.Circle (bx, by, radius, 1)
         oled.Update
-        _fps++
+        _frames++
         oled.Clear
 
-PUB Demo_DrawBitmap(addr_bitmap, reps)' XXX stock bitmap unsuitable for 64-height display
-'' Continuously redraws bitmap at address 'addr_bitmap' (e.g., Demo_DrawBitmap(@bitmap1, 500)
-'' Visually unexciting - just for demonstrating the max blit speed
-    repeat reps
-        oled.Bitmap(addr_bitmap, BUFFSZ)
-        oled.Update
-        _fps++
+PUB Demo_Bitmap(bitmap_addr, reps)
+' Continuously redraws bitmap at bitmap_addr
+    _ser_row++
+    ser.Position(0, _ser_row)
+    ser.printf("Demo_Bitmap\n")
 
-PUB Demo_ExpandingCircle(reps) | i, x, y
-'' Draws circles at random locations, expanding in radius
+    repeat reps
+        oled.Bitmap(bitmap_addr, BUFFSZ)
+        oled.Update
+        _frames++
+
+PUB Demo_Circle(reps) | x, y, r
+' Draws circles at random locations
+    _ser_row++
+    ser.Position(0, _ser_row)
+    ser.printf("Demo_Circle\n")
+
     repeat reps
         x := rnd(XMAX)
         y := rnd(YMAX)
-        repeat i from 1 to 31
-            oled.Circle (x, y, ||i, -1)
-            oled.Update
-            _fps++
-            oled.Clear
+        r := rnd(YMAX/2)
+        oled.Circle (x, y, r, -1)
+        oled.Update
+        _frames++
 
 PUB Demo_Contrast(reps, delay_ms) | contrast_level
-'' Fades out and in display contrast
+' Fades out and in display contrast
+    _ser_row++
+    ser.Position(0, _ser_row)
+    ser.printf("Demo_Contrast\n")
+    _frames := 0
+
     repeat reps
         repeat contrast_level from 255 to 1
             oled.Contrast (contrast_level)
@@ -180,7 +181,14 @@ PUB Demo_Contrast(reps, delay_ms) | contrast_level
             time.MSleep (delay_ms)
 
 PUB Demo_Greet
-'                    |0   |5  1|0  1|5
+' Display the banner/greeting on the OLED
+    _ser_row++
+    _frames := 0
+    ser.Position(0, _ser_row)
+    ser.printf("Demo_Greet\n")
+
+    oled.FGColor(1)
+    oled.BGColor(0)
     oled.Position (0, 0)
     oled.Str (string("SSD1306 on the"))
 
@@ -202,46 +210,63 @@ PUB Demo_Greet
     oled.Str (int.DecPadded (HEIGHT, 2))
     oled.Update
 
-PUB Demo_LineRND (reps)
-'' Draws random lines with color -1 (invert)
+PUB Demo_Line (reps)
+' Draws random lines with color -1 (invert)
+    _ser_row++
+    ser.Position(0, _ser_row)
+    ser.printf("Demo_Line\n")
+
     repeat reps
         oled.Line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), -1)
         oled.Update
-        _fps++
+        _frames++
 
 PUB Demo_LineSweep (reps) | x, y
-'' Draws lines top left to lower-right, sweeping across the screen, then
-''  from the top-down
+' Draws lines top left to lower-right, sweeping across the screen, then
+'  from the top-down
+    _ser_row++
+    ser.Position(0, _ser_row)
+    ser.printf("Demo_LineSweep\n")
+
     repeat reps
         repeat x from 0 to XMAX step 1
             oled.Line (x, 0, XMAX-x, YMAX, -1)
             oled.Update
-            _fps++
+            _frames++
 
         repeat y from 0 to YMAX step 1
             oled.Line (XMAX, y, 0, YMAX-y, -1)
             oled.Update
-            _fps++
+            _frames++
 
 PUB Demo_MEMScroller(start_addr, end_addr) | pos, st, en
-'' Dumps Propeller Hub RAM (or ROM) to the framebuffer
-'' Very meta/introspective/magic mirror-looking if dumping covers the area of RAM
-''  occupied by this program's variables!
+' Dump Propeller Hub RAM to the display buffer
+    _ser_row++
+    ser.Position(0, _ser_row)
+    ser.printf("Demo_MEMScroller\n")
+
     repeat pos from start_addr to end_addr step 128
         oled.Bitmap(pos, BUFFSZ)
         oled.Update
-        _fps++
+        _frames++
 
-PUB Demo_PlotRND (reps) | x, y
-'' Draws random pixels to the screen, with color -1 (invert)
+PUB Demo_Plot (reps) | x, y
+' Draws random pixels to the screen, with color -1 (invert)
+    _ser_row++
+    ser.Position(0, _ser_row)
+    ser.printf("Demo_Plot\n")
+
     repeat reps
         oled.Plot (rnd(XMAX), rnd(YMAX), -1)
         oled.Update
-        _fps++
+        _frames++
 
-PUB Demo_Sine(reps) | x, y, modifier, offset, div
-'' Draws a sine wave the length of the screen, influenced by
-''  the system counter
+PUB Demo_Sinewave(reps) | x, y, modifier, offset, div
+' Draws a sine wave the length of the screen, influenced by the system counter
+    _ser_row++
+    ser.Position(0, _ser_row)
+    ser.printf("Demo_Sine\n")
+
     case HEIGHT
         32:
             div := 4096
@@ -258,14 +283,19 @@ PUB Demo_Sine(reps) | x, y, modifier, offset, div
             y := offset + sin(x * modifier) / div
             oled.Plot(x, y, 1)
         oled.Update
-        _fps++
+        _frames++
         oled.Clear
 
 PUB Demo_Text(reps) | col, row, maxcol, maxrow, ch, st
-'' Sequentially draws the whole font table to the screen, for half of 'reps'
-''  then random characters for the second half
-    maxcol := (WIDTH/oled.FontWidth)-1   'XXX In the future, pull part of this from a font def file,
-    maxrow := (HEIGHT/oled.FontHeight)-1  ' based on its size
+' Sequentially draws the whole font table to the screen, then random characters
+    _ser_row++
+    ser.Position(0, _ser_row)
+    ser.printf("Demo_Text\n")
+
+    oled.FGColor(1)
+    oled.BGColor(0)
+    maxcol := (WIDTH/oled.FontWidth)-1
+    maxrow := (HEIGHT/oled.FontHeight)-1
     ch := $00
     repeat reps/2
         repeat row from 0 to maxrow
@@ -276,7 +306,7 @@ PUB Demo_Text(reps) | col, row, maxcol, maxrow, ch, st
                 oled.Position (col, row)
                 oled.Char (ch)
         oled.Update
-        _fps++
+        _frames++
 
     repeat reps/2
         repeat row from 0 to maxrow
@@ -284,10 +314,14 @@ PUB Demo_Text(reps) | col, row, maxcol, maxrow, ch, st
                 oled.Position (col, row)
                 oled.Char (rnd(127))
         oled.Update
-        _fps++
+        _frames++
 
-PUB Demo_Wave(frames) | x, y, ydir
-'' Draws a simple triangular wave
+PUB Demo_Triwave(frames) | x, y, ydir
+' Draws a simple triangular wave
+    _ser_row++
+    ser.Position(0, _ser_row)
+    ser.printf("Demo_Triwave\n")
+
     ydir := 1
     y := 0
     repeat frames
@@ -299,11 +333,15 @@ PUB Demo_Wave(frames) | x, y, ydir
             y := y + ydir
             oled.Plot (x, y, 1)
         oled.Update
-        _fps++
+        _frames++
         oled.Clear
 
 PUB Demo_Wander(reps) | x, y, d
-'' Draws randomly wandering pixels
+' Draws randomly wandering pixels
+    _ser_row++
+    ser.Position(0, _ser_row)
+    ser.printf("Demo_Wander\n")
+
     x := XMAX/2
     y := YMAX/2
     repeat reps
@@ -326,11 +364,7 @@ PUB Demo_Wander(reps) | x, y, d
                     y := YMAX
         oled.Plot (x, y, -1)
         oled.Update
-
-PUB ClearScreen
-' Clear the display buffer and immediately write it to the OLED
-    oled.Clear
-    oled.Update
+        _frames++
 
 PUB Sin(angle) | tmp
 ' Return the sine of angle
@@ -352,67 +386,34 @@ PUB RND(maxval) | i
     endasm
     return i
 
-PUB Clear
-
-    ser.Char (27)
-    ser.Char ("[")
-    ser.Char ("2")
-    ser.Char ("J")
-    Position (0, 0)
-
-PUB Position(x, y)
-' Position cursor at column x, row y (from top-left).
-    ser.Char (27)
-    ser.Char ("[")
-    ser.Dec (x)
-    ser.Char (";")
-    ser.Dec (y)
-    ser.Char ("f")
-
-PUB NL
-
-    ser.Char (10)
-    ser.Char (13)
-
-PUB fps_mon
-'' Sit in another cog and tell us (more or less) how many frames per second we're rendering
-    ser.Clear
+PUB FPS_mon
+' Display to the serial terminal approximate render speed, in frames per second
     repeat
         time.MSleep (1000)
-        Position (0, 4)
-        ser.Printf ("FPS: %d", _fps)
-        _fps := 0
+        ser.Position (20, _ser_row)
+        ser.Printf ("FPS: %s", int.DecZeroed(_frames, 3))
+        _frames := 0
 
 PUB Setup
 
     clkset(ENAFREQ, CLOCKFREQ, XSEL)
     repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    Clear
+    ser.Clear
     ser.Printf ("Serial terminal started\n")
-    oled.FontSize (6, 8)
-    oled.FontAddress (fnt5x8.BaseAddr)
     if oled.Start (WIDTH, HEIGHT, I2C_SCL, I2C_SDA, I2C_HZ, @_framebuff, 0)
+        ser.Printf("SSD1306 driver started. Draw buffer @ $%x\n", oled.Address)
         oled.Defaults
         oled.OSCFreq (407)
-        oled.Address(@_framebuff)
         oled.FontSize (6, 8)
         oled.FontAddress (fnt5x8.BaseAddr)
-        ser.Printf("SSD1306 object started. Framebuffer (%d bytes) at $%x\n", BUFFSZ, @_framebuff)
     else
-        ser.Printf("SSD1306 object failed to start - halting\n")
+        ser.Printf("SSD1306 driver failed to start - halting\n")
         Stop
-        Flash(LED, 500)
+        FlashLED(LED, 500)
 
 #ifdef FPS_MON_ENABLE
     _fps_mon_cog := cognew(fps_mon, @_fps_mon_stack)  'Start framerate monitor in another cog/core
 #endif
-
-PUB Flash(led_pin, delay_ms)
-
-    dirb[led_pin] := 1
-    repeat
-        !outb [led_pin]
-        time.MSleep(delay_ms)
 
 PUB Stop
 
@@ -423,6 +424,8 @@ PUB Stop
         cogstop(_fps_mon_cog)
     if _ser_cog
         cogstop(_ser_cog)
+
+#include "lib.utility.spin2"
 
 DAT
 
