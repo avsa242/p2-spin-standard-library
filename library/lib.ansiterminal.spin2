@@ -18,8 +18,7 @@ CON
     SGR_INTENSITY_FAINT = 2
     SGR_INTENSITY_NML   = 22
 
-    SGR_ITALIC          = 3     ' Can be either Italic or
-    SGR_INVERSE         = 3     '  Inverse, depending on the terminal
+    SGR_ITALIC          = 3     ' Can be either Italic or inverse, depending on the terminal
 
     SGR_UNDERLINE       = 4     ' Underlined text
     SGR_UNDERLINE_DBL   = 21
