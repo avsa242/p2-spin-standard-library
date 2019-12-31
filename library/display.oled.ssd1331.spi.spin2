@@ -15,6 +15,8 @@ CON
 
     _DISP_WIDTH = 96
     _DISP_HEIGHT= 64
+    _DISP_XMAX  = _DISP_WIDTH-1
+    _DISP_YMAX  = _DISP_HEIGHT-1
     _BUFF_SZ    = _DISP_WIDTH * _DISP_HEIGHT * 2
     MAX_COLOR   = 65535
 
@@ -112,7 +114,7 @@ PUB Defaults
     ContrastC (127)
     DisplayEnabled (DISP_ON)
     DisplayBounds (0, 0, 95, 63)
-    ClearDirect
+    ClearAccel
 
 PUB AddrIncMode(mode) | tmp
 
@@ -160,7 +162,7 @@ PUB BoxAccel(sx, sy, ex, ey, box_rgb, fill_rgb) | tmp[3]
     tmp.byte[10] := Color_B (fill_rgb)
     writeReg (TRANS_CMD, 11, @tmp)
 
-PUB ClearDirect | tmp[2]
+PUB ClearAccel | tmp[2]
 ' Clears the display directly, using the display's native/accelerated clear function
     tmp.byte[0] := core#SSD1331_CMD_NOP3
     tmp.byte[1] := core#SSD1331_CMD_CLEAR
@@ -274,7 +276,7 @@ PUB ContrastC(level) | tmp
     tmp.byte[1] := level
     writeReg (TRANS_CMD, 2, @tmp)
 
-PUB Copy(sx, sy, ex, ey, dx, dy) | tmp[2]
+PUB CopyAccel(sx, sy, ex, ey, dx, dy) | tmp[2]
 
     case sx
         0..95:
@@ -314,7 +316,6 @@ PUB Copy(sx, sy, ex, ey, dx, dy) | tmp[2]
     tmp.byte[5] := dx
     tmp.byte[6] := dy
     writeReg (TRANS_CMD, 7, @tmp)
-
 
 PUB CurrentLimit(divisor) | tmp
 
@@ -504,7 +505,7 @@ PUB Phase2Adj(clks) | tmp
     tmp.byte[1] := _sh_PHASE12PER
     writeReg (TRANS_CMD, 2, @tmp)
 
-PUB PlotDirect(x, y, rgb) | tmp[2]
+PUB PlotAccel(x, y, rgb) | tmp[2]
 
     tmp.byte[0] := core#SSD1331_CMD_SETCOLUMN
     tmp.byte[1] := x
