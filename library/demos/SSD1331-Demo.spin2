@@ -256,7 +256,7 @@ PUB Demo_PlotRND(reps) | x, y, c
         x := RND (95)
         y := RND (63)
         c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
-        oled.PlotDirect (x, y, c)
+        oled.PlotAccel (x, y, c)
 '        oled.Plot(x, y, c)         'Much slower
 '        oled.Update
         _bench_iter++
