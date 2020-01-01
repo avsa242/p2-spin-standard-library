@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: CC2500-RXDemo.spin
+    Filename: CC2500-RXDemo.spin2
     Author: Jesse Burt
-    Description: Simple receive demo of the cc2500 driver
-    Copyright (c) 2019
+    Description: Simple receive demo of the cc2500 driver (P2 version)
+    Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Dec 21, 2019                                                                                         
+    Updated Jan 1, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -94,13 +94,13 @@ PUB Receive | rxbytes, tmp, from_node
     cc2500.PayloadLen (_pktlen)                     ' Set payload length to _pktlen
     cc2500.CRCCheckEnabled (TRUE)                   ' Enable CRC checks on received payloads
     cc2500.SyncMode (cc2500#SYNCMODE_3032_CS)       ' Accept payload as valid only if:
+    cc2500.AppendStatus (FALSE)
                                                     '   At least 30 of 32 syncword bits match
                                                     '   Carrier sense is above set threshold
 
     ser.Clear
     ser.Position(0, 0)
     ser.PrintF("Receive mode - %dHz\n", cc2500.CarrierFreq(-2))
-
     ser.PrintF("Listening for traffic on node address $")
     ser.Hex(cc2500.NodeAddress(-2), 2)
 
