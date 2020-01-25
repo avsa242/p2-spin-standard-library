@@ -16,6 +16,7 @@
 
 #include "lib.terminal.spin2"
 #include "lib.ansiterminal.spin2"
+#include "lib.termwidgets.spin2"
 
 CON
 
