@@ -3,9 +3,9 @@
     Filename: lib.termwidgets.spin2
     Author: Jesse Burt
     Description: Library of terminal widgets (P2 version)
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Dec 14, 2019
-    Updated Dec 18, 2019
+    Updated Jan 27, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -17,7 +17,7 @@
 '           Dec (param)
 '           Char (param)
 '           Str (param)
-'           Hex (param)
+'           Hex (param, digits)
 '           Position (x, y)
 
 PUB Frac(scaled, divisor) | whole[4], part[4], places, tmp
@@ -58,8 +58,8 @@ PUB HexDump(buff_addr, base_addr, nr_bytes, columns, x, y) | digits, offset, col
             Hex (base_addr+offset, digits)
             Str (string(": "))
 
-        hexcol := x + offset * 3 + (digits + 2) + 1
-        asccol := x + offset + (columns * 3) + (digits + 3)
+        hexcol := x + (offset & maxcol) * 3 + (digits + 2) + 1
+        asccol := x + (offset & maxcol) + (columns * 3) + (digits + 3)
 
         Position (hexcol, row)
         Hex (currbyte, 2)
