@@ -198,6 +198,8 @@ PUB Overline
 
 PUB Position(x, y)
 ' Position cursor at column x, row y (from top-left)
+    y++
+    x++
     CSI
     Dec(y)
     Char(";")
@@ -208,8 +210,15 @@ PUB PositionX(column=1)
 ' Set horizontal position of cursor
 '   Default value: column 1
     CSI
-    Dec(column)
+    Dec(column+1)
     Char("G")
+
+PUB PositionY(y)
+' Set vertical position of cursor
+    y++                                             ' Need to add 1 because the coords
+    CSI                                             ' are not 0-based, but 1-based
+    Dec(y)
+    Char("d")
 
 PUB RCP | tmp, token, place
 ' Report Current mouse position (press mouse button to update)
