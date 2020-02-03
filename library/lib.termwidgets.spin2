@@ -36,41 +36,41 @@ PUB Frac(scaled, divisor) | whole[4], part[4], places, tmp
     Char (".")
     Str (part)
 
-PUB HexDump(buff_addr, base_addr, nr_bytes, columns, x, y) | digits, offset, col, hexcol, asccol, row, currbyte, maxcol
+PUB HexDump(buff_addr, base_addr, nr_bytes, columns, x, y) | maxcol, maxrow, digits, hexoffset, ascoffset, offset, hexcol, asccol, row, col, currbyte
 ' Display a hexdump of a region of memory
 '   buff_addr: Start address of memory
 '   base_addr: Address used to display as base address in hex dump (affects display only)
 '   nr_bytes: Total number of bytes to display
 '   columns: Number of bytes to display on each line
 '   x, y: Terminal position to display start of hex dump
-    digits := 5
-    hexcol := asccol := col := 0
-    row := y
     maxcol := columns-1
-    repeat offset from 0 to nr_bytes-1
-        currbyte := byte[buff_addr][offset]
-        if col > maxcol
-            row++
-            col := 0
+    maxrow := nr_bytes / columns
+    digits := 5                                                 ' Number of digits used to display offset
+    hexoffset := digits + 2
+    ascoffset := hexoffset + (columns * 3)
+    offset := 0
 
-        if col == 0
-            Position (x, row)
-            Hex (base_addr+offset, digits)
-            Str (string(": "))
+    repeat row from y to y+maxrow
+        Position (x, row)
+        Hex (base_addr+offset, digits)                          ' Show offset address of row in 'digits'
+        Str (string(": "))
+        repeat col from 0 to maxcol
+            currbyte := byte[buff_addr][offset]
+            offset++
+            hexcol := x + (col * 3) + hexoffset                 ' Compute the terminal X position of the hex byte
+            asccol := x + col + ascoffset                       ' and the ASCII character
 
-        hexcol := x + (offset & maxcol) * 3 + (digits + 2) + 1
-        asccol := x + (offset & maxcol) + (columns * 3) + (digits + 3)
+            Position (hexcol, row)                              ' Show the ASCII value in hex
+            Hex (currbyte, 2)                                   '   of the current byte
 
-        Position (hexcol, row)
-        Hex (currbyte, 2)
-
-        Position (asccol, row)
-        case currbyte
-            32..127:
-                Char (currbyte)
-            OTHER:
-                Char (".")
-        col++
+            Position (asccol, row)                              ' Show the ASCII character
+            case currbyte                                       '   of the current byte
+                32..127:                                        '   IF it's a printable character
+                    Char (currbyte)
+                OTHER:                                          '   Otherwise, just show a period
+                    Char (".")
+            if offset > nr_bytes-1
+                return
 
 DAT
 {
