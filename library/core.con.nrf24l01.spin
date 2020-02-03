@@ -3,9 +3,9 @@
     Filename: core.con.nrf24l01.spin
     Author: Jesse Burt
     Description: nRF24L01+ Low-level constant definitions
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Jan 6, 2019
-    Updated Jul 17, 2019
+    Updated Feb 3, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,7 +20,10 @@ CON
     CE_RX                       = 1
 
 ' Timings
-    TPOR                        = 100
+    TPOR                        = 100_000       ' uSec
+    TRXSETTLE                   = 130           '
+    TTXSETTLE                   = 130           '
+    THCE                        = 10            '
     TPD2STBY                    = 5             ' Maximum
 
 ' NRF24L01+ Commands

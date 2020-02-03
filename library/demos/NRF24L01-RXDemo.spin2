@@ -1,0 +1,151 @@
+{                                                                                                                
+    --------------------------------------------
+    Filename: NRF24L01-RXDemo.spin2
+    Author: Jesse Burt 
+    Description: nRF24L01+ Receive demo (no ShockBurst/Auto Acknowledgement)
+    Copyright (c) 2020
+    Started Nov 23, 2019
+    Updated Feb 3, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    XTAL            = cfg#XTAL
+    XDIV            = cfg#XDIV
+    XMUL            = cfg#XMUL
+    XDIVP           = cfg#XDIVP
+    XOSC            = cfg#XOSC
+    XSEL            = cfg#XSEL
+    XPPPP           = cfg#XPPPP
+    CLOCKFREQ       = cfg#CLOCKFREQ
+    SETFREQ         = cfg#SETFREQ
+    ENAFREQ         = cfg#ENAFREQ
+
+    LED             = cfg#LED1
+    SER_RX          = cfg#SER_RX
+    SER_TX          = cfg#SER_TX
+    SER_BAUD        = 2_000_000
+
+    CS_PIN          = 45
+    SCK_PIN         = 42
+    MOSI_PIN        = 40
+    MISO_PIN        = 41
+    CE_PIN          = 44
+    SCK_FREQ        = 5_000_000
+
+    CLEAR           = 1
+    CHANNEL         = 2
+
+OBJ
+
+    ser         : "com.serial.terminal.ansi"
+    cfg         : "core.con.boardcfg.p2eval"
+    io          : "io"
+    time        : "time"
+    int         : "string.integer"
+    nrf24       : "wireless.transceiver.nrf24l01.spi.spin2"
+
+VAR
+
+    long _ser_cog, _nrf24_cog
+    long _fifo[8]
+    byte _payloadlen
+
+PUB Main
+
+    Setup
+
+    ser.printf("Press any key to begin receiving\n")
+    ser.CharIn
+
+    Receive
+
+    FlashLED(LED, 100)
+
+PUB Receive | tmp, addr[2], i, count, CD
+
+    _payloadlen := 8                                        ' Payload length. MUST match the TX side for
+    nrf24.PayloadLen (_payloadlen, 0)                       '   successful reception
+
+    nrf24.RXMode                                            ' Start active receive mode
+    nrf24.PowerUp (TRUE)
+    nrf24.Channel (2)                                       ' Set receive channel. MUST match the TX side for
+                                                            '   successful reception
+
+    nrf24.AutoAckEnabledPipes(%000000)
+    nrf24.PayloadReady (CLEAR)                              ' Clear Payload Ready interrupt
+
+    addr := string($E7, $E7, $E7, $E7, $E7)                 ' Set the address
+    nrf24.RXAddr (addr, 0, nrf24#WRITE)                     '   for receive pipe 0
+                                                            '   MUST match TXAddr on TX side
+
+    ser.Clear
+    ser.Position(0, 0)
+    ser.printf("Receive mode: %d\n", nrf24.Channel)         ' Show the currently set channel
+
+    ser.printf("Listening for traffic on node address $")
+    bytefill(@addr, 0, 8)
+    nrf24.RXAddr(@addr, 0, nrf24#READ)                      ' Read back receive pipe 0 address
+    repeat i from 4 to 0                                    ' ...
+        ser.Hex(addr.byte[i], 2)                            '   and show it
+    ser.Newline
+
+    count := 0                                              ' Zero the received packets counter
+    repeat
+        bytefill (@_fifo, $00, 32)                          ' Clear RX local buffer
+        repeat                                              ' Wait to proceed
+            ser.Position(0, 5)                              ' .
+            CD := ||(nrf24.RSSI == -64)                     ' . While we're waiting, 
+            ser.printf("Carrier: %d\n", CD)                 ' .     show the carrier detect flag
+            ser.str(string("Packets received: "))           ' .     and also the number of packets received
+            ser.dec(count)                                  ' .
+        until nrf24.PayloadReady(-2)                        ' until we've received at least _payloadlen bytes
+
+        ser.position(0, 8)
+        ser.printf("Receiving")
+        nrf24.RXPayload(_payloadlen, @_fifo)                ' Retrieve it into our local buffer
+        count++                                             ' Increment received payload counter
+
+        ser.Hexdump(@_fifo, 0, _payloadlen, _payloadlen, 0, 9)
+
+        nrf24.PayloadReady(CLEAR)                           ' Clear interrupt
+        nrf24.FlushRX                                       '   and Flush FIFO. Ready for the next packet
+
+PUB Setup
+
+    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.Clear
+    ser.PrintF("Serial terminal started\n")
+    if _nrf24_cog := nrf24.Start (CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
+        ser.printf("nRF24L01+ driver started\n")
+    else
+        ser.printf("nRF42L01+ driver failed to start - halting\n")
+        FlashLED (LED, 500)
+
+#include "lib.utility.spin2"
+
+DAT
+
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}                                                                                                                
