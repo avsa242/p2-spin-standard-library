@@ -1,55 +1,52 @@
+{
+    --------------------------------------------
+    Filename: io.spin
+    Author: Jesse Burt
+    Description: Methods for setting the state of IO pins
+    Copyright (c) 2020
+    Started Jun 16, 2019
+    Updated Mar 18, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+' Constants that may be used as parameters in the below methods to set pin states
+    IO_OUT      = 1
+    IO_IN       = 0
+    IO_HIGH     = 1
+    IO_LOW      = 0
+
 OBJ
 
     time        : "time"
 
-PUB High(pin)
-' Sets IO pin high and an output
-  if pin < 32
-	outa[pin] := 1
-	dira[pin] := 1
-  else
-	outb[pin] := 1
-	dirb[pin] := 1
+PUB Direction(pin, direction)
+' Set IO pin to input (0) or output (1)
+    _dir(pin, direction)
 
-PUB Input(pin): state
+PUB High(pin)
+' Sets IO pin high
+    out_(pin, 1)
+
+PUB Input(pin)
 ' Sets IO pin to an input and returns the current state
-  if pin < 32
-        dira[pin] := 0
-        time.USleep(100)                 ' Review - is 100us really necessary?
-        state := ina[pin]
-  else
-        dirb[pin] := 0
-        time.USleep(100)                 ' Review - is 100us really necessary?
-        state := inb[pin]
+    _dir(pin, 0)
+    return _pinr(pin)
 
 PUB Low(pin)
-' Sets IO pin low and an output
-  if pin < 32
-	outa[pin] := 0
-	dira[pin] := 1
-  else
-	outb[pin] := 0
-	dirb[pin] := 1
+' Sets IO pin low
+    out_(pin, 0)
 
 PUB Output(pin)
 ' Sets IO pin to an output
-  if pin < 32
-        dira[pin] := 1
-  else
-        dirb[pin] := 1
+    _dir(pin, 1)
 
-PUB Set(pin, enabled)
-' Sets IO pin to state 'enabled'
-    if pin < 32
-        outa[pin] := enabled
-    else
-        outb[pin] := enabled
+PUB Set(pin, state)
+' Sets IO pin to state low (0) or high (1)
+    out_(pin, state)
 
 PUB Toggle(pin)
 ' Toggles IO pin high/low
-  if pin < 32
-  	!outa[pin]
-  	dira[pin] := 1
-  else
-  	!outb[pin]
-  	dirb[pin] := 1
+    drvnot_(pin)
+
