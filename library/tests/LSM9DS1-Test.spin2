@@ -45,6 +45,7 @@ OBJ
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
+    io      : "io"
     imu     : "sensor.imu.9dof.lsm9ds1.3wspi"
     int     : "string.integer"
 
@@ -85,7 +86,7 @@ PUB Main
     MAG_DO (1)
 
 '    ser.Str (string("Completed"))
-    Flash(LED, 100)
+    FlashLED(LED, 100)
 
 PUB MAG_DO(reps) | tmp, read
 
@@ -335,7 +336,7 @@ PUB waitkey
 
 PUB Setup
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear
     ser.printf("Serial terminal started\n")
@@ -345,16 +346,9 @@ PUB Setup
         _max_cols := 4
     else
         ser.printf("Failed to start LSM9DS1 driver - halting\n")
-        Flash(LED, 500)
+        FlashLED(LED, 500)
 
-#include "lib.io.spin2"
-
-PUB Flash(led_pin, delay_ms)
-
-    dir(led_pin, 1)
-    repeat
-        out(led_pin, !in(led_pin))
-        time.MSleep (delay_ms)
+#include "lib.utility.spin2"
 
 DAT
 {
