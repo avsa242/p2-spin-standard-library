@@ -144,7 +144,7 @@ PUB Receive | tmp, from_node, addr[2], i, count, recv_pipe
 
 PUB Setup
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear
     ser.PrintF("Serial terminal started\n")

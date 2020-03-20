@@ -118,7 +118,7 @@ PUB Position(x, y)
 
 PUB Setup | tmp
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     repeat until ser.Startx (SER_RX, SER_TX, 0, SER_BAUD)
     Clear
     ser.Str (string("Serial terminal started"))

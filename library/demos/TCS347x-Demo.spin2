@@ -394,7 +394,7 @@ PUB Setup
     io.Output (WHITE_LED_PIN)
     io.Low (WHITE_LED_PIN)
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear
     ser.PrintF("Serial terminal started\n")
