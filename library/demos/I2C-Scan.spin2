@@ -135,7 +135,7 @@ PUB KeyInput | tmp
 
 PUB Setup
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     ser.StartRxTx (63, 62, 0, SER_BAUD)
     time.MSleep(5)
     ser.Str(string(27, "[0;0m"))

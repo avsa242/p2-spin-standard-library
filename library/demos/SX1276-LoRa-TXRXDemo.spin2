@@ -91,6 +91,7 @@ OBJ
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
+    io      : "io"
     lora    : "wireless.transceiver.sx1276.spi.spin2"
     int     : "string.integer"
 
@@ -548,7 +549,7 @@ PRI WaitKey
     
 PUB Setup
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     time.msleep(500)
     ser.Clear
@@ -562,15 +563,7 @@ PUB Setup
     _keydaemon_cog := cognew(keyDaemon, @_keydaemon_stack)+1
     ser.printf("key daemon started on cog %d\n", _keydaemon_cog)
 
-#include "lib.io.spin2"
-
-PUB Flash(led_pin, delay_ms)
-
-    dir(led_pin, 1)
-    repeat
-        out(led_pin, !in(led_pin))
-        time.MSleep (delay_ms)
-
+#include "lib.utility.spin2"
 
 DAT
 {

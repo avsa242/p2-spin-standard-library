@@ -396,7 +396,7 @@ PUB FPS_mon
 
 PUB Setup
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear
     ser.Printf ("Serial terminal started\n")

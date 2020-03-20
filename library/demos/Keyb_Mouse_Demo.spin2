@@ -113,7 +113,8 @@ CON
         #0, COGNUM, EVTPIN, KBCON, MCON
 '------------------------------------------------------------------------------
 OBJ
-  ser: "com.serial"
+
+  ser: "com.serial.terminal"
   usb1: "input.usb.kbd_mouse"
 
 VAR
@@ -128,7 +129,7 @@ DAT
 PUB KbMObjTest | event, data, eventa
   clkset(_clkmode, _clkfreq)
   waitcnt(clkfreq * 2 + cnt)                            ' Wait a bit for user to get the terminai ready
-  ser.Startx(rx_pin, tx_pin, 0, baud)
+  ser.StartRXTX(rx_pin, tx_pin, 0, baud)
   ser.PrintF("Sysclock: %u, baudrate: %u\n", clkfreq, baud)
   ser.PrintF("Tiny client + USB low/full speed keyboard/mouse %s.\n", @szversion)
 
@@ -165,7 +166,7 @@ PRI handleKeyData(keydata) | tglstates, modkey, scancode, asciival
     KEY_BKSPACE:
       ser.Str(@szbackspace)
     KEY_ENTER:
-      ser.nl
+      ser.newline
     KEY_CAPSLK, KEY_SCRLK, KEY_NUMLK:
       ser.Char(BELL)                                      ' Ring the terminal bell on toggle key state change
     other:
@@ -182,7 +183,7 @@ PRI handleMouseUpdate(data) | b, x, y
   ser.Hex(x, 2)
   ser.Char($20)
   ser.Hex(y, 2)
-  ser.nl
+  ser.newline
   return
 }
 ' Adjust the mouse x/y "zero dead zone" to your liking
@@ -201,7 +202,7 @@ PRI handleMouseUpdate(data) | b, x, y
 
 ' Scroll the mouse data if middle button pressed
   if b & MOUSE_CBTNF
-    ser.nl
+    ser.newline
   else
     ser.Char(CR)
 
@@ -234,7 +235,7 @@ PRI usbEvent(portptr, portnum, event) | ptr, val
       ser.Hex(ptr, 5)
       ser.Str(", val: ")
       ser.Hex(val)
-      ser.nl
+      ser.newline
     M_DATA:
       if portnum == 1
         val := usb1.mouse

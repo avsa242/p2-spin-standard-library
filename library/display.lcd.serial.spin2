@@ -44,7 +44,7 @@ VAR
 
 OBJ
 
-  serial : "com.serial"
+  serial : "com.serial.terminal"
 
 PUB Start(pin, baud, lines): okay
 
@@ -52,10 +52,10 @@ PUB Start(pin, baud, lines): okay
 '' -- makes tx pin an output and sets up other values if valid
 
     started~                                              ' clear started flag
-    if lookdown(pin : 0..27)                              ' qualify tx pin
+    if lookdown(pin : 0..63)                              ' qualify tx pin
         if lookdown(baud : 2400, 9600, 19200)               ' qualify baud rate setting
             if lookdown(lines : 2, 4)                         ' qualify lcd size (lines)
-                if serial.Startx(-1, pin, 0, baud)                   ' tx pin only, true mode
+                if serial.StartRXTX(-1, pin, 0, baud)                   ' tx pin only, true mode
                     lcdLines := lines                             ' save lines size
                     started~~                                     ' mark started flag true
 

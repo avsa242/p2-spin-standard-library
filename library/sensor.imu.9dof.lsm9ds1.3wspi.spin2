@@ -87,7 +87,7 @@ PUB Null
 PUB Start(SCL_PIN, SDIO_PIN, CS_AG_PIN, CS_M_PIN, INT_AG_PIN, INT_M_PIN, spi_clk=1_000_000): okay | tmp
 
     if lookdown(SCL_PIN: 0..63) and lookdown(SDIO_PIN: 0..63) and lookdown(CS_AG_PIN: 0..63) and lookdown(CS_M_PIN: 0..63) and lookdown(INT_AG_PIN: 0..63) and lookdown(INT_M_PIN: 0..63)
-        okay := spi.start (spi_clk, core#CPOL)
+        okay := spi.start (SDIO_PIN, SDIO_PIN, SCL_PIN, spi_clk, core#CPOL)
         _SCL := SCL_PIN
         _SDIO := SDIO_PIN
         _CS_AG := CS_AG_PIN

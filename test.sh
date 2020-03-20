@@ -21,5 +21,6 @@ do
         ${SPINC} -2 -L ./library "$line"
         echo
     fi
-done < <(find . -name \*.spin2)
+done < <(cat MANIFEST|grep spin2)
+#done < <(find . -name \*.spin2)
 

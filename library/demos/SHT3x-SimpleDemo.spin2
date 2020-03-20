@@ -52,6 +52,7 @@ OBJ
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
+    io      : "io"
     sht3x   : "sensor.temp_rh.sht3x.i2c.spin2"
     int     : "string.integer"
 
@@ -90,7 +91,7 @@ PUB Frac(hundredths) | whole, part
 
 PUB Setup
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear
     ser.printf("Serial terminal started\n")
@@ -98,19 +99,12 @@ PUB Setup
         ser.printf("SHT3x driver (S/N %x) started\n", sht3x.SerialNum)
     else
         ser.printf("SHT3x driver failed to start - halting")
-        Flash(LED, 500)
+        FlashLED(LED, 500)
 
     sht3x.ClearStatus
     sht3x.Heater (FALSE)
 
-#include "lib.io.spin2"
-
-PUB Flash(led_pin, delay_ms)
-
-    dir(led_pin, 1)
-    repeat
-        out(led_pin, !in(led_pin))
-        time.MSleep (delay_ms)
+#include "lib.utility.spin2"
 
 DAT
 {

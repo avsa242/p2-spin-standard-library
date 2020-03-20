@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: NRF24L01-Test-P2.spin
     Author: Jesse Burt
-    Description: Test harness for the nRF24L01+ driver (P2 version)
-    Copyright (c) 2019
+    Description: Test app for the nRF24L01+ driver (P2 version)
+    Copyright (c) 2020
     Started Nov 2, 2019
-    Updated Nov 3, 2019
+    Updated Jan 25, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -33,19 +33,20 @@ CON
     COL_READ    = COL_SET + 20
     COL_PF      = COL_READ + 20
 
-    CE_PIN      = 36
-    CSN_PIN     = 37
-    SCK_PIN     = 34
-    MOSI_PIN    = 32
-    MISO_PIN    = 33
+    CE_PIN      = 44
+    CSN_PIN     = 45
+    SCK_PIN     = 42
+    MOSI_PIN    = 40
+    MISO_PIN    = 41
 
 OBJ
 
-    cfg   : "core.con.boardcfg.p2eval"
-    ser   : "com.serial.terminal.ansi"
-    time  : "time"
-    nrf24 : "wireless.transceiver.nrf24l01.spi.spin2"
-    int   : "string.integer"
+    cfg     : "core.con.boardcfg.p2eval"
+    ser     : "com.serial.terminal.ansi"
+    time    : "time"
+    io      : "io"
+    nrf24   : "wireless.transceiver.nrf24l01.spi.spin2"
+    int     : "string.integer"
 
 VAR
 
@@ -77,7 +78,7 @@ PUB Main
     RF_CH (1)
     EN_CRC (1)
 
-    Flash (LED, 100)
+    FlashLED (LED, 100)
 
 PUB RF_PWR(reps) | tmp, read
 
@@ -93,8 +94,8 @@ PUB RF_DR(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from 0 to 2
-            nrf24.Rate (lookupz(tmp: 250, 1000, 2000))
-            read := nrf24.Rate
+            nrf24.DataRate (lookupz(tmp: 250, 1000, 2000))
+            read := nrf24.DataRate
             Message ("RF_DR", lookupz(tmp: 250, 1000, 2000), read)
 
 PUB ARC(reps) | tmp, read
@@ -129,8 +130,8 @@ PUB ENAA(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from %000_000 to %111_111
-            nrf24.EnableAuto_Ack (tmp)
-            read := nrf24.EnableAuto_Ack
+            nrf24.AutoAckEnabledPipes (tmp)
+            read := nrf24.AutoAckEnabledPipes
             Message ("ENAA", tmp, read)
 
 PUB EN_ACK_PAY(reps) | tmp, read
@@ -147,8 +148,8 @@ PUB EN_DPL(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from 0 to -1
-            nrf24.EnableDynPayload (tmp)
-            read := nrf24.EnableDynPayload
+            nrf24.DynPayloadEnabled (tmp)
+            read := nrf24.DynPayloadEnabled
             Message ("EN_DPL", tmp, read)
 
 PUB EN_DYN_ACK(reps) | tmp, read
@@ -165,8 +166,8 @@ PUB EN_RXADDR(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from %000_000 to %111_111
-            nrf24.EnablePipe (tmp)
-            read := nrf24.EnablePipe
+            nrf24.PipesEnabled (tmp)
+            read := nrf24.PipesEnabled
             Message ("EN_RXADDR", tmp, read)
 
 PUB CRCO(reps) | tmp, read
@@ -183,8 +184,8 @@ PUB CW(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from 0 to -1
-            nrf24.CW (tmp)
-            read := nrf24.CW
+            nrf24.TESTCW (tmp)
+            read := nrf24.TESTCW
             Message ("CW", tmp, read)
 
 PUB INTMASK(reps) | tmp, read
@@ -223,7 +224,7 @@ PUB EN_CRC(reps) | tmp, read
             read := nrf24.CRCCheckEnabled
             Message ("EN_CRC", tmp, read)
 
-PUB RX_ADDR | addrbyte, addr_set[2], addr_read[2], tmp, pipe, status
+PUB RX_ADDR | addr_set[2], addr_read[2], tmp, pipe, status
 
     bytefill(@addr_set, $00, 8)
     repeat pipe from 0 to 5
@@ -248,7 +249,7 @@ PUB RX_ADDR | addrbyte, addr_set[2], addr_read[2], tmp, pipe, status
             2..5:
                 ser.Hex (addr_set.byte[0], 2)
 
-        status := nrf24.Status
+        status := 0
         bytefill(@addr_read, $00, 8)
         nrf24.RXAddr (@addr_read, pipe, nrf24#READ)
         ser.Position(COL_READ, _row)
@@ -349,7 +350,7 @@ PUB PassFail(num)
 
 PUB Setup
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear
     ser.printf("Serial terminal started\n")
@@ -359,14 +360,9 @@ PUB Setup
         ser.printf("nRF24L01+ driver failed to start - halting\n")
         nrf24.Stop
         time.MSleep (500)
-        Flash(LED, 500)
+        FlashLED(LED, 500)
 
-PUB Flash(led_pin, delay_ms)
-
-    dirb[led_pin] := 1
-    repeat
-        !outb[led_pin]
-        time.MSleep (delay_ms)
+#include "lib.utility.spin2"
 
 DAT
 {
