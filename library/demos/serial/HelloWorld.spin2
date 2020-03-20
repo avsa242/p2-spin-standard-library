@@ -17,11 +17,11 @@ CON
 OBJ
 
     cfg : "core.con.boardcfg.p2eval"
-    ser : "com.serial"
+    ser : "com.serial.terminal"
 
 PUB Main
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     ser.Start(SER_BAUD)
 
     ser.Char("H")
