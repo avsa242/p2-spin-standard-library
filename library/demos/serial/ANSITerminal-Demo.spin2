@@ -132,7 +132,7 @@ PUB Demo_Text(inp_text)
 
 PUB Setup
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     repeat until ser.StartRxTx (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Reset
     ser.Clear
