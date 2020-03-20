@@ -17,12 +17,12 @@ CON
 OBJ
 
     cfg   : "core.con.boardcfg.p2eval"
-    term  : "com.serial"
+    term  : "com.serial.terminal"
     ss    : "string.type"
 
 PUB Main
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     term.Start(SER_BAUD)
 
     TestString(string("BACON"))
