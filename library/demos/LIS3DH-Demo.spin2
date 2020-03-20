@@ -1,0 +1,178 @@
+{
+    --------------------------------------------
+    Filename: LIS3DH-Demo.spin2
+    Author: Jesse Burt
+    Description: Demo of the LIS3DH driver (P2 version)
+    Copyright (c) 2020
+    Started Mar 15, 2020
+    Updated Mar 16, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    XTAL            = cfg#XTAL
+    XDIV            = cfg#XDIV
+    XMUL            = cfg#XMUL
+    XDIVP           = cfg#XDIVP
+    XOSC            = cfg#XOSC
+    XSEL            = cfg#XSEL
+    XPPPP           = cfg#XPPPP
+    CLOCKFREQ       = cfg#CLOCKFREQ
+    SETFREQ         = cfg#SETFREQ
+    ENAFREQ         = cfg#ENAFREQ
+
+' User-modifiable constants
+    LED             = cfg#LED1
+    SER_RX          = cfg#SER_RX
+    SER_TX          = cfg#SER_TX
+    SER_BAUD        = 2_000_000
+
+    CS_PIN          = 30
+    SCL_PIN         = 24
+    SDA_PIN         = 26
+    SDO_PIN         = 28
+    SCL_HZ          = 5_000_000
+
+OBJ
+
+    cfg     : "core.con.boardcfg.p2eval"
+    ser     : "com.serial.terminal.ansi"
+    time    : "time"
+    io      : "io"
+    int     : "string.integer"
+    accel   : "sensor.accel.3dof.lis3dh.spi.spin2"
+
+VAR
+
+    long _overruns
+    byte _ser_cog
+
+PUB Main | dispmode
+
+    Setup
+
+    accel.AccelADCRes(10)                                   ' 8, 10, 12 (low-power, normal, high-res, resp.)
+    accel.AccelScale(2)                                     ' 2, 4, 8, 16 (g's)
+    accel.AccelDataRate(100)                                ' 0, 1, 10, 25, 50, 100, 200, 400, 1344, 1600
+    accel.AccelAxisEnabled(%111)                            ' 0 or 1 for each bit (%xyz)
+    accel.FIFOMode(accel#BYPASS)                            ' accel#BYPASS, accel#FIFO, accel#STREAM, accel#TRIGGER
+    accel.IntThresh(1_000000)                               ' 0..16_000000 (ug's, i.e., 0..16g)
+    accel.IntMask(%100000)                                  ' Bits 5..0: Zhigh event | Zlow event | Yh|Yl|Xh|Xl
+
+    ser.HideCursor
+    dispmode := 0
+
+    ser.position(0, 3)
+    ser.printf("AccelScale: %d\n", accel.AccelScale)        ' Read back the settings from above
+    ser.printf("AccelADCRes: %d\n", accel.AccelADCRes)      '
+    ser.printf("AccelDataRate: %d\n", accel.AccelDataRate)  '
+    ser.printf("FIFOMode: %d\n", accel.FIFOMode)            '
+    ser.printf("Int thresh: %d\n", accel.IntThresh)         '
+    ser.printf("IntMask: ")                                 '
+    ser.bin(accel.IntMask, 6)                               '
+
+    repeat
+        case ser.RxCheck
+            "q", "Q":                                       ' Quit the demo
+                ser.Position(0, 15)
+                ser.printf("Halting")
+                accel.Stop
+                time.MSleep(5)
+                quit
+            "c", "C":                                       ' Perform calibration
+                Calibrate
+            "r", "R":                                       ' Change display mode: raw/calculated
+                ser.Position(0, 10)
+                repeat 2
+                    ser.ClearLine(ser#CLR_CUR_TO_END)
+                    ser.Newline
+                dispmode ^= 1
+
+        ser.Position (0, 10)
+        case dispmode
+            0: AccelRaw
+            1: AccelCalc
+
+        ser.position (0, 12)
+        ser.printf("Interrupt: %s", lookupz(accel.Interrupt >> 6: string("No "), string("Yes")))
+
+    ser.ShowCursor
+    FlashLED(LED, 100)
+
+PUB AccelCalc | ax, ay, az
+
+    repeat until accel.AccelDataReady
+    accel.AccelG (@ax, @ay, @az)
+    if accel.AccelDataOverrun
+        _overruns++
+    ser.printf("Accel micro-g: ")
+    ser.Str (int.DecPadded (ax, 10))
+    ser.Str (int.DecPadded (ay, 10))
+    ser.Str (int.DecPadded (az, 10))
+    ser.Newline
+    ser.printf("Overruns: ")
+    ser.Dec (_overruns)
+
+PUB AccelRaw | ax, ay, az
+
+    repeat until accel.AccelDataReady
+    accel.AccelData (@ax, @ay, @az)
+    if accel.AccelDataOverrun
+        _overruns++
+    ser.printf("Raw Accel: ")
+    ser.Str (int.DecPadded (ax, 7))
+    ser.Str (int.DecPadded (ay, 7))
+    ser.Str (int.DecPadded (az, 7))
+
+    ser.Newline
+    ser.printf("Overruns: ")
+    ser.Dec (_overruns)
+
+PUB Calibrate
+
+    ser.Position (0, 12)
+    ser.printf("Calibrating...")
+    accel.Calibrate
+    ser.Position (0, 12)
+    ser.printf("              ")
+
+PUB Setup
+
+    clkset(ENAFREQ, CLOCKFREQ)
+    repeat until _ser_cog := ser.StartRXTX(SER_RX, SER_TX, 0, SER_BAUD)
+    time.MSleep(30)
+    ser.Clear
+    ser.printf("Serial terminal started\n")
+    if accel.Start(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_HZ)
+        ser.printf("LIS3DH driver started\n")
+    else
+        ser.printf("LIS3DH driver failed to start - halting\n")
+        accel.Stop
+        time.MSleep(5)
+        FlashLED(LED, 500)
+
+#include "lib.utility.spin2"
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
