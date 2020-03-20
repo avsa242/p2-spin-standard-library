@@ -108,7 +108,8 @@ PUB Clear
     wordfill(_draw_buffer, _bgcolor, _buff_sz/2)
 #elseifdef SSD1351
     wordfill(_draw_buffer, _bgcolor, _buff_sz/2)
-
+#elseifdef LEDMATRIX_CHARLIEPLEXED
+    bytefill(_draw_buffer, _bgcolor, _buff_sz)
 #endif
 
 PUB ClearAll
@@ -252,6 +253,16 @@ PUB Plot (x, y, color)
     word[_draw_buffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #elseifdef SSD1351
     word[_draw_buffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+#elseifdef LEDMATRIX_CHARLIEPLEXED
+    case color
+        1:
+            byte[_draw_buffer][x + (y>>3) * _disp_width] |= (1 << (y&7))
+        0:
+            byte[_draw_buffer][x + (y>>3) * _disp_width] &= !(1 << (y&7))
+        -1:
+            byte[_draw_buffer][x + (y>>3) * _disp_width] ^= (1 << (y&7))
+        OTHER:
+            return
 #else
 #warning "No supported display types defined!"
 #endif
@@ -277,6 +288,8 @@ PUB Point (x, y)
     result := word[_draw_buffer][x + (y * _disp_width)]
 #elseifdef SSD1351
     result := word[_draw_buffer][x + (y * _disp_width)]
+#elseifdef LEDMATRIX_CHARLIEPLEXED
+    result := byte[_draw_buffer][x + (y>>3) * _disp_width] >> (y & 7)
 #else
 #warning "No supported display types defined!"
 #endif

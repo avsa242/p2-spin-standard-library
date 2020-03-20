@@ -12,6 +12,8 @@
         but may work with other charlieplexed LED boards.
     NOTE: This code uses excerpts from localroger's Conway's Game of Life demo for the same board.
 }
+#define LEDMATRIX_CHARLIEPLEXED
+#include "lib.gfx.bitmap.spin2"
 
 CON
 
@@ -24,24 +26,47 @@ OBJ
 
 VAR
 
+    long _draw_buffer
+    word _buff_sz
+    byte _disp_width, _disp_height, _disp_xmax, _disp_ymax
+
     byte _basepin
 
-PUB Start(basepin)
+PUB Start(basepin, dispbuffer_address)
 ' Set basepin for driver
 '       Valid values: 0..57
 '       Any other value returns 0
     case basepin
         0..57:
             _basepin := basepin
-            return _basepin
+            _disp_width := 8
+            _disp_height := 7
+            _disp_xmax := _disp_width-1
+            _disp_ymax := _disp_height-1
+            _buff_sz := (_disp_width * _disp_height) / 8
+            Address(dispbuffer_address)
+            return _basepin+1
         OTHER:
             return 0
 
+PUB Address(addr=-2)
+' Set framebuffer address
+    case addr
+        $0004..$7FFFF-_buff_sz:
+            _draw_buffer := addr
+        OTHER:
+            return _draw_buffer
+
+PUB Update
+' Send the display buffer to the display
+    WriteBuffer(_draw_buffer)
+
 PUB WriteBuffer(buff_addr) | row, outmask, dirmask, mask_matrix
+' Send an alternate buffer to the display
 ' Charlieplex the regularized bitmap to the LED matrix
-    mask_matrix := DIRX_ALL ^ (BITS_MATRIX << _basepin)    ' Preserve all DIRx bits except the ones for the matrix
-    repeat row from 0 to 7                              ' Charlieplex row, not bitmap row
-        outmask := 1 << row                             ' outx byte gets only the positive drive bit on, all others off
+    mask_matrix := DIRX_ALL ^ (BITS_MATRIX << _basepin)     ' Preserve all DIRx bits except the ones for the matrix
+    repeat row from 0 to 7                                  ' Charlieplex row, not bitmap row
+        outmask := 1 << row                                 ' outx byte gets only the positive drive bit on, all others off
         'dirx must get the positive drive bit and all others that are set in the bitmap
         'each charlieplex row consists of left and right parts of two bitmap rows
         'at the top and bottom nonexistent bitmap rows are loaded, but then are masked out
