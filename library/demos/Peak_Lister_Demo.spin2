@@ -45,10 +45,11 @@ CON
 
 
 OBJ
-    ser: "com.serial"
+    ser: "com.serial.terminal"
     siggen: "signal.synth.noise"
     acq: "signal.adc.smartpin"
     fft: "signal.fft.windowed"
+    delay : "time"
 
 VAR
     long  sampling_rate
@@ -74,8 +75,8 @@ VAR
 
 PUB main | i, j, k, pk_count
     clkset (OSCMODE, FREQ)
-    pausems (10)
-    ser.Startx (63, 62, 0, BAUD)
+    delay.MSleep (10)
+    ser.StartRXTX (63, 62, 0, BAUD)
     sampling_rate := (freq / ADC_CYCLES) >> ADC_READING_REPEAT_SHIFT
 
     ser.Str (string ("FFT peak detector, sampling at "))
@@ -96,7 +97,7 @@ PUB main | i, j, k, pk_count
     acquire_start := @ACQ_ready_flag
 
     acq.start (@ACQ_N)
-    pausems(2)
+    delay.MSleep(2)
 
     byte[@FFT_operation][0]  := 0
     byte[@FFT_operation][1]  := FIXINT  '    fixint
@@ -112,7 +113,7 @@ PUB main | i, j, k, pk_count
     fft_start := @FFT_operation
 
     fft.start (@FFT_operation)
-    pausems(2)
+    delay.MSleep(2)
 
     lutcode := @average
     window_params := @window_mu2
@@ -124,7 +125,7 @@ PUB main | i, j, k, pk_count
     cognew (@entry, @scratch)
 
     repeat
-        pausems(1000)
+        delay.MSleep(1000)
 	repeat until peaks_ready <> 0
 
         pk_count := peaks_list[0]

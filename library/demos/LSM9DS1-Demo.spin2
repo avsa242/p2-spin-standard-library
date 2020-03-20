@@ -41,6 +41,7 @@ OBJ
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
+    io      : "io"
     imu     : "sensor.imu.9dof.lsm9ds1.3wspi.spin2"
     int     : "string.integer"
 
@@ -52,11 +53,11 @@ PUB Main
 
     Setup
 
-    waitkey(string("Press any key to calibrate Accelerometer & Gyroscope...", ser#NL))
+    waitkey(string("Press any key to calibrate Accelerometer & Gyroscope...", ser#CR))
     ser.printf("Calibrating...")
     imu.CalibrateAG
 
-    waitkey(string("Press any key to calibrate Magnetometer", ser#NL))
+    waitkey(string("Press any key to calibrate Magnetometer", ser#CR))
     ser.printf("Calibrating...")
     imu.CalibrateMag (10)
 
@@ -143,21 +144,14 @@ PUB Setup
         ser.printf("LSM9DS1 driver started\n")
     else
         ser.printf("LSM9DS1 driver failed to start- halting\n")
-        Flash(LED, 500)
+        FlashLED(LED, 500)
 
 PUB waitkey(message)
 
     ser.Str (message)
     ser.CharIn
 
-#include "lib.io.spin2"
-
-PUB Flash(led_pin, delay_ms)
-
-    dir(led_pin, 1)
-    repeat
-        out(led_pin, !in(led_pin))
-        time.MSleep (delay_ms)
+#include "lib.utility.spin2"
 
 DAT
 {
