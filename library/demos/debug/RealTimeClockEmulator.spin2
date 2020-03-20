@@ -24,7 +24,7 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     clock   : "debug.emulator.rtc"
-    term    : "com.serial"
+    term    : "com.serial.terminal"
 
 VAR
 
@@ -34,7 +34,7 @@ VAR
 
 PUB Main
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     term.Start(SER_BAUD)                            ' Initialize termial communication to the PC
 
     Clock.Start(@TimeString)                        ' Initiate Prop Clock
