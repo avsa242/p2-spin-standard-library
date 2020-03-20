@@ -77,7 +77,15 @@ PUB Main | choice
     ser.printf("Data rate: %dbps\n", cc2500.DataRate(-2))
     ser.printf("Freq deviation: %dHz\n", cc2500.FreqDeviation(-2))
     ser.printf("RX Bandwidth: %dkHz\n", cc2500.RXBandwidth(-2))
-    ser.printf("Modulation: %s\n", lookupz(cc2500.Modulation(-2): string("FSK2"), string("GFSK"), string("???"), string("ASK/OOK"), string("FSK4"), string("???"), string("???"), string("MSK")))
+    ser.printf("Modulation: ")
+
+    case cc2500.Modulation(-2)
+        0: ser.printf("FSK2")
+        1: ser.printf("GFSK")
+        3: ser.printf("ASK/OOK")
+        4: ser.printf("FSK4")
+        7: ser.printf("MSK")
+        OTHER: ser.printf("???")
 
     ser.PrintF("Press any key to begin receiving\n")
     ser.CharIn
