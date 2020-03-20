@@ -45,48 +45,46 @@ VAR
 PUB Start(MOSI, MISO, SCK, spi_clock, CPOL=0): okay
 
     _CPOL := CPOL
-    dir(MOSI, 1)
+    _dir(MOSI, 1)
     if MISO <> -1
-        dir(MISO, 0)
-    dir(SCK, 1)
+        _dir(MISO, 0)
+    _dir(SCK, 1)
     _clock_delay := ((clkfreq / spi_clock) / 7) #> 2 ' xxx minimum??
     okay := cogid + 1
 
 PUB Read(MISO, SCK, mode, nr_bits)
 
-    dir(MISO, 0)                                            ' Make MISO input
-    out(SCK, _CPOL)                                         ' Set initial clock state/clock polarity
-    dir(SCK, 1)                                             ' Make SCK output
+    _dir(MISO, 0)                                            ' Make MISO input
+    out_(SCK, _CPOL)                                         ' Set initial clock state/clock polarity
+    _dir(SCK, 1)                                             ' Make SCK output
 
     result := 0
 
     case_fast mode
         MSBPRE:
             repeat nr_bits
-                result := (result << 1) | in(MISO)  'xxx _pinr not recognized??
+                result := (result << 1) | _pinr(MISO)
                 PostClock(SCK)
 
         LSBPRE:
             repeat nr_bits + 1
-                result := (result >> 1) | (in(MISO) << 31)
+                result := (result >> 1) | (_pinr(MISO) << 31)
                 PostClock(SCK)
                 result >>= (32 - nr_bits)
 
         MSBPOST:
             repeat nr_bits
                 PreClock(SCK)
-                result := (result << 1) | in(MISO)
+                result := (result << 1) | _pinr(MISO)
 
 
         LSBPOST:
             repeat nr_bits + 1
                 PreClock(SCK)
-                result := (result >> 1) | (in(MISO) << 31)
+                result := (result >> 1) | (_pinr(MISO) << 31)
                 result >>= (32 - nr_bits)
 
     return result
-
-PUB ShiftIn = Read
 
 PUB Write(MOSI, SCK, mode, nr_bits, val) | clk_delay, tmp
 ' ~ 6.6MHz max
@@ -108,63 +106,6 @@ PUB Write(MOSI, SCK, mode, nr_bits, val) | clk_delay, tmp
             outl SCK                    '2
         loop
     endasm
-
-PUB ShiftOut = Write
-
-PRI in(pin): state
-
-{    case pin
-        0..31:                                                                                                   
-'            return ina[pin]    'This doesn't work??
-'            return $DEAD0001
-            asm
-                testp   pin     wc
-                wrc     state
-            endasm
-            state := ina[pin]
-        32..63:
-'            return inb[pin]    'ditto
-'            return $DEAD0002
-            state := inb[pin]
-        OTHER:
-            state := 0
-}
-    asm
-        testp   pin     wc
-        wrc     state
-    endasm
-
-    return state
-
-PRI input(pin)
-
-    asm
-        dirl pin
-    endasm
-
-PRI output(pin)
-
-    asm
-        dirh pin
-    endasm
-
-PRI dir(pin, direction)
-
-    case_fast pin
-        0..31:
-            dira[pin] := direction
-        32..63:
-            dirb[pin] := direction
-        OTHER: return
-
-PRI out(pin, state)
-
-    case_fast pin
-        0..31:
-            outa[pin] := state
-        32..63:
-            outb[pin] := state
-        OTHER: return
 
 PRI postClock(SCK) | clkd
 
