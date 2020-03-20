@@ -17,14 +17,14 @@ CON
 OBJ
 
     cfg   : "core.con.boardcfg.p2eval"
-    term  : "com.serial"
+    term  : "com.serial.terminal"
     fp    : "math.float.extended"
     fs    : "string.float"
     num   : "string.integer"
 
 PUB Main | idx, a
 
-    clkset(ENAFREQ, CLOCKFREQ, XSEL)
+    clkset(ENAFREQ, CLOCKFREQ)
     term.Start(SER_BAUD)
 
     term.Str(string("f(x) = log(x), x = (1,20)", 10, 13))
