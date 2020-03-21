@@ -188,10 +188,6 @@ PUB MoveUp(rows=1)
     Dec(rows)
     Char("A")
 
-PUB NewLine
-' Move cursor to beginning of next line
-    Str(string(LF, CR))
-
 PUB Overline
 ' Set Overline attribute
     SGR(SGR_OVERLINED)
