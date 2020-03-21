@@ -10,7 +10,7 @@
    DecUns(d)      : Print an unsigned decimal number
    Hex(d, n)      : Print a hex number with n digits (n defaults to 8)
    Bin(d, n)      : Print a binary number with n digits (n defaults to 32)
-   NewLine        : Print a carriage return and newline
+   NewLine        : Print a carriage return and line-feed
    PrintF(s, ...) : Like C printf
 }}
 
@@ -62,6 +62,11 @@ PUB Hex(val, digits = 8) | mask
         mask := (|< (4*digits)) - 1
         val &= mask
     Num(val, 16, 0, digits)
+
+PUB NewLine
+' Print a carriage return and line-feed
+    Char(CR)
+    Char(LF)
 
 PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
 ' Print an number with a given base
@@ -153,8 +158,8 @@ PUB PrintF(fmt = string(""), an=0, bn=0, cn=0, dn=0, en=0, fn=0) | c, valptr, va
                 quit
             case c
                 "n": NewLine
-                "r": Char(13)
-                "t": Char(8)
+                "r": Char(CR)
+                "t": Char(BS)
                 other: Char(c)
         else
             Char(c)
