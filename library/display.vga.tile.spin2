@@ -1,3 +1,15 @@
+{
+    --------------------------------------------
+    Filename: display.vga.tile.spin2
+    Author: Eric Smith
+    Modified by: Jesse Burt
+    Description: Tiling VGA text driver
+    Started Nov 13, 2019
+    Updated Mar 21, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
 {{
 '******************************
 '*  VGA tiled image driver

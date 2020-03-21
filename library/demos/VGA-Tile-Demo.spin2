@@ -1,3 +1,15 @@
+{
+    --------------------------------------------
+    Filename: VGA-Tile-Demo.spin2
+    Author: Eric Smith
+    Modified by: Jesse Burt
+    Description: Demo of the tiling VGA text driver
+    Started Nov 13, 2019
+    Updated Mar 21, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
 ''
 '' clock frequency settings
 '' for 640x480 we use a 25 MHz pixel clock
@@ -26,6 +38,7 @@ CON
     sys_clock_freq  = _CLOCKFREQ
     sys_clock_mode  = _SETFREQ
 
+' User-modifiable constants
     LED             = cfg#LED1
     SER_RX          = cfg#SER_RX
     SER_TX          = cfg#SER_TX
