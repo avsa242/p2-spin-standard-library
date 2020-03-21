@@ -79,11 +79,6 @@ PUB MoveUp(y)
     repeat y
         ser.Char(MU)
 
-PUB NewLine
-' Print a newline
-    ser.Char(CR)
-    ser.Char(LF)
-
 PUB ReadLine(line, maxline) : size | c
 
     repeat
