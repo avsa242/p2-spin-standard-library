@@ -1,0 +1,16 @@
+CON
+' Timings for 800x600, 100x40 text
+    COLS            = 100
+    ROWS            = 40
+    FONT_HEIGHT     = 15
+    CELL_SIZE       = 1  ' bytes per character: use 4 for 8bpp colors, 8 for 24bpp colors
+
+    PIX_CLKFREQ     = 40_000_000
+    H_FP            = 40
+    HSYNC           = 128
+    H_BP            = 88
+    V_FP            = 1
+    VSYNC_LINES     = 4
+    V_BP            = 23
+    POLARITY        = %00   '%VH
+
