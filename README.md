@@ -17,6 +17,7 @@ At the time of this writing, they are:
 * [sensor.temp_rh](api/sensor.temp_rh.md): Temperature and humidity sensors
 * [wireless.transceiver](api/wireless.transceiver.md): RF Packet radios for sending and receiving data wirelessly
 
+Note that since this is preliminary there may be many methods listed that are specific to a certain driver that aren't present in others. Some devices have additional capability that others don't. These lists will be culled to remove any that aren't common to all or can't be emulated with reasonable effort.
 
 ## Intended audience
 
