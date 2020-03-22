@@ -31,7 +31,7 @@ As with anything though, your mileage may vary!
 
 ## Compiler compatibility
 
-The library is written with FastSpin in mind, as it is available on all platforms. Some objects may work with PNut, but some use preprocessor macros or FastSpin-specific features so will not be compatible out-of-the-box PNut. As the SPIN2 language definition settles and the existing compilers become more unified, more code should begin to work on Parallax's official internal tool.
+The library is written with FastSpin in mind, as it is available on all platforms. Some objects may work with PNut, but some use preprocessor macros or FastSpin-specific features so will not be compatible out-of-the-box with PNut. As the SPIN2 language definition settles and the existing compilers become more unified, more code should begin to work on Parallax's official internal tool.
 
 ## Contributing
 
