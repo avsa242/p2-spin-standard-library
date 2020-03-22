@@ -44,7 +44,7 @@ VAR
 
 OBJ
 
-  serial : "com.serial.terminal"
+  serial : "com.serial.bitbang"
 
 PUB Start(pin, baud, lines): okay
 

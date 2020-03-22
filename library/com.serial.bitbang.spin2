@@ -1,0 +1,86 @@
+{                                                                                                                   
+    --------------------------------------------
+    Filename: com.serial.bitbang.spin2
+    Author: Eric Smith
+    Modified by: Jesse Burt
+    Description: Bitbanged UART serial driver
+    Copyright (c) 2020
+    Started Mar 22, 2020
+    Updated Mar 22, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+'    NOTE: This is a modified version of SimpleSerial.spin2, originally by
+'       Eric Smith. The conditionally-included PC-based code has been removed,
+'       and the builtin extended terminal functions (Hex, Str, etc) have been
+'       replaced with those provided in the terminal library (lib.terminal.spin2)
+
+''
+'' serial port definitions
+''
+'' this is for a very simple serial port
+'' also note: if PC is defined then we
+'' substitute some C code instead
+''
+VAR
+
+    byte txpin
+    byte rxpin
+    long baud
+    long txmask
+    long rxmask
+    long bitcycles
+
+''
+'' code: largely taken from FullDuplexSerial.spin
+''
+
+PUB StartRXTX(rx_pin, tx_pin, mode, baudrate)
+
+    baud := baudrate
+    bitcycles := clkfreq / baudrate
+    txpin := tx_pin
+    txmask := (1<<txpin)
+    rxpin := rx_pin
+    rxmask := (1<<rxpin)
+    return 1
+
+PUB Char(c) | val, waitcycles
+
+    OUTB |= txmask
+    DIRB |= txmask
+    val := (c | 256) << 1
+    waitcycles := CNT + bitcycles
+    repeat 10
+        waitcycles += bitcycles
+        waitcnt(waitcycles)
+        if (val & 1)
+            OUTB |= txmask
+        else
+            OUTB &= !txmask
+        val >>= 1
+
+PUB CharIn | waitcycles, cycles, mask, val, x
+
+    mask := rxmask
+    cycles := bitcycles
+    DIRB &= !mask  ' set for input
+    '' wait for start bit
+    repeat
+        x := INB
+    while ( (x & mask) <> 0 )
+    val := $0
+    waitcycles := CNT + (cycles >> 1)  '' sync for one half bit
+    repeat 8
+        val := val >> 1
+        waitcnt(waitcycles += cycles)
+        x := INB
+        if ( (x & mask) <> 0 )
+            val |= $80
+    '' wait for stop bit?
+    '' skip it for now
+    '' waitpeq(mask, mask, 0)
+    return val
+
+' Extend driver with basic terminal functions:
+#include "lib.terminal.spin2"
