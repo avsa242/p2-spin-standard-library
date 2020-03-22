@@ -31,7 +31,7 @@ As with anything though, your mileage may vary!
 
 ## Compiler compatibility
 
-The library is written with OpenSpin in mind. Some objects use preprocessor macros so will not be compatible out-of-the-box with the Propeller Tool, or Brad's Spin Tool (bstc). FastSpin will generally work fine as well, though because it produces native code instead of SPIN bytecode, the resulting programs will be *much* larger. Some demos in this library may simply not fit in RAM as a result.
+The library is written with FastSpin in mind, as it is available on all platforms. Some objects may work with PNut, but some use preprocessor macros or FastSpin-specific features so will not be compatible out-of-the-box PNut. As the SPIN2 language definition settles and the existing compilers become more unified, more code should begin to work on Parallax's official internal tool.
 
 ## Contributing
 
