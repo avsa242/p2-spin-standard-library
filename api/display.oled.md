@@ -20,7 +20,7 @@ NOTE: Most display drivers are extended with the generic bitmap graphics library
 |`COMHighLogicLevel (level)`                    | Set logic high level threshold of COM pins rel. to Vcc                                |
 |`COMPinCfg`                                    | Configure COMmon pins and L/R remap                                                   |
 |`Contrast`                                     | Set display contrast/brightness                                                       |
-|`ContrastABC (a, b, c)                         | Set contrast/brightness level of subpixels a, b, c                                    |
+|`ContrastABC (a, b, c)`                        | Set contrast/brightness level of subpixels a, b, c                                    |
 |`CopyAccel (sx, sy, ex, ey, dx, dy)`           | Use the display's accelerated Copy Region function                                    |
 |`Defaults`                                     | Apply power-on-reset default settings                                                 |
 |`DefaultsCommon`                               | Apply settings that may be more commonly used but differ from factory settings        |
