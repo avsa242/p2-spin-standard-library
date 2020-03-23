@@ -51,8 +51,8 @@ PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000)
 
     _scl := I2C_SCL
     _sda := I2C_SDA
-    fltl_ (_scl)                                                ' Float pins
-    fltl_ (_sda)
+    _dir(_scl, 0)                                              ' Float pins
+    _dir(_sda, 0)
     Reset
     result := cogid + 1
     return
@@ -66,21 +66,21 @@ PUB Present(slave_addr)
 PUB Read(ackbit) | i2cbyte
 ' Read byte from I2C bus
 '      Send ackbit to slave: ACK (0) or NAK (1)
-    dira[_sda] := 0                                             ' Make SDA input
+    _dir(_sda, 0)                                             ' Make SDA input
 
     repeat 8
         qd
-        fltl_(_scl)                                             ' Float SCL
+        _dir(_scl, 0)                                         ' Float SCL
         hd
-        i2cbyte := (i2cbyte << 1) | ina[_sda]                   ' Read the bit
-        dirh_(_scl)                                             ' SCL low
+        i2cbyte := (i2cbyte << 1) | _pinr(_sda)               ' Read the bit
+        _dir(_scl, 1)                                         ' SCL low
         qd
 
-    dira[_sda] := !ackbit                                       ' Output ack bit
+    _dir(_sda, !ackbit)                                       ' Output ack bit
     qd
-    fltl_(_scl)                                                 ' Float SCL
+    _dir(_scl, 0)                                             ' Float SCL
     hd
-    dirh_(_scl)                                                 ' SCL low
+    _dir(_scl, 1)                                             ' SCL low
     qd
 
     return (i2cbyte & $FF)
@@ -88,35 +88,35 @@ PUB Read(ackbit) | i2cbyte
 PUB Reset
 ' Reset device
     repeat 9
-        dirh_(_scl)
+        _dir(_scl, 1)
         hd
-        fltl_(_scl)
+        _dir(_scl, 0)
         hd
-        if (ina[_sda])
+        if (_pinr(_sda))
             quit
 
 PUB Start
 ' I2C Start condition (S, Sr)
 ' -- will wait if I2C bus SDA pin is held low
-    fltl_(_sda)                                                 ' Float pins
-    fltl_(_scl)
+    _dir(_sda, 0)                                               ' Float pins
+    _dir(_scl, 0)
     repeat
-    while (ina[_scl] == 0)                                      ' Allow "clock stretching"
+    while (_pinr(_scl) == 0)                                    ' Allow "clock stretching"
     hd
-    dirh_(_sda)                                                 ' SDA low
+    _dir(_sda, 1)                                               ' SDA low
     hd
-    dirh_(_scl)                                                 ' SCL low
+    _dir(_scl, 1)                                               ' SCL low
     hd
 
 PUB Stop
 ' I2C Stop condition (P)
-    dirh_(_sda)                                                 ' SDA low
+    _dir(_sda, 1)                                               ' SDA low
     hd
-    fltl_(_scl)                                                 ' Float SCL
+    _dir(_scl, 0)                                               ' Float SCL
     hd
     repeat
-    until (ina[_scl] == 1)                                      ' Hold for clock stretch
-    fltl_(_sda)                                                 ' Float SDA
+    until (_pinr(_scl) == 1)                                    ' Hold for clock stretch
+    _dir(_sda, 0)                                               ' Float SDA
     hd
 
 PUB Wait(slave_addr) | ackbit
@@ -146,17 +146,17 @@ PUB Write(i2cbyte) | ackbit
 ' -- leaves SCL low
     i2cbyte := (i2cbyte ^ $FF) << 24                             ' Move msb (bit7) to bit31
     repeat 8                                                     ' Output eight bits
-        dira[_sda] := i2cbyte <-= 1                              ' Send msb first
-        hd'
-        fltl_(_scl)                                              ' Float SCL
+        _dir(_sda, i2cbyte <-= 1)                                ' Send msb first
         hd
-        dirh_(_scl)                                              ' SCL low
-    fltl_(_sda)                                                  ' Release SDA to read ack bit
+        _dir(_scl, 0)                                            ' Float SCL
+        hd
+        _dir(_scl, 1)                                            ' SCL low
+    _dir(_sda, 0)                                                ' Release SDA to read ack bit
     hd
-    fltl_(_scl)                                                  ' Float SCL
+    _dir(_scl, 0)                                                ' Float SCL
     hd
-    ackbit := ina[_sda]                                          ' Read ack bit
-    dirh_(_scl)                                                  ' SCL low
+    ackbit := _pinr(_sda)                                        ' Read ack bit
+    _dir(_scl, 1)                                                ' SCL low
     return ackbit
 
 PRI hd
