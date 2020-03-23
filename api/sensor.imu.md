@@ -1,7 +1,7 @@
 # sensor.imu
 ------------
 
-API for sensor.imu device drivers
+API for IMU, accelerometer, gyroscope, and magnetometer device drivers
 
 ## Methods
 

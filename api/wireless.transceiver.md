@@ -1,7 +1,7 @@
 # wireless.transceiver
 ----------------------
 
-API for wireless.transceiver device drivers
+API for packet radio and other RF transceiver device drivers
 
 ## Methods
 
