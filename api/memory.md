@@ -3,6 +3,16 @@
 
 API for memory device drivers
 
+Object filename description:
+
+memory.type.series.int
+
+_type_ is one of: eeprom, flash, fram, sram
+
+_series_ indicates the manufacturer's series number of the memory (e.g., 23lcxxxx)
+
+_int_ indicates the type of interface supported by the driver (e.g., spi, i2c, uart)
+
 ## Methods
 
 | Method                                        | Description                                         |

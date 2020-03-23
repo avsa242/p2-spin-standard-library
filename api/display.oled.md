@@ -3,6 +3,16 @@
 
 API for OLED and LCD display device drivers
 
+Object filename description:
+
+display.type.model.int
+
+_type_ is one of: oled, lcd
+
+_model_ indicates the manufacturer's model number of the display controller
+
+_int_ indicates the type of interface supported by the driver (e.g., spi, i2c, uart)
+
 NOTE: Most display drivers are extended with the generic bitmap graphics library [API](lib.gfx.bitmap.md), which is included in each driver using the preprocessor. This library provides methods for drawing primitives, such as pixels, lines, boxes, circles, text. The use of this requires a display buffer to be allocated at the application level. The size will of course depend on the resolution of the display and color depth. The address of the display buffer is then passed to the graphics library via the display driver's Start()  method.
 
 ## Methods

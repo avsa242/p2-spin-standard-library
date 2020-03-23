@@ -3,6 +3,16 @@
 
 API for packet radio and other RF transceiver device drivers
 
+Object filename description:
+
+wireless.transceiver.model.int
+
+_transceiver_ is one of: transceiver, transmitter, receiver
+
+_model_ indicates the manufacturer's model number of the device
+
+_int_ indicates the type of interface supported by the driver (e.g., spi, i2c, uart)
+
 ## Methods
 
 | Method                                | Description                                                   |

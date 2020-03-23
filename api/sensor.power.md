@@ -3,6 +3,16 @@
 
 API for power consumption/metering device drivers
 
+Object filename description:
+
+sensor.type.model.int
+
+_type_ is one of: power, current
+
+_model_ indicates the manufacturer's model number of the device
+
+_int_ indicates the type of interface supported by the driver (e.g., spi, i2c, uart)
+
 ## Methods
 
 | Method                                        | Description                                   |
