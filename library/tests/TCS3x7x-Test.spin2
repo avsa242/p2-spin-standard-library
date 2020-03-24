@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: TCS347x-Test.spin2
+    Filename: TCS3x7x-Test.spin2
     Author: Jesse Burt
-    Description: Test app for the TCS347x driver (P2 version)
-    Copyright (c) 2019
+    Description: Test app for the TCS3x7x driver (P2 version)
+    Copyright (c) 2020
     Started Nov 12, 2019
-    Updated Nov 13, 2019
+    Updated Mar 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -33,16 +33,17 @@ CON
     COL_READ    = 24
     COL_PF      = 40
 
-    I2C_SCL     = 27
-    I2C_SDA     = 28
+    I2C_SCL     = 12
+    I2C_SDA     = 11
     I2C_HZ      = 400_000
+    WHITE_LED   = 14
 
 OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
-    rgb     : "sensor.color.tcs347x.i2c.spin2"
+    rgb     : "sensor.color.tcs3x7x.i2c.spin2"
     int     : "string.integer"
     io      : "io"
 
@@ -53,7 +54,8 @@ VAR
 
 PUB Main | tmp, i, retval
 
-    io.low(32)
+    io.Low(WHITE_LED)
+    io.Output(WHITE_LED)
     Setup
     ser.NewLine
     _row := 3
@@ -105,9 +107,9 @@ PUB AEN(reps) | tmp, read
 
     _row++
     repeat reps
-        repeat tmp from -1 to 0
-            rgb.SensorEnabled(tmp)
-            read := rgb.SensorEnabled
+        repeat tmp from 0 to 1
+            rgb.OpMode(tmp)
+            read := rgb.OpMode
             Message ("AEN", tmp, read)
 
 PUB PON(reps) | tmp, read
@@ -115,8 +117,8 @@ PUB PON(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from -1 to 0
-            rgb.Power(tmp)
-            read := rgb.Power
+            rgb.Powered(tmp)
+            read := rgb.Powered
             Message ("PON", tmp, read)
 
 PUB PERS(reps) | tmp, read
@@ -151,8 +153,8 @@ PUB AIEN(reps) | tmp, read
     _row++
     repeat reps
         repeat tmp from -1 to 0
-            rgb.Interrupts(tmp)
-            read := rgb.Interrupts
+            rgb.IntsEnabled(tmp)
+            read := rgb.IntsEnabled
             Message ("AIEN", tmp, read)
 
 PUB ATIME(reps) | tmp, read, cal
@@ -236,19 +238,14 @@ PUB Setup
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear
     ser.printf("Serial terminal started\n")
-    if rgb.Startx(I2C_SCL, I2C_SDA, I2C_HZ)
-        ser.printf("TCS347x driver started\n")
+    if rgb.Start(I2C_SCL, I2C_SDA, I2C_HZ)
+        ser.printf("TCS3x7x driver started\n")
     else
-        ser.printf("TCS347x driver failed to start - halting\n")
+        ser.printf("TCS3x7x driver failed to start - halting\n")
         time.MSleep (500)
         FlashLED(LED, 500)
 
-PUB FlashLED(led_pin, delay_ms)
-
-    io.Output(led_pin)
-    repeat
-        io.Toggle(led_pin)
-        time.MSleep (delay_ms)
+#include "lib.utility.spin2"
 
 DAT
 {
