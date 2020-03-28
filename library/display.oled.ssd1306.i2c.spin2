@@ -3,9 +3,9 @@
     Filename: display.oled.ssd1306.i2c.spin2
     Description: Driver for Solomon Systech SSD1306 I2C OLED display drivers (P2 version)
     Author: Jesse Burt
-    Copyright (c) 2018
+    Copyright (c) 2020
     Created: Apr 26, 2018
-    Updated: Dec 28, 2019
+    Updated: Mar 28, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,6 +20,11 @@ CON
     DEF_HZ          = 400_000
     MAX_COLOR       = 1
 
+' Display visibility modes
+    NORMAL          = 0
+    ALL_ON          = 1
+    INVERTED        = 2
+
 OBJ
 
     core    : "core.con.ssd1306"
@@ -28,7 +33,7 @@ OBJ
 
 VAR
 
-    long _draw_buffer
+    long _ptr_framebuffer
     word _buff_sz
     byte _disp_width, _disp_height, _disp_xmax, _disp_ymax
     byte _sa0
@@ -62,13 +67,13 @@ PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, dispbuffer_address, SLAVE_LSB
 
 PUB Stop
 
-    DisplayOff
+    Powered(FALSE)
 
 PUB Defaults
-
-    DisplayOff
-    OSCFreq (372)
-    DisplayLines(_disp_height)
+' Apply power-on-reset default settings
+    Powered(FALSE)
+    ClockFreq (372)
+    DisplayLines(_disp_height-1)
     DisplayOffset(0)
     DisplayStartLine(0)
     ChargePumpReg(TRUE)
@@ -85,25 +90,17 @@ PUB Defaults
     Contrast(127)
     PrechargePeriod (1, 15)
     COMLogicHighLevel (0_77)
-    EntireDisplayOn(FALSE)
-    InvertDisplay(FALSE)
-    ColumnStartEnd (0, _disp_width-1)
-    case _disp_height
-        32:
-            PageRange (0, 3)
-        64:
-            PageRange (0, 7)
-        OTHER:
-            PageRange (0, 3)
-    DisplayOn
+    DisplayVisibility(NORMAL)
+    DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
+    Powered(TRUE)
 
 PUB Address(addr=-2)
 ' Set framebuffer address
     case addr
         $0004..$7FFFF-_buff_sz:
-            _draw_buffer := addr
+            _ptr_framebuffer := addr
         OTHER:
-            return _draw_buffer
+            return _ptr_framebuffer
 
 PUB AddrMode(mode)
 ' Set Memory Addressing Mode
@@ -118,11 +115,6 @@ PUB AddrMode(mode)
             return
 
     writeReg(core#CMD_MEM_ADDRMODE, 1, mode)
-
-PUB BufferSize
-' Display buffer size
-'   Returns: Size of display buffer, in bytes
-    return _buff_sz
 
 PUB ChargePumpReg(enabled)
 ' Enable Charge Pump Regulator when display power enabled
@@ -139,21 +131,18 @@ PUB ChargePumpReg(enabled)
 PUB ClearAccel
 ' Dummy method
 
-PUB ColumnStartEnd(column_start, column_end)
-' Set display visible start and end columns
-'   Valid values: 0..127
+PUB ClockFreq(kHz)
+' Set display internal oscillator frequency, in kHz
+'   Valid values: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407
 '   Any other value is ignored
-    case column_start
-        0..127:
+'   NOTE: Range is interpolated, based solely on the range specified in the datasheet, divided into 16 steps
+    case kHz
+        core#FOSC_MIN..core#FOSC_MAX:
+            kHz := lookdownz(kHz: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407) << core#FLD_OSCFREQ
         OTHER:
-            column_start := 0
+            return
 
-    case column_end
-        0..127:
-        OTHER:
-            column_end := 127
-
-    writeReg(core#CMD_SET_COLADDR, 2, (column_end << 8) | column_start)
+    writeReg(core#CMD_SETOSCFREQ, 1, kHz)
 
 PUB COMLogicHighLevel(level)
 ' Set COMmon pins high logic level, relative to Vcc
@@ -204,6 +193,26 @@ PUB Contrast(level)
 
     writeReg(core#CMD_CONTRAST, 1, level)
 
+PUB DisplayBounds(sx, sy, ex, ey)
+' Set displayable area
+    ifnot lookup(sx: 0..127) or lookup(sy: 0..63) or lookup(ex: 0..127) or lookup(ey: 0..63)
+        return
+
+    sy >>= 3
+    ey >>= 3
+    writeReg(core#CMD_SET_COLADDR, 2, (ex << 8) | sx)
+    writeReg(core#CMD_SET_PAGEADDR, 2, (ey << 8) | sy)
+
+PUB DisplayInverted(enabled) | tmp
+' Invert display colors
+    case ||enabled
+        0:
+            DisplayVisibility(NORMAL)
+        1:
+            DisplayVisibility(INVERTED)
+        OTHER:
+            return FALSE
+
 PUB DisplayLines(lines)
 ' Set total number of display lines
 '   Valid values: 16..64
@@ -216,14 +225,6 @@ PUB DisplayLines(lines)
             return
 
     writeReg(core#CMD_SETMUXRATIO, 1, lines)
-
-PUB DisplayOn
-' Power on display
-    writeReg(core#CMD_DISP_ON, 0, 0)
-
-PUB DisplayOff
-' Power off display
-    writeReg(core#CMD_DISP_OFF, 0, 0)
 
 PUB DisplayOffset(offset)
 ' Set display offset/vertical shift
@@ -247,31 +248,18 @@ PUB DisplayStartLine(start_line)
 
     writeReg($40, 0, start_line)
 
-PUB EntireDisplayOn(enabled)
-' Set all display pixels
-'   Valid values:
-'       TRUE (-1 or 1): Turn on all display pixels
-'       FALSE (0): Normal display
-'   NOTE: This has no effect on current display buffer contents, or display's internal RAM contents
-    case ||enabled
-        0, 1:
-            enabled := ||enabled
+PUB DisplayVisibility(mode) | tmp
+' Set display visibility
+    case mode
+        NORMAL:
+            writeReg (core#CMD_RAMDISP_ON, 0, 0)
+            writeReg (core#CMD_DISP_NORM, 0, 0)
+        ALL_ON:
+            writeReg (core#CMD_RAMDISP_ON, 0, 1)
+        INVERTED:
+            writeReg (core#CMD_DISP_NORM, 0, 1)
         OTHER:
-            return
-
-    writeReg(core#CMD_RAMDISP_ON, 0, enabled)
-
-PUB InvertDisplay(enabled)
-' Invert display
-'   Valid values: TRUE (-1 or 1), *FALSE (0)
-'   Any other value is ignored
-    case ||enabled
-        0, 1:
-            enabled := ||enabled
-        OTHER:
-            return
-
-    writeReg(core#CMD_DISP_NORM, 0, enabled)
+            return FALSE
 
 PUB MirrorH(enabled)
 ' Mirror display, horizontally
@@ -298,32 +286,14 @@ PUB MirrorV(enabled)
 
     writeReg(core#CMD_COMDIR_NORM, 0, enabled)
 
-PUB OSCFreq(kHz)
-' Set Oscillator frequency, in kHz
-'   Valid values: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407
-'   Any other value is ignored
-'   NOTE: Range is interpolated, based solely on the range specified in the datasheet, divided into 16 steps
-    case kHz
-        core#FOSC_MIN..core#FOSC_MAX:
-            kHz := lookdownz(kHz: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407) << core#FLD_OSCFREQ
+PUB Powered(enabled) | tmp
+' Enable display power
+    case ||enabled
+        0, 1:
+            enabled := ||enabled + core#CMD_DISP_OFF
         OTHER:
             return
-
-    writeReg(core#CMD_SETOSCFREQ, 1, kHz)
-
-PUB PageRange(pgstart, pgend)
-
-    case pgstart
-        0..7:
-        OTHER:
-            pgstart := 0
-
-    case pgend
-        0..7:
-        OTHER:
-            pgend := 7
-
-    writeReg(core#CMD_SET_PAGEADDR, 2, (pgend << 8) | pgstart)
+    writeReg(enabled, 0, 0)
 
 PUB PrechargePeriod(phs1_clks, phs2_clks)
 ' Set display refresh pre-charge period, in display clocks
@@ -343,22 +313,20 @@ PUB PrechargePeriod(phs1_clks, phs2_clks)
 
 PUB Update | tmp
 ' Write display buffer to display
-    ColumnStartEnd (0, _disp_width-1)
-    PageRange (0, 7)
+    DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
 
     i2c.start
     i2c.write (SLAVE_WR | _sa0)
     i2c.write (core#CTRLBYTE_DATA)
     repeat tmp from 0 to _buff_sz-1
-        i2c.write (byte[_draw_buffer][tmp])
+        i2c.write (byte[_ptr_framebuffer][tmp])
     i2c.stop
 
 PUB WriteBuffer(buff_addr, buff_sz) | tmp
 ' Write alternate buffer to display
 '   buff_sz: bytes to write
 '   buff_addr: address of buffer to write to display
-    ColumnStartEnd (0, _disp_width-1)
-    PageRange (0, 7)
+    DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
 
     i2c.start
     i2c.write (SLAVE_WR | _sa0)
