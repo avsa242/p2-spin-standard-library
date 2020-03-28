@@ -28,7 +28,7 @@ PUB Bitmap(bitmap_addr, bitmap_size, offset=0)
 '   bitmap_addr:    Address of bitmap to copy
 '   bitmap_size:    Number of bytes to copy
 '   offset:         Offset within the display buffer to copy to
-    bytemove(_draw_buffer + offset, bitmap_addr, bitmap_size)
+    bytemove(_ptr_framebuffer + offset, bitmap_addr, bitmap_size)
 
 PUB Box(x0, y0, x1, y1, color, filled=0) | x, y
 ' Draw a box
@@ -49,17 +49,19 @@ PUB Box(x0, y0, x1, y1, color, filled=0) | x, y
                 repeat x from x0 to x1
                     Plot(x, y, color)
 
-PUB Char (ch) | glyph_col, glyph_row, glyph_data, x, y
+PUB Char (ch) | glyph_col, glyph_row, x, last_glyph_col, last_glyph_row, ch_offset
 ' Write a character to the display
-    repeat glyph_col from 0 to _font_width-1
+    last_glyph_col := _font_width-1
+    last_glyph_row := _font_height-1
+    ch <<= 3
+    repeat glyph_col from 0 to last_glyph_col
         x := _col + glyph_col
-        repeat glyph_row from 0 to _font_height-1
-            glyph_data := byte[_font_addr][ch << 3 + glyph_col]
-            y := _row + glyph_row
-            if glyph_data & (1 << (glyph_row))
-                Plot(x, y, _fgcolor)
+        ch_offset := ch + glyph_col
+        repeat glyph_row from 0 to last_glyph_row
+            if byte[_font_addr][ch_offset] & |< glyph_row
+                Plot(x, _row + glyph_row, _fgcolor)
             else
-                Plot(x, y, _bgcolor)
+                Plot(x, _row + glyph_row, _bgcolor)
 
 PUB Circle(x0, y0, radius, color) | x, y, err, cdx, cdy
 ' Draw a circle
@@ -95,21 +97,19 @@ PUB Circle(x0, y0, radius, color) | x, y, err, cdx, cdy
 PUB Clear
 ' Clear the display buffer
 #ifdef IL3820
-    bytefill(_draw_buffer, _bgcolor, _buff_sz)
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #elseifdef SSD130X
-    bytefill(_draw_buffer, _bgcolor, _buff_sz)
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #elseifdef SSD1331
-    wordfill(_draw_buffer, _bgcolor, _buff_sz/2)
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #elseifdef NEOPIXEL
-    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #elseifdef HT16K33-ADAFRUIT
-    bytefill(_draw_buffer, _bgcolor, _buff_sz)
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #elseifdef ST7735
-    wordfill(_draw_buffer, _bgcolor, _buff_sz/2)
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #elseifdef SSD1351
-    wordfill(_draw_buffer, _bgcolor, _buff_sz/2)
-#elseifdef LEDMATRIX_CHARLIEPLEXED
-    bytefill(_draw_buffer, _bgcolor, _buff_sz)
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #endif
 
 PUB ClearAll
@@ -192,77 +192,60 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
                 e2 := err << 1
 
                 if e2 > -ddy
-                    err := err - ddy
-                    x1 := x1 + sx
+                    err -= ddy
+                    x1 += sx
 
                 if e2 < ddx
-                    err := err + ddx
-                    y1 := y1 + sy
+                    err += ddx
+                    y1 += sy
 
 PUB Plot (x, y, color)
 ' Plot pixel at x, y, color c
-    if x => 0 and x =< _disp_xmax and y => 0 and y =< _disp_ymax
-    ' Within bounds; continue on
-    else
-        return
+    x := 0 #> x <# _disp_xmax
+    y := 0 #> y <# _disp_ymax
+
 #ifdef IL3820
     case color
         1:
-            byte[_draw_buffer][(x + y * _disp_width) >> 3] |= $80 >> (x & 7)
+            byte[_ptr_framebuffer][(x + y * _disp_width) >> 3] |= $80 >> (x & 7)
         0:
-            byte[_draw_buffer][(x + y * _disp_width) >> 3] &= !($80 >> (x & 7))
+            byte[_ptr_framebuffer][(x + y * _disp_width) >> 3] &= !($80 >> (x & 7))
         -1:
-            byte[_draw_buffer][(x + y * _disp_width) >> 3] ^= $80 >> (x & 7)
+            byte[_ptr_framebuffer][(x + y * _disp_width) >> 3] ^= $80 >> (x & 7)
         OTHER:
             return
 #elseifdef SSD130X
     case color
         1:
-            byte[_draw_buffer][x + (y>>3) * _disp_width] |= (1 << (y&7))
+            byte[_ptr_framebuffer][x + (y>>3) * _disp_width] |= (|< (y&7))
         0:
-            byte[_draw_buffer][x + (y>>3) * _disp_width] &= !(1 << (y&7))
+            byte[_ptr_framebuffer][x + (y>>3) * _disp_width] &= !(|< (y&7))
         -1:
-            byte[_draw_buffer][x + (y>>3) * _disp_width] ^= (1 << (y&7))
+            byte[_ptr_framebuffer][x + (y>>3) * _disp_width] ^= (|< (y&7))
         OTHER:
             return
 #elseifdef SSD1331
-'    color.byte[3] := color.byte[0]
-'    color.byte[0] := color.byte[1]
-'    color.byte[1] := color.byte[3]
-'    color.byte[3] := 0
-'    word[_draw_buffer][x + (y * _disp_width)] := color
-    word[_draw_buffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
-' ^TODO: Compare cost of both of these methods^
+    word[_ptr_framebuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #elseifdef NEOPIXEL
-    long[_draw_buffer][x + (y * _disp_width)] := color
+    long[_ptr_framebuffer][x + (y * _disp_width)] := color
 #elseifdef HT16K33-ADAFRUIT
     x := x + 7
     x := x // 8
 
     case color
         1:
-            byte[_draw_buffer][y] |= 1 << x
+            byte[_ptr_framebuffer][y] |= |< x
         0:
-            byte[_draw_buffer][y] &= !(1 << x)
+            byte[_ptr_framebuffer][y] &= !(|< x)
         -1:
-            byte[_draw_buffer][y] ^= 1 << x
+            byte[_ptr_framebuffer][y] ^= |< x
         OTHER:
             return
 
 #elseifdef ST7735
-    word[_draw_buffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+    word[_ptr_framebuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #elseifdef SSD1351
-    word[_draw_buffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
-#elseifdef LEDMATRIX_CHARLIEPLEXED
-    case color
-        1:
-            byte[_draw_buffer][x + (y>>3) * _disp_width] |= (1 << (y&7))
-        0:
-            byte[_draw_buffer][x + (y>>3) * _disp_width] &= !(1 << (y&7))
-        -1:
-            byte[_draw_buffer][x + (y>>3) * _disp_width] ^= (1 << (y&7))
-        OTHER:
-            return
+    word[_ptr_framebuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #else
 #warning "No supported display types defined!"
 #endif
@@ -273,23 +256,21 @@ PUB Point (x, y)
     y := 0 #> y <# _disp_ymax
 
 #ifdef IL3820
-    result := byte[_draw_buffer][(x + y * _disp_width) >> 3]
+    return byte[_ptr_framebuffer][(x + y * _disp_width) >> 3]
 #elseifdef SSD130X
-    result := byte[_draw_buffer][x + (y>>3) * _disp_width] >> (y & 7)
+    return byte[_ptr_framebuffer][x + (y>>3) * _disp_width] >> (y & 7)
 #elseifdef SSD1331
-    result := word[_draw_buffer][x + (y * _disp_width)]
+    return word[_ptr_framebuffer][x + (y * _disp_width)]
 #elseifdef NEOPIXEL
-    result := long[_draw_buffer][x + (y * _disp_width)]
+    return long[_ptr_framebuffer][x + (y * _disp_width)]
 #elseifdef HT16K33-ADAFRUIT
     x := x + 7
     x := x // 8
-    result := byte[_draw_buffer][y + (x >> 3) * _disp_width]
+    return byte[_ptr_framebuffer][y + (x >> 3) * _disp_width]
 #elseifdef ST7735
-    result := word[_draw_buffer][x + (y * _disp_width)]
+    return word[_ptr_framebuffer][x + (y * _disp_width)]
 #elseifdef SSD1351
-    result := word[_draw_buffer][x + (y * _disp_width)]
-#elseifdef LEDMATRIX_CHARLIEPLEXED
-    result := byte[_draw_buffer][x + (y>>3) * _disp_width] >> (y & 7)
+    return word[_ptr_framebuffer][x + (y * _disp_width)]
 #else
 #warning "No supported display types defined!"
 #endif
@@ -324,16 +305,16 @@ PUB RGBW8888_RGB32_Brightness(r, g, b, w, level)
         w := w * level / 255
         return RGBW8888_RGB32(r, g, b, w)
 
-PUB RGB565_R5 (rgb565)
-' Return 5-bit red component of 16-bit RGB color
+PUB RGB565_R8 (rgb565)
+' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
     return (((rgb565 & $F800) >> 11) * 527 + 23 ) >> 6
 
-PUB RGB565_G6 (rgb565)
-' Return 6-bit green component of 16-bit RGB color
+PUB RGB565_G8 (rgb565)
+' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
     return (((rgb565 & $7E0) >> 5)  * 259 + 33 ) >> 6
 
-PUB RGB565_B5 (rgb565)
-' Return 5-bit blue component of 16-bit RGB color
+PUB RGB565_B8 (rgb565)
+' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
     return ((rgb565 & $1F) * 527 + 23 ) >> 6
 
 PUB Scale (sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
