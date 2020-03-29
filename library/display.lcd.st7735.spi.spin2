@@ -14,6 +14,16 @@
 
 CON
 
+' Display visibility modes
+    NORMAL              = 0
+    ALL_OFF             = 1
+    INVERTED            = 2
+
+' Operating modes
+'   NORMAL              = 0
+    IDLE                = 1
+    PARTIAL             = 2
+
 ' Subpixel order
     RGB                 = 0
     BGR                 = 1
@@ -35,19 +45,25 @@ CON
     BCLK4_8             = 6
     BCLK4_16            = 7
 
+    AUTO                = 0
+
+    AVDD_X2_VGH25       = 0
+    AVDD_X3             = 1
+    AVDD_X3_VGH25       = 2
+
 VAR
 
-    long _draw_buffer
+    long _ptr_framebuffer
     word _buff_sz
     word _framerate
     byte _CS, _SDA, _SCK, _RESET, _DC
     byte _disp_width, _disp_height, _disp_xmax, _disp_ymax
 '   Shadow registers
-    byte _colmod, _madctl
+    byte _colmod, _madctl, _opmode
 
 OBJ
 
-    spi : "com.spi.bitbang-fast"                                             'PASM SPI Driver
+    spi : "com.spi.bitbang-fast"
     core: "core.con.st7735"
     time: "time"
     io  : "io"
@@ -58,7 +74,6 @@ PUB Null
 PUB Start(CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RESET_PIN, SCK_HZ, disp_width, disp_height, drawbuffer_address): okay
 
     if okay := spi.Start(SDA_PIN, -1, SCK_PIN, SCK_HZ)
-        time.MSleep (1)                                     'Add startup delay appropriate to your device (consult its datasheet)
         _CS := CS_PIN
         _SDA := SDA_PIN
         _SCK := SCK_PIN
@@ -77,45 +92,67 @@ PUB Start(CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RESET_PIN, SCK_HZ, disp_width, disp_
         _disp_xmax := _disp_width-1
         _disp_ymax := _disp_height-1
         _buff_sz := (_disp_width * _disp_height) * 2
-'        Reset
+        Reset
         Address(drawbuffer_address)
         return okay
-
     return FALSE                                                'If we got here, something went wrong
 
 PUB Stop
 
-    'Powered(FALSE)
-'    spi.Stop
+    Powered(FALSE)
 
-PUB Defaults | tmp[4]
+PUB Defaults | tmp
+' Apply power-on-reset default settings
+    Reset
+    Powered(TRUE)
 
-    writeReg(core#SOFT_RESET, 0, 0)
-    time.MSleep(150)
+    FramerateCtrl(1, 44, 45, 0, 0, 0)
+    FramerateCtrl(1, 44, 45, 0, 0, 0)
+    FramerateCtrl(1, 44, 45, 1, 44, 45)
 
-    writeReg(core#SLPOUT, 0, 0)
-    time.MSleep(500)
+    InversionCtrl(%011)
 
-    FramerateCtrl(1, 1, 44, 45, 0, 0, 0)
-    FramerateCtrl(2, 1, 44, 45, 0, 0, 0)
-    FramerateCtrl(3, 1, 44, 45, 1, 44, 45)
+    PowerControl1(4_900, 4_600, -4_600, AUTO)
+    PowerControl2(2_400, AVDD_X3, -10_000)
+    PowerControl(NORMAL, MEDLOW, SMALL, 1, 1, 1, 1, 1)
+    PowerControl(PARTIAL, MEDLOW, SMALL, 2, 4, 2, 1, 2)
+    PowerControl(IDLE, MEDLOW, SMALL, 2, 2, 2, 2, 2)
+    COMVoltageLevel(-0_525)
 
-    tmp := $07
-    writeReg(core#INVCTR, 1, @tmp)
+    DisplayInverted(FALSE)
 
-    tmp.byte[0] := $a2
-    tmp.byte[1] := $02
-    tmp.byte[2] := $84
-    writeReg(core#PWCTR1, 3, @tmp)
+    MirrorH(FALSE)
+    MirrorV(FALSE)
+    SubpixelOrder(RGB)
 
-    tmp := $c5
-    writeReg(core#PWCTR2, 1, @tmp)
+    ColorDepth(16)
+    DisplayBounds(2, 3, 129, 130)
 
-    PowerControl(3, $0A, $00)
-    PowerControl(4, $8A, $2A)
-    PowerControl(5, $8A, $EE)
+    GammaTableP(@gammatable_pos)
+    GammaTableN(@gammatable_neg)
 
-    VCOMVoltage(2_850, -0_575)
+    PartialArea(0, 161)                     ' Can be 0, 159 also, depending on configuration of GM pins
+    OpMode(NORMAL)
+    DisplayVisibility(NORMAL)
+
+PUB DefaultsCommon | tmp
+' Apply some more common default settings
+    Reset
+    Powered(TRUE)
+
+    FramerateCtrl(1, 44, 45, 0, 0, 0)
+    FramerateCtrl(1, 44, 45, 0, 0, 0)
+    FramerateCtrl(1, 44, 45, 1, 44, 45)
+
+    InversionCtrl(%011)
+
+    PowerControl1(5_000, 4_600, -4_600, AUTO)
+    PowerControl2(2_400, AVDD_X3, -10_000)
+    PowerControl(NORMAL, MEDLOW, SMALL, 1, 1, 1, 1, 1)
+    PowerControl(PARTIAL, MEDLOW, SMALL, 2, 2, 2, 1, 2)
+    PowerControl(IDLE, MEDLOW, SMALL, 2, 4, 2, 4, 2)
+    COMVoltageLevel(-0_525)
+
     DisplayInverted(FALSE)
 
     MirrorH(TRUE)
@@ -128,20 +165,23 @@ PUB Defaults | tmp[4]
     GammaTableP(@gammatable_pos)
     GammaTableN(@gammatable_neg)
 
-    PartialDisplay(FALSE)
-    DisplayVisible(TRUE)
+    PartialArea(0, 161)                     ' Can be 0, 159 also, depending on configuration of GM pins
+    OpMode(NORMAL)
+    DisplayVisibility(NORMAL)
 
+PUB Contrast(level)
+' Dummy method
 
 PUB Address(addr)
-
-    _draw_buffer := addr
+' Set framebuffer/display buffer address
+    _ptr_framebuffer := addr
 
 PUB ClearAccel
 ' Dummy method
     return 0
 
 PUB ColorDepth(format) | tmp
-' Set color depth/format, in bits per pixel
+' Set expected color format of pixel data, in bits per pixel
 '   Valid values: 12, 16, 18
 '   Any other value returns the current setting
     tmp := $00
@@ -153,11 +193,18 @@ PUB ColorDepth(format) | tmp
 
     writeReg(core#COLMOD, 1, @format)
 
-{
-PUB DeviceID
+PUB COMVoltageLevel(mV)
+' Set VCOM voltage level, in millivolts
+'   Valid values:
+'       -0_425..-2_000 (in increments of 25mV)   Default: -0_525
+'   NOTE: Values are rounded to the nearest 25mV
+    case mV
+        -0_425..-2_000:
+            mV := ((mV * -1) / 25) - 17
+        OTHER:
+            return FALSE
 
-    readReg(core#RDDID, 3, @result)
-}
+    writeReg(core#VMCTR1, 1, @mV)
 
 PUB DisplayBounds(xs, ys, xe, ye) | tmp
 ' Set display start and end offsets
@@ -187,50 +234,52 @@ PUB DisplayBounds(xs, ys, xe, ye) | tmp
     tmp.byte[3] := ye.byte[0]
     writeReg(core#RASET, 4, @tmp)
 
-PUB DisplayInverted(enabled)
+PUB DisplayInverted(enabled) | tmp
 ' Invert display colors
-'   Valid values: TRUE (-1 or 1), FALSE (0)
-'   Any other value is ignored
     case ||enabled
-        0, 1:
-            enabled := lookupz(||enabled: core#INVOFF, core#INVON)
+        0:
+            DisplayVisibility(NORMAL)
+        1:
+            DisplayVisibility(INVERTED)
         OTHER:
             return FALSE
 
-    writeReg(enabled, 0, 0)
-
-PUB DisplayVisible(enabled)
-' Enable display visiblity
+PUB DisplayVisibility(mode) | inv_state
+' Set display visiblity
 '   NOTE: Doesn't affect display RAM contents.
 '   NOTE: There is a mandatory 120ms delay imposed by calling this method
-    case ||enabled
-        0, 1:
-            enabled := ||enabled + core#DISPOFF
+    case mode
+        ALL_OFF:
+            mode := core#DISPOFF
+        NORMAL:
+            mode := core#DISPON
+            inv_state := core#INVOFF
+        INVERTED:
+            mode := core#DISPON
+            inv_state := core#INVON
+
         OTHER:
             return FALSE
 
-    writeReg(enabled, 0, 0)
+    writeReg(mode, 0, 0)
+    writeReg(inv_state, 0, 0)
     time.MSleep(120)
 
-PUB FrameRateCtrl(opmode, line_period, f_porch, b_porch, lim_line_period, lim_f_porch, lim_b_porch) | tmp[2], nr_bytes
+PUB FrameRateCtrl(line_period, f_porch, b_porch, lim_line_period, lim_f_porch, lim_b_porch) | tmp[2], nr_bytes
 ' Set frame frequency
 '   Valid values:
-'       opmode:
-'           1: Normal mode/full colors
-'           2: Idle mode/8 colors
-'           3: Partial mode/full colors
 '       line_period: 0..15
 '       f_porch: 0..63
 '       b_porch: 0..63
-'       lim_* variants (effective when in Line Inversion Mode - set only in opmode 3) - same as above
+'       lim_* variants (effective when in Line Inversion Mode - set only in OpMode(PARTIAL)) - same as above
 '           - ignored when opmode is 1 or 2
 '   Any other value for opmode returns the last calculated frame frequency
 '   Any other values for other parameters are ignored
     result := 0
-    case opmode
-        1, 2:
+    case _opmode
+        NORMAL, IDLE:
             nr_bytes := 3
-        3:
+        PARTIAL:
             nr_bytes := 6
         OTHER:
             return _framerate
@@ -253,7 +302,7 @@ PUB FrameRateCtrl(opmode, line_period, f_porch, b_porch, lim_line_period, lim_f_
         OTHER:
             return
 
-    if opmode == 3
+    if _opmode == PARTIAL
         case lim_line_period
             0..15:
                 tmp.byte[3] := lim_line_period
@@ -272,10 +321,9 @@ PUB FrameRateCtrl(opmode, line_period, f_porch, b_porch, lim_line_period, lim_f_
             OTHER:
                 return
 
-    opmode -= 1                                             ' Use as offset from FRMCTR1 register (+0, 1, or 2)
     result := _framerate := core#FOSC / ((line_period * 2 + 40) * (_disp_height + f_porch + b_porch))
 
-    writeReg(core#FRMCTR1 + opmode, nr_bytes, @tmp)
+    writeReg(core#FRMCTR1 + _opmode, nr_bytes, @tmp)
 
 PUB GammaTableN(buff_addr)
 ' Modify gamma table (negative polarity)
@@ -284,6 +332,23 @@ PUB GammaTableN(buff_addr)
 PUB GammaTableP(buff_addr)
 ' Modify gamma table (negative polarity)
     writeReg(core#GMCTRP1, 16, buff_addr)
+
+PUB InversionCtrl(mask) | tmp
+' Set display inversion mode control bitmask
+'   Valid values: %000..%111
+'       0: Dot inversion
+'       1: Line inversion
+'       Bits 321:
+'           3 - Inversion setting in OpMode(NORMAL) (default: 0)
+'           2 - Inversion setting in OpMode(IDLE) (default: 1)
+'           1 - Inversion setting in OpMode(PARTIAL) (default: 1)
+'   Any other value is ignored
+    case mask
+        %000..%111:
+        OTHER:
+            return FALSE
+
+    writeReg(core#INVCTR, 1, @mask)
 
 PUB MirrorH(enabled) | tmp
 ' Mirror the display, horizontally
@@ -319,21 +384,46 @@ PUB MirrorV(enabled) | tmp
     _madctl := (_madctl | enabled) & core#MADCTL_MASK
     writeReg(core#MADCTL, 1, @_madctl)
 
-PUB PartialDisplay(enabled)
-' Enable partial display
+PUB OpMode(mode) | tmp
+' Set operating mode
+'   Valid values:
+'       NORMAL (0): Normal display mode
+'       PARTIAL (1): Partial display mode
+'       IDLE (2): Idle/reduced color (8 color) mode
+'   Any other value is ignored
+    case mode
+        NORMAL:
+            writeReg(core#IDMOFF, 0, 0)
+            writeReg(core#NORON, 0, 0)
+        PARTIAL:
+            writeReg(core#PTLON, 0, 0)
+        IDLE:
+            writeReg(core#IDMON, 0, 0)
+        OTHER:
+            return FALSE
+
+    _opmode := mode                                         ' Update VAR used by some methods
+                                                            '   to read current state
+
+PUB PartialArea(sy, ey) | tmp
+' Define visible area (rows) of display when operting in partial-display mode
+    tmp.byte[0] := $00
+    tmp.byte[1] := sy & $FF
+    tmp.byte[2] := $00
+    tmp.byte[3] := ey & $FF
+
+    writeReg(core#PTLAR, 4, @tmp)
+
+PUB Powered(enabled) | tmp
+' Enable display power
     case ||enabled
         0, 1:
-            enabled := (1 - ||enabled) + core#NORON
+            enabled := ||enabled + core#SLPIN
         OTHER:
             return FALSE
 
     writeReg(enabled, 0, 0)
-
-{
-PUB Powered(enabled) | tmp
-'120ms between states
-'sleep in $10 when using display off
-}
+    time.MSleep(120)
 
 PUB Reset
 ' Reset the display controller
@@ -342,43 +432,136 @@ PUB Reset
     io.High(_RESET)
     time.MSleep(5)
 
-PUB PowerControl(opmode, Isource, boost_clkdiv) | tmp
-' Set partial mode/full-colors power control    XXX rewrite - currently allows any params after opmode
+PUB PowerControl(mode, AP, SAP, bclkdiv1, bclkdiv2, bclkdiv3, bclkdiv4, bclkdiv5) | tmp
+' Set partial mode/full-colors power control
 '   Valid values:
-'       opmode: Settings applied to operating mode
-'           3: Normal mode/full color
-'           4: Idle mode/8-color
-'           5: Partial mode/full color
-'       Isource: Set opamp current
+'       mode: Settings applied to operating mode
+'           0: Normal mode/full color
+'           1: Idle mode/8-color
+'           2: Partial mode/full color
+'       AP, SAP: Set opamp current
 '           OFF (0): Disabled
 '           SMALL (1), MEDLOW (2), MED (3), MEDHI (4), LARGE (5)
 '       boost_clkdiv: Set booster circuit clock frequency divisor
-'           Setting     Booster circuit 1       Booster circuit 2, 4
-'           BCLK1_1:    BCLK / 1                BCLK / 1
-'           BCLK1_2:    BCLK / 1                BCLK / 2
-'           BCLK1_4:    BCLK / 1                BCLK / 4
-'           BCLK2_2:    BCLK / 2                BCLK / 2
-'           BCLK2_4:    BCLK / 2                BCLK / 4
-'           BCLK4_4:    BCLK / 4                BCLK / 4
-'           BCLK4_8:    BCLK / 4                BCLK / 8
-'           BCLK4_16:   BCLK / 4                BCLK / 16
-    case opmode
-        3..5:
-            opmode -= 3
+'           Setting     Booster circuit 1
+'           1:          BCLK / 1
+'           1_5:        BCLK / 1.5
+'           2:          BCLK / 2
+'           4:          BCLK / 4
+    case mode
+        0..2:
         OTHER:
             return FALSE
 
-{    case Isource
+    case AP
         OFF, SMALL, MEDLOW, MED, MEDHI, LARGE:
         OTHER:
             return FALSE
 
-    case boost_clkdiv
-        BCLK1_1, BCLK1_2, BCLK1_4, BCLK2_2, BCLK2_4, BCLK4_4, BCLK4_8, BCLK4_16:
+    case SAP
+        OFF, SMALL, MEDLOW, MED, MEDHI, LARGE:
+            SAP <<= core#FLD_SAP
         OTHER:
             return FALSE
-}
-    writeReg(core#PWCTR3 + opmode, 2, @Isource)
+
+    case bclkdiv1
+        1, 1_5, 2, 4:
+            bclkdiv1 := lookdownz(bclkdiv1: 1, 1_5, 2, 4)
+        OTHER:
+            return FALSE
+
+    case bclkdiv2
+        1, 1_5, 2, 4:
+            bclkdiv2 := lookdownz(bclkdiv2: 1, 1_5, 2, 4)
+        OTHER:
+            return FALSE
+
+    case bclkdiv3
+        1, 1_5, 2, 4:
+            bclkdiv3 := lookdownz(bclkdiv3: 1, 1_5, 2, 4)
+        OTHER:
+            return FALSE
+
+    case bclkdiv4
+        1, 1_5, 2, 4:
+            bclkdiv4 := lookdownz(bclkdiv4: 1, 1_5, 2, 4)
+        OTHER:
+            return FALSE
+
+    case bclkdiv5
+        1, 1_5, 2, 4:
+            bclkdiv5 := lookdownz(bclkdiv5: 1, 1_5, 2, 4)
+        OTHER:
+            return FALSE
+
+    tmp.byte[0] := AP | SAP | (bclkdiv5 << core#FLD_DCMSB)
+    tmp.byte[1] := (bclkdiv4 << 6) | (bclkdiv3 << 4) | (bclkdiv2 << 2) | bclkdiv1
+    writeReg(core#PWCTR3 + mode, 2, @tmp)
+
+PUB PowerControl1(AVDD, GVDD, GVCL, mode) | tmp
+' Set LCD supply voltages, in millivolts
+'   Valid values:
+'       AVDD: 4_500..5_100, in increments of 100 (default: 4_900)
+'       GVDD: 3_150..4_700, in increments of 50 (default: 4_600)
+'       GVCL: -4_700..-3_150, in increments of 50 (default: -4_600)
+'       mode: 2, 3, AUTO (0) (default: AUTO)
+'   Any other value is ignored
+    case AVDD
+        4_500..5_100:
+            AVDD := ((AVDD / 100) - 45) << core#FLD_AVDD
+        OTHER:
+            return FALSE
+
+    case GVDD
+        3_150..4_700:
+            GVDD := ((4_700 - GVDD) / 50) & core#BITS_VRHP
+        OTHER:
+            return FALSE
+
+    case GVCL
+        -4_700..-3_150:
+            GVCL := ((4_700 - (GVCL * -1) ) / 50) & core#BITS_VRHN
+        OTHER:
+            return FALSE
+
+    case mode
+        2, 3, AUTO:
+            mode := lookdownz(mode: 2, 3, AUTO) << core#FLD_MODE
+            mode |= %000100
+
+    tmp.byte[0] := AVDD | GVDD
+    tmp.byte[1] := GVCL
+    tmp.byte[2] := mode
+
+    writeReg(core#PWCTR1, 3, @tmp)
+
+PUB PowerControl2(V25, VGH, VGL) | tmp
+' Set LCD supply voltages, in millivolts
+'   Valid values:
+'       V25: 2_100, 2_200, 2_300, 2_400 (default: 2_400)
+'       VGH: AVDD_X2_VGH25 (0), AVDD_X3 (1), AVDD_X3_VGH25 (2) (default: AVDD3X)
+'       VGL: -13_000, -12_500, -10_000, -7_500 (default: -10_000)
+    case V25
+        2_100, 2_200, 2_300, 2_400:
+            V25 := lookdownz(V25: 2_100, 2_200, 2_300, 2_400) << core#FLD_VGH25
+        OTHER:
+            return FALSE
+
+    case VGH
+        AVDD_X2_VGH25, AVDD_X3, AVDD_X3_VGH25:
+            VGH := lookdownz(VGH: AVDD_X2_VGH25, AVDD_X3, AVDD_X3_VGH25) & core#BITS_VGHBT
+        OTHER:
+            return FALSE
+
+    case VGL
+        -13_000, -12_500, -10_000, -7_500:
+            VGL := lookdownz(VGL: -7_500, -10_000, -12_500, -13_000) << core#FLD_VGLSEL
+        OTHER:
+            return FALSE
+
+    tmp := V25 | VGH | VGL
+
+    writeReg(core#PWCTR2, 1, @tmp)
 
 PUB SubpixelOrder(order) | tmp
 ' Set subpixel color order
@@ -401,27 +584,7 @@ PUB SubpixelOrder(order) | tmp
 
 PUB Update | tmp
 ' Write the draw buffer to the display
-    writeReg(core#RAMWR, _buff_sz, _draw_buffer)
-
-PUB VCOMVoltage(high_mV, low_mV)
-' Set VCOM high and low voltage levels, in millivolts   XXX rewrite - this applies to ST7735's, not ST7735R's
-'   Valid values:
-'       high_mV: 2_500..5_000 (in increments of 25mV)   Default: 4_525
-'       low_mV: -2_400..0_000 (in increments of 25mV)   Default: -0_575
-'   NOTE: Values are rounded to the nearest 25mV
-    case high_mV
-        2_500..5_000:
-            high_mV := (high_mV / 25) - 100
-        OTHER:
-            return FALSE
-
-    case low_mv
-        -2_400..0:
-            low_mV := (low_mV / 25) + 100
-        OTHER:
-            return FALSE
-
-    writeReg(core#VMCTR1, 2, @high_mV)
+    writeReg(core#RAMWR, _buff_sz, _ptr_framebuffer)
 
 {
 PRI readReg(reg, nr_bytes, buff_addr) | tmp         ' * Not possible on Adafruit breakout boards, possibly others
@@ -453,7 +616,7 @@ PRI readReg(reg, nr_bytes, buff_addr) | tmp         ' * Not possible on Adafruit
 PRI writeReg(reg, nr_bytes, buff_addr) | tmp
 ' Write nr_bytes to register 'reg' stored at buf_addr
     case reg
-        $00, $01, $11, $13, $20, $21, $28, $29:         ' One byte command, no params
+        $00, $01, $11, $12, $13, $20, $21, $28, $29, $38, $39:         ' One byte command, no params
             io.Low(_CS)
             io.Low(_DC)                                 ' D/C = Command
             spi.Write(_SDA, _SCK, core#MOSI_BITORDER, 8, reg)
@@ -470,7 +633,7 @@ PRI writeReg(reg, nr_bytes, buff_addr) | tmp
             io.High(_CS)
             return
 
-        $2A..$2C, $36, $3A, $B1..$B4, $B6, $C0..$C5, $E0, $E1, $FC:
+        $2A..$2C, $30, $36, $3A, $B1..$B4, $B6, $C0..$C5, $E0, $E1, $FC:
             io.Low(_CS)
             io.Low(_DC)                                 ' D/C = Command
             spi.Write(_SDA, _SCK, core#MOSI_BITORDER, 8, reg)                       ' Write reg

@@ -116,13 +116,13 @@ CON
     PWCTR2                      = $C1
         FLD_VGHBT               = 0
         FLD_VGLSEL              = 2
-        FLD_VGH2                = 6
+        FLD_VGH25               = 6
         BITS_VGHBT              = %11
         BITS_VGLSEL             = %11
-        BITS_VGH2               = %11
+        BITS_VGH25              = %11
         MASK_VGHBT              = $CF ^ (BITS_VGHBT << FLD_VGHBT)
         MASK_VGLSEL             = $CF ^ (BITS_VGLSEL << FLD_VGLSEL)
-        MASK_VGH2               = $CF ^ (BITS_VGH2 << FLD_VGH2)
+        MASK_VGH25              = $CF ^ (BITS_VGH25 << FLD_VGH25)
 
     PWCTR3                      = $C2
         FLD_AP                  = 0                                     ' These apply to PWCTR4 and 5, as well

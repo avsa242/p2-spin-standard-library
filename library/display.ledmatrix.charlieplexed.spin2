@@ -26,7 +26,7 @@ OBJ
 
 VAR
 
-    long _draw_buffer
+    long _ptr_framebuffer
     word _buff_sz
     byte _disp_width, _disp_height, _disp_xmax, _disp_ymax
 
@@ -53,13 +53,13 @@ PUB Address(addr=-2)
 ' Set framebuffer address
     case addr
         $0004..$7FFFF-_buff_sz:
-            _draw_buffer := addr
+            _ptr_framebuffer := addr
         OTHER:
-            return _draw_buffer
+            return _ptr_framebuffer
 
 PUB Update
 ' Send the display buffer to the display
-    WriteBuffer(_draw_buffer)
+    WriteBuffer(_ptr_framebuffer)
 
 PUB WriteBuffer(buff_addr) | row, outmask, dirmask, mask_matrix
 ' Send an alternate buffer to the display
