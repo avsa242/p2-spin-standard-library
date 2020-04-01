@@ -142,10 +142,6 @@ PRI DecToStr(value) | div, z_pad
 
     return @nstr
 
-PRI NoOp
-
-    return
-
 PRI HexToStr(value, digits)
 {{
     Converts value to digits-wide hexadecimal string equivalent
@@ -153,13 +149,12 @@ PRI HexToStr(value, digits)
     -- returns pointer to nstr
 }}
 
-    NoOp                                                  ' Temporary workaround required for this method to function
     digits := 1 #> digits <# 8                            ' qualify digits
     value <<= (8 - digits) << 2                           ' prep most significant digit
     repeat digits
         nstr[idx++] := lookupz((value <-= 4) & $F : "0".."9", "A".."F")
-    result := @nstr
-    return result
+
+    return @nstr
 
 PRI BinToStr(value, digits)
 {{
