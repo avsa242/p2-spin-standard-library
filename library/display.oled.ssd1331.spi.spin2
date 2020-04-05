@@ -5,7 +5,7 @@
     Description: Driver for Solomon Systech 96x64 RGB OLED
     Copyright (c) 2020
     Started: Nov 8, 2019
-    Updated: Mar 27, 2020
+    Updated: Apr 5, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -618,7 +618,7 @@ PUB Powered(enabled) | tmp
     tmp := _sh_DISPONOFF
     case ||enabled
         OFF, ON, DIM:
-            enabled := lookupz(enabled: core#SSD1331_CMD_DISPLAYOFF, core#SSD1331_CMD_DISPLAYON, core#SSD1331_CMD_DISPLAYONDIM)
+            enabled := lookupz(||enabled: core#SSD1331_CMD_DISPLAYOFF, core#SSD1331_CMD_DISPLAYON, core#SSD1331_CMD_DISPLAYONDIM)
         OTHER:
             return lookdownz(tmp: core#SSD1331_CMD_DISPLAYOFF, core#SSD1331_CMD_DISPLAYON, core#SSD1331_CMD_DISPLAYONDIM)
 
