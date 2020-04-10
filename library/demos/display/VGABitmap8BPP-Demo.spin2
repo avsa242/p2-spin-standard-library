@@ -1,0 +1,639 @@
+{
+    --------------------------------------------
+    Filename: VGABitmap8BPP-Demo.spin2
+    Description: Demo of the 8bpp VGA bitmap driver
+    Author: Jesse Burt
+    Copyright (c) 2020
+    Started: Apr 6, 2020
+    Updated: Apr 10, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+CON
+
+    _XTALFREQ   = 20_000_000
+    _XDIV       = 2'10
+    _XMUL       = 25'125
+    _XDIVP      = 1
+    _XOSC       = %10
+    _XSEL       = %11
+    _XPPPP      = ((_XDIVP>>1) + 15) & $F
+    _CLOCKFREQ  = _XTALFREQ / _XDIV * _XMUL / _XDIVP
+    _SETFREQ    = 1<<24 + (_XDIV-1)<<18 + (_XMUL-1)<<8 + _XPPPP<<4 + _XOSC<<2
+    _ENAFREQ    = _SETFREQ + _XSEL
+
+    _clkmode    = _SETFREQ
+    _clkfreq    = 250_000_000
+
+
+    WIDTH       = 320
+    HEIGHT      = 240
+    XMAX        = WIDTH-1
+    YMAX        = HEIGHT-1
+    BUFFSZ      = WIDTH * HEIGHT
+    BPP         = 1
+    BPL         = WIDTH * BPP
+
+    SER_RX      = cfg#SER_RX
+    SER_TX      = cfg#SER_TX
+    SER_BAUD    = 2_000_000
+    LED         = cfg#LED1
+
+    VGA_BASEPIN = 0                                         ' 0, 8, 16, 24, 32, 40, 48
+'                                                               Works with all basepins on the P2ES except 56
+
+VAR
+
+    long _stack_timer[50]
+    long _timer_set
+    long _rndSeed
+
+    long _palette[256]
+    byte _framebuffer[BUFFSZ]
+
+    byte _timer_cog, _ser_cog, _vga_cog
+
+OBJ
+
+    cfg         : "core.con.boardcfg.p2eval"
+    ser         : "com.serial.terminal.ansi"
+    time        : "time"
+    io          : "io"
+    vga         : "display.vga.bitmap-8bpp"
+    int         : "string.integer"
+    fnt         : "font.5x8"
+
+PUB Main | time_ms
+
+    Setup
+    vga.Clear
+
+    Demo_Greet
+    time.Sleep (8)
+    vga.ClearAll
+
+    time_ms := 10_000
+
+    ser.position (0, 3)
+    Demo_Shadebobs (time_ms)
+
+    Demo_SineWave (time_ms)
+    vga.ClearAll
+
+    Demo_TriWave (time_ms)
+    vga.ClearAll
+
+    Demo_MEMScroller(time_ms, $0000, $7_FFFF)
+    vga.ClearAll
+
+    Demo_Bitmap (time_ms, $1_0000)
+    vga.ClearAll
+
+    Demo_Box (time_ms)
+    vga.ClearAll
+
+    Demo_BoxFilled (time_ms)
+    vga.ClearAll
+
+    Demo_LineSweepX(time_ms)
+    vga.ClearAll
+
+    Demo_LineSweepY(time_ms)
+    vga.ClearAll
+
+    Demo_Line (time_ms)
+    vga.ClearAll
+
+    Demo_Plot (time_ms)
+    vga.ClearAll
+
+    Demo_BouncingBall (time_ms, 5)
+    vga.ClearAll
+
+    Demo_Circle(time_ms)
+    vga.ClearAll
+
+    Demo_Wander (time_ms)
+    vga.ClearAll
+
+    Demo_SeqText (time_ms)
+    vga.ClearAll
+
+    Demo_RndText (time_ms)
+
+    time.Sleep(2)
+    vga.ClearAll
+
+    FlashLED(LED, 100)
+
+PUB Demo_BouncingBall(testtime, radius) | iteration, bx, by, dx, dy
+' Draws a simple ball bouncing off screen edges
+    bx := (rnd(XMAX) // (WIDTH - radius * 4)) + radius * 2  'Pick a random screen location to
+    by := (rnd(YMAX) // (HEIGHT - radius * 4)) + radius * 2 ' start from
+    dx := rnd(4) // 2 * 2 - 1                               'Pick a random direction to
+    dy := rnd(4) // 2 * 2 - 1                               ' start moving
+
+    ser.str(string("Demo_BouncingBall - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        bx += dx
+        by += dy
+        if (by =< radius OR by => HEIGHT - radius)          'If we reach the top or bottom of the screen,
+            dy *= -1                                        ' change direction
+        if (bx =< radius OR bx => WIDTH - radius)           'Ditto with the left or right sides
+            dx *= -1
+
+        vga.Circle (bx, by, radius, $FFFF)
+        vga.WaitVSync
+        iteration++
+        vga.Clear
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
+' Continuously redraws bitmap at address bitmap_addr
+    ser.str(string("Demo_Bitmap - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        vga.Bitmap (bitmap_addr, BUFFSZ, 0)
+        vga.Update
+        iteration++
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB Demo_Box (testtime) | iteration, c
+' Draws random lines
+    ser.str(string("Demo_Box - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        c := rnd(255)
+        vga.Box (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c, FALSE)
+        iteration++
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB Demo_BoxFilled (testtime) | iteration, c, x1, y1, x2, y2
+' Draws random lines
+    ser.str(string("Demo_BoxFilled - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        c := rnd(255)
+        vga.Box (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c, TRUE)
+        iteration++
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB Demo_Circle(testtime) | iteration, x, y, r, c
+' Draws circles at random locations
+    ser.str(string("Demo_Circle - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        x := rnd(XMAX)
+        y := rnd(YMAX)
+        r := rnd(YMAX/2)
+        c := rnd(255)
+        vga.Circle (x, y, r, c)
+        vga.Update
+        iteration++
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB Demo_Greet
+' Display the banner/greeting
+    vga.FGColor(255)
+    vga.BGColor(0)
+    vga.Position (0, 0)
+    vga.Str (string("VGA 8bpp on the"))
+
+    vga.Position (0, 1)
+    vga.Str (string("Parallax P2X8C4M64P @ "))
+
+    vga.Str (int.Dec(clkfreq/1_000_000))
+    vga.Str (string("MHz"))
+
+    vga.Position (0, 4)
+    vga.Str (int.DecPadded (WIDTH, 3))
+
+    vga.Position (3, 4)
+    vga.Str (string("x"))
+
+    vga.Position (4, 4)
+    vga.Str (int.DecPadded (HEIGHT, 2))
+    vga.Update
+
+PUB Demo_Line (testtime) | iteration, c
+' Draws random lines
+    ser.str(string("Demo_Line - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        c := rnd(255)
+        vga.Line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c)
+        vga.Update
+        iteration++
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB Demo_LineSweepX (testtime) | iteration, x, c
+' Draws lines sweeping from left-right to the opposite diagonal direction
+    x := 0
+
+    ser.str(string("Demo_LineSweepX - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        x++
+        if x > XMAX
+            x := 0
+        c++
+        if c > 255
+            c := 0
+        vga.Line (x, 0, XMAX-x, YMAX, c)
+        vga.Update
+        iteration++
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB Demo_LineSweepY (testtime) | iteration, y, c
+' Draws lines sweeping from top-down to the opposite diagonal direction
+    y := 0
+
+    ser.str(string("Demo_LineSweepY - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        y++
+        if y > YMAX
+            y := 0
+        c++
+        if c > 255
+            c := 0
+        vga.Line (XMAX, y, 0, YMAX-y, c)
+        vga.Update
+        iteration++
+
+    Report(testtime, iteration)
+
+PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
+' Dumps Propeller Hub RAM (and/or ROM) to the display buffer
+    pos := start_addr
+
+    ser.str(string("Demo_MEMScroller - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        pos += BPL
+        if pos > end_addr
+            pos := start_addr
+        vga.Bitmap (pos, BUFFSZ, 0)
+        vga.Update
+        iteration++
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB Demo_Plot(testtime) | iteration, x, y, c
+' Draws random pixels to the screen
+    ser.str(string("Demo_Plot - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        c := rnd(255)
+        vga.Plot (rnd(XMAX), rnd(YMAX), c)
+        vga.Update
+        iteration++
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB Demo_Shadebobs(testtime) | iteration, x, y, xs, ys, p, offset, div, modifier
+' Draws Shadebobs along a sine-wave
+    ser.str(string("Demo_Shadebobs - "))
+
+    div := 1024
+    offset := YMAX/2
+
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        repeat x from 0 to XMAX
+            modifier := (||cnt / 1_000_000)
+            y := offset + sin(x * modifier) / div
+            repeat ys from y to y+10
+                repeat xs from x to x+10
+                    p := vga.Point(xs, ys) + 1
+                    if p > 255
+                        p := 0
+                    vga.Plot(xs, ys, p)
+        iteration++
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
+' Draws a sine wave the length of the screen, influenced by the system counter
+    ser.str(string("Demo_Sinewave - "))
+
+    div := 1024
+    offset := YMAX/2                                    ' Offset for Y axis
+
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        repeat x from 0 to XMAX
+            modifier := (||cnt / 1_000_000)           ' Use system counter as modifier
+            y := offset + sin(x * modifier) / div
+            vga.Plot(x, y, $FFFF)
+
+        vga.WaitVSync
+        iteration++
+        vga.Clear
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB Demo_SeqText(testtime) | iteration, col, row, maxcol, maxrow, ch, st, fg, bg
+' Sequentially draws the whole font table to the screen
+    maxcol := (WIDTH/vga.FontWidth)-1
+    maxrow := (HEIGHT/vga.FontHeight)-1
+    ch := $00
+
+    ser.str(string("Demo_SeqText - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        repeat row from 0 to maxrow
+            repeat col from 0 to maxcol
+                ch++
+                if ch > $7F
+                    ch := $00
+                fg++
+                if fg > 255
+                    fg := 0
+                bg--
+                if bg < 0
+                    bg := 255
+                vga.FGColor(fg)
+                vga.BGColor(bg)
+                vga.Position (col, row)
+                vga.Char (ch)
+        vga.Update
+        iteration++
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB Demo_RndText(testtime) | iteration, col, row, maxcol, maxrow, ch, st, fg, bg
+' Draws random characters to the screen
+    maxcol := (WIDTH/vga.FontWidth)-1
+    maxrow := (HEIGHT/vga.FontHeight)-1
+    ch := $00
+
+    ser.str(string("Demo_RndText - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        repeat row from 0 to maxrow
+            repeat col from 0 to maxcol
+                ch++
+                if ch > $7F
+                    ch := $00
+                fg++
+                if fg > 255
+                    fg := 0
+                bg--
+                if bg < 0
+                    bg := 255
+                vga.FGColor(fg)
+                vga.BGColor(bg)
+                vga.Position (col, row)
+                vga.Char (rnd(127))
+        vga.Update
+        iteration++
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB Demo_TriWave(testtime) | iteration, x, y, ydir
+' Draws a simple triangular wave
+    ydir := 1
+    y := 0
+
+    ser.str(string("Demo_TriWave - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        repeat x from 0 to XMAX
+            if y == YMAX
+                ydir := -1
+            if y == 0
+                ydir := 1
+            y := y + ydir
+            vga.Plot (x, y, 255)
+        vga.WaitVSync
+        iteration++
+        vga.Clear
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB Demo_Wander(testtime) | iteration, x, y, d, c, movestep
+' Draws randomly wandering pixels
+    _rndSeed := cnt
+    x := XMAX/2
+    y := YMAX/2
+    movestep := 2
+
+    ser.str(string("Demo_Wander - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        case d := rnd(4)
+            1:
+                x += movestep
+                if x > XMAX
+                    x := 0
+            2:
+                x -= movestep
+                if x < 0
+                    x := XMAX
+            3:
+                y += movestep
+                if y > YMAX
+                    y := 0
+            4:
+                y -= movestep
+                if y < 0
+                    y := YMAX
+        c := (?_rndseed >> 24)
+        vga.Plot (x, y, c)
+        vga.Update
+        iteration++
+
+    Report(testtime, iteration)
+    return iteration
+
+PUB RND(maxval) | i
+' Return a random number up to maximum 'maxval'
+    asm
+        getrnd i
+        shr i, #16
+        add maxval, #1
+        mul i, maxval
+        shr i, #16
+    endasm
+    return i
+
+PUB Sin(angle) | tmp
+' Return the sine of angle
+    asm
+        shl     angle, #20
+        qrotate ##100000, angle
+        getqy   tmp
+    endasm
+    return tmp
+
+PRI Report(testtime, iterations)
+' Display performance results
+    ser.str(string("Total iterations: "))
+    ser.dec(iterations)
+
+    ser.str(string(", Iterations/sec: "))
+    ser.dec(iterations / (testtime/1000))
+
+    ser.str(string(", ms/Iteration: "))
+    Decimal( (testtime * 1_000) / iterations, 1_000)
+    ser.newline
+
+PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
+' Display a fixed-point scaled up number in decimal-dot notation - scale it back down by divisor
+'   e.g., Decimal (314159, 100000) would display 3.14159 on the termainl
+'   scaled: Fixed-point scaled up number
+'   divisor: Divide scaled-up number by this amount
+    whole := scaled / divisor
+    tmp := divisor
+    places := 0
+
+    repeat
+        tmp /= 10
+        places++
+    until tmp == 1
+    part := int.DecZeroed(||(scaled // divisor), places)
+
+    ser.Dec (whole)
+    ser.Char (".")
+    ser.Str (part)
+
+PRI cog_Timer | time_left
+
+    repeat
+        repeat until _timer_set
+        time_left := _timer_set
+
+        repeat
+            time_left--
+            time.MSleep(1)
+        while time_left > 0
+        _timer_set := 0
+
+PUB Setup
+
+    clkset(_clkmode, _clkfreq)
+    repeat until ser.StartRXTX(SER_RX, SER_TX, 0, SER_BAUD)
+    ser.clear
+    ser.printf("Serial terminal started - p2 @ %dMHz\n", clkfreq/1000000)
+    SetupPalette
+    if vga.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
+        ser.printf("VGA 8bpp driver started\n")
+        vga.FontAddress(fnt.BaseAddr)
+        vga.FontSize(6, 8)
+        vga.Clear
+    else
+        ser.printf("VGA 8bpp driver failed to start\n")
+        repeat
+
+    _timer_cog := cognew(cog_Timer, @_stack_timer)
+
+PUB SetupPalette | i, r, g, b, c
+' Set up palette
+    r := 0
+    g := 0
+    b := 0
+
+    repeat i from 0 to 255
+        c := 0 | (r << 16) | (g << 8) | b
+        _palette[i] := c
+
+        case i
+            0..63:
+                r += 4
+                g := 0
+                b := 0
+            64..127:
+                r := 0
+                g += 4
+                b := 0
+            128..191:
+                r := 0
+                g := 0
+                b += 4
+            192..253:
+                r += 4
+                g += 4
+                b := 0
+            254..255:
+                r := 255
+                g := 255
+                b := 255
+
+#include "lib.utility.spin2"
+
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
+

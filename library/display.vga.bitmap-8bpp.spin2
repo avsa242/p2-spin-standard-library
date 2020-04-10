@@ -1,0 +1,211 @@
+{
+    --------------------------------------------
+    Filename: display.vga.bitmap-8bpp.spin2
+    Description: 8-bits per pixel bitmap VGA driver (320x200)
+    Author: Ray Allen
+    Modified by: Jesse Burt
+    Started: Apr 6, 2020
+    Updated: Apr 9, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+    NOTE: This is a derivative of raycast5b_SpinDisplay2a.spin2,
+        originally written by Rayman/Ray Allen
+}
+#define VGABITMAP8BPP
+#include "lib.gfx.bitmap.spin2"
+
+CON
+
+    _CLKFREQ    = 250_000_000
+    FCLK        = _CLKFREQ
+    FPIX        = 25_000_000.0/2.0
+    FSET        = (FPIX / FCLK * 2.0) * float($4000_0000)
+    MAX_COLOR   = 255
+    HSYNC_PAR   = 0
+    RED_PAR     = 1
+    GREEN_PAR   = 2
+    BLUE_PAR    = 3
+    VSYNC_PAR   = 4
+
+    INTENSITY   = 80                                        ' 0..128
+
+VAR
+
+    long _cog, _params[6]
+    long _disp_width, _disp_height, _disp_xmax, _disp_ymax, _buff_sz
+    long _ptr_framebuffer
+    byte _vsync_pin
+
+PUB Start(pinbase, ptr_framebuffer, ptr_palette, WIDTH, HEIGHT): okay
+
+    _ptr_palette := ptr_palette
+    _params[HSYNC_PAR] := pinbase
+    _params[RED_PAR] := pinbase+1
+    _params[GREEN_PAR] := pinbase+2
+    _params[BLUE_PAR] := pinbase+3
+    _params[VSYNC_PAR] := pinbase+4
+    _params[5] := ptr_framebuffer
+
+    _disp_width := WIDTH
+    _disp_height := HEIGHT
+    _disp_xmax := _disp_width-1
+    _disp_ymax := _disp_height-1
+    _buff_sz := (WIDTH * HEIGHT)
+    Address(ptr_framebuffer)
+    _cog := okay := cognew(@DisplayEntry, @_params) + 1
+    return
+
+PUB Stop
+
+    if _cog
+        cogstop(_cog-1)
+
+PUB Address(addr)
+
+    _ptr_framebuffer := addr
+
+PUB ClearAccel
+' Dummy method
+
+PUB Update
+' Dummy method
+
+PUB WaitVSync
+' Wait for vertical sync signal to be high
+    repeat until _pinr(_params[VSYNC_PAR]) == 0
+    repeat until _pinr(_params[VSYNC_PAR]) == 1
+
+DAT
+                        orgh
+DisplayEntry
+                        org     0
+'
+'
+' Setup
+'
+'l          c           i       o           e               c
+
+                        rdfast  #0, _ptr_palette
+                        rep     @.end, #$100
+                        rflong  y
+                        shl     y, #8
+                        wrlut   y, x
+                        add     x, #1
+.end
+
+                        rdlong  hsync_pin, ptra++
+                        rdlong  red_pin, ptra++
+                        rdlong  green_pin, ptra++
+                        rdlong  blue_pin, ptra++
+                        rdlong  vsync_pin, ptra++
+                        rdlong  framebuff_addr, ptra++
+
+                        setxfrq ##round(FSET)               'set transfer frequency to 25MHz
+
+'the next 4 lines may be commented out to bypass level scaling
+
+                        setcy   ##INTENSITY << 24           'r  set colorspace for rgb
+                        setci   ##INTENSITY << 16           'g
+                        setcq   ##INTENSITY << 08           'b
+                        setcmod #%01_0_000_0                'enable colorspace conversion
+
+'RJA dacmodes changed for real P2
+                        cogid   mycogid
+                        shl     mycogid, #8
+                        or      dacmode_s, mycogid
+                        or      dacmode_c, mycogid
+
+'RJA dacmodes changed for real P2
+                        wrpin   dacmode_s, hsync_pin        'enable dac modes in pins 0..3
+                        wrpin   dacmode_c, red_pin
+                        wrpin   dacmode_c, green_pin
+                        wrpin   dacmode_c, blue_pin
+                        dirh    hsync_pin
+                        dirh    red_pin
+                        dirh    green_pin
+                        dirh    blue_pin
+
+'
+' Field loop
+'
+field                   mov     x, #33                      'top blanks  XXX May need to be tweaked for your monitor
+                        call    #blank
+                        mov     m_buf, framebuff_addr
+                        mov     x, #480/2                   'set visible lines
+
+lineloop                call    #hsync                      'do horizontal sync
+                        rdfast  ##640*1/64/2, m_buf
+                        xcont   m_rf, #0                    'visible line
+                        call    #hsync                      'do horizontal sync
+                        xcont   m_rf, #0                    'visible line
+                        add     m_buf, #320
+                        djnz    x, #lineloop                'another line?
+
+                        mov     x, #10                      'bottom blanks
+                        call    #blank
+
+                        drvnot  vsync_pin                   'sync on
+
+                        mov     x, #2                       'sync blanks
+                        call    #blank
+
+                        drvnot  vsync_pin                   'sync off
+
+                        jmp     #field                      'loop
+'
+' Subroutines
+'
+blank                   call    #hsync                      'blank lines
+                        xcont   m_vi, #0
+            _ret_       djnz    x, #blank
+
+hsync                   xcont   m_bs, #0                    'horizontal sync
+                        xcont   m_sn, #1
+            _ret_       xcont   m_bv, #0
+'
+' Initialized data
+'
+'RJA:  New dacmodes for real P2
+dacmode_s               long    %0000_0000_000_1011000000000_01_00000_0         'hsync is 123-ohm, 3.3V
+dacmode_c               long    %0000_0000_000_1011100000000_01_00000_0         'R/G/B are 75-ohm, 2.0V
+
+m_bs                    long    $7F010000+16/2        'before sync
+m_sn                    long    $7F010000+96/2        'sync
+m_bv                    long    $7F010000+48/2        'before visible
+m_vi                    long    $7F010000+640/2       'visible
+m_rf                    long    $7F080000+640/2       'visible rlong 8bpp lut
+
+framebuff_addr          long    0
+hsync_pin               long    0
+red_pin                 long    0
+green_pin               long    0
+blue_pin                long    0
+vsync_pin               long    0
+
+x                       long    0
+y                       long    0
+m_buf                   long    0
+_ptr_palette            long    0
+mycogid                 long    0
+
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
+
