@@ -110,6 +110,8 @@ PUB Clear
     longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #elseifdef SSD1351
     longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
+#elseifdef VGABITMAP8BPP
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #endif
 
 PUB ClearAll
@@ -246,6 +248,8 @@ PUB Plot (x, y, color)
     word[_ptr_framebuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #elseifdef SSD1351
     word[_ptr_framebuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+#elseifdef VGABITMAP8BPP
+    byte[_ptr_framebuffer][x + (y * _disp_width)] := color
 #else
 #warning "No supported display types defined!"
 #endif
@@ -271,6 +275,8 @@ PUB Point (x, y)
     return word[_ptr_framebuffer][x + (y * _disp_width)]
 #elseifdef SSD1351
     return word[_ptr_framebuffer][x + (y * _disp_width)]
+#elseifdef VGABITMAP8BPP
+    return byte[_ptr_framebuffer][x + (y * _disp_width)]
 #else
 #warning "No supported display types defined!"
 #endif
