@@ -10,15 +10,23 @@
     --------------------------------------------
 }
 
-' Streamer mode: D-field, bits 31..16 of streamer instruction (XINIT, XZERO, XCONT)
-'   Mode DACs Pins Base
-'   |||| |||| |||| ||||
-'  %mmmm_dddd_eppp_xxxx
+' Streamer mode:
+'   D-field, bits 31..16 of streamer instruction (XINIT, XZERO, XCONT)
+'       Mode DACs Pins Base
+'       |||| |||| |||| ||||
+'      %mmmm_dddd_eppp_bbbb
+'
+'       Mode - Streamer mode
+'       DACs - Configuration of the 4 streamer DACs
+'       Pins - Output to pins (digital output)
+'       Base - Base address (bbbb00000) within LUT RAM to use in LUT modes
 
-' Streamer duration: D-field, bits 0..15 of streamer instruction
-'   %xxxx_xxxx_xxxx_xxxx - Number of NCO rollovers the command will be active for
+' Streamer duration:
+'   D-field, bits 0..15 of streamer instruction
+'      %xxxx_xxxx_xxxx_xxxx - Number of NCO rollovers the command will be active for
 
-' Streamer submodes: S-field of streamer instruction
+' Streamer submodes:
+'   S-field of streamer instruction
 
 CON
 
@@ -59,7 +67,7 @@ CON
         X1_X0_DIFFPAIRS     = %1110 << DACS
         X3X2X1X0            = %1111 << DACS
 
-    OUTPUTENA               = 20
+    OUTPUTENA               = 20                            ' eppp
         OUT_DISABLE         = %0000 << OUTPUTENA
         OUT_31_0            = %1000 << OUTPUTENA
         OUT_39_8            = %1001 << OUTPUTENA
@@ -69,6 +77,8 @@ CON
         OUT_7_0__63_40      = %1101 << OUTPUTENA
         OUT_15_0__63_48     = %1110 << OUTPUTENA
         OUT_23_0__63_56     = %1111 << OUTPUTENA
+
+    LUTBASE                 = 16                            ' bbbb
 
 ' Submodes (S-field)
     RFBYTE_1BIT             = %00000
