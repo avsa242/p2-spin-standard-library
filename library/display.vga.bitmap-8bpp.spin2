@@ -16,7 +16,7 @@
 
 CON
 
-    _CLKFREQ    = 160_000_000                               ' Must match CLOCKFREQ symbol in parent object
+    _CLKFREQ    = 250_000_000'160_000_000                               ' Must match CLOCKFREQ symbol in parent object
     FCLK        = _CLKFREQ
     FPIX        = 25_000_000.0/2.0
     FSET        = (FPIX / FCLK * 2.0) * float($4000_0000)
