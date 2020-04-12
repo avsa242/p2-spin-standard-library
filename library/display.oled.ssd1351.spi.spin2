@@ -55,7 +55,7 @@ OBJ
 VAR
 
     long _DC, _RES, _MOSI, _SCK, _CS
-    long _ptr_framebuffer
+    long _ptr_drawbuffer
     word _disp_width, _disp_height, _disp_xmax, _disp_ymax, _buff_sz
 
     byte _sh_CLK, _sh_REMAPCOLOR, _sh_PHASE12PER                            ' Shadow registers
@@ -99,7 +99,7 @@ PUB Address(addr)
 ' Set address of display buffer
 '   Example:
 '       display.Address(@_framebuffer)
-    _ptr_framebuffer := addr
+    _ptr_drawbuffer := addr
 
 PUB Defaults
 ' Apply power-on-reset default settings
@@ -504,7 +504,7 @@ PUB Reset
 
 PUB Update
 ' Send the draw buffer to the display
-    writeReg(core#WRITERAM, _buff_sz, _ptr_framebuffer)
+    writeReg(core#WRITERAM, _buff_sz, _ptr_drawbuffer)
 
 PRI writeReg(reg, nr_bytes, buff_addr) | tmp
 

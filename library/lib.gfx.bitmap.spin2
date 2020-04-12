@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2020
     Started May 19, 2019
-    Updated Mar 27, 2020
+    Updated Apr 12, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -28,7 +28,7 @@ PUB Bitmap(bitmap_addr, bitmap_size, offset=0)
 '   bitmap_addr:    Address of bitmap to copy
 '   bitmap_size:    Number of bytes to copy
 '   offset:         Offset within the display buffer to copy to
-    bytemove(_ptr_framebuffer + offset, bitmap_addr, bitmap_size)
+    bytemove(_ptr_drawbuffer + offset, bitmap_addr, bitmap_size)
 
 PUB Box(x0, y0, x1, y1, color, filled=0) | x, y
 ' Draw a box
@@ -97,21 +97,23 @@ PUB Circle(x0, y0, radius, color) | x, y, err, cdx, cdy
 PUB Clear
 ' Clear the display buffer
 #ifdef IL3820
-    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #elseifdef SSD130X
-    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #elseifdef SSD1331
-    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #elseifdef NEOPIXEL
-    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #elseifdef HT16K33-ADAFRUIT
-    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #elseifdef ST7735
-    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #elseifdef SSD1351
-    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #elseifdef VGABITMAP8BPP
-    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
+#elseifdef LEDMATRIX_CHARLIEPLEXED
+    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #endif
 
 PUB ClearAll
@@ -209,47 +211,57 @@ PUB Plot (x, y, color)
 #ifdef IL3820
     case color
         1:
-            byte[_ptr_framebuffer][(x + y * _disp_width) >> 3] |= $80 >> (x & 7)
+            byte[_ptr_drawbuffer][(x + y * _disp_width) >> 3] |= $80 >> (x & 7)
         0:
-            byte[_ptr_framebuffer][(x + y * _disp_width) >> 3] &= !($80 >> (x & 7))
+            byte[_ptr_drawbuffer][(x + y * _disp_width) >> 3] &= !($80 >> (x & 7))
         -1:
-            byte[_ptr_framebuffer][(x + y * _disp_width) >> 3] ^= $80 >> (x & 7)
+            byte[_ptr_drawbuffer][(x + y * _disp_width) >> 3] ^= $80 >> (x & 7)
         OTHER:
             return
 #elseifdef SSD130X
     case color
         1:
-            byte[_ptr_framebuffer][x + (y>>3) * _disp_width] |= (|< (y&7))
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] |= (|< (y&7))
         0:
-            byte[_ptr_framebuffer][x + (y>>3) * _disp_width] &= !(|< (y&7))
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] &= !(|< (y&7))
         -1:
-            byte[_ptr_framebuffer][x + (y>>3) * _disp_width] ^= (|< (y&7))
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] ^= (|< (y&7))
         OTHER:
             return
 #elseifdef SSD1331
-    word[_ptr_framebuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+    word[_ptr_drawbuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #elseifdef NEOPIXEL
-    long[_ptr_framebuffer][x + (y * _disp_width)] := color
+    long[_ptr_drawbuffer][x + (y * _disp_width)] := color
 #elseifdef HT16K33-ADAFRUIT
     x := x + 7
     x := x // 8
 
     case color
         1:
-            byte[_ptr_framebuffer][y] |= |< x
+            byte[_ptr_drawbuffer][y] |= |< x
         0:
-            byte[_ptr_framebuffer][y] &= !(|< x)
+            byte[_ptr_drawbuffer][y] &= !(|< x)
         -1:
-            byte[_ptr_framebuffer][y] ^= |< x
+            byte[_ptr_drawbuffer][y] ^= |< x
         OTHER:
             return
 
 #elseifdef ST7735
-    word[_ptr_framebuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+    word[_ptr_drawbuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #elseifdef SSD1351
-    word[_ptr_framebuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+    word[_ptr_drawbuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #elseifdef VGABITMAP8BPP
-    byte[_ptr_framebuffer][x + (y * _disp_width)] := color
+    byte[_ptr_drawbuffer][x + (y * _disp_width)] := color
+#elseifdef LEDMATRIX_CHARLIEPLEXED
+    case color
+        1:
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] |= (|< (y&7))
+        0:
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] &= !(|< (y&7))
+        -1:
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] ^= (|< (y&7))
+        OTHER:
+            return
 #else
 #warning "No supported display types defined!"
 #endif
@@ -260,23 +272,25 @@ PUB Point (x, y)
     y := 0 #> y <# _disp_ymax
 
 #ifdef IL3820
-    return byte[_ptr_framebuffer][(x + y * _disp_width) >> 3]
+    return byte[_ptr_drawbuffer][(x + y * _disp_width) >> 3]
 #elseifdef SSD130X
-    return byte[_ptr_framebuffer][x + (y>>3) * _disp_width] >> (y & 7)
+    return (byte[_ptr_drawbuffer][(x + (y >> 3) * _disp_width)] & (1 << (y & 7)) <> 0) * -1
 #elseifdef SSD1331
-    return word[_ptr_framebuffer][x + (y * _disp_width)]
+    return word[_ptr_drawbuffer][x + (y * _disp_width)]
 #elseifdef NEOPIXEL
-    return long[_ptr_framebuffer][x + (y * _disp_width)]
+    return long[_ptr_drawbuffer][x + (y * _disp_width)]
 #elseifdef HT16K33-ADAFRUIT
     x := x + 7
     x := x // 8
-    return byte[_ptr_framebuffer][y + (x >> 3) * _disp_width]
+    return byte[_ptr_drawbuffer][y + (x >> 3) * _disp_width]
 #elseifdef ST7735
-    return word[_ptr_framebuffer][x + (y * _disp_width)]
+    return word[_ptr_drawbuffer][x + (y * _disp_width)]
 #elseifdef SSD1351
-    return word[_ptr_framebuffer][x + (y * _disp_width)]
+    return word[_ptr_drawbuffer][x + (y * _disp_width)]
 #elseifdef VGABITMAP8BPP
-    return byte[_ptr_framebuffer][x + (y * _disp_width)]
+    return byte[_ptr_drawbuffer][x + (y * _disp_width)]
+#elseifdef LEDMATRIX_CHARLIEPLEXED
+    return (byte[_ptr_drawbuffer][(x + (y >> 3) * _disp_width)] & (1 << (y & 7)) <> 0) * -1
 #else
 #warning "No supported display types defined!"
 #endif
@@ -331,6 +345,35 @@ PUB Scale (sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
             dx := offsx + (x*size)-(sx*size)
             dy := offsy + (y*size)-(sy*size)
             Box(dx, dy, dx + size, dy + size, in, TRUE)
+
+PUB ScrollUp(sx, sy, ex, ey) | scr_width, src, dest, x, y
+' Scroll a region of the display up by 1 pixel
+    scr_width := ex-sx
+    repeat y from sy+1 to ey
+
+#ifdef IL3820
+        Copy(sx, y, ex, y, sx, y-1)                         ' Use Copy() for display types other than VGA, for now (simpler to implement)
+#elseifdef SSD130X
+        Copy(sx, y, ex, y, sx, y-1)
+#elseifdef SSD1331
+        Copy(sx, y, ex, y, sx, y-1)
+#elseifdef NEOPIXEL
+        Copy(sx, y, ex, y, sx, y-1)
+#elseifdef HT16K33-ADAFRUIT
+        Copy(sx, y, ex, y, sx, y-1)
+#elseifdef ST7735
+        Copy(sx, y, ex, y, sx, y-1)
+#elseifdef SSD1351
+        Copy(sx, y, ex, y, sx, y-1)
+#elseifdef VGABITMAP8BPP
+        src := sx + (y * _disp_width)
+        dest := sx + ((y-1) * _disp_width)
+        bytemove(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
+#elseifdef LEDMATRIX_CHARLIEPLEXED
+        Copy(sx, y, ex, y, sx, y-1)
+#else
+#warning "No supported display types defined!"
+#endif
 
 PUB Str (string_addr) | i
 ' Write string at string_addr to the display @ row and column.

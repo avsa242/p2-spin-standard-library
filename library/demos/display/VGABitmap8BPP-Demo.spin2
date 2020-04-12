@@ -11,36 +11,73 @@
 }
 CON
 
-    _XTALFREQ   = 20_000_000
-    _XDIV       = 2'10
-    _XMUL       = 25'125
-    _XDIVP      = 1
-    _XOSC       = %10
-    _XSEL       = %11
-    _XPPPP      = ((_XDIVP>>1) + 15) & $F
-    _CLOCKFREQ  = _XTALFREQ / _XDIV * _XMUL / _XDIVP
-    _SETFREQ    = 1<<24 + (_XDIV-1)<<18 + (_XMUL-1)<<8 + _XPPPP<<4 + _XOSC<<2
-    _ENAFREQ    = _SETFREQ + _XSEL
-
-    _clkmode    = _SETFREQ
-    _clkfreq    = 250_000_000
+    ' 160MHz
+    XTAL            = cfg#XTAL
+    XDIV            = cfg#XDIV
+    XMUL            = cfg#XMUL
+    XDIVP           = cfg#XDIVP
+    XOSC            = cfg#XOSC
+    XSEL            = cfg#XSEL
+    XPPPP           = cfg#XPPPP
+    CLOCKFREQ       = cfg#CLOCKFREQ
+    SETFREQ         = cfg#SETFREQ
+    ENAFREQ         = cfg#ENAFREQ
 
 
-    WIDTH       = 320
-    HEIGHT      = 240
-    XMAX        = WIDTH-1
-    YMAX        = HEIGHT-1
-    BUFFSZ      = WIDTH * HEIGHT
-    BPP         = 1
-    BPL         = WIDTH * BPP
+{    ' 80MHz
+    XTALFREQ        = 20_000_000
+    XDIV            = 2
+    XMUL            = 8
+    XDIVP           = 1
+    XOSC            = %10
+    XSEL            = %11
+    XPPPP           = ((XDIVP>>1) + 15) & $F
+    CLOCKFREQ       = XTALFREQ / XDIV * XMUL / XDIVP
+    SETFREQ         = 1<<24 + (XDIV-1)<<18 + (XMUL-1)<<8 + XPPPP<<4 + XOSC<<2
+    ENAFREQ         = SETFREQ + XSEL
+}
 
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
-    SER_BAUD    = 2_000_000
-    LED         = cfg#LED1
+{    ' 250MHz
+    XTALFREQ        = 20_000_000
+    XDIV            = 2
+    XMUL            = 25
+    XDIVP           = 1
+    XOSC            = %10
+    XSEL            = %11
+    XPPPP           = ((XDIVP>>1) + 15) & $F
+    CLOCKFREQ       = XTALFREQ / XDIV * XMUL / XDIVP
+    SETFREQ         = 1<<24 + (XDIV-1)<<18 + (XMUL-1)<<8 + XPPPP<<4 + XOSC<<2
+    ENAFREQ         = SETFREQ + XSEL
+}
 
-    VGA_BASEPIN = 0                                         ' 0, 8, 16, 24, 32, 40, 48
-'                                                               Works with all basepins on the P2ES except 56
+{    ' 350MHz
+    XTALFREQ        = 20_000_000
+    XDIV            = 2
+    XMUL            = 35
+    XDIVP           = 1
+    XOSC            = %10
+    XSEL            = %11
+    XPPPP           = ((XDIVP>>1) + 15) & $F
+    CLOCKFREQ       = XTALFREQ / XDIV * XMUL / XDIVP
+    SETFREQ         = 1<<24 + (XDIV-1)<<18 + (XMUL-1)<<8 + XPPPP<<4 + XOSC<<2
+    ENAFREQ         = SETFREQ + XSEL
+}
+
+    WIDTH           = 320
+    HEIGHT          = 240
+    XMAX            = WIDTH-1
+    YMAX            = HEIGHT-1
+    BUFFSZ          = WIDTH * HEIGHT
+    BPP             = 1
+    BPL             = WIDTH * BPP
+
+    SER_RX          = cfg#SER_RX
+    SER_TX          = cfg#SER_TX
+    SER_BAUD        = 2_000_000
+    LED             = cfg#LED1
+
+    VGA_BASEPIN     = 0                                     ' 0, 8, 16, 24, 32, 40, 48
+'                                                           Works with all basepins on the P2ES except 56
 
 VAR
 
@@ -161,7 +198,6 @@ PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
 
     repeat while _timer_set
         vga.Bitmap (bitmap_addr, BUFFSZ, 0)
-        vga.Update
         iteration++
 
     Report(testtime, iteration)
@@ -207,7 +243,6 @@ PUB Demo_Circle(testtime) | iteration, x, y, r, c
         r := rnd(YMAX/2)
         c := rnd(255)
         vga.Circle (x, y, r, c)
-        vga.Update
         iteration++
 
     Report(testtime, iteration)
@@ -234,7 +269,6 @@ PUB Demo_Greet
 
     vga.Position (4, 4)
     vga.Str (int.DecPadded (HEIGHT, 2))
-    vga.Update
 
 PUB Demo_Line (testtime) | iteration, c
 ' Draws random lines
@@ -245,7 +279,6 @@ PUB Demo_Line (testtime) | iteration, c
     repeat while _timer_set
         c := rnd(255)
         vga.Line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c)
-        vga.Update
         iteration++
 
     Report(testtime, iteration)
@@ -267,7 +300,6 @@ PUB Demo_LineSweepX (testtime) | iteration, x, c
         if c > 255
             c := 0
         vga.Line (x, 0, XMAX-x, YMAX, c)
-        vga.Update
         iteration++
 
     Report(testtime, iteration)
@@ -289,7 +321,6 @@ PUB Demo_LineSweepY (testtime) | iteration, y, c
         if c > 255
             c := 0
         vga.Line (XMAX, y, 0, YMAX-y, c)
-        vga.Update
         iteration++
 
     Report(testtime, iteration)
@@ -307,7 +338,6 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
         if pos > end_addr
             pos := start_addr
         vga.Bitmap (pos, BUFFSZ, 0)
-        vga.Update
         iteration++
 
     Report(testtime, iteration)
@@ -322,7 +352,6 @@ PUB Demo_Plot(testtime) | iteration, x, y, c
     repeat while _timer_set
         c := rnd(255)
         vga.Plot (rnd(XMAX), rnd(YMAX), c)
-        vga.Update
         iteration++
 
     Report(testtime, iteration)
@@ -402,7 +431,6 @@ PUB Demo_SeqText(testtime) | iteration, col, row, maxcol, maxrow, ch, st, fg, bg
                 vga.BGColor(bg)
                 vga.Position (col, row)
                 vga.Char (ch)
-        vga.Update
         iteration++
 
     Report(testtime, iteration)
@@ -434,7 +462,6 @@ PUB Demo_RndText(testtime) | iteration, col, row, maxcol, maxrow, ch, st, fg, bg
                 vga.BGColor(bg)
                 vga.Position (col, row)
                 vga.Char (rnd(127))
-        vga.Update
         iteration++
 
     Report(testtime, iteration)
@@ -495,7 +522,6 @@ PUB Demo_Wander(testtime) | iteration, x, y, d, c, movestep
                     y := YMAX
         c := (?_rndseed >> 24)
         vga.Plot (x, y, c)
-        vga.Update
         iteration++
 
     Report(testtime, iteration)
@@ -566,7 +592,7 @@ PRI cog_Timer | time_left
 
 PUB Setup
 
-    clkset(_clkmode, _clkfreq)
+    clkset(ENAFREQ, CLOCKFREQ)
     repeat until ser.StartRXTX(SER_RX, SER_TX, 0, SER_BAUD)
     ser.clear
     ser.printf("Serial terminal started - p2 @ %dMHz\n", clkfreq/1000000)

@@ -59,7 +59,7 @@ OBJ
 VAR
 
     long _DC, _RES, _MOSI, _SCK, _CS
-    long _ptr_framebuffer
+    long _ptr_drawbuffer
     byte _sh_SETCOLUMN, _sh_SETROW, _sh_SETCONTRAST_A, _sh_SETCONTRAST_B, _sh_SETCONTRAST_C
     byte _sh_MASTERCCTRL, _sh_SECPRECHG[3], _sh_REMAPCOLOR, _sh_DISPSTARTLINE, _sh_DISPOFFSET
     byte _sh_DISPMODE, _sh_MULTIPLEX, _sh_DIM, _sh_MASTERCFG, _sh_DISPONOFF, _sh_POWERSAVE
@@ -135,7 +135,7 @@ PUB DefaultsCommon
 
 PUB Address(addr)
 ' Set framebuffer/display buffer address
-    _ptr_framebuffer := addr
+    _ptr_drawbuffer := addr
 
 PUB AddrMode(mode) | tmp
 ' Set display internal addressing mode
@@ -712,7 +712,7 @@ PUB SubpixelOrder(order) | tmp
 
 PUB Update
 ' Write the current display buffer to the display
-    writeReg(TRANS_DATA, _buff_sz, _ptr_framebuffer)
+    writeReg(TRANS_DATA, _buff_sz, _ptr_drawbuffer)
 
 PUB VertAltScan(enabled) | tmp
 ' Alternate Left-Right, Right-Left scanning, every other display line

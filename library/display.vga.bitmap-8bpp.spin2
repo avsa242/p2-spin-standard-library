@@ -5,7 +5,7 @@
     Author: Ray Allen
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Apr 9, 2020
+    Updated: Apr 12, 2020
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is a derivative of raycast5b_SpinDisplay2a.spin2,
@@ -16,7 +16,7 @@
 
 CON
 
-    _CLKFREQ    = 250_000_000
+    _CLKFREQ    = 160_000_000                               ' Must match CLOCKFREQ symbol in parent object
     FCLK        = _CLKFREQ
     FPIX        = 25_000_000.0/2.0
     FSET        = (FPIX / FCLK * 2.0) * float($4000_0000)
@@ -29,11 +29,16 @@ CON
 
     INTENSITY   = 80                                        ' 0..128
 
+OBJ
+
+    smartpins   : "core.con.smartpins"
+    streamer    : "core.con.streamer"
+
 VAR
 
     long _cog, _params[6]
     long _disp_width, _disp_height, _disp_xmax, _disp_ymax, _buff_sz
-    long _ptr_framebuffer
+    long _ptr_framebuffer, _ptr_drawbuffer
     byte _vsync_pin
 
 PUB Start(pinbase, ptr_framebuffer, ptr_palette, WIDTH, HEIGHT): okay
@@ -61,14 +66,26 @@ PUB Stop
         cogstop(_cog-1)
 
 PUB Address(addr)
-
+' Set address of display buffer
+'   NOTE: Also sets address of (optional) offscreen buffer to the same address
     _ptr_framebuffer := addr
+    _ptr_drawbuffer := addr
 
 PUB ClearAccel
-' Dummy method
+' Clear the display
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
+
+PUB DrawTo(addr)
+' Set address of (optional) draw/render buffer
+'   NOTE: This is typically used as an offscreen buffer,
+'       to subsequently be copied to the display or "live" buffer,
+'       once a complete frame is rendered.
+    _ptr_drawbuffer := addr
 
 PUB Update
-' Dummy method
+' Write the draw buffer to the display
+'   NOTE: This is only required when using double-buffering
+    longmove(_ptr_framebuffer, _ptr_drawbuffer, _buff_sz/4)
 
 PUB WaitVSync
 ' Wait for vertical sync signal to be high
@@ -134,7 +151,7 @@ field                   mov     x, #33                      'top blanks  XXX May
                         mov     x, #480/2                   'set visible lines
 
 lineloop                call    #hsync                      'do horizontal sync
-                        rdfast  ##640*1/64/2, m_buf
+                        rdfast  ##640*1/64/2, m_buf         ' D=64 byte units (5 here, so 5*64 = 320)
                         xcont   m_rf, #0                    'visible line
                         call    #hsync                      'do horizontal sync
                         xcont   m_rf, #0                    'visible line
@@ -162,18 +179,18 @@ blank                   call    #hsync                      'blank lines
 hsync                   xcont   m_bs, #0                    'horizontal sync
                         xcont   m_sn, #1
             _ret_       xcont   m_bv, #0
+
 '
 ' Initialized data
 '
-'RJA:  New dacmodes for real P2
-dacmode_s               long    %0000_0000_000_1011000000000_01_00000_0         'hsync is 123-ohm, 3.3V
-dacmode_c               long    %0000_0000_000_1011100000000_01_00000_0         'R/G/B are 75-ohm, 2.0V
+dacmode_s               long    smartpins#PCTL_DACMODE | (%10 << 16) | smartpins#TT_OUTPUT_ENABLED ' HSync
+dacmode_c               long    smartpins#PCTL_DACMODE | (%11 << 16) | smartpins#TT_OUTPUT_ENABLED ' R, G, B
 
-m_bs                    long    $7F010000+16/2        'before sync
-m_sn                    long    $7F010000+96/2        'sync
-m_bv                    long    $7F010000+48/2        'before visible
-m_vi                    long    $7F010000+640/2       'visible
-m_rf                    long    $7F080000+640/2       'visible rlong 8bpp lut
+m_bs                    long    STREAMER_SETUP | (1 << streamer#LUTBASE) + 16/2     ' Before sync
+m_sn                    long    STREAMER_SETUP | (1 << streamer#LUTBASE) + 96/2     ' Sync
+m_bv                    long    STREAMER_SETUP | (1 << streamer#LUTBASE) + 48/2     ' Before visible
+m_vi                    long    STREAMER_SETUP | (1 << streamer#LUTBASE) + 640/2    ' Visible
+m_rf                    long    STREAMER_SETUP | (8 << streamer#LUTBASE) + 640/2    ' Visible RLONG 8BPP LUT
 
 framebuff_addr          long    0
 hsync_pin               long    0
@@ -187,6 +204,10 @@ y                       long    0
 m_buf                   long    0
 _ptr_palette            long    0
 mycogid                 long    0
+
+CON
+
+    STREAMER_SETUP  = streamer#RFLONG_LUT_8BIT | streamer#X3X2X1X0 | streamer#OUT_DISABLE
 
 {
     --------------------------------------------------------------------------------------------------------
