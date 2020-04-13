@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2020
     Started May 19, 2019
-    Updated Apr 12, 2020
+    Updated Apr 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -363,6 +363,35 @@ PUB Scale (sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
             dx := offsx + (x*size)-(sx*size)
             dy := offsy + (y*size)-(sy*size)
             Box(dx, dy, dx + size, dy + size, in, TRUE)
+
+PUB ScrollDown(sx, sy, ex, ey) | scr_width, src, dest, x, y
+' Scroll a region of the display down by 1 pixel
+    scr_width := ex-sx
+    repeat y from ey-1 to sy
+
+#ifdef IL3820
+        Copy(sx, y, ex, y, sx, y+1)                         ' Use Copy() for display types other than VGA, for now (simpler to implement)
+#elseifdef SSD130X
+        Copy(sx, y, ex, y, sx, y+1)
+#elseifdef SSD1331
+        Copy(sx, y, ex, y, sx, y+1)
+#elseifdef NEOPIXEL
+        Copy(sx, y, ex, y, sx, y+1)
+#elseifdef HT16K33-ADAFRUIT
+        Copy(sx, y, ex, y, sx, y+1)
+#elseifdef ST7735
+        Copy(sx, y, ex, y, sx, y+1)
+#elseifdef SSD1351
+        Copy(sx, y, ex, y, sx, y+1)
+#elseifdef VGABITMAP8BPP
+        src := sx + (y * _disp_width)
+        dest := sx + ((y+1) * _disp_width)
+        bytemove(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
+#elseifdef LEDMATRIX_CHARLIEPLEXED
+        Copy(sx, y, ex, y, sx, y+1)
+#else
+#warning "No supported display types defined!"
+#endif
 
 PUB ScrollUp(sx, sy, ex, ey) | scr_width, src, dest, x, y
 ' Scroll a region of the display up by 1 pixel
