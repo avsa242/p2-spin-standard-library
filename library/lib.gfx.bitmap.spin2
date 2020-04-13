@@ -53,15 +53,33 @@ PUB Char (ch) | glyph_col, glyph_row, x, last_glyph_col, last_glyph_row, ch_offs
 ' Write a character to the display
     last_glyph_col := _font_width-1
     last_glyph_row := _font_height-1
-    ch <<= 3
-    repeat glyph_col from 0 to last_glyph_col
-        x := _col + glyph_col
-        ch_offset := ch + glyph_col
-        repeat glyph_row from 0 to last_glyph_row
-            if byte[_font_addr][ch_offset] & |< glyph_row
-                Plot(x, _row + glyph_row, _fgcolor)
-            else
-                Plot(x, _row + glyph_row, _bgcolor)
+
+    case ch
+        LF:
+            _row += _font_height
+            if _row > _disp_ymax
+                _row := 0
+
+        CR:
+            _col := 0
+
+        32..127:
+            ch <<= 3
+            repeat glyph_col from 0 to last_glyph_col
+                x := _col + glyph_col
+                ch_offset := ch + glyph_col
+                repeat glyph_row from 0 to last_glyph_row
+                    if byte[_font_addr][ch_offset] & |< glyph_row
+                        Plot(x, _row + glyph_row, _fgcolor)
+                    else
+                        Plot(x, _row + glyph_row, _bgcolor)
+
+            _col += _font_width
+            if _col > _disp_xmax
+                _col := 0
+                _row += _font_height
+                if _row > _disp_ymax
+                    _row := 0
 
 PUB Circle(x0, y0, radius, color) | x, y, err, cdx, cdy
 ' Draw a circle
@@ -375,18 +393,6 @@ PUB ScrollUp(sx, sy, ex, ey) | scr_width, src, dest, x, y
 #warning "No supported display types defined!"
 #endif
 
-PUB Str (string_addr) | i
-' Write string at string_addr to the display @ row and column.
-'   NOTE: Wraps to the left at end of line and to the top-left at end of display
-    repeat i from 0 to strsize(string_addr)-1
-        Char(byte[string_addr][i])
-        _col += _font_width     'XXX TODO: Move position handling to Char? Then the terminal lib
-        if _col > _disp_xmax    '   could be #included and used in place of this, and also provide
-            _col := 0           '   Bin, Dec, Hex, etc...
-            _row += _font_height'   Not that Char needs to be any slower, than it is, though
-            if _row > _disp_ymax
-                _row := 0
-
 PUB TextCols
 ' Returns number of displayable text columns, based on set display width and set font width
     return _disp_width / _font_width
@@ -394,6 +400,8 @@ PUB TextCols
 PUB TextRows
 ' Returns number of displayable text rows, based on set display height and set font height
     return _disp_height / _font_height
+
+#include "lib.terminal.spin2"
 
 DAT
 {
