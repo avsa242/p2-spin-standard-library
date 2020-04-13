@@ -11,7 +11,7 @@
 }
 CON
 
-    ' 160MHz
+{    ' 160MHz
     XTAL            = cfg#XTAL
     XDIV            = cfg#XDIV
     XMUL            = cfg#XMUL
@@ -22,7 +22,7 @@ CON
     CLOCKFREQ       = cfg#CLOCKFREQ
     SETFREQ         = cfg#SETFREQ
     ENAFREQ         = cfg#ENAFREQ
-
+}
 
 {    ' 80MHz
     XTALFREQ        = 20_000_000
@@ -37,7 +37,7 @@ CON
     ENAFREQ         = SETFREQ + XSEL
 }
 
-{    ' 250MHz
+    ' 250MHz
     XTALFREQ        = 20_000_000
     XDIV            = 2
     XMUL            = 25
@@ -48,7 +48,7 @@ CON
     CLOCKFREQ       = XTALFREQ / XDIV * XMUL / XDIVP
     SETFREQ         = 1<<24 + (XDIV-1)<<18 + (XMUL-1)<<8 + XPPPP<<4 + XOSC<<2
     ENAFREQ         = SETFREQ + XSEL
-}
+
 
 {    ' 350MHz
     XTALFREQ        = 20_000_000
@@ -252,23 +252,9 @@ PUB Demo_Greet
 ' Display the banner/greeting
     vga.FGColor(255)
     vga.BGColor(0)
-    vga.Position (0, 0)
-    vga.Str (string("VGA 8bpp on the"))
-
     vga.Position (0, 1)
-    vga.Str (string("Parallax P2X8C4M64P @ "))
-
-    vga.Str (int.Dec(clkfreq/1_000_000))
-    vga.Str (string("MHz"))
-
-    vga.Position (0, 4)
-    vga.Str (int.DecPadded (WIDTH, 3))
-
-    vga.Position (3, 4)
-    vga.Str (string("x"))
-
-    vga.Position (4, 4)
-    vga.Str (int.DecPadded (HEIGHT, 2))
+    vga.printf("VGA 8bpp on the Parallax P2X8C4M64P @ %dMHz\n", clkfreq/1_000_000)
+    vga.printf("%dx%d", WIDTH, HEIGHT)
 
 PUB Demo_Line (testtime) | iteration, c
 ' Draws random lines
