@@ -27,7 +27,7 @@ _int_ indicates the type of interface supported by the driver (e.g., spi, i2c, u
 |`AFCStart`                             | Trigger a manual AFC                                          |
 |`AfterRX(next_state)`                  | Define state to transition to after packet rcvd               |
 |`AfterTX(next_state)`                  | Define state to transition to after packet xmit               |
-|`AGC(mode)`                            | Automatic Gain Control                                        |
+|`AGCMode(mode)`                        | Automatic Gain Control                                        |
 |`AGCFilterLength(samples)`             | AGC filter sample averaging                                   |
 |`AppendStatus(bool)`                   | Automatically append status bytes to payload                  |
 |`AutoAckEnabledPipes(pipe_mask)`       | Enable auto acknowledgement                                   |

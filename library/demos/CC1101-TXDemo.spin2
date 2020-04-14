@@ -3,9 +3,9 @@
     Filename: CC1101-TXDemo.spin
     Author: Jesse Burt
     Description: Simple transmit demo of the cc1101 driver
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Dec 21, 2019
+    Updated Apr 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -28,10 +28,10 @@ CON
     SER_BAUD    = 2_000_000
 
 
-    CS_PIN          = 8                             ' Change to your module's connections
-    SCK_PIN         = 11
-    MOSI_PIN        = 10
-    MISO_PIN        = 9
+    CS_PIN          = 27                             ' Change to your module's connections
+    SCK_PIN         = 26
+    MOSI_PIN        = 24
+    MISO_PIN        = 25
     SCK_FREQ        = 5_000_000
 
     NODE_ADDRESS    = $02
@@ -68,6 +68,10 @@ PUB Main | choice
     ser.printf("Waiting for PLL lock...")
     repeat until cc1101.PLLLocked == TRUE           ' Don't proceed until PLL is locked
     ser.printf("done\n")
+
+    cc1101.TXPowerIndex(0)
+    cc1101.TXPower(5)                               ' -30, -20, -15, -10, 0, 5, 7, 10 dBm
+    ser.printf("TXPower: %d dBm\n", cc1101.TXPower)
 
     ser.printf("Press any key to begin transmitting\n")
     ser.CharIn
@@ -112,7 +116,7 @@ PUB Transmit | count, tmp, to_node
         cc1101.FlushTX
         cc1101.FSTX
         cc1101.TXMode
-        cc1101.TXData (_pktlen, @_fifo)
+        cc1101.TXPayload (_pktlen, @_fifo)
         time.Sleep (5)                              ' Try not to abuse the airwaves - wait between transmissions
 
 PUB Setup
@@ -126,13 +130,6 @@ PUB Setup
     else
         ser.printf("CC1101 driver failed to start - halting\n")
         FlashLED (LED, 500)
-
-PUB FlashLED(led_pin, delay_ms)
-
-    io.Output(led_pin)
-    repeat
-        io.Toggle(led_pin)
-        time.MSleep(delay_ms)
 
 DAT
 ' Radio states
@@ -158,6 +155,8 @@ MARC_STATE  byte    "SLEEP           ", 0 {0}
             byte    "TX              ", 0 {19}
             byte    "TX_END          ", 0 {20}
             byte    "RXRX_SWITCH     ", 0 {21}
+
+#include "lib.utility.spin2"
 
 DAT
 {

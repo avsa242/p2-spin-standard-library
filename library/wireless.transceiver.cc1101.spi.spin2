@@ -5,7 +5,7 @@
     Description: Driver for TI's CC1101 ISM-band transceiver (P2 version)
     Copyright (c) 2020
     Started Mar 25, 2019
-    Updated Apr 12, 2020
+    Updated Apr 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -115,11 +115,11 @@ PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=5_000_000): okay
 
             io.High(_CS)
             io.Output(_CS)
-            if lookdown(DeviceID: $04, $14..$FE)                                'Poll chip for version
+            if lookdown(DeviceID: $04, $14..$FE)                'Poll chip for version
                 Reset
                 return okay
 
-    return FALSE                                                                'If we got here, something went wrong
+    return FALSE                                                'If we got here, something went wrong
 
 PUB Stop
 
@@ -187,28 +187,6 @@ PUB AfterTX(next_state=-2) | tmp
     tmp := (tmp | next_state)
     writeReg (core#MCSM1, 1, @tmp)
 
-PUB AGC(mode=-2) | tmp
-' Set AGC mode
-'   Valid values:
-'      *AGC_NORMAL (0): Always adjust gain when required
-'       AGC_FREEZE_ON_SYNC (1): Gain setting is frozen when a sync word has been found
-'       AGC_FREEZE_A_AUTO_D (2): Freeze analog gain, but autmatically adjust digital gain
-'       AGC_OFF (3): Freeze both analog and digital gain settings
-'   Any other value polls the chip and returns the current setting
-
-    tmp := $00
-    readReg (core#AGCCTRL0, 1, @tmp)
-    case mode
-        AGC_NORMAL, AGC_FREEZE_ON_SYNC, AGC_FREEZE_A_AUTO_D, AGC_OFF:
-            mode <<= core#FLD_AGC_FREEZE
-        OTHER:
-            result := (tmp >> core#FLD_AGC_FREEZE) & core#BITS_AGC_FREEZE
-            return
-
-    tmp &= core#MASK_AGC_FREEZE
-    tmp := (tmp | mode) & core#AGCCTRL0_MASK
-    writeReg(core#AGCCTRL0, 1, @tmp)
-
 PUB AGCFilterLength(samples=-2) | tmp
 ' For 2FSK, 4FSK, MSK, set averaging length for amplitude from the channel filter, in samples
 ' For OOK/ASK, set decision boundary for reception
@@ -232,6 +210,28 @@ PUB AGCFilterLength(samples=-2) | tmp
     tmp &= core#MASK_FILTER_LENGTH
     tmp := (tmp | samples) & core#AGCCTRL0_MASK
     writeReg (core#AGCCTRL0, 1, @tmp)
+
+PUB AGCMode(mode=-2) | tmp
+' Set AGC mode
+'   Valid values:
+'      *AGC_NORMAL (0): Always adjust gain when required
+'       AGC_FREEZE_ON_SYNC (1): Gain setting is frozen when a sync word has been found
+'       AGC_FREEZE_A_AUTO_D (2): Freeze analog gain, but autmatically adjust digital gain
+'       AGC_OFF (3): Freeze both analog and digital gain settings
+'   Any other value polls the chip and returns the current setting
+
+    tmp := $00
+    readReg (core#AGCCTRL0, 1, @tmp)
+    case mode
+        AGC_NORMAL, AGC_FREEZE_ON_SYNC, AGC_FREEZE_A_AUTO_D, AGC_OFF:
+            mode <<= core#FLD_AGC_FREEZE
+        OTHER:
+            result := (tmp >> core#FLD_AGC_FREEZE) & core#BITS_AGC_FREEZE
+            return
+
+    tmp &= core#MASK_AGC_FREEZE
+    tmp := (tmp | mode) & core#AGCCTRL0_MASK
+    writeReg(core#AGCCTRL0, 1, @tmp)
 
 PUB AppendStatus(enabled=-2) | tmp
 ' Append status bytes to packet payload (RSSI, LQI, CRC OK)
@@ -308,7 +308,6 @@ PUB CarrierFreq(Hz=-2) | tmp
 
 PUB CarrierFreqWord(freq_word=-2) | tmp
 ' Set carrier/center frequency, by frequency word (use CalcFreqWord to calculate)
-
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#FREQ2, 3, @tmp)
@@ -322,12 +321,6 @@ PUB CarrierFreqWord(freq_word=-2) | tmp
             return tmp
 
     writeReg (core#FREQ2, 3, @freq_word)
-
-PUB FreqTable(table_addr, entry_nr, freq_word) | tmp
-
-    byte[table_addr][entry_nr*3] := freq_word.byte[0]
-    byte[table_addr][(entry_nr*3)+1] := freq_word.byte[1]
-    byte[table_addr][(entry_nr*3)+2] := freq_word.byte[2]
 
 PUB CarrierSense(threshold=-2) | tmp
 ' Set relative change threshold for asserting carrier sense, in dB
@@ -385,7 +378,7 @@ PUB Channel(number=-2) | tmp
     writeReg (core#CHANNR, 1, @number)
 
 PUB ChannelSpacing(Hz=-2) | tmp, chanspc_e, chanspc_m, chanspc_res_tmp
-' Set channel spacing, in Hz        'XXX works, but improve accuracy (fault may lie in CHANSPC_RES?)
+' Set channel spacing, in Hz
 '   Valid values: 25390..405456 (default: 199951)
 '   Any other value polls the chip and returns the current setting
     tmp := chanspc_e := chanspc_m := chanspc_res_tmp := $0000
@@ -459,14 +452,14 @@ PUB DataRate(Baud=-2) | tmp, tmp_e, tmp_m, DRATE_E, DRATE_M
     readReg (core#MDMCFG4, 1, @tmp_e)
     readReg (core#MDMCFG3, 1, @tmp_m)
     case Baud := lookdown(Baud: 1000, 1200, 2048, 2400, 4096, 4800, 9600, 19_600, 38_400, 76_800, 115_051, 153_600, 250_000, 500_000)
-        1..13:
+        1..14:
             DRATE_E := lookup(Baud: $05, $05, $06, $06, $07, $07, $08, $09, $0A, $0B, $0C, $0C, $0D, $0E) & core#BITS_DRATE_E
             DRATE_M := lookup(Baud: $42, $83, $4A, $83, $4A, $83, $83, $8B, $83, $83, $22, $83, $3B, $3B) & core#MDMCFG3_MASK
         OTHER:
             tmp_e &= core#BITS_DRATE_E
             tmp := (tmp_e << 8) | tmp_m
-            result := lookdown(tmp: $0542, $0583, $0683, $0783, $0883, $098B, $0A83, $0B83, $0C22, $0C83, $0D3B, $0E3B)
-            return lookup(result: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 153_600, 250_000, 500_000)
+            result := lookdown(tmp: $0542, $0583, $064A, $0683, $074A, $0783, $0883, $098B, $0A83, $0B83, $0C22, $0C83, $0D3B, $0E3B)
+            return lookup(result: 1000, 1200, 2048, 2400, 4096, 4800, 9600, 19_600, 38_400, 76_800, 115_051, 153_600, 250_000, 500_000)
 
     tmp_e &= core#MASK_DRATE_E
     tmp_e := (tmp_e | DRATE_E)
@@ -556,19 +549,19 @@ PUB FEC(enabled=-2) | tmp
     tmp := (tmp | enabled) & core#MDMCFG1_MASK
     writeReg (core#MDMCFG1, 1, @tmp)
 
-PUB FIFORXBytes | tmp
+PUB FIFORXBytes
 ' Returns number of bytes in RX FIFO
 ' NOTE: The MSB indicates if the RX FIFO has overflowed.
-    tmp := $00
-    readReg (core#RXBYTES, 1, @tmp)
-    return tmp & $FF
+    result := $00
+    readReg (core#RXBYTES, 1, @result)
+    return
 
 PUB FIFOTXBytes
 ' Returns number of bytes in TX FIFO
 ' NOTE: The MSB indicates if the TX FIFO is underflowed.
     result := $00
     readReg (core#TXBYTES, 1, @result)
-    result &= $7F
+    return
 
 PUB FlushRX
 ' Flush receive FIFO/buffer
@@ -614,6 +607,12 @@ PUB FreqDeviation(Hz=-2) | tmp, deviat_m, deviat_e, tmp_m
 
     tmp &= core#DEVIATN_MASK
     writeReg (core#DEVIATN, 1, @tmp)
+
+PUB FreqTable(table_addr, entry_nr, freq_word) | tmp
+
+    byte[table_addr][entry_nr*3] := freq_word.byte[0]
+    byte[table_addr][(entry_nr*3)+1] := freq_word.byte[1]
+    byte[table_addr][(entry_nr*3)+2] := freq_word.byte[2]
 
 PUB FSTX
 ' Enable frequency synthesizer and calibrate
@@ -678,20 +677,20 @@ PUB Idle
 ' Change chip state to IDLE
     writeReg (core#CS_SIDLE, 0, 0)
 
-PUB IntFreq(kHz=-2) | tmp
-' Intermediate Frequency (IF), in kHz
-'   Valid values: 25..787 (result will be rounded to the nearest 5-bit result)
-'   Default value: 381
+PUB IntFreq(Hz=-2) | tmp
+' Intermediate Frequency (IF), in Hz
+'   Valid values: 25390..787109 (result will be rounded to the nearest 5-bit result)
+'   Default value: 380859
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#FSCTRL1, 1, @tmp)
-    case kHz
-        25..787:
-            kHz := 1024/(F_XOSC/kHz)
+    case Hz
+        25390..787109:
+            Hz := 1024/(F_XOSC/Hz)
         OTHER:
-            return ((F_XOSC / 1024) * tmp) / 1000
+            return ((F_XOSC / 1024) * tmp)
 
-    writeReg (core#FSCTRL1, 1, @kHz)
+    writeReg (core#FSCTRL1, 1, @Hz)
 
 PUB LastCRC
 ' Indicates CRC of last reception matched
@@ -917,13 +916,6 @@ PUB RXBandwidth(kHz=-2) | tmp
     tmp := (tmp | kHz)
     writeReg (core#MDMCFG4, 1, @tmp)
 
-PUB RXData(nr_bytes, buf_addr) | tmp
-' Read data queued in the RX FIFO
-'   nr_bytes Valid values: 1..64
-'   Any other value is ignored
-'   NOTE: Ensure buffer at address buf_addr is at least as big as the number of bytes you're reading
-    readReg (core#FIFO, nr_bytes, buf_addr)
-
 PUB RXFIFOThresh(threshold=-2) | tmp
 ' Set receive FIFO threshold, in bytes
 '   The threshold is exceeded when the number of bytes in the FIFO is greater than or equal to the threshold value.
@@ -946,6 +938,13 @@ PUB RXFIFOThresh(threshold=-2) | tmp
 PUB RXMode
 ' Change chip state to RX (receive)
     writeReg (core#CS_SRX, 0, 0)
+
+PUB RXPayload(nr_bytes, buf_addr) | tmp
+' Read data queued in the RX FIFO
+'   nr_bytes Valid values: 1..64
+'   Any other value is ignored
+'   NOTE: Ensure buffer at address buf_addr is at least as big as the number of bytes you're reading
+    readReg (core#FIFO, nr_bytes, buf_addr)
 
 PUB Sleep
 ' Power down chip
@@ -1002,7 +1001,7 @@ PUB TXMode
 ' Change chip state to TX (transmit)
     writeReg (core#CS_STX, 0, 0)
 
-PUB TXData(nr_bytes, buf_addr)
+PUB TXPayload(nr_bytes, buf_addr)
 ' Queue data to transmit in the TX FIFO
 '   nr_bytes Valid values: 1..64
 '   Any other value is ignored
@@ -1083,7 +1082,7 @@ PRI log2(num) | tmp
 PRI readReg(reg, nr_bytes, addr_buff) | i
 ' Read nr_bytes from register 'reg' to address 'addr_buff'
     case reg
-        $00..$2E, $3E:                           ' Config regs
+        $00..$2E, $3E:                          ' Config regs
             case nr_bytes
                 1:
                 2..64:
