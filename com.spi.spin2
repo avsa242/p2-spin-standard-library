@@ -1,0 +1,127 @@
+{
+    --------------------------------------------
+    Filename: com.spi.smartpin.spin2
+    Description: SPI engine (smart-pin driven) for the Propeller 2
+    Author: Jesse Burt
+    Created: Apr 15, 2020
+    Updated: Apr 20, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+
+    NOTE: This is a derivative of XPT2046.spin2, by Cheezus Slice. The original
+        header is preserved below.
+}
+
+{{  =============================================================
+        Basic X-Y driver for XPT 2046 Touch Screen Controller
+        Inline Smartpin SPI v0.5       -       11-26-19
+        Cheezus Slice - Cheezusslicedj@gmail.com
+        This driver uses hard-coded pins but should be easy to
+        make dynamic if you wish. Only reads X-Y
+    =============================================================
+}}
+CON
+
+    clks        = numBits * 2                               ' XXX hardcoded as original, for now
+    numBits     = 8                                         '
+
+VAR
+
+    long _SCK, _MOSI, _MISO
+
+OBJ
+
+    sp      : "core.con.smartpins"
+    time    : "time"
+
+PUB Start(SCK, MOSI, MISO, SCK_FREQ)
+' NOTE: MOSI pin must be SCK+1 and MISO pin must be SCK-1
+    longmove(@_SCK, @SCK, 3)
+
+    Stop                                                    ' Reset smart pins in case already configured
+
+    _dirl(SCK)                                              ' Configure smart pin for SCK
+    wrpin(SCK, sp#TRANSITION_OUT | sp#SMART_OUT_DRIVE | sp#OUTPUT_ENABLED)
+    wxpin(SCK, SPIClockPeriod(SCK_FREQ))
+    _dirh(SCK)
+
+    _dirl(MISO)                                             ' Configure smart pin for MISO
+    wrpin(MISO, sp#SYNCSERIAL_RX | sp#SMART_OUT_DRIVE | sp#OUTPUT_DISABLED | sp#BINP_RELPLS1_READ | sp#BINP_TRUE)
+    wxpin(MISO, sp#SAMPLE_A_BEFORE_B + (numBits - 1))
+    _dirh(MISO)
+
+    _dirl(MOSI)                                             ' Configure smart pin for MOSI
+    wrpin(MOSI, sp#SYNCSERIAL_TX | sp#SMART_OUT_DRIVE | sp#OUTPUT_ENABLED | sp#BINP_RELMIN1_READ | sp#BINP_INVERTED)
+    wxpin(MOSI, sp#START_STOP + (numBits - 1))
+'    wypin(MOSI, $FF)                                       ' XXX Copy from original code - verify function
+    _dirh(MOSI)
+
+    rdpin(MISO)
+    return cogid+1                                          ' Should be the same as parent cog; just need to return nonzero
+
+PUB Stop | SCK, MOSI, MISO
+' Reset smart pins - restore I/O pin control to "classic" digital DIR/IN/OUT mode
+    longmove(@SCK, @_SCK, 3)
+
+    wypin(MOSI, 0)
+    wrpin(SCK, 0)
+    wrpin(MISO, 0)
+    wrpin(MOSI, 0)
+    _dir(SCK, 0)
+    _dir(MISO, 0)
+    _dir(MOSI, 0)
+
+PUB Read | SCK, MOSI, MISO, tmp
+' Read a byte from SPI slave
+    longmove(@SCK, @_SCK, 3)
+    result := tmp := 0
+
+    tmp := rdpin(MISO)                                      ' Clear RX buffer (XXX verify)
+    tmp := rdpin(SCK)                                       ' XXX Copy from original code - verify function
+    wypin (SCK, clks)                                       ' Clock in data
+
+    repeat until pinr(SCK)                                  ' Wait until SCK isn't busy
+    result := rdpin(MISO)                                   ' Read the clocked in data
+    result := (result rev 31) & $FF                         ' Reverse bit order and discard
+    return result
+
+PUB Write(val) | SCK, MOSI, MISO, tmp
+' Write a byte to SPI slave
+    longmove(@SCK, @_SCK, 3)
+    tmp := 0
+
+    val &= $FF
+    val <<= (32-8)                                          ' Move byte to MSB position
+    val := val rev 31                                       ' Reverse bit order
+
+    wypin(MOSI, val)                                        ' Load the byte to shift out
+    tmp := rdpin(SCK)                                       ' XXX Copy from original code - verify function
+    wypin(SCK, clks)                                        ' Start clocking out
+    repeat until pinr(SCK)                                  ' Wait until SCK isn't busy
+
+PRI SPIClockPeriod(SCK_FREQ) : bt
+' Calculate SPI clock period
+    bt := ((clkfreq / SCK_FREQ) / 2 ) + 1                   ' SPI bit time
+    bt := bt #> 2                                           ' Clamp to a minimum of syclock/2
+
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
+
