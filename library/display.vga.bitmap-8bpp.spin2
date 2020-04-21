@@ -183,8 +183,8 @@ hsync                   xcont   m_bs, #0                    'horizontal sync
 '
 ' Initialized data
 '
-dacmode_s               long    smartpins#PCTL_DACMODE | (%10 << 16) | smartpins#TT_OUTPUT_ENABLED ' HSync
-dacmode_c               long    smartpins#PCTL_DACMODE | (%11 << 16) | smartpins#TT_OUTPUT_ENABLED ' R, G, B
+dacmode_s               long    smartpins#DAC | (%10 << 16) | smartpins#OUTPUT_ENABLED ' HSync
+dacmode_c               long    smartpins#DAC | (%11 << 16) | smartpins#OUTPUT_ENABLED ' R, G, B
 
 m_bs                    long    STREAMER_SETUP | (1 << streamer#LUTBASE) + 16/2     ' Before sync
 m_sn                    long    STREAMER_SETUP | (1 << streamer#LUTBASE) + 96/2     ' Sync
