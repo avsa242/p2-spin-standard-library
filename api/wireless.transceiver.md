@@ -41,25 +41,35 @@ _int_ indicates the type of interface supported by the driver (e.g., spi, i2c, u
 |`CrystalOff`                           | Turn off crystal oscillator                                   |
 |`DataRate(bps)`                        | Set OTA data rate                                             |
 |`DataWhitening(enabled)`               | Enable data whitening                                         |
+|`DCBlock(enabled)`                     | Enable DC blocking filter                                     |
 |`DeviceID`                             | Get device part number/ID                                     |
+|`DVGAGain(gain)`                       | Set digital variable gain amplifier maximum level             |
 |`DynamicACK(enabled)`                  | Enable selective auto-ack                                     |
 |`DynamicPayload(mask)`                 | Select data pipes that have dynamic payload length enabled    |
 |`DynPayloadEnabled(enabled)`           | Enable Dynamic Payload Length                                 |
-|`EnableACK(enabled)`                   | Enable payload with CK                                        |
+|`EnableACK(enabled)`                   | Enable payload with ACK                                       |
+|`Encryption(enabled)`                  | Enable encryption/decryption                                  |
+|`EncryptionKey(rw, buff_addr)`         | Set encryption key                                            |
 |`FEC(enabled)`                         | Enable forward error correction                               |
+|`FIFOEmpty`                            | Flag indicating FIFO is empty                                 |
+|`FIFOFull`                             | Flag indicating FIFO is full                                  |
 |`FIFORXBytes`                          | Returns num bytes in RX FIFO                                  |
+|`FIFOThreshold(bytes)`                 | Set threshold for triggering FIFO level interrupt             |
 |`FIFOTXBytes`                          | Returns num bytes in TX FIFO                                  |
 |`FlushRX`                              | Flush receive FIFO                                            |
 |`FlushTX`                              | Flush transmit FIFO                                           |
-|`FreqDeviation(Hz)`                    | Set carrier freq deviation                                    |
+|`FreqDeviation(Hz)`                    | Set carrier freq deviation, in Hz                             |
 |`GPIOx(config)`                        | Configure signal output on GPIOx                              |
 |`Idle`                                 | Change transceiver to idle state                              |
+|`IntFreq(Hz)`                          | Set Intermediate Frequency (IF), in Hz                        |
 |`IntMask(mask)`                        | Select Control which events will trigger an interrupt         |
 |`LNAGain(dB)`                          | Set LNA gain                                                  |
 |`LostPackets`                          | Count lost packets                                            |
+|`ManchesterEnc((enabled)`              | Enable Manchester encoding/decoding                           |
 |`MaxRetransReached(clear_intr)`        | Query or clear Maximum number of TX retransmits interrupt     |
 |`Modulation(type)`                     | Set OTA modulation                                            |
 |`NodeAddress(addr)`                    | Set node address                                              |
+|`OpMode(mode)`                         | Set operating mode                                            |
 |`PacketsRetransmitted`                 | Count retransmitted packets                                   |
 |`PayloadLen(length)`                   | Set packet length                                             |
 |`PayloadLenCfg(mode)`                  | Set packet length mode                                        |
@@ -79,6 +89,7 @@ _int_ indicates the type of interface supported by the driver (e.g., spi, i2c, u
 |`RXPipePending`                        | Returns pipe number with pending data                         |
 |`Sleep`                                | Power down chip                                               |
 |`State`                                | Read chip state machine                                       |
+|`SyncMode(mode)`                       | Set sync-word qualifier mode                                  |
 |`SyncWord(sync_word)`                  | Set syncword                                                  |
 |`SyncWordLen(length)`                  | Set syncword length                                           |
 |`SyncWordTolerance(bits)`              | Set syncword qualifier mode                                   |

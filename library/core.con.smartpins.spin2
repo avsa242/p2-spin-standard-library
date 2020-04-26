@@ -3,22 +3,25 @@ CON
 '   Write using the WRPIN instruction (D field)
 {
 
-        28   24  21            8  6     1     <-LSB of field
-        |    |   |             |  |     |
+        28   24  21      14 11 8  6     1       <- LSB of field
+        |    |   |       |  |  |  |     |
         |    |   |     CIOHHHLLL  |     |
-    %AAAA_BBBB_FFF_PPPPPPPPPPPPP_TT_MMMMM_0
+        |    |   |      DDDDDDDD  |     |       <- DAC mode
+    %AAAA_BBBB_FFF_PPPPPPPPPPPPP_TT_MMMMM_0     <- D[31..0]
 
-    M[0..5]:    MODE
-    T[0..1]:    DIR_OUT_CTRL
-    P[0..12]:   P
-    L[0..2]:    LLL
-    H[0..2]:    HHH
-    O[0]:       O
-    I[0]:       I
-    C[0]:       C
-    F[0..2]:    FILTER
-    B[0..3]:    BINP
-    A[0..3]:    AINP
+    Field               Symbol below
+    M[0..5]:            MODE
+    T[0..1]:            DIR_OUT_CTRL
+    P[0..12]:           P
+    L[0..2]:            LLL
+    H[0..2]:            HHH
+    O[0]:               O
+    I[0]:               I
+    D[0..7]:            DACLEVEL    (applies to DAC mode only)
+    C[0]:               C
+    F[0..2]:            FILTER
+    B[0..3]:            BINP
+    A[0..3]:            AINP
 }
 ' Smartpin modes:
     MODE                        = 1
@@ -29,8 +32,15 @@ CON
     DAC16B_DITH_PWM             = %00011 << MODE
     PULSE_CYCLE_OUT             = %00100 << MODE
     TRANSITION_OUT              = %00101 << MODE
+
+' Numerically-controlled Oscillator
+'   X[31..16] - Phase
+'   X[15..0] - Base period (cycles)
+'   Y[31..0] - Added to Z[31..0] each period
     NCO_FREQ                    = %00110 << MODE
     NCO_DUTY                    = %00111 << MODE
+
+
 ' Pulse-Width Modulation
 '   Triangle, Sawtooth, Switch-Mode Power Supply
     PWM_TRI                     = %01000 << MODE
@@ -64,8 +74,8 @@ CON
     ASYNCSERIAL_RX              = %11111 << MODE
 
     DIR_OUT_CTRL                = 6
-    OUTPUT_DISABLED             = 0 << DIR_OUT_CTRL
-    OUTPUT_ENABLED              = 1 << DIR_OUT_CTRL
+    OUTPUT_DISABLED             = %00 << DIR_OUT_CTRL
+    OUTPUT_ENABLED              = %01 << DIR_OUT_CTRL
     DAC_OUT_ENABLES_ADC         = %00 << DIR_OUT_CTRL
     DAC_OTHER_ENABLES_ADC       = %10 << DIR_OUT_CTRL
     SMART_OUT_DRIVE             = %00 << DIR_OUT_CTRL
@@ -74,6 +84,8 @@ CON
     P                           = 8
     LLL                         = 8
     HHH                         = 11
+
+    DACLEVEL                    = 8
 
     O                           = 14
     OUT_TRUE                    = 0 << O
@@ -87,10 +99,14 @@ CON
     IO_LIVE                     = 0 << C
     IO_CLOCKED                  = 1 << C
 
-    PINMODE                     = 18
-    SMART                       = %000 << PINMODE
-    ADC                         = %100 << PINMODE
-    DAC                         = %101 << PINMODE
+    PINMODE                     = 16
+    SMART                       = %00000 << PINMODE
+    ADC                         = %10000 << PINMODE
+    DAC_990OHM_3V3              = %10100 << PINMODE
+    DAC_600OHM_2V0              = %10101 << PINMODE
+    DAC_123OHM_3V3              = %10110 << PINMODE
+    DAC_75OHM_2V0               = %10111 << PINMODE
+
     COMPARATOR                  = %110 << PINMODE
 
     FILTER                      = 21
@@ -142,4 +158,3 @@ CON
 
 PUB Null
 ' This is not a top-level object
-
