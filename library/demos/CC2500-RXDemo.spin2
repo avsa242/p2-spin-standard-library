@@ -5,7 +5,7 @@
     Description: Simple receive demo of the cc2500 driver (P2 version)
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Jan 1, 2020
+    Updated Apr 28, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -78,14 +78,13 @@ PUB Main | choice
     ser.printf("Freq deviation: %dHz\n", cc2500.FreqDeviation(-2))
     ser.printf("RX Bandwidth: %dkHz\n", cc2500.RXBandwidth(-2))
     ser.printf("Modulation: ")
-
-    case cc2500.Modulation(-2)
-        0: ser.printf("FSK2")
-        1: ser.printf("GFSK")
-        3: ser.printf("ASK/OOK")
-        4: ser.printf("FSK4")
-        7: ser.printf("MSK")
-        OTHER: ser.printf("???")
+    case cc2500.Modulation
+        0: ser.printf("FSK2\n")
+        1: ser.printf("GFSK\n")
+        3: ser.printf("ASK/OOK\n")
+        4: ser.printf("FSK4\n")
+        7: ser.printf("MSK\n")
+        OTHER: ser.printf("???\n")                  ' Exception - this shouldn't ever be reached
 
     ser.PrintF("Press any key to begin receiving\n")
     ser.CharIn
@@ -126,7 +125,7 @@ PUB Receive | rxbytes, tmp, from_node
             rxbytes := cc2500.FIFORXBytes
         until rxbytes => _pktlen                    ' until we've received at least _pktlen bytes
 
-        cc2500.RXData(rxbytes, @_fifo)
+        cc2500.RXPayload(rxbytes, @_fifo)
         cc2500.FlushRX
 
         from_node := _fifo.byte[1]                  ' Node we've received a packet from
@@ -150,7 +149,7 @@ PUB Setup
     ser.Clear
     ser.PrintF("Serial terminal started\n")
 
-    if _cc2500_cog := cc2500.Startx (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
+    if _cc2500_cog := cc2500.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
         ser.PrintF("CC2500 driver started\n")
     else
         ser.PrintF("CC2500 driver failed to start - halting\n")

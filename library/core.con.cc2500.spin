@@ -250,31 +250,31 @@ CON
         MASK_BS_POST_KP             = BSCFG_MASK ^ (1 << FLD_BS_POST_KP)
         MASK_BS_LIMIT               = BSCFG_MASK ^ (BITS_BS_LIMIT << FLD_BS_LIMIT)
 
-    AGCTRL2                         = $1B
-    AGCTRL2_MASK                    = $FF
+    AGCCTRL2                        = $1B
+    AGCCTRL2_MASK                   = $FF
         FLD_MAX_DVGA_GAIN           = 6
         FLD_MAX_LNA_GAIN            = 3
         FLD_MAGN_TARGET             = 0
         BITS_MAX_DVGA_GAIN          = %11
         BITS_MAX_LNA_GAIN           = %111
         BITS_MAGN_TARGET            = %111
-        MASK_MAX_DVGA_GAIN          = AGCTRL2_MASK ^ (BITS_MAX_DVGA_GAIN << FLD_MAX_DVGA_GAIN)
-        MASK_MAX_LNA_GAIN           = AGCTRL2_MASK ^ (BITS_MAX_LNA_GAIN << FLD_MAX_LNA_GAIN)
-        MASK_MAGN_TARGET            = AGCTRL2_MASK ^ (BITS_MAGN_TARGET << FLD_MAGN_TARGET)
+        MASK_MAX_DVGA_GAIN          = AGCCTRL2_MASK ^ (BITS_MAX_DVGA_GAIN << FLD_MAX_DVGA_GAIN)
+        MASK_MAX_LNA_GAIN           = AGCCTRL2_MASK ^ (BITS_MAX_LNA_GAIN << FLD_MAX_LNA_GAIN)
+        MASK_MAGN_TARGET            = AGCCTRL2_MASK ^ (BITS_MAGN_TARGET << FLD_MAGN_TARGET)
 
-    AGCTRL1                         = $1C
-    AGCTRL1_MASK                    = $7F
+    AGCCTRL1                        = $1C
+    AGCCTRL1_MASK                   = $7F
         FLD_AGC_LNA_PRIORITY        = 6
         FLD_CARRIER_SENSE_REL_THR   = 4
         FLD_CARRIER_SENSE_ABS_THR   = 0
         BITS_CARRIER_SENSE_REL_THR  = %11
         BITS_CARRIER_SENSE_ABS_THR  = %111
-        MASK_AGC_LNA_PRIORITY       = AGCTRL1_MASK ^ (1 << FLD_AGC_LNA_PRIORITY)
-        MASK_CARRIER_SENSE_REL_THR  = AGCTRL1_MASK ^ (BITS_CARRIER_SENSE_REL_THR << FLD_CARRIER_SENSE_REL_THR)
-        MASK_CARRIER_SENSE_ABS_THR  = AGCTRL1_MASK ^ (BITS_CARRIER_SENSE_ABS_THR << FLD_CARRIER_SENSE_ABS_THR)
+        MASK_AGC_LNA_PRIORITY       = AGCCTRL1_MASK ^ (1 << FLD_AGC_LNA_PRIORITY)
+        MASK_CARRIER_SENSE_REL_THR  = AGCCTRL1_MASK ^ (BITS_CARRIER_SENSE_REL_THR << FLD_CARRIER_SENSE_REL_THR)
+        MASK_CARRIER_SENSE_ABS_THR  = AGCCTRL1_MASK ^ (BITS_CARRIER_SENSE_ABS_THR << FLD_CARRIER_SENSE_ABS_THR)
 
-    AGCTRL0                         = $1D
-    AGCTRL0_MASK                    = $FF
+    AGCCTRL0                        = $1D
+    AGCCTRL0_MASK                   = $FF
         FLD_HYST_LEVEL              = 6
         FLD_WAIT_TIME               = 4
         FLD_AGC_FREEZE              = 2
@@ -283,10 +283,10 @@ CON
         BITS_WAIT_TIME              = %11
         BITS_AGC_FREEZE             = %11
         BITS_FILTER_LENGTH          = %11
-        MASK_HYST_LEVEL             = AGCTRL0_MASK ^ (BITS_HYST_LEVEL << FLD_HYST_LEVEL)
-        MASK_WAIT_TIME              = AGCTRL0_MASK ^ (BITS_WAIT_TIME << FLD_WAIT_TIME)
-        MASK_AGC_FREEZE             = AGCTRL0_MASK ^ (BITS_AGC_FREEZE << FLD_AGC_FREEZE)
-        MASK_FILTER_LENGTH          = AGCTRL0_MASK ^ (BITS_FILTER_LENGTH << FLD_FILTER_LENGTH)
+        MASK_HYST_LEVEL             = AGCCTRL0_MASK ^ (BITS_HYST_LEVEL << FLD_HYST_LEVEL)
+        MASK_WAIT_TIME              = AGCCTRL0_MASK ^ (BITS_WAIT_TIME << FLD_WAIT_TIME)
+        MASK_AGC_FREEZE             = AGCCTRL0_MASK ^ (BITS_AGC_FREEZE << FLD_AGC_FREEZE)
+        MASK_FILTER_LENGTH          = AGCCTRL0_MASK ^ (BITS_FILTER_LENGTH << FLD_FILTER_LENGTH)
 
     WOREVT1                         = $1E
     WOREVT1_MASK                    = $FF
