@@ -42,14 +42,15 @@ VAR
 
     long _clock_delay, _CPOL
 
-PUB Start(MOSI, MISO, SCK, spi_clock, CPOL=0): okay
+PUB Start(MOSI, MISO, SCK, SCK_HZ, CPOL=0): okay
 
     _CPOL := CPOL
     _dir(MOSI, 1)
     if MISO <> -1
         _dir(MISO, 0)
+    out_(SCK, _CPOL)
     _dir(SCK, 1)
-    _clock_delay := ((clkfreq / spi_clock) / 7) #> 2 ' xxx minimum??
+    _clock_delay := ((clkfreq / SCK_HZ) / 2) #> 2
     okay := cogid + 1
 
 PUB Read(MISO, SCK, mode, nr_bits)
@@ -87,23 +88,47 @@ PUB Read(MISO, SCK, mode, nr_bits)
     return result
 
 PUB Write(MOSI, SCK, mode, nr_bits, val) | clk_delay, tmp
-' ~ 6.6MHz max
-    clk_delay := _clock_delay
-    tmp := 32-(nr_bits-1)
 
+    clk_delay := _clock_delay
+{' SPIN2
+    tmp := 32-(nr_bits)
     case_fast mode
         LSBFIRST:
-            val := val >< nr_bits
         MSBFIRST:
-    
+            val <<= tmp
+            val := val REV 31
+
+    repeat nr_bits
+        out_(MOSI, val & %1)
+
+        waitx_(clk_delay)
+        drvnot_(SCK)
+        waitx_(clk_delay)
+        drvnot_(SCK)
+
+        val >>= 1
+}
+
+' Inline PASM2
+    tmp := 32-(nr_bits-1)
+    case_fast mode
+        LSBFIRST:
+            val <<= tmp
+            val := val REV 31
+        MSBFIRST:
+
     asm
-            shl val, tmp wc             '2
-            rep #loop, nr_bits          '2
-            outc MOSI                   '2
-            outh SCK                    '2
-            shl val, #1 wc              '2
-            waitx clk_delay             '2+clk_delay
-            outl SCK                    '2
+            shl     val,        tmp     wc                  ' Shift the byte to the MS position
+
+            rep     #loop,      nr_bits
+            outc    MOSI                                    ' Put the MSB out on MOSI
+
+            waitx   clk_delay                               ' Clock out
+            drvnot  SCK
+            waitx   clk_delay
+            drvnot  SCK
+
+            shl     val,        #1      wc                  ' Shift the next bit into position for MOSI
         loop
     endasm
 
