@@ -1,14 +1,14 @@
 {
     --------------------------------------------
-    Filename: com.spi.smartpin.spin2
+    Filename: com.spi.spin2
     Description: SPI engine (smart-pin driven) for the Propeller 2
     Author: Jesse Burt
     Created: Apr 15, 2020
-    Updated: Apr 20, 2020
+    Updated: May 10, 2020
     See end of file for terms of use.
     --------------------------------------------
 
-    NOTE: This is a derivative of XPT2046.spin2, by Cheezus Slice. The original
+    NOTE: This is an excerpt of XPT2046.spin2, by Cheezus Slice, translated to SPIN2 (FastSpin). The original
         header is preserved below.
 }
 
@@ -38,17 +38,16 @@ PUB Start(SCK, MOSI, MISO, SCK_FREQ)
 ' NOTE: MOSI pin must be SCK+1 and MISO pin must be SCK-1
     longmove(@_SCK, @SCK, 3)
 
-    Stop                                                    ' Reset smart pins in case already configured
-
     _dirl(SCK)                                              ' Configure smart pin for SCK
     wrpin(SCK, sp#TRANSITION_OUT | sp#SMART_OUT_DRIVE | sp#OUTPUT_ENABLED)
     wxpin(SCK, SPIClockPeriod(SCK_FREQ))
     _dirh(SCK)
 
-    _dirl(MISO)                                             ' Configure smart pin for MISO
-    wrpin(MISO, sp#SYNCSERIAL_RX | sp#SMART_OUT_DRIVE | sp#OUTPUT_DISABLED | sp#BINP_RELPLS1_READ | sp#BINP_TRUE)
-    wxpin(MISO, sp#SAMPLE_A_BEFORE_B + (numBits - 1))
-    _dirh(MISO)
+    if lookdown(MISO: 0..63)
+        _dirl(MISO)                                         ' Configure smart pin for MISO
+        wrpin(MISO, sp#SYNCSERIAL_RX | sp#SMART_OUT_DRIVE | sp#OUTPUT_DISABLED | sp#BINP_RELPLS1_READ | sp#BINP_TRUE)
+        wxpin(MISO, sp#SAMPLE_A_BEFORE_B + (numBits - 1))
+        _dirh(MISO)
 
     _dirl(MOSI)                                             ' Configure smart pin for MOSI
     wrpin(MOSI, sp#SYNCSERIAL_TX | sp#SMART_OUT_DRIVE | sp#OUTPUT_ENABLED | sp#BINP_RELMIN1_READ | sp#BINP_INVERTED)
@@ -98,6 +97,17 @@ PUB Write(val) | SCK, MOSI, MISO, tmp
     tmp := rdpin(SCK)                                       ' XXX Copy from original code - verify function
     wypin(SCK, clks)                                        ' Start clocking out
     repeat until pinr(SCK)                                  ' Wait until SCK isn't busy
+
+PUB WriteBytes(nr_bytes, buff_addr) | SCK, MOSI, MISO, tmp
+' Write multiple bytes to SPI slave
+    longmove(@SCK, @_SCK, 3)
+    tmp := 0
+
+    repeat tmp from 0 to nr_bytes-1
+        wypin(MOSI, (byte[buff_addr][tmp] << 24) rev 31)
+        rdpin(SCK)
+        wypin(SCK, clks)
+        repeat until pinr(SCK)
 
 PRI SPIClockPeriod(SCK_FREQ) : bt
 ' Calculate SPI clock period
