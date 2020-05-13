@@ -5,7 +5,7 @@
     Description: Driver for TI's CC1101 ISM-band transceiver (P2 version)
     Copyright (c) 2020
     Started Mar 25, 2019
-    Updated Apr 14, 2020
+    Updated May 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -95,7 +95,7 @@ VAR
 
 OBJ
 
-    spi     : "com.spi.bitbang-fast"
+    spi     : "com.spi"
     core    : "core.con.cc1101"
     time    : "time"
     umath   : "math.unsigned64"
@@ -104,9 +104,10 @@ OBJ
 PUB Null
 ''This is not a top-level object
 
-PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=5_000_000): okay
+PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=6_500_000): okay
+
     if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) and SCK_FREQ > 0 and SCK_FREQ =< core#SCK_MAX_FREQ
-        if okay := spi.start (MOSI_PIN, MISO_PIN, SCK_PIN, SCK_FREQ, core#CPOL) 'SPI Object Started?
+        if okay := spi.Start (SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
             time.MSleep (5)
             _CS := CS_PIN
             _MOSI := MOSI_PIN
@@ -124,6 +125,35 @@ PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=5_000_000): okay
 PUB Stop
 
 '
+
+PUB Defaults
+
+    NodeAddress($00)
+    AddressCheck(ADRCHK_NONE)
+    AppendStatus(TRUE)
+    CarrierFreq(800_000_000)
+    Channel(0)
+    CRCAutoFlush(FALSE)
+    CRCCheckEnabled(TRUE)
+    DataRate(115_200)
+    DCBlock(TRUE)
+    FreqDeviation(47_607)
+    FEC(FALSE)
+    GPIO0(IO_CLK_XODIV192)
+    GPIO1(IO_HI_Z)
+    GPIO2(IO_CHIP_RDYn)
+    IntFreq(380_859)
+    ManchesterEnc(FALSE)
+    Modulation(FSK2)
+    PayloadLen(255)
+    PayloadLenCfg(PKTLEN_VAR)
+    PreambleLen(2)
+    PreambleQual(0)
+    RXBandwidth(203)
+    RXFIFOThresh(32)
+    SyncMode(SYNCMODE_1616)
+    SyncWord($D391)
+    DataWhitening(TRUE)
 
 PUB AddressCheck(mode=-2) | tmp
 ' Enable address checking/matching/filtering
@@ -241,9 +271,9 @@ PUB AppendStatus(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#PKTCTRL1, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_APPEND_STATUS
+            enabled := (abs(enabled)) << core#FLD_APPEND_STATUS
         OTHER:
             result := ((tmp >> core#FLD_APPEND_STATUS) & %1) * TRUE
             return result
@@ -270,7 +300,7 @@ PUB AutoCal(when=-2) | tmp
 
     tmp &= core#MASK_FS_AUTOCAL
     tmp := (tmp | when)
-    writeReg (core#MCSM0, 1, @tmp)'reg, nr_bytes, buf_addr)
+    writeReg (core#MCSM0, 1, @tmp)
 
 PUB CalcFreqWord(Hz)
 
@@ -295,10 +325,10 @@ PUB CarrierFreq(Hz=-2) | tmp
         300_000_000..348_000_000, 387_000_000..464_000_000, 779_000_000..928_000_000:
             Hz := umath.multdiv (F_XOSC, UM_FACT, Hz)   'Need 64bit math to hold the large scaled up numbers
             Hz := umath.multdiv (SIXTN, UM_FACT, Hz)
-{            Hz.byte[3] := Hz.byte[0]                    'Reverse the byte order - the CC1101 registers are MSB-MB-LSB
-            Hz.byte[0] := Hz.byte[2]                    ' but they'd by written LSB-MB-MSB without the swap
-            Hz.byte[2] := Hz.byte[3]
-            Hz.byte[3] := 0}
+'            Hz.byte[3] := Hz.byte[0]                    'Reverse the byte order - the CC1101 registers are MSB-MB-LSB
+'            Hz.byte[0] := Hz.byte[2]                    ' but they'd by written LSB-MB-MSB without the swap
+'            Hz.byte[2] := Hz.byte[3]
+'            Hz.byte[3] := 0
             Hz := (Hz.byte[0] << 16) | (Hz.byte[1] << 8) | Hz.byte[2]
         OTHER:
             result := ((tmp.byte[0] << 16) | (tmp.byte[1] << 8) | tmp.byte[2])
@@ -408,9 +438,9 @@ PUB CRCCheckEnabled(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#PKTCTRL0, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_CRC_EN
+            enabled := (abs(enabled)) << core#FLD_CRC_EN
         OTHER:
             result := ((tmp >> core#FLD_CRC_EN) & %1) * TRUE
             return result
@@ -427,9 +457,9 @@ PUB CRCAutoFlush(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#PKTCTRL1, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_CRC_AUTOFLUSH
+            enabled := (abs(enabled)) << core#FLD_CRC_AUTOFLUSH
         OTHER:
             result := ((tmp >> core#FLD_CRC_AUTOFLUSH) & %1) * TRUE
             return result
@@ -474,9 +504,9 @@ PUB DataWhitening(enabled=-2) | tmp
 '   NOTE: Applies to all data, except the preamble and sync word.
     tmp := $00
     readReg (core#PKTCTRL0, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_WHITE_DATA
+            enabled := (abs(enabled)) << core#FLD_WHITE_DATA
         OTHER:
             result := ((tmp >> core#FLD_WHITE_DATA) & %1) * TRUE
             return result
@@ -493,7 +523,7 @@ PUB DCBlock(enabled=-2) | tmp
 '       Disable for optimizing current usage. Only for data rates 250kBaud and lower
     tmp := $00
     readReg (core#MDMCFG2, 1, @tmp)
-    case enabled := ||enabled
+    case enabled := abs(enabled)
         0, 1:
             enabled := ((enabled ^ 1) << core#FLD_DEM_DCFILT_OFF)
         OTHER:
@@ -522,7 +552,7 @@ PUB DVGAGain(gain=-255) | tmp
     readReg (core#AGCCTRL2, 1, @tmp)
     case gain
         -3..0:
-            gain := ||gain << core#FLD_MAX_DVGA_GAIN
+            gain := abs(gain) << core#FLD_MAX_DVGA_GAIN
         OTHER:
             result := (tmp >> core#FLD_MAX_DVGA_GAIN) & core#BITS_MAX_DVGA_GAIN
             return result*-1
@@ -538,9 +568,9 @@ PUB FEC(enabled=-2) | tmp
 '   NOTE: Only supported for fixed packet length mode
     tmp := $00
     readReg (core#MDMCFG1, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_FEC_EN
+            enabled := (abs(enabled)) << core#FLD_FEC_EN
         OTHER:
             result := ((tmp >> core#FLD_FEC_EN) & %1) * TRUE
             return result
@@ -747,9 +777,9 @@ PUB ManchesterEnc(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#MDMCFG2, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_MANCHESTER_EN
+            enabled := abs(enabled) << core#FLD_MANCHESTER_EN
         OTHER:
             result := ((tmp >> core#FLD_MANCHESTER_EN) & %1) * TRUE
             return result
@@ -796,20 +826,20 @@ PUB NodeAddress(addr=-2) | tmp
     addr &= core#ADDR_MASK
     writeReg (core#ADDR, 1, @addr)
 
-PUB PARead(buf_addr)
-' Read 8-byte PA table into buf_addr
-'   NOTE: Ensure buf_addr is at least 8 bytes
-    readReg (core#PATABLE | core#BURST, 8, buf_addr)
+PUB PARead(buff_addr)
+' Read 8-byte PA table into buff_addr
+'   NOTE: Ensure buff_addr is at least 8 bytes
+    readReg (core#PATABLE | core#BURST, 8, buff_addr)
 
 PUB PartNumber
 ' Part number of device
 '   Returns: $00
     readReg (core#PARTNUM, 1, @result)
 
-PUB PAWrite(buf_addr)
-' Write 8-byte PA table from buf_addr
-'   NOTE: Table will be written starting at index 0 from the LSB of buf_addr
-    writeReg (core#PATABLE | core#BURST, 8, buf_addr)
+PUB PAWrite(buff_addr)
+' Write 8-byte PA table from buff_addr
+'   NOTE: Table will be written starting at index 0 from the LSB of buff_addr
+    writeReg (core#PATABLE | core#BURST, 8, buff_addr)
 
 PUB PayloadLen(length=-2) | tmp
 ' Set payload length, when using fixed payload length mode,
@@ -894,11 +924,14 @@ PUB RSSI
 ' Received Signal Strength Indicator
     result := $00
     readReg (core#RSSI, 1, @result)
+    result := ~result
+    result := (result >> 1) - 74
+{
     if result => 128
         result := ((result - 256) / 2) - 74
     else
         result := (result / 2) - 74
-
+}
 PUB RXBandwidth(kHz=-2) | tmp
 ' Set receiver channel filter bandwidth, in kHz
 '   Valid values: 812, 650, 541, 464, 406, 325, 270, 232, *203, 162, 135, 116, 102, 81, 68, 58
@@ -939,12 +972,12 @@ PUB RXMode
 ' Change chip state to RX (receive)
     writeReg (core#CS_SRX, 0, 0)
 
-PUB RXPayload(nr_bytes, buf_addr) | tmp
+PUB RXPayload(nr_bytes, buff_addr) | tmp
 ' Read data queued in the RX FIFO
 '   nr_bytes Valid values: 1..64
 '   Any other value is ignored
-'   NOTE: Ensure buffer at address buf_addr is at least as big as the number of bytes you're reading
-    readReg (core#FIFO, nr_bytes, buf_addr)
+'   NOTE: Ensure buffer at address buff_addr is at least as big as the number of bytes you're reading
+    readReg (core#FIFO, nr_bytes, buff_addr)
 
 PUB Sleep
 ' Power down chip
@@ -1001,11 +1034,11 @@ PUB TXMode
 ' Change chip state to TX (transmit)
     writeReg (core#CS_STX, 0, 0)
 
-PUB TXPayload(nr_bytes, buf_addr)
+PUB TXPayload(nr_bytes, buff_addr)
 ' Queue data to transmit in the TX FIFO
 '   nr_bytes Valid values: 1..64
 '   Any other value is ignored
-    writeReg (core#FIFO, nr_bytes, buf_addr)
+    writeReg (core#FIFO, nr_bytes, buff_addr)
 
 PUB TXPower(dBm=-255) | tmp
 ' Set transmit power, in dBm
@@ -1079,44 +1112,43 @@ PRI log2(num) | tmp
         FALSE:
     return tmp
 
-PRI readReg(reg, nr_bytes, addr_buff) | i
-' Read nr_bytes from register 'reg' to address 'addr_buff'
-    case reg
+PUB readReg(reg_nr, nr_bytes, buff_addr) | i
+' Read nr_bytes from register 'reg' to address 'buff_addr'
+    case_fast reg_nr
         $00..$2E, $3E:                          ' Config regs
-            case nr_bytes
+            case_fast nr_bytes
                 1:
                 2..64:
-                    reg |= core#BURST
-                0:
+                    reg_nr |= core#BURST
+                OTHER:
                     return
+
         $30..$3D:                               ' Status regs
-            reg |= core#BURST                   '   Must set BURST mode bit to read them, else they're interpreted as command strobes
+            reg_nr |= core#BURST                   '   Must set BURST mode bit to read them, else they're interpreted as command strobes
+
         $3F:                                    ' FIFO
             case nr_bytes
                 1:
                 2..64:
-                    reg |= core#BURST
+                    reg_nr |= core#BURST
                 0:
                     return
-            reg |= core#R
 
             io.Low(_CS)
-            spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            spi.Write(reg_nr | core#R)
             repeat i from 0 to nr_bytes-1
-                byte[addr_buff][i] := spi.Read(_MISO, _SCK, core#MISO_BITORDER, 8)
+                byte[buff_addr][i] := spi.Read
             io.High(_CS)
             return
 
-    reg |= core#R
-
     io.Low(_CS)
-    spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
-
+    spi.Write(reg_nr | core#R)
     repeat i from 0 to nr_bytes-1
-        byte[addr_buff][i] := spi.Read(_MISO, _SCK, core#MISO_BITORDER, 8)
+        byte[buff_addr][i] := spi.Read & $FF
     io.High(_CS)
+    return
 
-PRI writeReg(reg, nr_bytes, buf_addr) | tmp
+PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
 ' Write nr_bytes to register 'reg' stored in val
 'HEADER BYTE:
 ' MSB   = R(1)/W(0) bit
@@ -1124,42 +1156,47 @@ PRI writeReg(reg, nr_bytes, buf_addr) | tmp
 ' b5..0 = 6-bit ADDRESS (A5-A0)
 'IF CS PULLED LOW, WAIT UNTIL SO LOW WHEN IN SLEEP OR XOFF STATES
 
-    case reg
+    case_fast reg_nr
         $00..$2E, $3E:                          ' R/W regs
-            case nr_bytes
+            case_fast nr_bytes
                 0:                              ' Invalid nr_bytes - ignore
                     return
                 1:
+                2..64:
+                    reg_nr |= core#BURST
                 OTHER:
-                    reg |= core#BURST
+                    return
 
             io.Low(_CS)
-            spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            spi.Write(reg_nr)
             repeat tmp from 0 to nr_bytes-1
-                spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buf_addr][tmp])
-'                _status_byte := spi.Read (_MISO, _SCK, core#MISO_BITORDER, 8)       'Leave disbled for now - causes write issues
+                spi.Write(byte[buff_addr][tmp])
+            time.usleep(10)
             io.High(_CS)
+            return
 
         $30..$3D:                               ' Command strobes
             io.Low(_CS)
-            spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
-'            _status_byte := spi.Read (_MISO, _SCK, core#MISO_BITORDER, 8)
+            spi.Write(reg_nr)
+            time.usleep(10)
             io.High(_CS)
+            return
 
         $3F:                                    ' FIFO
             case nr_bytes
                 1:
                 2..64:
-                    reg |= core#BURST
+                    reg_nr |= core#BURST
                 0:
                     return
 
             io.Low(_CS)
-            spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            spi.Write(reg_nr)
             repeat tmp from 0 to nr_bytes-1
-                spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buf_addr][tmp])
-'                _status_byte := spi.Read (_MISO, _SCK, core#MISO_BITORDER, 8)
+                spi.Write(byte[buff_addr][tmp])
+            time.usleep(10)
             io.High(_CS)
+            return
 
         OTHER:                                  ' Invalid reg - ignore
             return

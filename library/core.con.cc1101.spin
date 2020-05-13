@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2019
     Started Mar 25, 2019
-    Updated Mar 30, 2019
+    Updated Dec 22, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,7 +15,7 @@ CON
 ' SPI Configuration
     CPOL                            = 0
     CLK_DELAY                       = 1
-    SCK_MAX_FREQ                    = 6_500_000     'Max freq in burst mode
+    SCK_MAX_FREQ                    = 20_000_000     'Max freq in burst mode
     MOSI_BITORDER                   = 5             'MSBFIRST
     MISO_BITORDER                   = 0             'MSBPRE
 
