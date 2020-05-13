@@ -5,7 +5,7 @@
     Description: Driver for the Analog Devices ADXL345 3DoF Accelerometer (P2 version)
     Copyright (c) 2020
     Started Mar 14, 2020
-    Updated Mar 20, 2020
+    Updated May 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -37,7 +37,7 @@ VAR
 
 OBJ
 
-    spi : "com.spi.bitbang"
+    spi : "com.spi.bitbang-fast"
     core: "core.con.adxl345"
     time: "time"                                                'Basic timing functions
     io  : "io"
@@ -190,9 +190,9 @@ PUB AccelSelfTest(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg(core#DATA_FORMAT, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_SELF_TEST
+            enabled := abs(enabled) << core#FLD_SELF_TEST
         OTHER:
             tmp >>= core#FLD_SELF_TEST
             return (tmp & %1) * TRUE
@@ -298,27 +298,27 @@ PUB OpMode(mode=-2) | tmp
     tmp := (tmp | mode) & core#POWER_CTL_MASK
     writeReg(core#POWER_CTL, 1, @tmp)
 
-PRI readReg(reg, nr_bytes, buff_addr) | tmp
+PRI readReg(reg_nr, nr_bytes, buff_addr) | tmp
 ' Read nr_bytes from register 'reg' to address 'buff_addr'
-    case_fast reg
+    case_fast reg_nr
         $00, $1D..$31, $38, $39:
         $32..37:                                    ' If reading the accelerometer data registers,
-            reg |= core#MB                          '   set the multiple-byte transaction bit
+            reg_nr |= core#MB                       '   set the multiple-byte transaction bit
         OTHER:
             return FALSE
 
     io.Low(_CS)
-    spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg | core#R)
+    spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr | core#R)
     repeat tmp from 0 to nr_bytes-1
         byte[buff_addr][tmp] := spi.Read(_MISO, _SCK, core#MISO_BITORDER, 8)
     io.High(_CS)
 
-PRI writeReg(reg, nr_bytes, buff_addr) | tmp
-' Write nr_bytes to register 'reg' stored at buff_addr
-    case_fast reg
+PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
+' Write nr_bytes to register 'reg_nr' stored at buff_addr
+    case_fast reg_nr
         $1D..$2A, $2C..$2F, $31, $38:
             io.Low(_CS)
-            spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr)
 
             repeat tmp from 0 to nr_bytes-1
                 spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buff_addr][tmp])

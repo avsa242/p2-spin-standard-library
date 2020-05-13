@@ -5,7 +5,7 @@
     Description: Library of terminal widgets (P2 version)
     Copyright (c) 2020
     Started Dec 14, 2019
-    Updated Apr 20, 2020
+    Updated May 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -30,7 +30,7 @@ PUB DecimalDot(scaled, divisor) | whole[4], part[4], places, tmp
         tmp /= 10
         places++
     until tmp == 1
-    part := int.DecZeroed(||(scaled // divisor), places)
+    part := int.DecZeroed(abs((scaled // divisor)), places)
 
     Dec (whole)
     Char (".")

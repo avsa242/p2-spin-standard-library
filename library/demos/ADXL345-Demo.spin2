@@ -5,7 +5,7 @@
     Description: Demo of the ADXL345 driver (P2 version)
     Copyright (c) 2020
     Started Mar 14, 2020
-    Updated Mar 20, 2020
+    Updated May 3, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -28,11 +28,11 @@ CON
     SER_TX          = cfg#SER_TX
     SER_BAUD        = 2_000_000
 
-    CS_PIN          = 24
-    SCL_PIN         = 30
-    SDA_PIN         = 28
-    SDO_PIN         = 26
-    SCL_HZ          = 1_000_000
+    CS_PIN          = 8
+    SCL_PIN         = 11
+    SDA_PIN         = 10
+    SDO_PIN         = 9
+    SCL_HZ          = 5_000_000
 
 OBJ
 
@@ -131,6 +131,7 @@ PUB Calibrate
     ser.Position (0, 12)
     ser.Str(string("Calibrating..."))
     accel.Calibrate
+    time.sleep(1)
     ser.Position (0, 12)
     ser.Str(string("              "))
 
