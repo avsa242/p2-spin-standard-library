@@ -5,7 +5,7 @@ i{
     Description: Driver for the TAOS TCS3x7x RGB color sensor (P2 version)
     Copyright (c) 2020
     Started: Nov 10, 2019
-    Updated: Mar 24, 2020
+    Updated: May 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -153,8 +153,8 @@ PUB IntsEnabled(enabled=-2) | tmp
 '   NOTE: This doesn't affect the interrupt flag in the STATUS register.
     tmp := $00
     readReg (core#ENABLE, 1, @tmp)
-    case_fast ||enabled
-        0, 1: enabled := ||enabled << core#FLD_AIEN
+    case_fast abs(enabled)
+        0, 1: enabled := abs(enabled) << core#FLD_AIEN
         OTHER:
             result := ((tmp >> core#FLD_AIEN) & %1) * TRUE
             return
@@ -235,8 +235,8 @@ PUB Powered(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#ENABLE, 1, @tmp)
-    case_fast ||enabled
-        0, 1: enabled := ||enabled << core#FLD_PON
+    case_fast abs(enabled)
+        0, 1: enabled := abs(enabled) << core#FLD_PON
         OTHER:
             result := ((tmp >> core#FLD_PON) & %1) * TRUE
             return
@@ -282,8 +282,8 @@ PUB WaitTimer(enabled=-2) | tmp
 '       If enabled, use SetWaitTime to specify number of cycles
     tmp := $00
     readReg (core#ENABLE, 1, @tmp)
-    case_fast ||enabled
-        0, 1: enabled := ||enabled << core#FLD_WEN
+    case_fast abs(enabled)
+        0, 1: enabled := abs(enabled) << core#FLD_WEN
         OTHER:
             result := ((tmp >> core#FLD_WEN) & %1) * TRUE
             return
@@ -300,9 +300,9 @@ PUB WaitLongTimer(enabled=-2) | tmp
 ' XXX Investigate merging this functionality with WaitTimer to simplify use
     tmp := $00
     readReg(core#CONFIG, 1, @tmp)
-    case_fast ||enabled
+    case_fast abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_WLONG
+            enabled := abs(enabled) << core#FLD_WLONG
         OTHER:
             result := (tmp >> core#FLD_WLONG)
             result := (result & %1) * TRUE
@@ -311,7 +311,7 @@ PUB WaitLongTimer(enabled=-2) | tmp
     enabled &= core#CONFIG_MASK
     writeReg (core#CONFIG, 1, enabled)
 
-PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
+PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp
 
     cmd_packet := tmp := 0
     case_fast nr_bytes
@@ -319,10 +319,10 @@ PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
             return FALSE
         1:
             cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := CMD_BYTE | reg
+            cmd_packet.byte[1] := CMD_BYTE | reg_nr
         OTHER:
             cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := CMD_BLOCK | reg
+            cmd_packet.byte[1] := CMD_BLOCK | reg_nr
 
     i2c.Start
     repeat tmp from 0 to 1
@@ -334,27 +334,27 @@ PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
         byte[buff_addr][tmp] := i2c.Read(tmp == nr_bytes-1) 'NAK if reading last byte
     i2c.Stop
 
-PRI writeReg(reg, nr_bytes, val) | cmd_packet[2], tmp
+PRI writeReg(reg_nr, nr_bytes, val) | cmd_packet[2], tmp
 
     case_fast nr_bytes
         0:
             cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := CMD_SF | reg
+            cmd_packet.byte[1] := CMD_SF | reg_nr
             nr_bytes := 2
             val := 0
         1:
             cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := CMD_BYTE | reg
+            cmd_packet.byte[1] := CMD_BYTE | reg_nr
             cmd_packet.byte[2] := val
             nr_bytes := 3
         2:
             cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := CMD_BLOCK | reg
+            cmd_packet.byte[1] := CMD_BLOCK | reg_nr
             cmd_packet.word[1] := val
             nr_bytes := 3
         4:
             cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := CMD_BLOCK | reg
+            cmd_packet.byte[1] := CMD_BLOCK | reg_nr
             cmd_packet.word[1] := val.word[0]
             cmd_packet.word[2] := val.word[1]
             nr_bytes := 6
