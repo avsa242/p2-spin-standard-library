@@ -5,7 +5,7 @@
     Description: Driver for Solomon Systech SSD1351 RGB OLED displays (P2 version)
     Copyright (c) 2020
     Started: Mar 12, 2020
-    Updated: Mar 29, 2020
+    Updated: May 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -49,7 +49,7 @@ OBJ
 
     core    : "core.con.ssd1351"
     time    : "time"
-    spi     : "com.spi.bitbang-fast"
+    spi     : "com.spi"
     io      : "io"
 
 VAR
@@ -63,7 +63,7 @@ VAR
 PUB Start (CS_PIN, DC_PIN, DIN_PIN, CLK_PIN, RES_PIN, CLK_HZ, WIDTH, HEIGHT, drawbuffer_address): okay
 
     if lookdown(CS_PIN: 0..63) and lookdown(DC_PIN: 0..63) and lookdown(DIN_PIN: 0..63) and lookdown(CLK_PIN: 0..63) and lookdown(RES_PIN: 0..63)
-        if okay := spi.start (DIN_PIN, -1, CLK_PIN, CLK_HZ)
+        if okay := spi.start (CLK_PIN, DIN_PIN, -1, CLK_HZ)
             _DC := DC_PIN
             _RES := RES_PIN
             _MOSI := DIN_PIN
@@ -155,7 +155,7 @@ PUB AddrMode(mode) | tmp
 '  *ADDR_HORIZ (0): Horizontal addressing mode
 '   ADDR_VERT (1): Vertical addressing mode
     tmp := _sh_REMAPCOLOR
-    case mode
+    case_fast mode
         ADDR_HORIZ, ADDR_VERT:
         OTHER:
             return (tmp >> core#FLD_ADDRINC) & %1
@@ -211,7 +211,7 @@ PUB ColorDepth(format) | tmp
 '       COLOR_262K65K2 (2): 18-bit/262144 color format, 16-bit/65536 color format 2
 '   Any other value returns the current setting
     tmp := _sh_REMAPCOLOR
-    case format
+    case_fast format
         COLOR_65K, COLOR_262K, COLOR_262K65K2:
             format <<= core#FLD_COLORFORMAT
         OTHER:
@@ -228,7 +228,7 @@ PUB COMHVoltage(mV) | tmp
 '   Any other value returns the current setting
 '   NOTE: Range is interpolated, based on the datasheet min/max values and number of steps,
 '       so actual voltage may not be accurate. Value set will be rounded to the nearest 20mV
-    case mV
+    case_fast mV
         720..860:
             mV := (mV - 720) / 20
         OTHER:
@@ -284,7 +284,7 @@ PUB DisplayLines(lines)
 ' Set total number of display lines
 '   Valid values: 16..128 (default: 128)
 '   Any other value returns the current setting
-    case lines
+    case_fast lines
         16..128:
             lines -= 1
         OTHER:
@@ -296,9 +296,9 @@ PUB DisplayInverted(enabled)
 ' Invert display colors
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value returns the current setting
-    case ||enabled
+    case_fast abs(enabled)
         0, 1:
-            DisplayVisibility(INVERTED - ||enabled)
+            DisplayVisibility(INVERTED - abs(enabled))
         OTHER:
             return FALSE
 
@@ -306,7 +306,7 @@ PUB DisplayOffset(disp_line)
 ' Set display offset/vertical shift, in lines
 '   Valid values: 0..127 (default: 96)
 '   Any other value is ignored
-    case disp_line
+    case_fast disp_line
         0..127:
         OTHER:
             return FALSE
@@ -317,7 +317,7 @@ PUB DisplayStartLine(disp_line)
 ' Set display start line
 '   Valid values: 0..127 (default: 0)
 '   Any other value returns the current setting
-    case disp_line
+    case_fast disp_line
         0..127:
         OTHER:
             return FALSE
@@ -332,7 +332,7 @@ PUB DisplayVisibility(mode)
 '      *NORMAL (2): Normal display (display graphics RAM contents)
 '       INVERTED (3): Like NORMAL, but with inverted colors
 '   NOTE: This setting doesn't affect the contents of graphics RAM, only how they are displayed
-    case mode
+    case_fast mode
         ALL_OFF, ALL_ON, NORMAL, INVERTED:
             mode := mode + core#DISPLAYALLOFF
         OTHER:
@@ -347,9 +347,9 @@ PUB Interlaced(enabled) | tmp
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value returns the current setting
     tmp := _sh_REMAPCOLOR
-    case ||enabled
+    case_fast abs(enabled)
         0, 1:
-            enabled := (||enabled ^ 1) << core#FLD_COMSPLIT
+            enabled := (abs(enabled) ^ 1) << core#FLD_COMSPLIT
         OTHER:
             return not (((tmp >> core#FLD_COMSPLIT) & %1) * TRUE)
 
@@ -364,7 +364,7 @@ PUB LockDisplay(mode)
 '       LOCK ($16): Locked - OLED will not process any commands, except LockDisplay(ALL_UNLOCK)
 '      *CFG_LOCK ($B0): Configuration registers locked
 '       CFG_UNLOCK ($B1): Configuration registers unlocked
-    case mode
+    case_fast mode
         ALL_UNLOCK, ALL_LOCK, CFG_LOCK, CFG_UNLOCK:
         OTHER:
             return FALSE
@@ -376,9 +376,9 @@ PUB MirrorH(enabled) | tmp
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value returns the current setting
     tmp := _sh_REMAPCOLOR
-    case ||enabled
+    case_fast abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_SEGREMAP
+            enabled := (abs(enabled)) << core#FLD_SEGREMAP
         OTHER:
             return ((tmp >> core#FLD_SEGREMAP) & %1) * TRUE
 
@@ -391,9 +391,9 @@ PUB MirrorV(enabled) | tmp
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value returns the current setting
     tmp := _sh_REMAPCOLOR
-    case ||enabled
+    case_fast abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_COMREMAP
+            enabled := (abs(enabled)) << core#FLD_COMREMAP
         OTHER:
             return ((tmp >> core#FLD_COMREMAP) & %1) * TRUE
 
@@ -406,7 +406,7 @@ PUB Phase1Period(clks) | tmp
 '   Valid values: *5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31
 '   Any other value returns the current setting
     tmp := _sh_PHASE12PER
-    case clks
+    case_fast clks
         5..31:
             clks := lookdown(clks: 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31)
         OTHER:
@@ -422,7 +422,7 @@ PUB Phase2Period(clks) | tmp
 '   Valid values: 3..15 (default: 8)
 '   Any other value returns the current setting
     tmp := _sh_PHASE12PER
-    case clks
+    case_fast clks
         3..15:
             clks <<= core#FLD_PHASE2
         OTHER:
@@ -436,7 +436,7 @@ PUB Phase3Period(clks) | tmp[2]
 ' Set second charge/phase 3 period, in display clocks
 '   Valid values: 1..15 (default: 8)
 '   Any other value returns the current setting
-    case clks
+    case_fast clks
         1..15:
         OTHER:
             return FALSE
@@ -457,9 +457,9 @@ PUB Powered(enabled) | tmp
 '       OFF/FALSE (0): Turn off display power
 '       ON/TRUE (-1 or 1): Turn on display power
 '   Any other value returns the current setting
-    case ||enabled
+    case_fast abs(enabled)
         OFF, ON:
-            enabled := lookupz(||enabled: core#DISPLAYOFF, core#DISPLAYON)
+            enabled := lookupz(abs(enabled): core#DISPLAYOFF, core#DISPLAYON)
         OTHER:
             return FALSE
 
@@ -485,7 +485,7 @@ PUB SubpixelOrder(order)
 '      *RGB (0): Red-Green-Blue order
 '       BGR (1): Blue-Green-Red order
 '   Any other value returns the current setting
-    case order
+    case_fast order
         RGB, BGR:
             order <<= core#FLD_SUBPIX_ORDER
         OTHER:
@@ -506,23 +506,30 @@ PUB Update
 ' Send the draw buffer to the display
     writeReg(core#WRITERAM, _buff_sz, _ptr_drawbuffer)
 
-PRI writeReg(reg, nr_bytes, buff_addr) | tmp
+PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
 
-    case reg
-        $9E, $9F, $A4..$A7, $AD..$AF, $B0, $B9, $D1, $E3:                               ' Single-byte command
+    case_fast reg_nr
+        core#WRITERAM:                                                              ' Display RAM
             io.Low(_CS)
             io.Low(_DC)
-            spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            spi.Write(reg_nr)
+            io.High(_DC)
+            spi.WriteBytes(nr_bytes, buff_addr)
+            io.High(_CS)
+
+        $9E, $9F, $A4..$A7, $AD..$AF, $B0, $B9, $D1, $E3:                           ' Single-byte command
+            io.Low(_CS)
+            io.Low(_DC)
+            spi.Write(reg_nr)
             io.High(_CS)
             return
 
-        $15, $5C, $75, $96, $A0..$A2, $AB, $B1..$B6, $B8, $BB, $BE, $C1, $C7, $CA, $FD:     ' Multi-byte command
+        $15, $75, $96, $A0..$A2, $AB, $B1..$B6, $B8, $BB, $BE, $C1, $C7, $CA, $FD:  ' Multi-byte command
             io.Low(_CS)
             io.Low(_DC)
-            spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            spi.Write(reg_nr)
             io.High(_DC)
-            repeat tmp from 0 to nr_bytes-1
-                spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buff_addr][tmp])
+            spi.WriteBytes(nr_bytes, buff_addr)
             io.High(_CS)
             return
 

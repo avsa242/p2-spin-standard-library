@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2020
     Started: Mar 11, 2020
-    Updated: Mar 12, 2020
+    Updated: May 9, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,7 +14,7 @@ CON
 
     CPOL                                = 0
     MOSI_BITORDER                       = 5             ' MSBFIRST
-    SCK_MAX_FREQ                        = 30_000_000    ' Don't actually know...just put something for now
+    SCK_MAX_FREQ                        = 20_000_000
 
 ' Register map
     SETCOLUMN                           = $15

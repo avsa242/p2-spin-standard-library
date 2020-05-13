@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started: Mar 10, 2019
-    Updated: Mar 29, 2020
+    Updated: May 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -28,12 +28,12 @@ CON
     SER_TX      = cfg#SER_TX
     SER_BAUD    = 2_000_000
 
-    RES_PIN     = 40
-    DC_PIN      = 41
-    CS_PIN      = 42
-    CLK_PIN     = 43
-    DIN_PIN     = 44
-    CLK_HZ      = 6_500_000
+    RES_PIN     = 12
+    DC_PIN      = 11
+    CS_PIN      = 10
+    CLK_PIN     = 8
+    DIN_PIN     = 9
+    CLK_HZ      = 20_000_000
 
     WIDTH       = 128
     HEIGHT      = 128
@@ -66,7 +66,7 @@ PUB Main | time_ms, r
     Setup
     oled.ClearAll
 
-    oled.MirrorH(FALSE)
+    oled.MirrorH(TRUE)
     oled.MirrorV(FALSE)
 
     Demo_Greet
@@ -165,7 +165,7 @@ PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
     Report(testtime, iteration)
     return iteration
 
-PUB Demo_Circle(testtime) | iteration, x, y, r, c
+PUB Demo_Circle(testtime) | iteration, x, y, r
 ' Draws circles at random locations
     ser.str(string("Demo_Circle - "))
     _timer_set := testtime
@@ -175,8 +175,7 @@ PUB Demo_Circle(testtime) | iteration, x, y, r, c
         x := rnd(XMAX)
         y := rnd(YMAX)
         r := rnd(YMAX/2)
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
-        oled.Circle (x, y, r, c)
+        oled.Circle (x, y, r, RND565)
         oled.Update
         iteration++
 
@@ -202,37 +201,20 @@ PUB Demo_Greet
     oled.FGColor($FFFF)
     oled.BGColor(0)
     oled.Position (0, 0)
-    oled.Str (string("SSD1351 on the"))
-
-    oled.Position (0, 1)
-    oled.Str (string("Parallax"))
-
-    oled.Position (0, 2)
-    oled.Str (string("P2X8C4M64P @ "))
-
-    oled.Position (0, 3)
-    oled.Str (int.Dec(clkfreq/1_000_000))
-    oled.Str (string("MHz"))
-
-    oled.Position (0, 4)
-    oled.Str (int.DecPadded (WIDTH, 3))
-
-    oled.Position (3, 4)
-    oled.Str (string("x"))
-
-    oled.Position (4, 4)
-    oled.Str (int.DecPadded (HEIGHT, 2))
+    oled.printf("SSD1351 on the\n")
+    oled.printf("Parallax P2X8C4M64P @\n")
+    oled.printf("%dMHz\n", clkfreq/1_000_000)
+    oled.printf("%dx%d", WIDTH, HEIGHT)
     oled.Update
 
-PUB Demo_Line (testtime) | iteration, c
-' Draws random lines with color -1 (invert)
+PUB Demo_Line (testtime) | iteration
+' Draws random lines
     ser.str(string("Demo_Line - "))
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
-        oled.Line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c)
+        oled.Line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), RND565)
         oled.Update
         iteration++
 
@@ -280,7 +262,7 @@ PUB Demo_LineSweepY (testtime) | iteration, y
     return iteration
 
 PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
-' Dumps Propeller Hub RAM (and/or ROM) to the display buffer
+' Dumps Propeller Hub RAM to the display buffer
     pos := start_addr
 
     ser.str(string("Demo_MEMScroller - "))
@@ -298,30 +280,28 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
     Report(testtime, iteration)
     return iteration
 
-PUB Demo_Plot(testtime) | iteration, x, y, c
-' Draws random pixels to the screen, with color -1 (invert)
+PUB Demo_Plot(testtime) | iteration, x, y
+' Draws random pixels
     ser.str(string("Demo_Plot - "))
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
-        oled.Plot (rnd(XMAX), rnd(YMAX), c)
+        oled.Plot (rnd(XMAX), rnd(YMAX), RND565)
         oled.Update
         iteration++
 
     Report(testtime, iteration)
     return iteration
 
-PUB Demo_PlotAccel(testtime) | iteration, x, y, c
-' Draws random pixels (accelerated/native) to the screen, with color -1 (invert)
+PUB Demo_PlotAccel(testtime) | iteration, x, y
+' Draws random pixels (accelerated/native)
     ser.str(string("Demo_PlotAccel - "))
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
-        oled.PlotAccel (rnd(XMAX), rnd(YMAX), c)
+        oled.PlotAccel (rnd(XMAX), rnd(YMAX), RND565)
         iteration++
 
     oled.DisplayBounds(0, 0, XMAX, YMAX)
@@ -340,7 +320,7 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 
     repeat while _timer_set
         repeat x from 0 to XMAX
-            modifier := (||cnt / 1_000_000)           ' Use system counter as modifier
+            modifier := (abs(cnt) / 1_000_000)           ' Use system counter as modifier
             y := offset + sin(x * modifier) / div
             oled.Plot(x, y, $FFFF)
 
@@ -351,56 +331,42 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
     Report(testtime, iteration)
     return iteration
 
-PUB Demo_SeqText(testtime) | iteration, col, row, maxcol, maxrow, ch, st
-' Sequentially draws the whole font table to the screen, then random characters
-'    oled.FGColor(1)
-'    oled.BGColor(0)
-    maxcol := (WIDTH/oled.FontWidth)-1
-    maxrow := (HEIGHT/oled.FontHeight)-1
-    ch := $00
+PUB Demo_SeqText(testtime) | iteration, ch, chars
+' Sequentially draws the whole font table to the screen
+    chars := oled.TextCols * oled.TextRows
+    ch := 32
 
     ser.str(string("Demo_SeqText - "))
     _timer_set := testtime
     iteration := 0
 
+    oled.Position(0, 0)
     repeat while _timer_set
-        repeat row from 0 to maxrow
-            repeat col from 0 to maxcol
-                ch++
-                if ch > $7F
-                    ch := $00
-                oled.FGColor((?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26))
-                oled.BGColor((?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26))
-                oled.Position (col, row)
-                oled.Char (ch)
+        repeat chars
+            oled.FGColor(RND565)
+            oled.BGColor(RND565)
+            oled.Char (ch++)
+            if ch > 127
+                ch := 32
+
         oled.Update
         iteration++
 
     Report(testtime, iteration)
     return iteration
 
-PUB Demo_RndText(testtime) | iteration, col, row, maxcol, maxrow, ch, st
-
-    oled.FGColor(1)
-    oled.BGColor(0)
-    maxcol := (WIDTH/oled.FontWidth)-1
-    maxrow := (HEIGHT/oled.FontHeight)-1
-    ch := $00
-
+PUB Demo_RndText(testtime) | iteration, chars
+' Draw random text characters
+    chars := oled.TextCols * oled.TextRows
     ser.str(string("Demo_RndText - "))
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        repeat row from 0 to maxrow
-            repeat col from 0 to maxcol
-                ch++
-                if ch > $7F
-                    ch := $00
-                oled.FGColor((?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26))
-                oled.BGColor((?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26))
-                oled.Position (col, row)
-                oled.Char (rnd(127))
+        repeat chars
+            oled.FGColor(RND565)
+            oled.BGColor(RND565)
+            oled.Char (32 #> rnd(127))
         oled.Update
         iteration++
 
@@ -431,7 +397,7 @@ PUB Demo_TriWave(testtime) | iteration, x, y, ydir
     Report(testtime, iteration)
     return iteration
 
-PUB Demo_Wander(testtime) | iteration, x, y, d, c
+PUB Demo_Wander(testtime) | iteration, x, y, d
 ' Draws randomly wandering pixels
     _rndSeed := cnt
     x := XMAX/2
@@ -459,13 +425,16 @@ PUB Demo_Wander(testtime) | iteration, x, y, d, c
                 y -= 2
                 if y < 0
                     y := YMAX
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
-        oled.Plot (x, y, c)
+        oled.Plot (x, y, RND565)
         oled.Update
         iteration++
 
     Report(testtime, iteration)
     return iteration
+
+PUB RND565
+' Return random 16bit/5-6-5 color
+    return (rnd(31) << 11) | (rnd(63) << 5) | rnd(31)
 
 PUB RND(maxval) | i
 
@@ -512,7 +481,7 @@ PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
         tmp /= 10
         places++
     until tmp == 1
-    part := int.DecZeroed(||(scaled // divisor), places)
+    part := int.DecZeroed(abs(scaled // divisor), places)
 
     ser.Dec (whole)
     ser.Char (".")

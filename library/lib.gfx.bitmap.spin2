@@ -197,8 +197,8 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
                 repeat sx from x1 to x2
                     Plot(sx, y1, c)
         FALSE:                              ' Both are different - use Bresenham's line algo. to draw diag. line
-            ddx := ||(x2-x1)
-            ddy := ||(y2-y1)
+            ddx := abs(x2-x1)
+            ddy := abs(y2-y1)
             err := ddx-ddy
 
             sx := -1
