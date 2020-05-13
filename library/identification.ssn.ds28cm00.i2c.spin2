@@ -3,9 +3,9 @@
     Filename: identification.ssn.ds28cm00.i2c.spin2
     Author: Jesse Burt
     Description: Driver for the DS28CM00 64-bit I2C Silicon Serial Number (P2 version)
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 16, 2019
-    Updated Nov 16, 2019
+    Updated May 13, 2020
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This driver will start successfully if a common EEPROM is on
@@ -87,9 +87,9 @@ PUB SN(buff_addr)
 ' NOTE: This buffer must be 8 bytes in length.
     readReg(core#DEV_FAMILY, 8, buff_addr)
 
-PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
+PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp
 
-    case reg
+    case reg_nr
         $00..$08:
         OTHER:
             return
@@ -97,7 +97,7 @@ PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
     case nr_bytes
         1..9:
             cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := reg
+            cmd_packet.byte[1] := reg_nr
         OTHER:
             return
 
@@ -111,9 +111,9 @@ PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
         byte[buff_addr][tmp] := i2c.Read (tmp == nr_bytes-1)
     i2c.Stop
 
-PRI writeReg(reg, nr_bytes, val) | cmd_packet, tmp
+PRI writeReg(reg_nr, nr_bytes, val) | cmd_packet, tmp
 
-    case reg
+    case reg_nr
         $08:
         OTHER:
             return
@@ -126,7 +126,7 @@ PRI writeReg(reg, nr_bytes, val) | cmd_packet, tmp
     case nr_bytes
         1:
             cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := reg
+            cmd_packet.byte[1] := reg_nr
             cmd_packet.byte[2] := val
         OTHER:
             return

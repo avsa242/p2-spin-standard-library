@@ -3,9 +3,9 @@
     Filename: DS28CM00-Demo.spin2
     Author: Jesse Burt
     Description: Demo of the DS28CM00 64-bit ROM ID chip (P2 version)
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 16, 2019
-    Updated Nov 16, 2019
+    Updated Feb 7, 2020
     See end of file for terms of use.
     --------------------------------------------
     NOTE: The driver will start successfully if a common EEPROM (e.g. AT24Cxxxx) is on
@@ -63,7 +63,6 @@ PUB Main | i
     case ssn.CRCValid
         TRUE: ser.PrintF("Yes\n")
         FALSE: ser.PrintF("No\n")
-        OTHER: ser.PrintF("EXCEPTION\n")
     ser.PrintF("Halting")
     FlashLED (LED, 100)
 
@@ -79,13 +78,9 @@ PUB Setup
         ser.PrintF("DS28CM00 driver failed to start - halting\n")
         ssn.Stop
         time.MSleep (1)
+        FlashLED(LED, 500)
 
-PUB FlashLED(led_pin, delay_ms)
-
-    io.Output(led_pin)
-    repeat
-        io.Toggle(led_pin)
-        time.MSleep(delay_ms)
+#include "lib.utility.spin2"
 
 DAT
 {
