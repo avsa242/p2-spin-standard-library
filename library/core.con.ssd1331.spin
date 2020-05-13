@@ -3,18 +3,18 @@
     Filename: core.con.ssd1331.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started: Nov 18, 2018
-    Updated: May 4, 2019
+    Updated: May 9, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    SCK_MAX_FREQ                        = 30_000_000    ' Don't actually know...just put something for now
     CPOL                                = 0
     MOSI_BITORDER                       = 5             ' MSBFIRST
+    SCK_MAX_FREQ                        = 6_666_666     ' According to the datasheet - though it seems to run at much higher clock speeds
 
 ' Register map
     SSD1331_CMD_DRAWLINE                = $21

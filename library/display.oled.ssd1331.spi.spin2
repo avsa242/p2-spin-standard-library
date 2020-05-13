@@ -5,7 +5,7 @@
     Description: Driver for Solomon Systech 96x64 RGB OLED
     Copyright (c) 2020
     Started: Nov 8, 2019
-    Updated: Apr 5, 2020
+    Updated: May 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -53,7 +53,7 @@ OBJ
 
     core    : "core.con.ssd1331"
     time    : "time"
-    spi     : "com.spi.bitbang-fast"
+    spi     : "com.spi"
     io      : "io"
 
 VAR
@@ -69,7 +69,7 @@ VAR
 PUB Start (CS_PIN, DC_PIN, DIN_PIN, CLK_PIN, RES_PIN, CLK_HZ, drawbuffer_address): okay
 
     if lookdown(CS_PIN: 0..63) and lookdown(DC_PIN: 0..63) and lookdown(DIN_PIN: 0..63) and lookdown(CLK_PIN: 0..63) and lookdown(RES_PIN: 0..63)
-        if okay := spi.start (DIN_PIN, -1, CLK_PIN, CLK_HZ, core#CPOL)
+        if okay := spi.start (CLK_PIN, DIN_PIN, -1, CLK_HZ)
             _DC := DC_PIN
             _RES := RES_PIN
             _MOSI := DIN_PIN
@@ -360,9 +360,9 @@ PUB CopyAccel(sx, sy, ex, ey, dx, dy) | tmp[2]
 PUB CopyAccelInverted(enabled) | tmp
 ' Enable inverted colors, when using CopyAccel()
     tmp := _sh_FILL
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled << core#FLD_REVCOPY)
+            enabled := (abs(enabled) << core#FLD_REVCOPY)
         OTHER:
             return ((tmp >> core#FLD_REVCOPY) & %1) * TRUE
 
@@ -409,7 +409,7 @@ PUB DisplayBounds(sx, sy, ex, ey) | tmp[2]
 
 PUB DisplayInverted(enabled) | tmp
 ' Invert display colors
-    case ||enabled
+    case abs(enabled)
         0:
             DisplayVisibility(NORMAL)
         1:
@@ -480,9 +480,9 @@ PUB ExtSupply | tmp
 PUB FillAccelEnabled(enabled) | tmp
 ' Enable the display's native/accelerated fill function, when using BoxAccel()
     tmp := _sh_FILL
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled & %1
+            enabled := abs(enabled) & %1
         OTHER:
             return (tmp & %1) * TRUE
 
@@ -499,9 +499,9 @@ PUB Interlaced(enabled) | tmp
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value returns the current setting
     tmp := _sh_REMAPCOLOR
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled ^ 1) << core#FLD_COMSPLIT
+            enabled := (abs(enabled) ^ 1) << core#FLD_COMSPLIT
         OTHER:
             return not (((tmp >> core#FLD_COMSPLIT) & %1) * TRUE)
 
@@ -533,9 +533,9 @@ PUB MirrorH(enabled) | tmp
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value returns the current setting
     tmp := _sh_REMAPCOLOR
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_SEGREMAP
+            enabled := (abs(enabled)) << core#FLD_SEGREMAP
         OTHER:
             return ((tmp >> core#FLD_SEGREMAP) & %1) * TRUE
 
@@ -550,9 +550,9 @@ PUB MirrorV(enabled) | tmp
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value returns the current setting
     tmp := _sh_REMAPCOLOR
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_COMREMAP
+            enabled := (abs(enabled)) << core#FLD_COMREMAP
         OTHER:
             return ((tmp >> core#FLD_COMREMAP) & %1) * TRUE
 
@@ -616,9 +616,9 @@ PUB PlotAccel(x, y, color) | tmp[2]
 PUB Powered(enabled) | tmp
 ' Enable display power
     tmp := _sh_DISPONOFF
-    case ||enabled
+    case abs(enabled)
         OFF, ON, DIM:
-            enabled := lookupz(||enabled: core#SSD1331_CMD_DISPLAYOFF, core#SSD1331_CMD_DISPLAYON, core#SSD1331_CMD_DISPLAYONDIM)
+            enabled := lookupz(abs(enabled): core#SSD1331_CMD_DISPLAYOFF, core#SSD1331_CMD_DISPLAYON, core#SSD1331_CMD_DISPLAYONDIM)
         OTHER:
             return lookdownz(tmp: core#SSD1331_CMD_DISPLAYOFF, core#SSD1331_CMD_DISPLAYON, core#SSD1331_CMD_DISPLAYONDIM)
 
@@ -630,9 +630,9 @@ PUB PowerSaving(enabled) | tmp
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value returns the current setting
     tmp := _sh_POWERSAVE
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := lookupz(||enabled: core#POWERMODE_POWERSAVE_DIS, core#POWERMODE_POWERSAVE_ENA)
+            enabled := lookupz(abs(enabled): core#POWERMODE_POWERSAVE_DIS, core#POWERMODE_POWERSAVE_ENA)
         OTHER:
             return (lookdownz(_sh_POWERSAVE: core#POWERMODE_POWERSAVE_DIS, core#POWERMODE_POWERSAVE_ENA) & %1) * TRUE
 
@@ -719,9 +719,9 @@ PUB VertAltScan(enabled) | tmp
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value returns the current setting
     tmp := _sh_REMAPCOLOR
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_COMLR_SWAP
+            enabled := (abs(enabled)) << core#FLD_COMLR_SWAP
         OTHER:
             return ((tmp >> core#FLD_COMLR_SWAP) & %1) * TRUE
 
@@ -747,8 +747,7 @@ PRI writeReg(trans_type, nr_bytes, buff_addr) | tmp
             return
 
     io.Low(_CS)
-    repeat tmp from 0 to nr_bytes-1
-        spi.write (_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buff_addr][tmp])
+    spi.WriteBytes(nr_bytes, buff_addr)
     io.High(_CS)
 
 {

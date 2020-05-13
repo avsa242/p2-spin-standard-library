@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started: Nov 3, 2019
-    Updated: Mar 27, 2020
+    Updated: May 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -28,12 +28,12 @@ CON
     SER_TX      = cfg#SER_TX
     SER_BAUD    = 2_000_000
 
-    RES_PIN     = 36
-    DC_PIN      = 35
-    CS_PIN      = 34
-    CLK_PIN     = 33
-    DIN_PIN     = 32
-    CLK_HZ      = 6_500_000
+    RES_PIN     = 12
+    DC_PIN      = 11
+    CS_PIN      = 10
+    CLK_PIN     = 8
+    DIN_PIN     = 9
+    CLK_HZ      = 20_000_000
 
     WIDTH       = 96
     HEIGHT      = 64
@@ -322,7 +322,7 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 
     repeat while _timer_set
         repeat x from 0 to XMAX
-            modifier := (||cnt / 1_000_000)           ' Use system counter as modifier
+            modifier := (abs(cnt) / 1_000_000)           ' Use system counter as modifier
             y := offset + sin(x * modifier) / div
             oled.Plot(x, y, $FFFF)
 
@@ -494,7 +494,7 @@ PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
         tmp /= 10
         places++
     until tmp == 1
-    part := int.DecZeroed(||(scaled // divisor), places)
+    part := int.DecZeroed(abs(scaled // divisor), places)
 
     ser.Dec (whole)
     ser.Char (".")
