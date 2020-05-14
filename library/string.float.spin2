@@ -54,7 +54,7 @@ PUB StringToFloat( strptr ) : f | int, sign, dmag, mag, get_exp, b
   b := 0.1
   if mag > 0
     b := 10.0
-  repeat ||mag
+  repeat abs(mag)
     f := math.FMul ( f, b )
 
 PUB FloatToString(Single) : StringPtr
@@ -189,7 +189,7 @@ PUB FloatToMetric(Single, SuffixChr) : StringPtr | x, y
   y := (exponent + 45) // 3
 
   'if in metric range, do metric
-  if ||x =< 8
+  if abs(x) =< 8
     'add digits with possible decimal
     AddDigits(y + 1)
     'add space
@@ -342,7 +342,7 @@ PRI DoScientific
     byte[p++] := "+"
   else
     byte[p++] := "-"
-    ||exponent
+    exponent := abs(exponent)
   'add exponent digits
   if exponent => 10
     byte[p++] := exponent / 10 + "0"
