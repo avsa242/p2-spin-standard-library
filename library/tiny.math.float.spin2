@@ -11,7 +11,7 @@ PUB FFloat(integer) : single | s, x, m
 
 ''Convert integer to float
 
-  if m := ||integer             'absolutize mantissa, if 0, result 0
+  if m := abs(integer)          'absolutize mantissa, if 0, result 0
     s := integer >> 31          'get sign
     x := >|m - 1                'get exponent
     m <<= 31 - x                'msb-justify mantissa
@@ -81,7 +81,7 @@ PUB FAdd(singleA, singleB) : single | sa, xa, ma, sb, xb, mb
   if sb
     -mb
 
-  result := ||(xa - xb) <# 31   'get exponent difference
+  result := abs(xa - xb) <# 31   'get exponent difference
   if xa > xb                    'shift lower-exponent mantissa down
     mb ~>= result
   else
@@ -90,7 +90,7 @@ PUB FAdd(singleA, singleB) : single | sa, xa, ma, sb, xb, mb
 
   ma += mb                      'add mantissas
   sa := ma < 0                  'get sign
-  ||ma                          'absolutize result
+  ma := abs(ma)                 'absolutize result
 
   return Pack(@sa)              'pack result
 
