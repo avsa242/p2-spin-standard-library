@@ -5,7 +5,7 @@
     Description: Driver for Nordic Semi. nRF24L01+ (P2 version)
     Copyright (c) 2020
     Started Nov 2, 2019
-    Updated Feb 3, 2020
+    Updated May 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -29,7 +29,7 @@ VAR
 
 OBJ
 
-    spi     : "com.spi.bitbang"
+    spi     : "com.spi.bitbang-fast"
     core    : "core.con.nrf24l01"
     time    : "time"
     io      : "io"
@@ -78,7 +78,7 @@ PUB Defaults | tmp[2]
     CRCLength(1)
     Sleep
     TXMode
-    AutoAckEnabledPipes(%000000)
+    AutoAckEnabledPipes(%111111)
     PipesEnabled(%000011)
     AddressWidth(5)
     AutoRetransmitDelay(250)
@@ -226,9 +226,9 @@ PUB CRCCheckEnabled(enabled=-2) | tmp
 '   Valid values: FALSE: Disable, TRUE (-1 or 1): Enable.
 '   Any other value polls the chip and returns the current setting
     readReg (core#NRF24_CONFIG, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_EN_CRC
+            enabled := abs(enabled) << core#FLD_EN_CRC
         OTHER:
             result := ((tmp >> core#FLD_EN_CRC) & %1) * TRUE
             return
@@ -282,9 +282,9 @@ PUB DynamicACK(enabled=-2) | tmp
 '   Valid values: FALSE: Disable, TRUE (-1 or 1): Enable.
 '   Any other value polls the chip and returns the current setting
     readReg (core#NRF24_FEATURE, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_EN_DYN_ACK
+            enabled := abs(enabled) << core#FLD_EN_DYN_ACK
         OTHER:
             result := ((tmp >> core#FLD_EN_DYN_ACK) & core#BITS_EN_DYN_ACK) * TRUE
             return
@@ -319,9 +319,9 @@ PUB DynPayloadEnabled(enabled=-2) | tmp
 '   Valid values: FALSE: Disable, TRUE (-1 or 1): Enable.
 '   Any other value polls the chip and returns the current setting
     readReg (core#NRF24_FEATURE, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_EN_DPL
+            enabled := abs(enabled) << core#FLD_EN_DPL
         OTHER:
             result := ((tmp >> core#FLD_EN_DPL) & core#BITS_EN_DPL) * TRUE
             return
@@ -336,9 +336,9 @@ PUB EnableACK(enabled=-2) | tmp
 '   Valid values: FALSE: Disable, TRUE (-1 or 1): Enable.
 '   Any other value polls the chip and returns the current setting
     readReg (core#NRF24_FEATURE, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_EN_ACK_PAY
+            enabled := abs(enabled) << core#FLD_EN_ACK_PAY
         OTHER:
             result := ((tmp >> core#FLD_EN_ACK_PAY) & core#BITS_EN_ACK_PAY) * TRUE
             return
@@ -396,7 +396,7 @@ PUB MaxRetransReached(clear_intr=-2) | tmp
 '   Valid values: TRUE (-1 or 1): Clear interrupt flag
 '   Any other value returns TRUE when max number of retransmits reached, FALSE otherwise
     readReg (core#NRF24_STATUS, 1, @tmp)
-    case ||clear_intr
+    case abs(clear_intr)
         1:
             clear_intr := %1 << core#FLD_MAX_RT
         OTHER:
@@ -448,9 +448,9 @@ PUB PayloadReady(clear_intr=-2) | tmp
 '   Valid values: TRUE (-1 or 1): Clear interrupt flag
 '   Any other value queries the chip and returns TRUE if new data in FIFO, FALSE otherwise
     readReg (core#NRF24_STATUS, 1, @tmp)
-    case ||clear_intr
+    case abs(clear_intr)
         1:
-            clear_intr := ||clear_intr << core#FLD_RX_DR
+            clear_intr := abs(clear_intr) << core#FLD_RX_DR
         OTHER:
             result := ((tmp >> core#FLD_RX_DR) & core#BITS_RX_DR) * TRUE
             return
@@ -464,9 +464,9 @@ PUB PayloadSent(clear_intr=-2) | tmp
 '   Valid values: TRUE (-1 or 1): Clear interrupt flag
 '   Any other value polls the chip and returns TRUE if packet transmitted, FALSE otherwise
     readReg (core#NRF24_STATUS, 1, @tmp)
-    case ||clear_intr
+    case abs(clear_intr)
         1:
-            clear_intr := ||clear_intr << core#FLD_TX_DS
+            clear_intr := abs(clear_intr) << core#FLD_TX_DS
         OTHER:
             result := ((tmp >> core#FLD_TX_DS) & core#BITS_TX_DS) * TRUE
             return
@@ -500,9 +500,9 @@ PUB PLL_Lock(enabled=-2) | tmp
 '   Valid values: FALSE: Disable, TRUE (-1 or 1): Enable.
 '   Any other value polls the chip and returns the current setting
     readReg (core#NRF24_RF_SETUP, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_PLL_LOCK
+            enabled := abs(enabled) << core#FLD_PLL_LOCK
         OTHER:
             result := ((tmp >> core#FLD_PLL_LOCK) & %1) * TRUE
             return
@@ -511,14 +511,14 @@ PUB PLL_Lock(enabled=-2) | tmp
     tmp := (tmp | enabled) & core#NRF24_RF_SETUP_MASK
     writeReg (core#NRF24_RF_SETUP, 1, @tmp)
 
-PUB PowerUp(enabled=-2) | tmp
+PUB Powered(enabled=-2) | tmp
 ' Power on or off
 '   Valid values: FALSE: Disable, TRUE (-1 or 1): Enable.
 '   Any other value polls the chip and returns the current setting
     readReg (core#NRF24_CONFIG, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_PWR_UP
+            enabled := abs(enabled) << core#FLD_PWR_UP
         OTHER:
             result := ((tmp >> core#FLD_PWR_UP) & %1) * TRUE
             return
@@ -633,16 +633,16 @@ PUB RXTX(role=-2) | tmp
 
 PUB Sleep
 ' Power down chip
-    PowerUp(FALSE)
+    Powered(FALSE)
 
 PUB TESTCW(enabled=-2) | tmp
 ' Enable continuous carrier transmit (intended for testing only)
 '   Valid values: FALSE: Disable, TRUE (-1 or 1): Enable.
 '   Any other value polls the chip and returns the current setting
     readReg (core#NRF24_RF_SETUP, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_CONT_WAVE
+            enabled := abs(enabled) << core#FLD_CONT_WAVE
         OTHER:
             result := ((tmp >> core#FLD_CONT_WAVE) & %1) * TRUE
             return
@@ -731,39 +731,39 @@ PRI Status
 ' Returns status of last SPI transaction
     readReg (core#NRF24_STATUS, 1, @result)
 
-PRI writeReg (reg, nr_bytes, buff_addr) | tmp
+PRI writeReg (reg_nr, nr_bytes, buff_addr) | tmp
 ' Write reg to MOSI
-    ifnot lookdown(reg: $00..$17, $1C..$1D, $A0, $E1..$E3)              'Validate reg - there are a few the datasheet says are for testing
+    ifnot lookdown(reg_nr: $00..$17, $1C..$1D, $A0, $E1..$E3)              'Validate reg - there are a few the datasheet says are for testing
         return FALSE                                                    ' only and will cause the chip to malfunction if written to.
 
-    reg |= core#NRF24_W_REG
-    case reg    'XXX clean this up a little; remove some redundancy with the lookdown table above
+    reg_nr |= core#NRF24_W_REG
+    case reg_nr    'XXX clean this up a little; remove some redundancy with the lookdown table above
         core#NRF24_W_TX_PAYLOAD:
             io.Low(_CSN)
-            spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr)
             repeat tmp from 0 to nr_bytes-1
                 spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buff_addr][tmp])
             io.High(_CSN)
 
         core#NRF24_FLUSH_TX:
             io.Low(_CSN)
-            spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr)
             io.High(_CSN)
 
         core#NRF24_FLUSH_RX:
             io.Low(_CSN)
-            spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr)
             io.High(_CSN)
 
         OTHER:
             case nr_bytes
                 0:
                     io.Low(_CSN)
-                    spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg) 'Simple command
+                    spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr) 'Simple command
                     io.High(_CSN)
                 1..5:
                     io.Low(_CSN)
-                    spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg) 'Command w/nr_bytes data bytes following
+                    spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr) 'Command w/nr_bytes data bytes following
                     repeat tmp from 0 to nr_bytes-1
                         spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buff_addr][tmp])
                     io.High(_CSN)
@@ -772,21 +772,21 @@ PRI writeReg (reg, nr_bytes, buff_addr) | tmp
                     result := FALSE
                     buff_addr := 0
 
-PRI readReg (reg, nr_bytes, buff_addr) | tmp
+PRI readReg (reg_nr, nr_bytes, buff_addr) | tmp
 ' Read reg from MISO
-    ifnot lookdown(reg: $00..$17, $1C..$1D, $61)                        'Validate reg - there are a few the datasheet says are for testing
+    ifnot lookdown(reg_nr: $00..$17, $1C..$1D, $61)                        'Validate reg - there are a few the datasheet says are for testing
         return FALSE                                                    ' only and will cause the chip to malfunction if written to.
 
-    case reg    'XXX clean this up a little; remove some redundancy with the lookdown table above
+    case reg_nr    'XXX clean this up a little; remove some redundancy with the lookdown table above
         core#NRF24_RPD:
             io.Low(_CSN)
-            spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr)
             byte[buff_addr][0] := spi.Read (_MISO, _SCK, core#MISO_BITORDER, 8)
             io.High(_CSN)
 
         core#NRF24_R_RX_PAYLOAD:
             io.Low(_CSN)
-            spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+            spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr)
             repeat tmp from 0 to nr_bytes-1
                 byte[buff_addr][tmp] := spi.Read (_MISO, _SCK, core#MISO_BITORDER, 8)
             io.High(_CSN)
@@ -795,7 +795,7 @@ PRI readReg (reg, nr_bytes, buff_addr) | tmp
             case nr_bytes
                 1..5:
                     io.Low(_CSN)
-                    spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg) ' Which register to query
+                    spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr) ' Which register to query
                     repeat tmp from 0 to nr_bytes-1
                         byte[buff_addr][tmp] := spi.Read (_MISO, _SCK, core#MISO_BITORDER, 8)
                     io.High(_CSN)

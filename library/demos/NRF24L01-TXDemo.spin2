@@ -5,7 +5,7 @@
     Description: nRF24L01+ Transmit demo (no ShockBurst/Auto Acknowledgement)
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Feb 3, 2020
+    Updated May 7, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -68,7 +68,7 @@ PUB Transmit | addr[2], count, i, tmp
     nrf24.PayloadLen (_payloadlen, 0)                       '   successful transmission
 
     nrf24.TXMode                                            ' Set to Transmit mode
-    nrf24.PowerUp (TRUE)
+    nrf24.Powered (TRUE)
     nrf24.TXPower (-18)                                     ' Set transmit power: -18, -12, -6, 0 (dBm)
     nrf24.Channel (2)                                       ' Set transmit channel. MUST match the RX side for
                                                             '   successful transmission

@@ -5,7 +5,7 @@
     Description: nRF24L01+ Receive demo (no ShockBurst/Auto Acknowledgement)
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Feb 3, 2020
+    Updated May 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -70,7 +70,7 @@ PUB Receive | tmp, addr[2], i, count, CD
     nrf24.PayloadLen (_payloadlen, 0)                       '   successful reception
 
     nrf24.RXMode                                            ' Start active receive mode
-    nrf24.PowerUp (TRUE)
+    nrf24.Powered (TRUE)
     nrf24.Channel (2)                                       ' Set receive channel. MUST match the TX side for
                                                             '   successful reception
 
@@ -97,7 +97,7 @@ PUB Receive | tmp, addr[2], i, count, CD
         bytefill (@_fifo, $00, 32)                          ' Clear RX local buffer
         repeat                                              ' Wait to proceed
             ser.Position(0, 5)                              ' .
-            CD := ||(nrf24.RSSI == -64)                     ' . While we're waiting, 
+            CD := abs(nrf24.RSSI == -64)                    ' . While we're waiting,
             ser.printf("Carrier: %d\n", CD)                 ' .     show the carrier detect flag
             ser.str(string("Packets received: "))           ' .     and also the number of packets received
             ser.dec(count)                                  ' .
@@ -148,4 +148,4 @@ DAT
     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
     SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     --------------------------------------------------------------------------------------------------------
-}                                                                                                                
+}
