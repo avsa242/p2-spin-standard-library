@@ -3,9 +3,9 @@
     Filename: sensor.lux.tsl2591.spin2
     Description: Driver for the TSL2591 I2C Light/lux sensor (P2 version)
     Author: Jesse Burt
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Nov 23, 2019
+    Updated May 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -135,9 +135,9 @@ PUB IntsEnabled(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#ENABLE, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_NPIEN
+            enabled := abs(enabled) << core#FLD_NPIEN
         OTHER:
             return ((tmp >> core#FLD_NPIEN) & %1) * TRUE
 
@@ -242,9 +242,9 @@ PUB PersistIntsEnabled(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#ENABLE, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_AIEN
+            enabled := abs(enabled) << core#FLD_AIEN
         OTHER:
             return ((tmp >> core#FLD_AIEN) & %1) * TRUE
 
@@ -287,9 +287,9 @@ PUB Powered(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#ENABLE, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled
+            enabled := abs(enabled)
         OTHER:
             return (tmp & %1) * TRUE
 
@@ -309,9 +309,9 @@ PUB SensorEnabled(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#ENABLE, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_AEN
+            enabled := abs(enabled) << core#FLD_AEN
         OTHER:
             return ((tmp >> core#FLD_AEN) & %1) * TRUE
 
@@ -327,9 +327,9 @@ PUB SleepAfterInt(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#ENABLE, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_SAI
+            enabled := abs(enabled) << core#FLD_SAI
         OTHER:
             return ((tmp >> core#FLD_SAI) & %1) * TRUE
 
@@ -337,9 +337,9 @@ PUB SleepAfterInt(enabled=-2) | tmp
     tmp := (tmp | enabled) & core#ENABLE_MASK
     writeReg (core#TRANS_NORMAL, core#ENABLE, 1, tmp)
 
-PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet[2], tmp
+PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet[2], tmp
 'Read nr_bytes from register 'reg' to address 'addr_buff'
-    writeReg (core#TRANS_NORMAL, reg, 0, 0)
+    writeReg (core#TRANS_NORMAL, reg_nr, 0, 0)
 
     i2c.Start
     i2c.Write (SLAVE_RD)
@@ -347,20 +347,20 @@ PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet[2], tmp
         byte[buff_addr][tmp] := i2c.Read (tmp == nr_bytes-1)
     i2c.Stop
 
-PRI writeReg(trans_type, reg, nr_bytes, val) | cmd_packet[2], tmp
+PRI writeReg(trans_type, reg_nr, nr_bytes, val) | cmd_packet[2], tmp
 ' Write nr_bytes to register 'reg' stored in val
     cmd_packet.byte[LSB] := SLAVE_WR
 
     case trans_type
         core#TRANS_NORMAL:
-            case reg
+            case reg_nr
                 core#ENABLE, core#CONTROL, core#AILTL..core#NPAIHTH, core#PERSIST, core#PID..core#C1DATAH:
                 OTHER:
                     return
 '            cmd_packet.byte[1] := (core#TSL2591_CMD | trans_type) | reg
 
         core#TRANS_SPECIAL:
-            case reg
+            case reg_nr
                 core#SF_FORCEINT, core#SF_CLEARALSINT, core#SF_CLEARALS_NOPERSIST_INT, core#SF_CLEAR_NOPERSIST_INT:
                     nr_bytes := 0
                     val := 0
@@ -370,7 +370,7 @@ PRI writeReg(trans_type, reg, nr_bytes, val) | cmd_packet[2], tmp
         OTHER:
             return
 
-    cmd_packet.byte[1] := (core#TSL2591_CMD | trans_type) | reg
+    cmd_packet.byte[1] := (core#TSL2591_CMD | trans_type) | reg_nr
 
     case nr_bytes
         0:

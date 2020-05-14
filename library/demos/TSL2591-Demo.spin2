@@ -3,9 +3,9 @@
     Filename: TSL2591-Demo.spin2
     Description: Demo for the TSL2591 driver (P2 version)
     Author: Jesse Burt
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Nov 23, 2019
+    Updated May 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -82,9 +82,9 @@ PUB Main | atime_ms, againx, Lux1, cpl, ch0, ch1, scale
         ser.PrintF("(CH0 - CH1): %s     \n", int.DecPadded ((ch0 - ch1), PADDING))
         ser.PrintF("1 - (CH0 - CH1): %s     \n", int.DecPadded ((1 * scale) - (ch1 / ch0), PADDING))
         ser.PrintF("Lux:")
-        Frac (Lux1, scale)
+        Fractional (Lux1, scale)
 
-PUB Frac(scaled, divisor) | whole, part, places, tmp
+PUB Fractional(scaled, divisor) | whole, part, places, tmp
 ' Display a scaled up number in its natural form (#.###...) - scale it back down by divisor
     whole := scaled / divisor
     tmp := divisor
@@ -94,7 +94,7 @@ PUB Frac(scaled, divisor) | whole, part, places, tmp
         tmp /= 10
         places++
     until tmp == 1
-    part := int.DecZeroed(||(scaled // divisor), places)
+    part := int.DecZeroed(abs(scaled // divisor), places)
     ser.printf(" %d.%s      ", whole, part)
 
 PUB Setup
