@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started: Mar 10, 2020
-    Updated: Mar 28, 2020
+    Updated: May 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -28,12 +28,12 @@ CON
     SER_TX      = cfg#SER_TX
     SER_BAUD    = 2_000_000
 
-    CS_PIN      = 50
-    DC_PIN      = 48
-    RESET_PIN   = 55
-    SDA_PIN     = 52
-    SCK_PIN     = 54
-    SCK_HZ      = 6_500_000
+    CS_PIN      = 10
+    DC_PIN      = 11
+    RESET_PIN   = 12
+    SDA_PIN     = 9
+    SCK_PIN     = 8
+    SCK_HZ      = 20_000_000
 
     WIDTH       = 128
     HEIGHT      = 128
@@ -162,7 +162,7 @@ PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
     Report(testtime, iteration)
     return iteration
 
-PUB Demo_Circle(testtime) | iteration, x, y, r, c
+PUB Demo_Circle(testtime) | iteration, x, y, r
 ' Draws circles at random locations
     ser.str(string("Demo_Circle - "))
     _timer_set := testtime
@@ -172,8 +172,7 @@ PUB Demo_Circle(testtime) | iteration, x, y, r, c
         x := rnd(XMAX)
         y := rnd(YMAX)
         r := rnd(YMAX/2)
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
-        lcd.Circle (x, y, r, c)
+        lcd.Circle (x, y, r, RND565)
         lcd.Update
         iteration++
 
@@ -199,37 +198,20 @@ PUB Demo_Greet
     lcd.FGColor($FFFF)
     lcd.BGColor(0)
     lcd.Position (0, 0)
-    lcd.Str (string("ST7735 on the"))
-
-    lcd.Position (0, 1)
-    lcd.Str (string("Parallax"))
-
-    lcd.Position (0, 2)
-    lcd.Str (string("P2X8C4M64P @ "))
-
-    lcd.Position (0, 3)
-    lcd.Str (int.Dec(clkfreq/1_000_000))
-    lcd.Str (string("MHz"))
-
-    lcd.Position (0, 4)
-    lcd.Str (int.DecPadded (WIDTH, 3))
-
-    lcd.Position (3, 4)
-    lcd.Str (string("x"))
-
-    lcd.Position (4, 4)
-    lcd.Str (int.DecPadded (HEIGHT, 2))
+    lcd.printf("ST7735 on the\n")
+    lcd.printf("Parallax P2X8C4M64P @\n")
+    lcd.printf("%dMHz\n", clkfreq/1_000_000)
+    lcd.printf("%dx%d", WIDTH, HEIGHT)
     lcd.Update
 
-PUB Demo_Line (testtime) | iteration, c
+PUB Demo_Line (testtime) | iteration
 ' Draws random lines with color -1 (invert)
     ser.str(string("Demo_Line - "))
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
-        lcd.Line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c)
+        lcd.Line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), RND565)
         lcd.Update
         iteration++
 
@@ -295,15 +277,14 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
     Report(testtime, iteration)
     return iteration
 
-PUB Demo_Plot(testtime) | iteration, x, y, c
+PUB Demo_Plot(testtime) | iteration, x, y
 ' Draws random pixels to the screen, with color -1 (invert)
     ser.str(string("Demo_Plot - "))
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
-        lcd.Plot (rnd(XMAX), rnd(YMAX), c)
+        lcd.Plot (rnd(XMAX), rnd(YMAX), RND565)
         lcd.Update
         iteration++
 
@@ -322,7 +303,7 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 
     repeat while _timer_set
         repeat x from 0 to XMAX
-            modifier := (||cnt / 1_000_000)           ' Use system counter as modifier
+            modifier := (abs(cnt) / 1_000_000)           ' Use system counter as modifier
             y := offset + sin(x * modifier) / div
             lcd.Plot(x, y, $FFFF)
 
@@ -333,56 +314,42 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
     Report(testtime, iteration)
     return iteration
 
-PUB Demo_SeqText(testtime) | iteration, col, row, maxcol, maxrow, ch, st
-' Sequentially draws the whole font table to the screen, then random characters
-'    lcd.FGColor(1)
-'    lcd.BGColor(0)
-    maxcol := (WIDTH/lcd.FontWidth)-1
-    maxrow := (HEIGHT/lcd.FontHeight)-1
-    ch := $00
+PUB Demo_SeqText(testtime) | iteration, ch, chars
+' Sequentially draws the whole font table to the screen
+    chars := lcd.TextCols * lcd.TextRows
+    ch := 32
 
     ser.str(string("Demo_SeqText - "))
     _timer_set := testtime
     iteration := 0
 
+    lcd.Position(0, 0)
     repeat while _timer_set
-        repeat row from 0 to maxrow
-            repeat col from 0 to maxcol
-                ch++
-                if ch > $7F
-                    ch := $00
-                lcd.FGColor((?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26))
-                lcd.BGColor((?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26))
-                lcd.Position (col, row)
-                lcd.Char (ch)
+        repeat chars
+            lcd.FGColor(RND565)
+            lcd.BGColor(RND565)
+            lcd.Char (ch++)
+            if ch > 127
+                ch := 32
+
         lcd.Update
         iteration++
 
     Report(testtime, iteration)
     return iteration
 
-PUB Demo_RndText(testtime) | iteration, col, row, maxcol, maxrow, ch, st
-
-    lcd.FGColor(1)
-    lcd.BGColor(0)
-    maxcol := (WIDTH/lcd.FontWidth)-1
-    maxrow := (HEIGHT/lcd.FontHeight)-1
-    ch := $00
-
+PUB Demo_RndText(testtime) | iteration, chars
+' Draw random text characters
+    chars := lcd.TextCols * lcd.TextRows
     ser.str(string("Demo_RndText - "))
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        repeat row from 0 to maxrow
-            repeat col from 0 to maxcol
-                ch++
-                if ch > $7F
-                    ch := $00
-                lcd.FGColor((?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26))
-                lcd.BGColor((?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26))
-                lcd.Position (col, row)
-                lcd.Char (rnd(127))
+        repeat chars
+            lcd.FGColor(RND565)
+            lcd.BGColor(RND565)
+            lcd.Char (32 #> rnd(127))
         lcd.Update
         iteration++
 
@@ -413,7 +380,7 @@ PUB Demo_TriWave(testtime) | iteration, x, y, ydir
     Report(testtime, iteration)
     return iteration
 
-PUB Demo_Wander(testtime) | iteration, x, y, d, c
+PUB Demo_Wander(testtime) | iteration, x, y, d
 ' Draws randomly wandering pixels
     _rndSeed := cnt
     x := XMAX/2
@@ -441,13 +408,16 @@ PUB Demo_Wander(testtime) | iteration, x, y, d, c
                 y -= 2
                 if y < 0
                     y := YMAX
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
-        lcd.Plot (x, y, c)
+        lcd.Plot (x, y, RND565)
         lcd.Update
         iteration++
 
     Report(testtime, iteration)
     return iteration
+
+PUB RND565
+' Return random 16bit/5-6-5 color
+    return (rnd(31) << 11) | (rnd(63) << 5) | rnd(31)
 
 PUB RND(maxval) | i
 
@@ -494,7 +464,7 @@ PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
         tmp /= 10
         places++
     until tmp == 1
-    part := int.DecZeroed(||(scaled // divisor), places)
+    part := int.DecZeroed(abs(scaled // divisor), places)
 
     ser.Dec (whole)
     ser.Char (".")

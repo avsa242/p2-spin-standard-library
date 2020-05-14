@@ -5,7 +5,7 @@
     Description: Driver for Sitronix ST7735-based displays (4W SPI, P2 version)
     Copyright (c) 2020
     Started Mar 10, 2020
-    Updated Mar 10, 2020
+    Updated May 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -63,7 +63,7 @@ VAR
 
 OBJ
 
-    spi : "com.spi.bitbang-fast"
+    spi : "com.spi"
     core: "core.con.st7735"
     time: "time"
     io  : "io"
@@ -73,7 +73,7 @@ PUB Null
 
 PUB Start(CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RESET_PIN, SCK_HZ, disp_width, disp_height, drawbuffer_address): okay
 
-    if okay := spi.Start(SDA_PIN, -1, SCK_PIN, SCK_HZ)
+    if okay := spi.Start(SCK_PIN, SDA_PIN, -1, SCK_HZ)
         _CS := CS_PIN
         _SDA := SDA_PIN
         _SCK := SCK_PIN
@@ -236,7 +236,7 @@ PUB DisplayBounds(xs, ys, xe, ye) | tmp
 
 PUB DisplayInverted(enabled) | tmp
 ' Invert display colors
-    case ||enabled
+    case abs(enabled)
         0:
             DisplayVisibility(NORMAL)
         1:
@@ -356,9 +356,9 @@ PUB MirrorH(enabled) | tmp
 '   Any other value is ignored
     tmp := $00
     tmp := _madctl
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_MX
+            enabled := abs(enabled) << core#FLD_MX
         OTHER:
             result := (tmp >> core#FLD_MX) & %1
             return
@@ -373,9 +373,9 @@ PUB MirrorV(enabled) | tmp
 '   Any other value is ignored
     tmp := $00
     tmp := _madctl
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_MY
+            enabled := abs(enabled) << core#FLD_MY
         OTHER:
             result := (tmp >> core#FLD_MY) & %1
             return
@@ -416,9 +416,9 @@ PUB PartialArea(sy, ey) | tmp
 
 PUB Powered(enabled) | tmp
 ' Enable display power
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled + core#SLPIN
+            enabled := abs(enabled) + core#SLPIN
         OTHER:
             return FALSE
 
@@ -613,33 +613,31 @@ PRI readReg(reg, nr_bytes, buff_addr) | tmp         ' * Not possible on Adafruit
 }
 }
 
-PRI writeReg(reg, nr_bytes, buff_addr) | tmp
+PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
 ' Write nr_bytes to register 'reg' stored at buf_addr
-    case reg
-        $00, $01, $11, $12, $13, $20, $21, $28, $29, $38, $39:         ' One byte command, no params
-            io.Low(_CS)
-            io.Low(_DC)                                 ' D/C = Command
-            spi.Write(_SDA, _SCK, core#MOSI_BITORDER, 8, reg)
-            io.High(_CS)
-            return
-
+    case_fast reg_nr
         core#RAMWR:
             io.Low(_CS)
             io.Low(_DC)                                 ' D/C = Command
-            spi.Write(_SDA, _SCK, core#MOSI_BITORDER, 8, reg)                       ' Write reg
+            spi.Write(reg_nr)                           ' Write reg
             io.High(_DC)                                ' D/C = Data
-            repeat tmp from 0 to nr_bytes-1
-                spi.Write(_SDA, _SCK, core#MOSI_BITORDER, 8, byte[buff_addr][tmp])  ' Write data
+            spi.WriteBytes(nr_bytes, buff_addr)         ' Write data
+            io.High(_CS)
+            return
+
+        $00, $01, $11..$13, $20, $21, $28, $29, $38, $39:   ' One byte command, no params
+            io.Low(_CS)
+            io.Low(_DC)                                 ' D/C = Command
+            spi.Write(reg_nr)
             io.High(_CS)
             return
 
         $2A..$2C, $30, $36, $3A, $B1..$B4, $B6, $C0..$C5, $E0, $E1, $FC:
             io.Low(_CS)
             io.Low(_DC)                                 ' D/C = Command
-            spi.Write(_SDA, _SCK, core#MOSI_BITORDER, 8, reg)                       ' Write reg
+            spi.Write(reg_nr)                           ' Write reg
             io.High(_DC)                                ' D/C = Data
-            repeat tmp from 0 to nr_bytes-1
-                spi.Write(_SDA, _SCK, core#MOSI_BITORDER, 8, byte[buff_addr][tmp])  ' Write data
+            spi.WriteBytes(nr_bytes, buff_addr)         ' Write data
             io.High(_CS)
             return
 
