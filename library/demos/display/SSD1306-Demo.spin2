@@ -323,7 +323,7 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 
     repeat while _timer_set
         repeat x from 0 to XMAX
-            modifier := (||cnt / 1_000_000)           ' Use system counter as modifier
+            modifier := (abs(cnt) / 1_000_000)           ' Use system counter as modifier
             y := offset + sin(x * modifier) / div
             oled.Plot(x, y, 1)
 
@@ -490,7 +490,7 @@ PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
         tmp /= 10
         places++
     until tmp == 1
-    part := int.DecZeroed(||(scaled // divisor), places)
+    part := int.DecZeroed(abs(scaled // divisor), places)
 
     ser.Dec (whole)
     ser.Char (".")

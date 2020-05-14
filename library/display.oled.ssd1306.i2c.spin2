@@ -50,7 +50,7 @@ PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, dispbuffer_address, SLAVE_LSB
 '       SDA_PIN: 0..63
 '       I2C_HZ: ~1200..1_000_000
 '       SLAVE_LSB: 0, 1
-    _sa0 := ||(SLAVE_LSB == 1) << 1
+    _sa0 := abs(SLAVE_LSB == 1) << 1
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
         if I2C_HZ =< core#I2C_MAX_FREQ
             i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
@@ -73,7 +73,7 @@ PUB Defaults
 ' Apply power-on-reset default settings
     Powered(FALSE)
     ClockFreq (372)
-    DisplayLines(_disp_height-1)
+    DisplayLines(_disp_height)
     DisplayOffset(0)
     DisplayStartLine(0)
     ChargePumpReg(TRUE)
@@ -120,9 +120,9 @@ PUB ChargePumpReg(enabled)
 ' Enable Charge Pump Regulator when display power enabled
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value is ignored
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := lookupz(||enabled: $10, $14)
+            enabled := lookupz(abs(enabled): $10, $14)
         OTHER:
             return
 
@@ -205,7 +205,7 @@ PUB DisplayBounds(sx, sy, ex, ey)
 
 PUB DisplayInverted(enabled) | tmp
 ' Invert display colors
-    case ||enabled
+    case abs(enabled)
         0:
             DisplayVisibility(NORMAL)
         1:
@@ -266,8 +266,8 @@ PUB MirrorH(enabled)
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value is ignored
 '   NOTE: Takes effect only after next display update
-    case ||enabled
-        0, 1: enabled := ||enabled
+    case abs(enabled)
+        0, 1: enabled := abs(enabled)
         OTHER:
             return
 
@@ -278,7 +278,7 @@ PUB MirrorV(enabled)
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value is ignored
 '   NOTE: Takes effect only after next display update
-    case ||enabled
+    case abs(enabled)
         0:
         1: enabled := 8
         OTHER:
@@ -288,9 +288,9 @@ PUB MirrorV(enabled)
 
 PUB Powered(enabled) | tmp
 ' Enable display power
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled + core#CMD_DISP_OFF
+            enabled := abs(enabled) + core#CMD_DISP_OFF
         OTHER:
             return
     writeReg(enabled, 0, 0)
@@ -335,18 +335,18 @@ PUB WriteBuffer(buff_addr, buff_sz) | tmp
         i2c.write (byte[buff_addr][tmp])
     i2c.stop
 
-PRI writeReg(reg, nr_bytes, val) | cmd_packet[2], tmp, ackbit
+PRI writeReg(reg_nr, nr_bytes, val) | cmd_packet[2], tmp, ackbit
 ' Write to device internal registers
     cmd_packet.byte[0] := SLAVE_WR | _sa0
     cmd_packet.byte[1] := core#CTRLBYTE_CMD
     case nr_bytes
         0:
-            cmd_packet.byte[2] := reg | val 'Simple command
+            cmd_packet.byte[2] := reg_nr | val 'Simple command
         1:
-            cmd_packet.byte[2] := reg       'Command w/1-byte argument
+            cmd_packet.byte[2] := reg_nr       'Command w/1-byte argument
             cmd_packet.byte[3] := val
         2:
-            cmd_packet.byte[2] := reg       'Command w/2-byte argument
+            cmd_packet.byte[2] := reg_nr       'Command w/2-byte argument
             cmd_packet.byte[3] := val & $FF
             cmd_packet.byte[4] := (val >> 8) & $FF
         OTHER:
