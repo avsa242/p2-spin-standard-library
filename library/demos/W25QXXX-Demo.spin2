@@ -3,9 +3,9 @@
     Filename: W25Qxxx-Test.spin2
     Author: Jesse Burt
     Description: Test app for the W25Qxxx driver
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 09, 2019
-    Updated Nov 10, 2019
+    Updated May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -183,12 +183,7 @@ PUB Setup
         ser.Printf("W25Qxxx driver failed to start - halting\n")
         FlashLED(LED, 500)
 
-PUB FlashLED(led_pin, delay_ms)
-
-    io.Output(led_pin)
-    repeat
-        io.Toggle(led_pin)
-        time.MSleep(delay_ms)
+#include "lib.utility.spin2"
 
 DAT
 {

@@ -3,9 +3,9 @@
     Filename: memory.flash.w25qxxx.spi.spin2
     Author: Jesse Burt
     Description: Driver for the Winbond W25Qxxx-series SPI FLASH memories
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 09, 2019
-    Updated Nov 10, 2019
+    Updated May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -147,45 +147,45 @@ PUB WritesEnabled(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg(core#READ_STATUS1, 1, @tmp)
-    case_fast ||enabled
+    case_fast abs(enabled)
         0, 1:
-            enabled := lookupz(||enabled: core#WRITE_DISABLE, core#WRITE_ENABLE)
+            enabled := lookupz(abs(enabled): core#WRITE_DISABLE, core#WRITE_ENABLE)
         OTHER:
             result := ((tmp >> 1) & %1) * TRUE
             return
 
     writeReg(enabled, 0, 0)
 
-PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet[2], cmd_bytes, tmp
-' Read nr_bytes from register 'reg' to address 'buf_addr'
+PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet[2], cmd_bytes, tmp
+' Read nr_bytes from register 'reg_nr' to address 'buf_addr'
 
 ' Handle quirky registers on a case-by-case basis
-    case reg.byte[0]
+    case reg_nr.byte[0]
         core#MANUF_DEV_ID:
             cmd_bytes := 4
-            cmd_packet.byte[0] := reg
+            cmd_packet.byte[0] := reg_nr
             cmd_packet.byte[1] := $00
             cmd_packet.byte[2] := $00
             cmd_packet.byte[3] := $00
         core#UNIQUE_ID:
             cmd_bytes := 5
-            cmd_packet.byte[0] := reg
+            cmd_packet.byte[0] := reg_nr
             cmd_packet.byte[1] := $00
             cmd_packet.byte[2] := $00
             cmd_packet.byte[3] := $00
             cmd_packet.byte[4] := $00
         core#READ_DATA:
             cmd_bytes := 4
-            cmd_packet.byte[0] := reg.byte[0]   ' Read Flash
-            cmd_packet.byte[1] := reg.byte[3]   '   address A23..A16
-            cmd_packet.byte[2] := reg.byte[2]   '   address A15..A8
-            cmd_packet.byte[3] := reg.byte[1]   '   address A7..A0
+            cmd_packet.byte[0] := reg_nr.byte[0]   ' Read Flash
+            cmd_packet.byte[1] := reg_nr.byte[3]   '   address A23..A16
+            cmd_packet.byte[2] := reg_nr.byte[2]   '   address A15..A8
+            cmd_packet.byte[3] := reg_nr.byte[1]   '   address A7..A0
         core#READ_STATUS1, core#READ_STATUS2, core#READ_STATUS3:
             cmd_bytes := 1
-            cmd_packet.byte[0] := reg.byte[0]
+            cmd_packet.byte[0] := reg_nr.byte[0]
         OTHER:
             cmd_bytes := 1
-            cmd_packet.byte[0] := reg
+            cmd_packet.byte[0] := reg_nr
 
     io.Low(_CS)
     repeat tmp from 0 to cmd_bytes-1
@@ -195,28 +195,28 @@ PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet[2], cmd_bytes, tmp
         byte[buff_addr][tmp] := spi.Read(_MISO, _SCK, core#MISO_BITORDER, 8)
     io.High(_CS)
 
-PRI writeReg(reg, nr_bytes, buff_addr) | cmd_packet, cmd_bytes, tmp
-' Write nr_bytes to register 'reg' stored at buf_addr
-    case reg.byte[0]
+PRI writeReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, cmd_bytes, tmp
+' Write nr_bytes to register 'reg_nr' stored at buf_addr
+    case reg_nr.byte[0]
         core#WRITE_ENABLE, core#WRITE_DISABLE:
             cmd_bytes := 1
-            cmd_packet.byte[0] := reg.byte[0]
+            cmd_packet.byte[0] := reg_nr.byte[0]
         core#PAGE_PROG:
             cmd_bytes := 4
-            cmd_packet.byte[0] := reg.byte[0]   ' Write Flash
-            cmd_packet.byte[1] := reg.byte[3]   '   address A23..A16
-            cmd_packet.byte[2] := reg.byte[2]   '   address A15..A8
-            cmd_packet.byte[3] := reg.byte[1]   '   address A7..A0
+            cmd_packet.byte[0] := reg_nr.byte[0]   ' Write Flash
+            cmd_packet.byte[1] := reg_nr.byte[3]   '   address A23..A16
+            cmd_packet.byte[2] := reg_nr.byte[2]   '   address A15..A8
+            cmd_packet.byte[3] := reg_nr.byte[1]   '   address A7..A0
         core#SECTOR_ERASE, core#BLOCK32_ERASE, core#BLOCK64_ERASE, core#CHIP_ERASE, core#CHIP_ERASE2:
             cmd_bytes := 4
-            cmd_packet.byte[0] := reg.byte[0]   ' Erase Flash
-            cmd_packet.byte[1] := reg.byte[3]   '   address A23..A16
-            cmd_packet.byte[2] := reg.byte[2]   '   address A15..A8
-            cmd_packet.byte[3] := reg.byte[1]   '   address A7..A0
+            cmd_packet.byte[0] := reg_nr.byte[0]   ' Erase Flash
+            cmd_packet.byte[1] := reg_nr.byte[3]   '   address A23..A16
+            cmd_packet.byte[2] := reg_nr.byte[2]   '   address A15..A8
+            cmd_packet.byte[3] := reg_nr.byte[1]   '   address A7..A0
 
         core#GLOBAL_BLOCK_UNLOCK:
             cmd_bytes := 1
-            cmd_packet.byte[0] := reg.byte[0]
+            cmd_packet.byte[0] := reg_nr.byte[0]
 
         OTHER:
 
