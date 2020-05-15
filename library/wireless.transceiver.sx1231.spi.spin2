@@ -5,7 +5,7 @@
     Description: Driver for the Semtech SX1231 UHF Transceiver IC (P2 version)
     Copyright (c) 2020
     Started Apr 21, 2020
-    Updated Apr 22, 2020
+    Updated May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -222,9 +222,9 @@ PUB AFCAuto(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg(core#AFCFEI, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled << core#FLD_AFCAUTOON)
+            enabled := (abs(enabled) << core#FLD_AFCAUTOON)
         OTHER:
             result := ((tmp >> core#FLD_AFCAUTOON) & %1) * TRUE
             return
@@ -299,9 +299,9 @@ PUB AutoRestartRX(enabled=-2) | tmp
 '   NOTE: Restart occurs after payload is ready and the packet has been read from the FIFO
     tmp := $00
     readReg(core#PACKETCONFIG2, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_AUTORESTARTRXON
+            enabled := abs(enabled) << core#FLD_AUTORESTARTRXON
         OTHER:
             result := ((tmp >> core#FLD_AUTORESTARTRXON) & %1) * TRUE
             return
@@ -359,9 +359,9 @@ PUB CRCCheckEnabled(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg(core#PACKETCONFIG1, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled & %1) << core#FLD_CRCON
+            enabled := (abs(enabled) & %1) << core#FLD_CRCON
         OTHER:
             result := ((tmp >> core#FLD_CRCON) & %1) * TRUE
             return
@@ -418,7 +418,7 @@ PUB DataWhitening(enabled=-2) | tmp
 '   NOTE: This setting and ManchesterEnc are mutually exclusive; enabling this will disable ManchesterEnc
     tmp := $00
     readReg(core#PACKETCONFIG1, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0:
         1:
             enabled := DCFREE_WHITE << core#FLD_DCFREE
@@ -453,9 +453,9 @@ PUB Encryption(enabled=-2) | tmp
 '   NOTE: Encryption is limited to payloads of a maximum of 66 bytes
     tmp := $00
     readReg(core#PACKETCONFIG2, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled & %1
+            enabled := abs(enabled) & %1
         OTHER:
             result := (tmp & %1) * TRUE
             return
@@ -625,36 +625,6 @@ PUB GaussianFilter(BT=-2) | tmp
     tmp := (tmp | BT) & core#DATAMODUL_MASK
     writeReg (core#DATAMODUL, 1, @tmp)
 
-PUB GPIO0(mode)
-' DIOMAPPING1, 2
-' DIOMAPPING1: DIO[0..3]MAPPING
-' DIOMAPPING2: DIO[4..5]MAPPING
-
-PUB GPIO1(mode)
-' DIOMAPPING1, 2
-' DIOMAPPING1: DIO[0..3]MAPPING
-' DIOMAPPING2: DIO[4..5]MAPPING
-
-PUB GPIO2(mode)
-' DIOMAPPING1, 2
-' DIOMAPPING1: DIO[0..3]MAPPING
-' DIOMAPPING2: DIO[4..5]MAPPING
-
-PUB GPIO3(mode)
-' DIOMAPPING1, 2
-' DIOMAPPING1: DIO[0..3]MAPPING
-' DIOMAPPING2: DIO[4..5]MAPPING
-
-PUB GPIO4(mode)
-' DIOMAPPING1, 2
-' DIOMAPPING1: DIO[0..3]MAPPING
-' DIOMAPPING2: DIO[4..5]MAPPING
-
-PUB GPIO5(mode)
-' DIOMAPPING1, 2
-' DIOMAPPING1: DIO[0..3]MAPPING
-' DIOMAPPING2: DIO[4..5]MAPPING
-
 PUB Idle
 ' Change chip state to idle (standby)
     OpMode (OPMODE_STDBY)
@@ -709,9 +679,9 @@ PUB Listen(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Should be enable when in standby mode
     readReg (core#OPMODE, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_LISTENON
+            enabled := (abs(enabled)) << core#FLD_LISTENON
         OTHER:
             result := ((tmp >> core#FLD_LISTENON) & %1) * TRUE
             return result
@@ -783,9 +753,9 @@ PUB LowBattMon(enabled=-2) | tmp
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
     readReg (core#LOWBAT, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_LOWBATON
+            enabled := (abs(enabled)) << core#FLD_LOWBATON
         OTHER:
             result := ((tmp >> core#FLD_LOWBATON) & %1) * TRUE
             return result
@@ -801,7 +771,7 @@ PUB ManchesterEnc(enabled=-2) | tmp
 '   NOTE: This setting and DataWhitening are mutually exclusive; enabling this will disable DataWhitening
     tmp := $00
     readReg(core#PACKETCONFIG1, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0:
         1:
             enabled := DCFREE_MANCH << core#FLD_DCFREE
@@ -887,9 +857,9 @@ PUB OvercurrentProtection(enabled=-2) | tmp
 '   Valid values: *TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
     readReg (core#OCP, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_OCPON
+            enabled := (abs(enabled)) << core#FLD_OCPON
         OTHER:
             result := ((tmp >> core#FLD_OCPON) & %1) * TRUE
             return result
@@ -980,9 +950,9 @@ PUB RCOscCal(enabled=-2) | tmp
 '       FALSE: RC calibration in progress
 '       TRUE: RC calibration complete
     readReg (core#OSC1, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         1:
-            enabled := (||enabled) << core#FLD_RCCALSTART
+            enabled := (abs(enabled)) << core#FLD_RCCALSTART
         OTHER:
             result := ((tmp >> core#FLD_RCCALDONE) & %1) * TRUE
             return result
@@ -1079,20 +1049,20 @@ PUB SyncWord(rw, buff_addr)
         OTHER:
             readReg(core#SYNCVALUE1, 8, buff_addr)  'XXX Future test: set nr_bytes arg to SyncWordBytes(-2)?
 
-PUB SyncWordEnabled(enable=-2) | tmp
+PUB SyncWordEnabled(enabled=-2) | tmp
 ' Enable sync word generation (TX) and detection (RX)
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg(core#SYNCCONFIG, 1, @tmp)
-    case ||enable
+    case abs(enabled)
         0, 1:
-            enable := ||enable << core#FLD_SYNCON
+            enabled := abs(enabled) << core#FLD_SYNCON
         OTHER:
             return ((tmp >> core#FLD_SYNCON) & %1) * TRUE
 
     tmp &= core#MASK_SYNCON
-    tmp := (tmp | enable) & core#SYNCCONFIG_MASK
+    tmp := (tmp | enabled) & core#SYNCCONFIG_MASK
     writeReg(core#SYNCCONFIG, 1, @tmp)
 
 PUB SyncWordLength(bytes=-2) | tmp
@@ -1231,13 +1201,13 @@ PUB WaitRX | tmp
     tmp := (tmp | (1 << core#FLD_RESTARTRX)) & core#PACKETCONFIG2_MASK
     writeReg(core#PACKETCONFIG2, 1, @tmp)
 
-PRI readReg(reg, nr_bytes, buff_addr) | tmp
-' Read nr_bytes from register 'reg' to address 'buff_addr'
-    case reg
+PRI readReg(reg_nr, nr_bytes, buff_addr) | tmp
+' Read nr_bytes from register 'reg_nr' to address 'buff_addr'
+    case reg_nr
         $00..$13, $18..$4F, $58..59, $5F, $6F, $71:
             io.Low(_CS)
-'            spi.Write(reg)
-            spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+'            spi.Write(reg_nr)
+            spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr)
             repeat tmp from nr_bytes-1 to 0
 '                byte[buff_addr][tmp] := spi.Read
                 byte[buff_addr][tmp] := spi.Read(_MISO, _SCK, core#MISO_BITORDER, 8)
@@ -1246,13 +1216,13 @@ PRI readReg(reg, nr_bytes, buff_addr) | tmp
         OTHER:
             return FALSE
 
-PRI writeReg(reg, nr_bytes, buff_addr) | tmp
-' Write nr_bytes to register 'reg' stored in val
-    case reg
+PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
+' Write nr_bytes to register 'reg_nr' stored in val
+    case reg_nr
         $00..$13, $18..$4F, $58..59, $5F, $6F, $71:
             io.Low(_CS)
-'            spi.Write(reg | core#W)
-            spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg | core#W)
+'            spi.Write(reg_nr | core#W)
+            spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr | core#W)
             repeat tmp from nr_bytes-1 to 0
 '                spi.Write(byte[buff_addr][tmp])
                 spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buff_addr][tmp])
