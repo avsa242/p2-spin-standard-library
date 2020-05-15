@@ -5,7 +5,7 @@
     Description: Demo of the TCS3x7x driver (P2 version)
     Copyright (c) 2020
     Started: Nov 11, 2019
-    Updated: Mar 24, 2020
+    Updated: May 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -73,7 +73,7 @@ PUB Main | rgbc_data[2], rdata, gdata, bdata, cdata, cmax, i, int, thr, rrow, gr
     ser.position (0, 0)
     ser.printf("Gain: %dx  ", rgb.Gain)
 
-    ser.printf("Interrupts: %s", lookupz(||rgb.IntsEnabled: string("Off"), string("On ")))
+    ser.printf("Interrupts: %s", lookupz(abs(rgb.IntsEnabled): string("Off"), string("On ")))
 
     thr := rgb.IntThreshold                                 ' word 0 = low threshold, word 1 = high threshold
     ser.printf(" Threshold: %x .. %x", thr & $FFFF, (thr >> 16) & $FFFF)
