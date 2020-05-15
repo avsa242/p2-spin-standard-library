@@ -3,9 +3,9 @@
     Filename: sensor.power.ina219.i2c.spin2
     Author: Jesse Burt
     Description: Driver of the TI INA219 current/power monitor IC (P2 version)
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 4, 2019
-    Updated Nov 4, 2019
+    Updated May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -43,7 +43,7 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): okay
             if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
                 time.MSleep (1)
                 if i2c.present (SLAVE_WR)                       'Response from device?
-                    if ID == core#CONFIG_POR
+                    if DeviceID == core#CONFIG_POR
                         return okay
 
     return FALSE                                                'If we got here, something went wrong
@@ -123,7 +123,7 @@ PUB Current
     ~~result
     result *= 20
 
-PUB ID
+PUB DeviceID
 ' Identify the device
 '   Returns: POR value of the configuration register
 '   NOTE: This method performs a soft-reset of the chip and reads the value of the configuration register,
@@ -213,12 +213,12 @@ PUB ShuntVoltageRange(mV) | tmp
     tmp := (tmp | mV) & core#CONFIG_MASK
     writeReg(core#CONFIG, 2, @tmp)
 
-PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
+PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp
 '' Read num_bytes from the slave device into the address stored in buff_addr
-    case reg                                                    'Basic register validation
+    case reg_nr                                                 'Basic register validation
         $00..$05:
             cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := reg
+            cmd_packet.byte[1] := reg_nr
             i2c.Start
             i2c.Write(cmd_packet.byte[0])
             i2c.Write(cmd_packet.byte[1])
@@ -231,12 +231,12 @@ PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
         OTHER:
             return
 
-PRI writeReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
+PRI writeReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp
 '' Write num_bytes to the slave device from the address stored in buff_addr
-    case reg                                                    'Basic register validation
+    case reg_nr                                                 'Basic register validation
         $00, $05:
             cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := reg
+            cmd_packet.byte[1] := reg_nr
             cmd_packet.byte[2] := byte[buff_addr][1]
             cmd_packet.byte[3] := byte[buff_addr][0]
 

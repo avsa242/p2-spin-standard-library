@@ -3,9 +3,9 @@
     Filename: INA219-Demo.spin2
     Author: Jesse Burt
     Description: Demo of the INA219 driver (P2 version)
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 4, 2019
-    Updated Nov 4, 2019
+    Updated May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
