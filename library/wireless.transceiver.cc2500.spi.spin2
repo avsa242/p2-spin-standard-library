@@ -5,7 +5,7 @@
     Description: Driver for TI's CC2500 ISM-band (2.4GHz) transceiver (P2 version)
     Copyright (c) 2020
     Started Dec 31, 2019
-    Updated Apr 28, 2020
+    Updated May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -272,9 +272,9 @@ PUB AppendStatus(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#PKTCTRL1, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_APPEND_STATUS
+            enabled := (abs(enabled)) << core#FLD_APPEND_STATUS
         OTHER:
             result := ((tmp >> core#FLD_APPEND_STATUS) & %1) * TRUE
             return result
@@ -436,9 +436,9 @@ PUB CRCCheckEnabled(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#PKTCTRL0, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_CRC_EN
+            enabled := (abs(enabled)) << core#FLD_CRC_EN
         OTHER:
             result := ((tmp >> core#FLD_CRC_EN) & %1) * TRUE
             return result
@@ -455,9 +455,9 @@ PUB CRCAutoFlush(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#PKTCTRL1, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_CRC_AUTOFLUSH
+            enabled := (abs(enabled)) << core#FLD_CRC_AUTOFLUSH
         OTHER:
             result := ((tmp >> core#FLD_CRC_AUTOFLUSH) & %1) * TRUE
             return result
@@ -502,9 +502,9 @@ PUB DataWhitening(enabled=-2) | tmp
 '   NOTE: Applies to all data, except the preamble and sync word.
     tmp := $00
     readReg (core#PKTCTRL0, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_WHITE_DATA
+            enabled := (abs(enabled)) << core#FLD_WHITE_DATA
         OTHER:
             result := ((tmp >> core#FLD_WHITE_DATA) & %1) * TRUE
             return result
@@ -521,7 +521,7 @@ PUB DCBlock(enabled=-2) | tmp
 '       Disable for optimizing current usage. Only for data rates 250kBaud and lower
     tmp := $00
     readReg (core#MDMCFG2, 1, @tmp)
-    case enabled := ||enabled
+    case enabled := abs(enabled)
         0, 1:
             enabled := ((enabled ^ 1) << core#FLD_DEM_DCFILT_OFF)
         OTHER:
@@ -550,7 +550,7 @@ PUB DVGAGain(gain=-255) | tmp
     readReg (core#AGCCTRL2, 1, @tmp)
     case gain
         -3..0:
-            gain := ||gain << core#FLD_MAX_DVGA_GAIN
+            gain := abs(gain) << core#FLD_MAX_DVGA_GAIN
         OTHER:
             result := (tmp >> core#FLD_MAX_DVGA_GAIN) & core#BITS_MAX_DVGA_GAIN
             return result*-1
@@ -566,9 +566,9 @@ PUB FEC(enabled=-2) | tmp
 '   NOTE: Only supported for fixed packet length mode
     tmp := $00
     readReg (core#MDMCFG1, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_FEC_EN
+            enabled := abs(enabled) << core#FLD_FEC_EN
         OTHER:
             result := ((tmp >> core#FLD_FEC_EN) & %1) * TRUE
             return result
@@ -775,9 +775,9 @@ PUB ManchesterEnc(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg (core#MDMCFG2, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled) << core#FLD_MANCHESTER_EN
+            enabled := (abs(enabled)) << core#FLD_MANCHESTER_EN
         OTHER:
             result := ((tmp >> core#FLD_MANCHESTER_EN) & %1) * TRUE
             return result
@@ -1089,43 +1089,43 @@ PRI log2(num) | tmp
         FALSE:
     return tmp
 
-PRI readReg(reg, nr_bytes, buff_addr) | i
+PRI readReg(reg_nr, nr_bytes, buff_addr) | i
 ' Read nr_bytes from register 'reg' to address 'buff_addr'
-    case_fast reg
+    case_fast reg_nr
         $00..$2E, $3E:                          ' Config regs
             case_fast nr_bytes
                 1:
                 2..64:
-                    reg |= core#BURST
+                    reg_nr |= core#BURST
                 OTHER:
                     return
 
         $30..$3D:                               ' Status regs
-            reg |= core#BURST                   '   Must set BURST mode bit to read them, else they're interpreted as command strobes
+            reg_nr |= core#BURST                   '   Must set BURST mode bit to read them, else they're interpreted as command strobes
 
         $3F:                                    ' FIFO
             case nr_bytes
                 1:
                 2..64:
-                    reg |= core#BURST
+                    reg_nr |= core#BURST
                 0:
                     return
 
             io.Low(_CS)
-            spi.Write(reg | core#R)
+            spi.Write(reg_nr | core#R)
             repeat i from 0 to nr_bytes-1
                 byte[buff_addr][i] := spi.Read
             io.High(_CS)
             return
 
     io.Low(_CS)
-    spi.Write(reg | core#R)
+    spi.Write(reg_nr | core#R)
     repeat i from 0 to nr_bytes-1
         byte[buff_addr][i] := spi.Read & $FF
     io.High(_CS)
     return
 
-PRI writeReg(reg, nr_bytes, buff_addr) | tmp
+PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
 ' Write nr_bytes to register 'reg' stored in val
 'HEADER BYTE:
 ' MSB   = R(1)/W(0) bit
@@ -1133,19 +1133,19 @@ PRI writeReg(reg, nr_bytes, buff_addr) | tmp
 ' b5..0 = 6-bit ADDRESS (A5-A0)
 'IF CS PULLED LOW, WAIT UNTIL SO LOW WHEN IN SLEEP OR XOFF STATES
 
-    case_fast reg
+    case_fast reg_nr
         $00..$2E, $3E:                          ' R/W regs
             case_fast nr_bytes
                 0:                              ' Invalid nr_bytes - ignore
                     return
                 1:
                 2..64:
-                    reg |= core#BURST
+                    reg_nr |= core#BURST
                 OTHER:
                     return
 
             io.Low(_CS)
-            spi.Write(reg)
+            spi.Write(reg_nr)
             repeat tmp from 0 to nr_bytes-1
                 spi.Write(byte[buff_addr][tmp])
             io.High(_CS)
@@ -1153,7 +1153,7 @@ PRI writeReg(reg, nr_bytes, buff_addr) | tmp
 
         $30..$3D:                               ' Command strobes
             io.Low(_CS)
-            spi.Write(reg)
+            spi.Write(reg_nr)
             io.High(_CS)
             return
 
@@ -1161,12 +1161,12 @@ PRI writeReg(reg, nr_bytes, buff_addr) | tmp
             case nr_bytes
                 1:
                 2..64:
-                    reg |= core#BURST
+                    reg_nr |= core#BURST
                 0:
                     return
 
             io.Low(_CS)
-            spi.Write(reg)
+            spi.Write(reg_nr)
             repeat tmp from 0 to nr_bytes-1
                 spi.Write(byte[buff_addr][tmp])
             io.High(_CS)
