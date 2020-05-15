@@ -3,9 +3,9 @@
     Filename: sensor.power.ina260.i2c.spin2
     Author: Jesse Burt
     Description: Driver for the TI INA260 Precision Current and Power Monitor IC
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 13, 2019
-    Updated Nov 14, 2019
+    Updated May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -59,17 +59,28 @@ PUB Start(SCL_PIN, SDA_PIN, I2C_HZ=100_000): okay
             if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)     'I2C Object Started?
                 time.MSleep (1)
                 if i2c.Present (SLAVE_WR)                       'Response from device?
-                    return okay
+                    if DeviceID == $2270_5449
+                        return okay
 
     return FALSE                                                'If we got here, something went wrong
 
 PUB Stop
 ' Put any other housekeeping code here required/recommended by your device before shutting down
 
+PUB BusVoltage
+' Read the measured bus voltage, in microvolts
+'   NOTE: If averaging is enabled, this will return the averaged value
+'   NOTE: Full-scale range is 40_960_000uV
+    result := $0000
+    readReg(core#BUS_VOLTAGE, 2, @result)
+    result &= $7FFF
+    result *= 1_250
+    return result
+
 PUB ConversionReady
 ' Indicates data from the last conversion is available for reading
 '   Returns: TRUE if data available, FALSE otherwise
-    readReg(core#MASKENABLE, 2, @result)
+    readReg(core#MASK_ENABLE, 2, @result)
     result >>= core#FLD_CVRF
     result &= %1
     result *= TRUE
@@ -102,6 +113,13 @@ PUB CurrentConvTime(microseconds=-2) | tmp
     tmp &= core#MASK_ISHCT
     tmp := (tmp | microseconds) & core#CONFIG_MASK
     writeReg(core#CONFIG, 2, @tmp)
+
+PUB DeviceID
+' Read device ID
+'   Returns:
+'       Most-significant word: Die ID
+'       Least-significant word: Mfr ID
+    return (DieID << 16) | MfrID
 
 PUB DieID
 ' Read the Die ID from the chip
@@ -137,9 +155,9 @@ PUB IntsLatched(enabled=-2) | tmp
 '       FALSE (0): Active interrupts clear when the fault has been cleared
     tmp := $0000
     readReg(core#MASK_ENABLE, 2, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled & %1
+            enabled := abs(enabled) & %1
         OTHER:
             return (tmp & %1) * TRUE
 
@@ -229,7 +247,7 @@ PUB Power
 
 PUB PowerOverflowed
 ' Indicates the power data exceeded the maximum measurable value (419_430_000uW/419.43W)
-    readReg(core#MASKENABLE, 2, @result)
+    readReg(core#MASK_ENABLE, 2, @result)
     result >>= core#FLD_OVF
     result &= %1
     result *= TRUE
@@ -259,16 +277,6 @@ PUB SamplesAveraged(samples=-2) | tmp
     tmp := (tmp | samples) & core#CONFIG_MASK
     writeReg(core#CONFIG, 2, @tmp)
 
-PUB Voltage
-' Read the measured bus voltage, in microvolts
-'   NOTE: If averaging is enabled, this will return the averaged value
-'   NOTE: Full-scale range is 40_960_000uV
-    result := $0000
-    readReg(core#BUS_VOLTAGE, 2, @result)
-    result &= $7FFF
-    result *= 1_250
-    return result
-
 PUB VoltageConvTime(microseconds=-2) | tmp
 ' Set conversion time for bus voltage measurement, in microseconds
 '   Valid values: 140, 204, 332, 588, *1100, 2116, 4156, 8244
@@ -288,12 +296,12 @@ PUB VoltageConvTime(microseconds=-2) | tmp
     tmp := (tmp | microseconds) & core#CONFIG_MASK
     writeReg(core#CONFIG, 2, @tmp)
 
-PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
+PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp
 '' Read num_bytes from the slave device into the address stored in buff_addr
-    case reg                                                    'Basic register validation
+    case reg_nr                                                 'Basic register validation
         $00..$FF:                                               ' Consult your device's datasheet!
             cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := reg
+            cmd_packet.byte[1] := reg_nr
             i2c.start                                               ' S
             repeat tmp from 0 to 1
                 i2c.Write (cmd_packet.byte[tmp])                    ' SL|W, reg
@@ -306,9 +314,9 @@ PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
         OTHER:
             return
 
-PRI writeReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
+PRI writeReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp
 '' Write num_bytes to the slave device from the address stored in buff_addr
-    case reg                                                ' Basic register validation
+    case reg_nr                                             ' Basic register validation
         $00:
             word[buff_addr][0] |= core#BITS_RSVD            ' Make sure the reserved bits are set correctly
         $06, $07:
@@ -316,7 +324,7 @@ PRI writeReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
             return
 
     cmd_packet.byte[0] := SLAVE_WR
-    cmd_packet.byte[1] := reg
+    cmd_packet.byte[1] := reg_nr
     i2c.Start                                               ' S
     repeat tmp from 0 to 1
         i2c.Write(cmd_packet.byte[tmp])                     ' SL|W, reg

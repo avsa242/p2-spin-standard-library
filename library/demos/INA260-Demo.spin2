@@ -3,9 +3,9 @@
     Filename: INA260-Demo.spin2
     Author: Jesse Burt
     Description: Simple demo of the INA260 driver (P2 version)
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 13, 2019
-    Updated Nov 13, 2019
+    Updated May 15, 202
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -48,33 +48,32 @@ VAR
 PUB Main
 
     Setup
-
-    ser.Position(0, 3)
-    ser.printf("Mfr ID: %x, Die ID: %x\n", ina260.MfrID, ina260.DieID)
+    ser.HideCursor
 
     repeat
+        repeat until ina260.ConversionReady
         ser.Position(0, 5)
-{
-        ser.printf("Current: %duA       \n", ina260.Current)
-        ser.printf("Voltage: %duV       \n", ina260.Voltage)
-        ser.printf("Power: %duW       \n", ina260.Power)
-}
-
         ser.printf("Current: ")
-        Frac(ina260.Current)
+        Fractional(ina260.Current)
         ser.printf("mA     \n")
 
-        ser.printf("Voltage: ")
-        Frac(ina260.Voltage)
+        ser.printf("Bus Voltage: ")
+        Fractional(ina260.BusVoltage)
         ser.printf("mV     \n")
 
         ser.printf("Power: ")
-        Frac(ina260.Power)
+        Fractional(ina260.Power)
         ser.printf("mW     \n")
+
+        if ser.RXCheck == "Q"                       ' Press captial Q to quit the demo
+            ser.ShowCursor
+            ser.newline
+            ser.str(string("Halting"))
+            quit
 
     FlashLED(LED, 100)     ' Signal execution finished
 
-PUB Frac(thousandths) | whole, part
+PUB Fractional(thousandths) | whole, part
 
     whole := thousandths / 1000
     part := int.DecZeroed(thousandths // 1000, 2)
@@ -92,12 +91,7 @@ PUB Setup
         ser.Printf("INA260 driver failed to start - halting\n")
         FlashLED(LED, 500)
 
-PUB FlashLED(led_pin, delay_ms)
-
-    io.Output(led_pin)
-    repeat
-        io.Toggle(led_pin)
-        time.MSleep(delay_ms)
+#include "lib.utility.spin2"
 
 DAT
 {
