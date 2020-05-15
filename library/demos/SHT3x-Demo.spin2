@@ -1,12 +1,11 @@
 {
     --------------------------------------------
-    Filename: SHT3x-SimpleDemo.spin2
+    Filename: SHT3x-Demo.spin2
     Author: Jesse Burt
-    Description: Simple demo of the SHT3x driver (P2 version)
-        Shows temperature and RH reading
-    Copyright (c) 2019
+    Description: Demo of the SHT3x driver (P2 version)
+    Copyright (c) 2020
     Started Nov 3, 2019
-    Updated Nov 3, 2019
+    Updated May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -24,28 +23,32 @@ CON
     SETFREQ         = cfg#SETFREQ
     ENAFREQ         = cfg#ENAFREQ
 
-    LED             = cfg#LED1
-    SER_RX          = cfg#SER_RX
-    SER_TX          = cfg#SER_TX
-    SER_BAUD        = 2_000_000
-
     COL_REG         = 0
     COL_SET         = 12
     COL_READ        = 24
     COL_PF          = 40
 
-    SCL_PIN         = 27            ' Change these to match your I2C pin configuration
-    SDA_PIN         = 28
-    I2C_HZ          = 1_000_000     ' SHT3x supports I2C bus speeds up to FM+ (1MHz)
-
     F               = 0
     C               = 1
-    TEMP_SCALE      = F             ' Change this to one of F, or C
 
     LOW             = sht3x#RPT_LOW
     MED             = sht3x#RPT_MED
     HIGH            = sht3x#RPT_HIGH
-    REPEATABILITY   = HIGH          ' Change this to one of LOW, MED, or HIGH
+
+' User-modifiable constants
+    LED             = cfg#LED1
+    SER_RX          = cfg#SER_RX
+    SER_TX          = cfg#SER_TX
+    SER_BAUD        = 2_000_000
+
+    SCL_PIN         = 27            ' Change these to match your I2C pin configuration
+    SDA_PIN         = 28
+    SLAVE_BIT       = 0             ' Can be 0, or 1 for a second device on the bus
+    I2C_HZ          = 1_000_000     ' SHT3x supports I2C bus speeds up to FM+ (1MHz)
+
+    TEMP_SCALE      = F             ' Change this to one of F (0), or C (1)
+
+    REPEATABILITY   = HIGH          ' Change this to one of LOW (0), MED (1), or HIGH (2)
 
 OBJ
 
@@ -71,19 +74,19 @@ PUB Main | temp, rh
             F:
                 temp := sht3x.TemperatureF
                 ser.printf("Temperature: ")
-                Frac(temp)
+                Fractional(temp)
             OTHER:
                 temp := sht3x.TemperatureC
                 ser.printf("Temperature: ")
-                Frac(temp)
+                Fractional(temp)
         ser.NewLine
 
         rh := sht3x.Humidity
         ser.printf("Relative humidity: ")
-        Frac(rh)
+        Fractional(rh)
         time.MSleep (100)
 
-PUB Frac(hundredths) | whole, part
+PUB Fractional(hundredths) | whole, part
 
     whole := hundredths / 100
     part := int.DecZeroed(hundredths // 100, 2)

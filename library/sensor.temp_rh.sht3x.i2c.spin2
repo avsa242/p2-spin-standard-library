@@ -3,9 +3,9 @@
     Filename: sensor.temp_rh.sht3x.i2c.spin2
     Author: Jesse Burt
     Description: Driver for Sensirion SHT3x series Temperature/Relative Humidity sensors (P2 version)
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 3, 2019
-    Updated Nov 3, 2019
+    Updated May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -241,9 +241,9 @@ PUB Heater(enabled) | tmp
     readReg(core#STATUS, 3, @tmp)
     tmp >>= 8                                                   ' Chop off CRC
 
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := lookupz(||enabled: core#HEATERDIS, core#HEATEREN)
+            enabled := lookupz(abs(enabled): core#HEATERDIS, core#HEATEREN)
         OTHER:
             result := ((tmp >> core#FLD_HEATER) & %1) * TRUE
             return
@@ -410,10 +410,10 @@ PRI swap (word_addr)
     byte[word_addr][1] := byte[word_addr][2]
     byte[word_addr][2] := 0
 
-PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp, ackbit
+PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp, ackbit
 ' Read nr_bytes from the slave device into the address stored in buff_addr
-    writeReg(reg, 0, 0)
-    case reg                                                    'Basic register validation
+    writeReg(reg_nr, 0, 0)
+    case reg_nr                                                 'Basic register validation
         core#READ_SERIALNUM:                                    'S/N Read Needs delay before repeated start
             time.USleep (500)
         core#MEAS_HIGHREP..core#MEAS_LOWREP:
@@ -433,11 +433,11 @@ PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp, ackbit
     i2c.stop
     return
 
-PRI writeReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp, chk
+PRI writeReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp, chk
 ' Write nr_bytes to the slave device from the address stored in buff_addr
     cmd_packet.byte[0] := (SLAVE_WR | _addr_bit)
-    cmd_packet.byte[1] := reg.byte[MSB]
-    cmd_packet.byte[2] := reg.byte[LSB]
+    cmd_packet.byte[1] := reg_nr.byte[MSB]
+    cmd_packet.byte[2] := reg_nr.byte[LSB]
 
     i2c.start
     repeat tmp from 0 to 2
@@ -451,7 +451,7 @@ PRI writeReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp, chk
             i2c.write (byte[buff_addr][tmp])
     i2c.stop
     result := long[buff_addr]
-    case reg                                                    'Basic register validation
+    case reg_nr                                                 'Basic register validation
         core#CLEARSTATUS:
         core#HEATEREN, core#HEATERDIS:
         core#MEAS_HIGHREP..core#MEAS_LOWREP:
