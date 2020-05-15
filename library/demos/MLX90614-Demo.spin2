@@ -3,9 +3,9 @@
     Filename: MLX90614-Demo.spin2
     Author: Jesse Burt
     Description: Demo for the MLX90614 driver (P2 version)
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 10, 2019
-    Updated Nov 10, 2019
+    Updated May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -32,10 +32,11 @@ CON
     I2C_SDA     = 27
     I2C_HZ      = 100_000
 
-    K           = 0
-    C           = 1
-    F           = 2
+    C           = 0
+    F           = 1
+    K           = 2
 
+' Choose one of the temperature scales above
     TEMP_SCALE  = C
 
 OBJ
@@ -55,28 +56,37 @@ PUB Main | Tobj, Tamb
 
     Setup
 
-    ser.Position (0, 3)
-    ser.PrintF("Sensor ID: ")
-    ser.Hex (mlx.ID, 8)
+    mlx.Scale(TEMP_SCALE)
 
     repeat
-        Tobj := mlx.ObjTemp (1, TEMP_SCALE)
-        Tamb := mlx.AmbientTemp (TEMP_SCALE)
+        Tobj := mlx.ObjTemp (1)
+        Tamb := mlx.AmbientTemp
 
         ser.Position (0, 5)
         ser.printf("Tobj: ")
-        Frac(Tobj)
+        Decimal(Tobj, 100)
 
         ser.printf("\nTa: ")
-        Frac(Tamb)
+        Decimal(Tamb, 100)
 
         time.MSleep (100)
 
-PUB Frac(hundredths) | whole, part
+PUB Decimal(scaled, divisor) | whole[4], part[4], places, tmp
+' Display a fixed-point scaled up number in decimal-dot notation - scale it back down by divisor
+'   e.g., Decimal (314159, 100000) would display 3.14159 on the termainl
+'   scaled: Fixed-point scaled up number
+'   divisor: Divide scaled-up number by this amount
+    whole := scaled / divisor
+    tmp := divisor
+    places := 0
 
-    whole := hundredths / 100
-    part := int.DecZeroed(hundredths // 100, 2)
-    ser.printf("%d.%s ", whole, part)
+    repeat
+        tmp /= 10
+        places++
+    until tmp == 1
+    part := int.DecZeroed(abs(scaled // divisor), places)
+
+    ser.printf("%d.%s", whole, part)
 
 PUB Setup
 
@@ -91,14 +101,9 @@ PUB Setup
         ser.PrintF("MLX90614 driver failed to start - halting\n")
         mlx.Stop
         time.MSleep (500)
-        repeat
+        FlashLED(LED, 500)
 
-PUB FlashLED(led_pin, delay_ms)
-
-    io.Output(led_pin)                                                                                           
-    repeat
-        io.Toggle(led_pin)
-        time.MSleep(delay_ms)
+#include "lib.utility.spin2"
 
 DAT
 {
