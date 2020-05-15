@@ -83,7 +83,7 @@ PRI BinToBCX(Num, Base): Digits | N
   longfill(@BCX0, 0, 4)                                                                                 'Clear BCX Workspace
   N := (Num < 0) & $10000000                                                                            'Remember if Num negative
   repeat                                                                                                'Calc all BCX digits
-    byte[@BCX0][Digits++ >> 1] += ||(Num // Base) << (4 * Digits&1)
+    byte[@BCX0][Digits++ >> 1] += abs(Num // Base) << (4 * Digits&1)
   while Num /= Base
   BCX3 |= N                                                                                             'If negative, set flag (highest digit of BCX Workspace)
 
