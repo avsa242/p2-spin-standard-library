@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: MAX31856-Demo.spin
-    Description: Demo for the MAX31856 driver
+    Filename: MAX31856-Demo.spin2
+    Description: Demo for the MAX31856 driver (P2 version)
     Author: Jesse Burt
-    Copyright (c) 2019
-    Created Sep 30, 2018
-    Updated Jun 11, 2019
+    Copyright (c) 2020
+    Created Nov 21, 2019
+    Updated May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -58,30 +58,30 @@ PUB Main | cj_temp, tc_temp
 
     Setup
 
-    max31856.NotchFilter (60)
+    max31856.NotchFilterFreq (60)
     max31856.ConversionMode(max31856#CMODE_AUTO)
 
     repeat
         cj_temp := max31856.ColdJuncTemp
-        tc_temp := max31856.ThermoCoupleTemp
+        tc_temp := max31856.ThermocoupleTemp
 
         ser.Position (0, 3)
         case SCALE
             F:
                 ser.PrintF("Cold junction temp: ")
-                Frac(CtoF(cj_temp))
+                Fractional(CtoF(cj_temp), 100)
                 ser.NewLine
 
                 ser.PrintF("Thermocouple temp: ")
-                Frac(CtoF(tc_temp))
+                Fractional(CtoF(tc_temp), 100)
 
             OTHER:
                 ser.PrintF("Cold junction temp: ")
-                Frac(cj_temp)
+                Fractional(cj_temp, 100)
                 ser.NewLine
 
                 ser.PrintF("Thermocouple temp: ")
-                Frac(tc_temp)
+                Fractional(tc_temp, 100)
         time.MSleep (100)
 
 PUB CtoF (deg_c): deg_f
@@ -91,10 +91,17 @@ PUB CtoF (deg_c): deg_f
 '    deg_f := 32 + (deg_c * 180)
     deg_f := deg_c * 9 / 5 + 32_00
 
-PUB Frac(hundredths) | whole, part
+PUB Fractional(scaled, divisor) | whole, part, places, tmp
+' Display a scaled up number in its natural form - scale it back down by divisor
+    whole := scaled / divisor
+    tmp := divisor
+    places := 0
 
-    whole := hundredths / 100
-    part := int.DecZeroed(hundredths // 100, 2)
+    repeat
+        tmp /= 10
+        places++
+    until tmp == 1
+    part := int.DecZeroed(scaled // divisor, places)
     ser.printf("%d.%s ", whole, part)
 
 PUB Setup

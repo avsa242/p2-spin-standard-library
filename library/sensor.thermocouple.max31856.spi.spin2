@@ -3,9 +3,9 @@
     Filename: sensor.thermocouple.max31856.spi.spin2
     Author: Jesse Burt
     Description: Driver object for Maxim's MAX31856 thermocouple amplifier (P2 version)
-    Copyright (c) 2019
+    Copyright (c) 2020
     Created: Nov 21, 2019
-    Updated: Nov 21, 2019
+    Updated: May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,8 +13,9 @@
 CON
 
 ' Sensor resolution (deg C per LSB, scaled up)
-    TC_RES          = 78125 ' 0.0078125 * 10_000_000)
-    CJ_RES          = 15625 ' 0.15625 * 100_000
+    TC_RES          = 0_0078125 ' 0.0078125 * 10_000_000
+    CJ_RES          = 0_15625   ' 0.15625 * 100_000
+    CJTO_RES        = 0_0625    ' 0.0625 * 10_000
 
 ' Conversion modes
     CMODE_OFF       = 0
@@ -74,7 +75,7 @@ PUB Stop
 
 '
 
-PUB ColdJuncHighFault(thresh) | tmp
+PUB ColdJuncHighThresh(thresh=-2) | tmp
 ' Set Cold-Junction HIGH fault threshold
 '   Valid values: 0..255
 '   Any other value polls the chip and returns the current setting
@@ -86,7 +87,7 @@ PUB ColdJuncHighFault(thresh) | tmp
 
     writeReg (core#CJHF, 1, @thresh)
 
-PUB ColdJuncLowFault(thresh) | tmp
+PUB ColdJuncLowThresh(thresh=-2) | tmp
 ' Set Cold-Junction LOW fault threshold
 '   Valid values: 0..255
 '   Any other value polls the chip and returns the current setting
@@ -98,7 +99,7 @@ PUB ColdJuncLowFault(thresh) | tmp
 
     writeReg (core#CJLF, 1, @thresh)
 
-PUB ColdJuncOffset(offset) | tmp  'XXX Make param units degrees
+PUB ColdJuncOffset(offset=-2) | tmp  'XXX Make param units degrees
 ' Set Cold-Junction temperature sensor offset
     readReg (core#CJTO, 1, @tmp)
     case offset
@@ -108,14 +109,14 @@ PUB ColdJuncOffset(offset) | tmp  'XXX Make param units degrees
 
     writeReg (core#CJTO, 1, @offset)
 
-PUB ColdJuncSensor(enabled) | tmp
+PUB ColdJuncSensorEnabled(enabled=-2) | tmp
 ' Enable the on-chip Cold-Junction temperature sensor
 '   Valid values: TRUE (-1 or 1), FALSE
 '   Any other value polls the chip and returns the current setting
     readReg (core#CR0, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := (||enabled ^ 1) << core#FLD_CJ
+            enabled := (abs(enabled) ^ 1) << core#FLD_CJ
         OTHER:
             result := (((tmp >> core#FLD_CJ) & %1) ^ 1) * TRUE
             return
@@ -134,7 +135,7 @@ PUB ColdJuncTemp
     result >>=2
     return u64.multdiv (result, CJ_RES, 10_000)
 
-PUB ConversionMode(mode) | tmp
+PUB ConversionMode(mode=-2) | tmp
 ' Enable automatic conversion mode
 '   Valid values: CMODE_OFF (0): Normally Off (default), CMODE_AUTO (1): Automatic Conversion Mode
 '   Any other value polls the chip and returns the current setting
@@ -159,7 +160,7 @@ PUB FaultClear | tmp
     tmp := (tmp | (1 << core#FLD_FAULTCLR)) & core#CR0_MASK
     writeReg (core#CR0, 1, @tmp)
 
-PUB FaultMask(mask) | tmp
+PUB FaultMask(mask=-2) | tmp
 ' Set fault output mask
 '   Valid values: (for each individual bit)
 '       0: /FAULT output asserted
@@ -183,7 +184,7 @@ PUB FaultMask(mask) | tmp
     tmp := mask & core#MASK_MASK
     writeReg (core#MASK, 1, @tmp)
 
-PUB FaultMode(mode) | tmp
+PUB FaultMode(mode=-2) | tmp
 ' Defines behavior of fault flag
 '   Valid values:
 '       *FAULTMODE_COMP (0): Comparator mode - fault flag will be asserted when fault condition is true, and will clear
@@ -220,7 +221,7 @@ PUB FaultStatus
 '       0   Thermocouple open-circuit
     readReg(core#SR, 1, @result)
 
-PUB FaultTestTime(time_ms) | tmp 'XXX Note recommendations based on circuit design
+PUB FaultTestTime(time_ms=-2) | tmp 'XXX Note recommendations based on circuit design
 ' Sets open-circuit fault detection test time, in ms
 '   Valid values: 0 (disable fault detection), 10, 32, 100
 '   Any other value polls the chip and returns the current setting
@@ -248,7 +249,7 @@ PUB Measure | tmp
     tmp := (tmp | (1 << core#FLD_ONESHOT)) & core#CR0_MASK
     writeReg (core#CR0, 1, @tmp)
 
-PUB NotchFilter(Hz) | tmp, cmode_tmp
+PUB NotchFilterFreq(Hz=-2) | tmp, cmode_tmp
 ' Select noise rejection filter frequency, in Hz
 '   Valid values: 50, 60*
 '   Any other value polls the chip and returns the current setting
@@ -273,7 +274,11 @@ PUB NotchFilter(Hz) | tmp, cmode_tmp
     if cmode_tmp
         ConversionMode (CMODE_AUTO)
 
-PUB ThermoCoupleAvg(samples) | tmp
+PUB Temperature
+
+    return ThermoCoupleTemp
+
+PUB ThermocoupleSamples(samples=-2) | tmp
 ' Set number of samples averaged during thermocouple conversion
 '   Valid values: 1*, 2, 4, 8, 16
 '   Any other value polls the chip and returns the current setting
@@ -289,7 +294,7 @@ PUB ThermoCoupleAvg(samples) | tmp
     tmp := (tmp | samples) & core#CR1_MASK
     writeReg(core#CR1, 1, @tmp)
 
-PUB ThermocoupleHighFault(thresh) | tmp
+PUB ThermocoupleHighThresh(thresh=-2) | tmp
 ' Set Thermocouple HIGH fault threshold
 '   Valid values: 0..32767
 '   Any other value polls the chip and returns the current setting
@@ -301,7 +306,7 @@ PUB ThermocoupleHighFault(thresh) | tmp
 
     writeReg (core#LTHFTH, 2, @thresh)
 
-PUB ThermocoupleLowFault(thresh) | tmp
+PUB ThermocoupleLowThresh(thresh=-2) | tmp
 ' Set Thermocouple LOW fault threshold
 '   Valid values: 0..32767
 '   Any other value polls the chip and returns the current setting
@@ -313,7 +318,7 @@ PUB ThermocoupleLowFault(thresh) | tmp
 
     writeReg (core#LTLFTH, 2, @thresh)
 
-PUB ThermoCoupleTemp
+PUB ThermocoupleTemp
 ' Read the Thermocouple temperature
     readReg (core#LTCBH, 3, @result)
     swapByteOrder(@result)
@@ -323,7 +328,7 @@ PUB ThermoCoupleTemp
     result := u64.multdiv (result, TC_RES, 100_000)     'result := (result * TC_RES) / 100_000
     return
 
-PUB ThermoCoupleType(type) | tmp
+PUB ThermocoupleType(type=-2) | tmp
 ' Set type of thermocouple
 '   Valid values: B (0), E (1), J (2), K* (3), N (4), R (5), S (6), T (7)
 '   Any other value polls the chip and returns the current setting
@@ -345,12 +350,12 @@ PRI swapByteOrder(buff_addr)
     byte[buff_addr][2] := byte[buff_addr][3]
     byte[buff_addr][3] := 0
 
-PRI writeReg(reg, nr_bytes, buff_addr) | tmp
-' Write reg to MOSI
+PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
+' Write reg_nr to MOSI
     io.Low(_CS)
     case nr_bytes
         1..4:
-            spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg | core#WRITE_REG)     'Command w/nr_bytes data bytes following
+            spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr | core#WRITE_REG)     'Command w/nr_bytes data bytes following
             repeat tmp from 0 to nr_bytes-1
                 spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buff_addr][tmp])
         OTHER:
@@ -358,10 +363,10 @@ PRI writeReg(reg, nr_bytes, buff_addr) | tmp
             buff_addr := 0
     io.High(_CS)
 
-PRI readReg(reg, nr_bytes, buff_addr) | tmp
-' Read reg from MISO
+PRI readReg(reg_nr, nr_bytes, buff_addr) | tmp
+' Read reg_nr from MISO
     io.Low(_CS)
-    spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)              'Which register to query
+    spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr)              'Which register to query
 
     case nr_bytes
         1..4:
