@@ -3,9 +3,9 @@
     Filename: VEML6075-Demo.spin2
     Author: Jesse Burt
     Description: Test of the VEML6075 driver (P2 version)
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 14, 2019
-    Updated Nov 14, 2019
+    Updated May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -23,6 +23,10 @@ CON
     SETFREQ     = cfg#SETFREQ
     ENAFREQ     = cfg#ENAFREQ
 
+    TEXT_COL    = 0
+    DATA_COL    = 9
+
+' User-modifiable constants
     LED         = cfg#LED1
     SER_RX      = cfg#SER_RX
     SER_TX      = cfg#SER_TX
@@ -31,9 +35,6 @@ CON
     SCL_PIN     = 27
     SDA_PIN     = 28
     I2C_HZ      = 400_000
-
-    TEXT_COL    = 0
-    DATA_COL    = 9
 
 OBJ
 
@@ -52,10 +53,10 @@ VAR
 PUB Main | uva, uvb, vis, ir, i
 
     Setup
-    uv.Power (TRUE)
+    uv.Powered (TRUE)
     uv.Dynamic (uv#DYNAMIC_NORM)
     uv.IntegrationTime (100)
-    uv.MeasureMode (uv#MMODE_CONT)
+    uv.OpMode (uv#CONTINUOUS)
 
     repeat
         uva := uv.UVA
@@ -103,12 +104,7 @@ PUB Setup
         time.MSleep (500)
         FlashLED (LED, 500)
 
-PUB FlashLED(led_pin, delay_ms)
-
-    io.Output(led_pin)
-    repeat
-        io.Toggle(led_pin)
-        time.MSleep(delay_ms)
+#include "lib.utility.spin2"
 
 DAT
 {
