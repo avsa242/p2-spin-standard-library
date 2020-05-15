@@ -5,7 +5,7 @@
     Description: Driver for the ST LIS3DH 3DoF accelerometer (P2 version)
     Copyright (c) 2020
     Started Mar 16, 2020
-    Updated Mar 20, 2020
+    Updated May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -205,9 +205,9 @@ PUB AccelSelfTest(enabled) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg(core#ST_REG, 1, @tmp)
-    case ||enabled
+    case abs(enabled)
         0, 1:
-            enabled := ||enabled << core#FLD_
+            enabled := abs(enabled) << core#FLD_
         OTHER:
             tmp >>= core#FLD_
             return (tmp & %1) * TRUE
@@ -254,9 +254,9 @@ PUB FIFOEnabled(enabled=-2) | tmp
 '   Any other value polls the chip and returns the current setting
     tmp := $00
     readReg(core#CTRL_REG5, 1, @tmp)
-    case_fast ||enabled
+    case_fast abs(enabled)
         0, 1:
-            enabled := (||enabled << core#FLD_FIFO_EN)
+            enabled := (abs(enabled) << core#FLD_FIFO_EN)
         OTHER:
             tmp := (tmp >> core#FLD_FIFO_EN) & %1
             return tmp * TRUE
@@ -392,31 +392,31 @@ PUB OpMode(mode) | tmp
     tmp := (tmp | mode) & core#OPMODE_REG_MASK
     writeReg(core#OPMODE_REG, 1, @tmp)
 }
-PRI readReg(reg, nr_bytes, buff_addr) | tmp
+PRI readReg(reg_nr, nr_bytes, buff_addr) | tmp
 ' Read nr_bytes from register 'reg' to address 'buff_addr'
-    case reg
+    case reg_nr
         $07..$0D, $0F, $1E..$27, $2E..$3F:
         $28..$2D:
-            reg |= core#MS
+            reg_nr |= core#MS
         OTHER:
             return FALSE
 
     io.Low(_CS)
-    spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg | core#R)
+    spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr | core#R)
 
     repeat tmp from 0 to nr_bytes-1
         byte[buff_addr][tmp] := spi.Read(_MISO, _SCK, core#MISO_BITORDER, 8)
     io.High(_CS)
 
-PRI writeReg(reg, nr_bytes, buff_addr) | tmp
+PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
 ' Write nr_bytes to register 'reg' stored at buff_addr
-    case reg
+    case reg_nr
         $1E..$26, $2E, $30, $32..$34, $36..$38, $3A..$3F:
         OTHER:
             return FALSE
 
     io.Low(_CS)
-    spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg)
+    spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr)
 
     repeat tmp from 0 to nr_bytes-1
         spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buff_addr][tmp])
