@@ -9,7 +9,7 @@ In order to reduce the burden of having to learn a new programming interface wit
 
 Decriptions of the programming interface for the various classes of library can be found in the [API](api) subdirectory.
 At the time of this writing, they are:
-* [display.oled](api/display.oled.md): OLED displays *(NOTE: This generally applies to display.lcd drivers, as well)*
+* [display](api/display.md): Displays, e.g., OLED, LCD, VGA, HDMI
 * [memory](api/memory.md): Various memory technologies, e.g.: EEPROM, FRAM, SRAM, Flash
 * [signal.adc](api/signal.adc.md): Analog to Digital Converters
 * [sensor.imu](api/sensor.imu.md): IMUs and other motion-related sensors, e.g., accelerometers, gyroscopes, magnetometers
@@ -32,7 +32,13 @@ As with anything though, your mileage may vary!
 
 ## Compiler compatibility
 
-The library is written with FastSpin in mind, as it is available on all platforms. Some objects may work with PNut, but some use preprocessor macros or FastSpin-specific features so will not be compatible out-of-the-box with PNut. As the SPIN2 language definition settles and the existing compilers become more unified, more code should begin to work on Parallax's official internal tool.
+- FastSpin 4.1.10-beta or newer (Supported: for most up-to-date language definitions)
+- ~~~FastSpin 4.1.9 or older~~~ (Not supported: some showstopper bugs in older versions)
+- ~~~PNut~~~                    (Not supported: available only on Windows platform, compiler feature incomplete)
+
+I strongly urge the use of FastSpin over PNut, at least for now. Many objects in the library make use of the preprocessor for better code reusability, which PNut simply doesn't support (yet?). FastSpin is also available in source form, so it can be built natively for nearly any operating system - PNut is currently Windows-only.
+
+Nearly every project in this library is also duplicated as OpenSpin-compatible source in the spin-standard-library for the Propeller 1, which doubles the effort put forth, so please give FastSpin a try before asking for support translating to PNut-compatible source. Thanks for understanding!
 
 ## Contributing
 
