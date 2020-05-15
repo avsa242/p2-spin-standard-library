@@ -45,7 +45,7 @@ PUB HexDump(buff_addr, base_addr, nr_bytes, columns, x, y) | maxcol, maxrow, dig
 '   x, y: Terminal position to display start of hex dump
     maxcol := columns-1
     maxrow := nr_bytes / columns
-    digits := 5                                                 ' Number of digits used to display offset
+    digits := 8                                                 ' Number of digits used to display offset
     hexoffset := digits + 2
     ascoffset := hexoffset + (columns * 3)
     offset := 0

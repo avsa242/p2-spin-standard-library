@@ -53,12 +53,10 @@ PUB Start(MOSI, MISO, SCK, SCK_HZ, CPOL=0): okay
     _clock_delay := ((clkfreq / SCK_HZ) / 2) #> 2
     okay := cogid + 1
 
-PUB Read(MISO, SCK, mode, nr_bits) | clk_delay, tmp, rdbit, val
+PUB Read(MISO, SCK, mode, nr_bits) | clk_delay, tmp
 
     clk_delay := _clock_delay
-    _dir(MISO, 0)                                            ' Make MISO input
     out_(SCK, _CPOL)                                         ' Set initial clock state/clock polarity
-    _dir(SCK, 1)                                             ' Make SCK output
     tmp := 32 - nr_bits
 
     result := 0
