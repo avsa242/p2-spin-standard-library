@@ -1,0 +1,172 @@
+{
+    --------------------------------------------
+    Filename: Mic-to-VGA-Demo.spin2
+    Description: Demo that captures audio from a mic and
+        outputs it directly to attached headphones
+        showing a scope output of the audio on an attached VGA display
+    Author: Jesse Burt
+    Started: May 16, 2020
+    Updated: May 16, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+CON
+
+    XTALFREQ        = 20_000_000
+    XDIV            = 2
+    XMUL            = 25
+    XDIVP           = 1
+    XOSC            = %10
+    XSEL            = %11
+    XPPPP           = ((XDIVP>>1) + 15) & $F
+    CLOCKFREQ       = XTALFREQ / XDIV * XMUL / XDIVP
+    SETFREQ         = 1<<24 + (XDIV-1)<<18 + (XMUL-1)<<8 + XPPPP<<4 + XOSC<<2
+    ENAFREQ         = SETFREQ + XSEL
+
+'---
+    LED             = cfg.LED1
+    SER_RX          = cfg.SER_RX
+    SER_TX          = cfg.SER_TX
+    SER_BAUD        = 2_000_000
+
+    VGA_BASEPIN     = 0
+    WIDTH           = 320
+    HEIGHT          = 240
+    XMAX            = WIDTH-1
+    YMAX            = HEIGHT-1
+    BUFFSZ          = WIDTH * HEIGHT
+    BPP             = 1
+    BPL             = WIDTH * BPP
+
+    ADC_PIN         = 48
+    AUD_L           = 6
+    AUD_R           = 7
+    SAMPLE_RATE     = 16000
+'---
+
+    ADC_PERIOD      = CLOCKFREQ / SAMPLE_RATE               ' XXX something isn't right here
+    AUDIO_PERIOD    = CLOCKFREQ / SAMPLE_RATE               ' Perceived quality doesn't
+    SCOPE_FACT      = ADC_PERIOD / HEIGHT                   ' correlate with SAMPLE_RATE
+
+OBJ
+
+    ser         : "com.serial.terminal.ansi"
+    cfg         : "core.con.boardcfg.p2eval"
+    io          : "io"
+    time        : "time"
+    sp          : "core.con.smartpins"
+    vga         : "display.vga.bitmap-8bpp"
+    fnt         : "font.5x8"
+    audio       : "signal.dac.audio"
+    mic         : "signal.adc.audio"
+
+VAR
+
+    long _palette[256]
+    long _audio_stack[50], _gfx_stack[50]
+    long _ser_cog, _audio_cog, _vga_cog, _adc_sample
+    byte _framebuffer[BUFFSZ], _offscreen[BUFFSZ]
+
+PUB Main() | adc_min, adc_max
+
+    Setup()
+    ser.HideCursor()
+
+    adc_max := 0
+    repeat 500                                              ' Gather some samples to get a
+        adc_min := _adc_sample                              '   "real" minimum
+
+    repeat
+        adc_min := _adc_sample <# adc_min
+        adc_max := adc_max #> _adc_sample
+        ser.position(0, 4)
+        ser.printf("ADC current: %d  \nmin: %d  \nmax: %d  ", _adc_sample, adc_min, adc_max)
+
+PUB DrawWave() | x, y, y_offset                             ' XXX Rolls - no triggering
+' Draw scope of audio input
+    vga.Clear()
+    repeat x from 0 to XMAX
+        y := YMAX-(_adc_sample / SCOPE_FACT)                ' XXX This Y-offset calc needs
+        vga.Plot(x, y, 191)                                 '   improvement
+        waitx(ADC_PERIOD)
+
+PUB cog_Audio()
+' Sample audio and output it directly to headphones/speakers
+    mic.Start(ADC_PIN, ADC_PERIOD, 1)
+    audio.Start(AUD_L, AUD_R, AUDIO_PERIOD)
+    repeat
+        _adc_sample := mic.ADCSample16()
+        audio.Output16(_adc_sample)
+
+PUB cog_Graphics()
+' Run VGA driver and waveform/scope drawing loop
+    SetupPalette()
+    if vga.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
+        vga.DrawTo(@_offscreen)
+        vga.FontAddress(fnt.BaseAddr)
+        vga.FontSize(6, 8)
+        vga.Clear()
+        vga.fgcolor($FF)
+        vga.position(0, 0)
+        vga.printf("Ready.")
+        vga.update
+        time.sleep(5)
+    else
+        cogstop(cogid)
+
+    _vga_cog := cogid
+
+    repeat
+        DrawWave()
+        vga.WaitVSync()
+        vga.Update()
+
+PUB Setup()
+
+    clkset(ENAFREQ, CLOCKFREQ)
+    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.Clear()
+    ser.PrintF("Serial terminal started\n")
+
+    cognew(cog_Graphics(), @_gfx_stack)
+    repeat until _vga_cog
+    ser.printf("VGA 8bpp driver started\n")
+
+    cognew(cog_Audio(), @_audio_stack)
+    repeat until _audio_cog
+    ser.printf("Audio cog started (%dHz sample rate)\n", SAMPLE_RATE)
+
+PUB SetupPalette() | i, r, g, b, c
+' Set up palette
+    r := 0
+    g := 0
+    b := 0
+
+    repeat i from 0 to 255
+        c := 0 | (r << 16) | (g << 8) | b
+        _palette[i] := c
+
+        case i
+            0..63:
+                r += 4
+                g := 0
+                b := 0
+            64..127:
+                r := 0
+                g += 4
+                b := 0
+            128..191:
+                r := 0
+                g := 0
+                b += 4
+            192..254:
+                r += 4
+                g += 4
+                b := 0
+            255:
+                r := 255
+                g := 255
+                b := 255
+
+#include "lib.utility.spin2"
+
