@@ -1,0 +1,56 @@
+{
+    --------------------------------------------
+    Filename: signal.adc.audio.spin2
+    Description: Capture audio using smart pin-based ADC
+    Author: Jesse Burt
+    Started: May 16, 2020
+    Updated: May 16, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+CON
+
+VAR
+
+    long _period
+    byte _cog, _MIC_PIN
+
+OBJ
+
+    sp  : "core.con.smartpins"
+
+PUB Start(MIC_PIN, SAMPRATE_HZ, gain=1): okay | adcmode, period
+
+    if lookdown(MIC_PIN: 0..63)
+        _dirl(MIC_PIN)
+
+        case gain
+            1:      adcmode := sp#ADC_PINA_1X                   ' 1x ADC gain
+            3_16:   adcmode := sp#ADC_PINA_3_16X                ' 3.16x ADC gain
+            10:     adcmode := sp#ADC_PINA_10X                  ' 10x ADC gain
+            100:    adcmode := sp#ADC_PINA_100X                 ' 100x ADC gain
+            OTHER:  adcmode := sp#ADC_PINA_1X                   ' Default to 1x
+
+        period := CLKFREQ / SAMPRATE_HZ
+
+        wrpin(MIC_PIN, adcmode | sp#INC_A_RISE_DEC_B_RISE)
+        wxpin(MIC_PIN, period)
+        wypin(MIC_PIN, 0)
+
+        _dirh(MIC_PIN)
+
+        _MIC_PIN := MIC_PIN
+
+        return cogid + 1
+    return FALSE
+
+PUB Stop()
+
+    _dirl(_MIC_PIN)
+    wrpin (0, _MIC_PIN)
+
+PUB ADCSample16(): sample
+
+    waitx (_period)
+    sample := rdpin(_MIC_PIN)
+
