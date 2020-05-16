@@ -33,8 +33,8 @@ As with anything though, your mileage may vary!
 ## Compiler compatibility
 
 - FastSpin 4.1.10-beta or newer (Supported: for most up-to-date language definitions)
-- ~~~FastSpin 4.1.9 or older~~~ (Not supported: some showstopper bugs in older versions)
-- ~~~PNut~~~                    (Not supported: available only on Windows platform, compiler feature incomplete)
+- ~~FastSpin 4.1.9 or older~~ (Not supported: some showstopper bugs in older versions)
+- ~~PNut~~                    (Not supported: available only on Windows platform, compiler feature incomplete)
 
 I strongly urge the use of FastSpin over PNut, at least for now. Many objects in the library make use of the preprocessor for better code reusability, which PNut simply doesn't support (yet?). FastSpin is also available in source form, so it can be built natively for nearly any operating system - PNut is currently Windows-only.
 
