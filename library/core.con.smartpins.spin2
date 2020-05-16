@@ -129,7 +129,7 @@ CON
     A_XOR_B_B                   = %011 << INP_LOGIC
     FILTER_AB_3OF3_CLKDIV1      = %100 << FILTER
     FILTER_AB_3OF3_CLKDIV8      = %101 << FILTER
-    FILTER_AB_30F3_CLKDIV64     = %110 << FILTER
+    FILTER_AB_3OF3_CLKDIV64     = %110 << FILTER
     FILTER_AB_3OF3_CLKDIV512    = %111 << FILTER
 
     BINP                        = 24
@@ -167,6 +167,18 @@ CON
     SAMPLE_POS                  = 5
     SAMPLE_A_BEFORE_B           = 0 << SAMPLE_POS
     SAMPLE_A_WITH_B             = 1 << SAMPLE_POS
+
+' Smart pin low-pass filter
+    LPF_0                       = $4000_0000                ' filt0
+    LPF_1                       = $4000_0080                ' filt1
+    LPF_2                       = $4000_0100                ' filt2
+    LPF_3                       = $4000_0180                ' filt3
+
+    LPF_LENGTH                  = 5
+    LPF_2FF                     = 0 << LPF_LENGTH           ' 2 flip-flops
+    LPF_3FF                     = 1 << LPF_LENGTH           ' 3 flip-flops
+    LPF_5FF                     = 2 << LPF_LENGTH           ' 5 flip-flops
+    LPF_8FF                     = 3 << LPF_LENGTH           ' 8 flip-flops
 
 PUB Null
 ' This is not a top-level object
