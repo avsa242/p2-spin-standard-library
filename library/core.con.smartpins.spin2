@@ -81,6 +81,7 @@ CON
     SMART_OUT_DRIVE             = %00 << DIR_OUT_CTRL
     SMART_OTHER_DRIVE           = %10 << DIR_OUT_CTRL
 
+    PAD_IO_MODE                 = 8
     P                           = 8
     LLL                         = 8
     HHH                         = 11
@@ -99,15 +100,26 @@ CON
     IO_LIVE                     = 0 << C
     IO_CLOCKED                  = 1 << C
 
-    PINMODE                     = 16
-    SMART                       = %00000 << PINMODE
-    ADC                         = %10000 << PINMODE
-    DAC_990OHM_3V3              = %10100 << PINMODE
-    DAC_600OHM_2V0              = %10101 << PINMODE
-    DAC_123OHM_3V3              = %10110 << PINMODE
-    DAC_75OHM_2V0               = %10111 << PINMODE
+    SMART                       = %000000_0000000 << PAD_IO_MODE
 
-    COMPARATOR                  = %110 << PINMODE
+    ADC_GIO_1X                  = %100000_0000000 << PAD_IO_MODE
+    ADC_VIO_1X                  = %100001_0000000 << PAD_IO_MODE
+    ADC_PINB_1X                 = %100010_0000000 << PAD_IO_MODE
+    ADC_PINA_1X                 = %100011_0000000 << PAD_IO_MODE
+    ADC_PINA_3_16X              = %100100_0000000 << PAD_IO_MODE
+    ADC_PINA_10X                = %100101_0000000 << PAD_IO_MODE
+    ADC_PINA_31_6X              = %100110_0000000 << PAD_IO_MODE
+    ADC_PINA_100X               = %100111_0000000 << PAD_IO_MODE
+
+    DAC_990OHM_3V3              = %10100_00000000 << PAD_IO_MODE
+    DAC_600OHM_2V0              = %10101_00000000 << PAD_IO_MODE
+    DAC_123OHM_3V3              = %10110_00000000 << PAD_IO_MODE
+    DAC_75OHM_2V0               = %10111_00000000 << PAD_IO_MODE
+
+    COMP_A_OUT_1K5              = %1100_000000000 << PAD_IO_MODE
+    COMP_A_NOTIN_1K5            = %1101_000000000 << PAD_IO_MODE
+    COMP_B_IN_1K5               = %1110_000000000 << PAD_IO_MODE
+    COMP_B_NOTIN_1K5            = %1111_000000000 << PAD_IO_MODE
 
     FILTER                      = 21
     INP_LOGIC                   = 21
