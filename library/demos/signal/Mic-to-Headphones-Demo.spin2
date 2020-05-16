@@ -1,0 +1,91 @@
+{
+    --------------------------------------------
+    Filename: Mic-to-Headphones-Demo.spin2
+    Description: Demo that captures audio from a mic and
+        outputs it directly to attached headphones
+    Author: Jesse Burt
+    Started: May 16, 2020
+    Updated: May 16, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+CON
+
+    XTALFREQ        = 20_000_000
+    XDIV            = 2
+    XMUL            = 16
+    XDIVP           = cfg.XDIVP
+    XOSC            = cfg.XOSC
+    XSEL            = cfg.XSEL
+    XPPPP           = cfg.XPPPP
+    CLOCKFREQ       = XTALFREQ / XDIV * XMUL / XDIVP
+    SETFREQ         = 1<<24 + (XDIV-1)<<18 + (XMUL-1)<<8 + XPPPP<<4 + XOSC<<2
+    ENAFREQ         = SETFREQ + XSEL
+
+' User-modifiable constants
+    LED             = cfg.LED1
+    SER_RX          = cfg.SER_RX
+    SER_TX          = cfg.SER_TX
+    SER_BAUD        = 2_000_000
+
+    ADC_PIN         = 48
+    AUDIO_LPIN      = 6
+    AUDIO_RPIN      = 7
+    SAMPLE_RATE     = 8000
+' ---
+
+    ADC_PERIOD      = CLOCKFREQ / SAMPLE_RATE
+    AUDIO_PERIOD    = CLOCKFREQ / SAMPLE_RATE
+
+OBJ
+
+    ser         : "com.serial.terminal.ansi"
+    cfg         : "core.con.boardcfg.p2eval"
+    io          : "io"
+    time        : "time"
+    audio       : "signal.dac.audio"
+    mic         : "signal.adc.audio"
+
+VAR
+
+    long _audio_stack[50]
+    long _ser_cog, _audio_cog, _adc_sample
+
+PUB Main | adc_min, adc_max
+
+    Setup()
+    ser.HideCursor()
+
+    adc_max := 0
+    repeat 500                                              ' Gather some samples to get a
+        adc_min := _adc_sample                              '   "real" minimum
+
+    repeat
+        adc_min := _adc_sample <# adc_min
+        adc_max := adc_max #> _adc_sample
+        ser.position(0, 4)
+        ser.printf("ADC current: %d\nmin: %d\nmax: %d", _adc_sample, adc_min, adc_max)
+
+PUB cog_Audio()
+
+    mic.Start(ADC_PIN, ADC_PERIOD, 1)
+    audio.Start(AUDIO_LPIN, AUDIO_RPIN, AUDIO_PERIOD)
+    _audio_cog := cogid
+
+    repeat
+        _adc_sample := mic.ADCSample16()
+        audio.Output16(_adc_sample)
+
+PUB Setup()
+
+    clkset(ENAFREQ, CLOCKFREQ)
+    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.clear()
+    ser.printf("Serial terminal started (P2 @%dMHz)\n", clockfreq / 1_000_000)
+
+    cognew(cog_Audio(), @_audio_stack)
+    repeat until _audio_cog
+    ser.printf("Audio cog started (%dHz sample rate)\n", SAMPLE_RATE)
+
+#include "lib.utility.spin2"
+
