@@ -1,3 +1,22 @@
+{
+    --------------------------------------------
+    Filename: lib.ansiterminal.spin2
+    Description: ANSI-compatible terminal library
+    Author: Jesse Burt
+    Started: Jun 28, 2019
+    Updated: May 16, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+
+'   Must be included using the preprocessor #include directive
+'   Requires:
+'       An object that has the following standard terminal methods:
+'           Dec (param)
+'           Char (param)
+'           Str (param)
+'           Position (x, y)
+}
+
 CON
 
     LF                  = $0A
