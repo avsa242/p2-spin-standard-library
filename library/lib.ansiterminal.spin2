@@ -51,29 +51,23 @@ CON
 
 
 ' Text colors
-    FG_BLACK            = 30
-    FG_RED              = 31
-    FG_GREEN            = 32
-    FG_YELLOW           = 33
-    FG_BLUE             = 34
-    FG_MAGENTA          = 35
-    FG_CYAN             = 36
-    FG_WHITE            = 37
-    BG_BLACK            = 40
-    BG_RED              = 41
-    BG_GREEN            = 42
-    BG_YELLOW           = 43
-    BG_BLUE             = 44
-    BG_MAGENTA          = 45
-    BG_CYAN             = 46
-    BG_WHITE            = 47
+    FG                  = 30
+    BG                  = 40
     BRIGHT              = 60
+    BLACK               = 30
+    RED                 = 31
+    GREEN               = 32
+    YELLOW              = 33
+    BLUE                = 34
+    MAGENTA             = 35
+    CYAN                = 36
+    WHITE               = 37
 
 PUB BGColor(color)
 ' Set background color
     CSI
     Char(";")
-    Dec(color)
+    Dec(BG + color)
     Char("m")
 
 PUB Blink(mode=5)
@@ -138,7 +132,7 @@ PUB Encircle
 PUB FGColor(color)
 ' Set foreground color
     CSI
-    Dec(color)
+    Dec(FG + color)
     Char("m")
 
 PUB Framed
