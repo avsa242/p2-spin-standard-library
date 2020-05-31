@@ -10,9 +10,9 @@
     --------------------------------------------
 }
 ' Uncomment one of the following to choose which interface the LIS3DH is connected to
-' Currently, the same #define must be set in the driver. Child objects don't seem to inherit #defines when using FastSpin to build. Working to resolve this.
-#define LIS3DH_SPI
 '#define LIS3DH_I2C
+#define LIS3DH_SPI
+
 CON
 
     XTAL            = cfg#XTAL
@@ -48,16 +48,19 @@ OBJ
     time    : "time"
     io      : "io"
     int     : "string.integer"
-    accel   : "sensor.accel.3dof.lis3dh.i2cspi"
+#ifdef LIS3DH_I2C
+    accel   : "sensor.accel.3dof.lis3dh.i2c.spin2"
+#elseifdef LIS3DH_SPI
+    accel   : "sensor.accel.3dof.lis3dh.spi.spin2"
+#endif
 
 VAR
 
     long _overruns
-    byte _ser_cog
 
-PUB Main | dispmode
+PUB Main() | dispmode
 
-    Setup
+    Setup()
 
     accel.AccelADCRes(10)                                   ' 8, 10, 12 (low-power, normal, high-res, resp.)
     accel.AccelScale(2)                                     ' 2, 4, 8, 16 (g's)
@@ -67,89 +70,89 @@ PUB Main | dispmode
     accel.IntThresh(1_000000)                               ' 0..16_000000 (ug's, i.e., 0..16g)
     accel.IntMask(%100000)                                  ' Bits 5..0: Zhigh event | Zlow event | Yh|Yl|Xh|Xl
 
-    ser.HideCursor
+    ser.HideCursor()
     dispmode := 0
 
     ser.position(0, 3)
-    ser.printf("AccelScale: %d\n", accel.AccelScale)        ' Read back the settings from above
-    ser.printf("AccelADCRes: %d\n", accel.AccelADCRes)      '
-    ser.printf("AccelDataRate: %d\n", accel.AccelDataRate)  '
-    ser.printf("FIFOMode: %d\n", accel.FIFOMode)            '
-    ser.printf("Int thresh: %d\n", accel.IntThresh)         '
+    ser.printf("AccelScale: %d\n", accel.AccelScale())      ' Read back the settings from above
+    ser.printf("AccelADCRes: %d\n", accel.AccelADCRes())    '
+    ser.printf("AccelDataRate: %d\n", accel.AccelDataRate())'
+    ser.printf("FIFOMode: %d\n", accel.FIFOMode())          '
+    ser.printf("Int thresh: %d\n", accel.IntThresh())       '
     ser.printf("IntMask: ")                                 '
     ser.bin(accel.IntMask, 6)                               '
 
     repeat
-        case ser.RxCheck
+        case ser.RxCheck()
             "q", "Q":                                       ' Quit the demo
                 ser.Position(0, 15)
                 ser.printf("Halting")
-                accel.Stop
+                accel.Stop()
                 time.MSleep(5)
                 quit
             "c", "C":                                       ' Perform calibration
-                Calibrate
+                Calibrate()
             "r", "R":                                       ' Change display mode: raw/calculated
                 ser.Position(0, 10)
                 repeat 2
                     ser.ClearLine(ser#CLR_CUR_TO_END)
-                    ser.Newline
+                    ser.Newline()
                 dispmode ^= 1
 
         ser.Position (0, 10)
         case dispmode
-            0: AccelRaw
-            1: AccelCalc
+            0: AccelRaw()
+            1: AccelCalc()
 
         ser.position (0, 12)
-        ser.printf("Interrupt: %s", lookupz(accel.Interrupt >> 6: string("No "), string("Yes")))
+        ser.printf("Interrupt: %s", lookupz(accel.Interrupt() >> 6: string("No "), string("Yes")))
 
-    ser.ShowCursor
+    ser.ShowCursor()
     FlashLED(LED, 100)
 
-PUB AccelCalc | ax, ay, az
+PUB AccelCalc() | ax, ay, az
 
-    repeat until accel.AccelDataReady
+    repeat until accel.AccelDataReady()
     accel.AccelG (@ax, @ay, @az)
-    if accel.AccelDataOverrun
+    if accel.AccelDataOverrun()
         _overruns++
     ser.printf("Accel micro-g: ")
     ser.Str (int.DecPadded (ax, 10))
     ser.Str (int.DecPadded (ay, 10))
     ser.Str (int.DecPadded (az, 10))
-    ser.Newline
+    ser.Newline()
     ser.printf("Overruns: ")
     ser.Dec (_overruns)
 
-PUB AccelRaw | ax, ay, az
+PUB AccelRaw() | ax, ay, az
 
-    repeat until accel.AccelDataReady
+    repeat until accel.AccelDataReady()
     accel.AccelData (@ax, @ay, @az)
-    if accel.AccelDataOverrun
+    if accel.AccelDataOverrun()
         _overruns++
     ser.printf("Raw Accel: ")
     ser.Str (int.DecPadded (ax, 7))
     ser.Str (int.DecPadded (ay, 7))
     ser.Str (int.DecPadded (az, 7))
 
-    ser.Newline
+    ser.Newline()
     ser.printf("Overruns: ")
     ser.Dec (_overruns)
 
-PUB Calibrate
+PUB Calibrate()
 
     ser.Position (0, 12)
     ser.printf("Calibrating...")
-    accel.Calibrate
+    accel.Calibrate()
     ser.Position (0, 12)
     ser.printf("              ")
 
-PUB Setup
+PUB Setup()
 
     clkset(ENAFREQ, CLOCKFREQ)
-    repeat until _ser_cog := ser.StartRXTX(SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.StartRXTX(SER_RX, SER_TX, 0, SER_BAUD)
     time.MSleep(30)
-    ser.Clear
+    ser.Clear()
     ser.printf("Serial terminal started\n")
 #ifdef LIS3DH_SPI
     if accel.Start(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_HZ)
@@ -157,12 +160,12 @@ PUB Setup
         ser.printf("LIS3DH driver started (SPI)\n")
 #elseifdef LIS3DH_I2C
     if accel.Start(SCL_PIN, SDA_PIN, I2C_HZ, SLAVE_OPT)
-        accel.Defaults
+        accel.Defaults()
         ser.printf("LIS3DH driver started (I2C)\n")
 #endif
     else
         ser.printf("LIS3DH driver failed to start - halting\n")
-        accel.Stop
+        accel.Stop()
         time.MSleep(5)
         FlashLED(LED, 500)
 

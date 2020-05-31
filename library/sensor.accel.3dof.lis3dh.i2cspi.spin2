@@ -9,8 +9,6 @@
     See end of file for terms of use.
     --------------------------------------------
 }
-#define LIS3DH_SPI
-'#define LIS3DH_I2C
 CON
 
 ' Constants used for I2C mode only
@@ -60,7 +58,7 @@ OBJ
     time: "time"                                                'Basic timing functions
     io  : "io"
 
-PUB Null
+PUB Null()
 ''This is not a top-level object
 
 #ifdef LIS3DH_SPI
@@ -77,7 +75,7 @@ PUB Start(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_HZ=1_000_000): okay
 
                 io.High(_CS)
                 io.Output(_CS)
-                if DeviceID == core#WHO_AM_I_RESP
+                if DeviceID() == core#WHO_AM_I_RESP
                     return okay
     return FALSE                                                ' If we got here, something went wrong
 #elseifdef LIS3DH_I2C
@@ -87,16 +85,16 @@ PUB Start(SCL_PIN, SDA_PIN, I2C_HZ, SA0_BIT): okay
         if okay := i2c.Setup(SCL_PIN, SDA_PIN, I2C_HZ)
             _sa0 := (abs(SA0_BIT <> 0)) << 1                    ' If SA0_BIT is nonzero, consider it set
             time.MSleep (core#TPOR)
-            if DeviceID == core#WHO_AM_I_RESP
+            if DeviceID() == core#WHO_AM_I_RESP
                 return okay
     return FALSE                                                ' If we got here, something went wrong
 #endif
 
-PUB Stop
+PUB Stop()
 
 '    spi.Stop
 
-PUB Defaults
+PUB Defaults()
 ' Factory defaults
     AccelScale(2)
     AccelDataRate(0)
@@ -164,7 +162,7 @@ PUB AccelData(ptr_x, ptr_y, ptr_z) | tmp[2]
     long[ptr_y] -= _aBiasRaw[Y_AXIS]
     long[ptr_z] -= _aBiasRaw[Z_AXIS]
 
-PUB AccelDataOverrun
+PUB AccelDataOverrun()
 ' Indicates previously acquired data has been overwritten
 '   Returns:
 '       Bits 3210 (decimal val):
@@ -196,7 +194,7 @@ PUB AccelDataRate(Hz=-2) | tmp
     tmp := (tmp | Hz) & core#CTRL_REG1_MASK
     writeReg(core#CTRL_REG1, 1, @tmp)
 
-PUB AccelDataReady
+PUB AccelDataReady()
 ' Indicates data is ready
 '   Returns: TRUE (-1) if data ready, FALSE otherwise
     result := $00
@@ -247,7 +245,7 @@ PUB AccelSelfTest(enabled) | tmp
     writeReg(core#ST_REG, 1, @tmp)
 }
 
-PUB Calibrate | tmpX, tmpY, tmpZ, tmpBiasRaw[3], axis, samples
+PUB Calibrate() | tmpX, tmpY, tmpZ, tmpBiasRaw[3], axis, samples
 ' Calibrate the accelerometer
 '   NOTE: The accelerometer must be oriented with the package top facing up for this method to be successful
     tmpX := tmpY := tmpZ := axis := samples := 0
@@ -257,7 +255,7 @@ PUB Calibrate | tmpX, tmpY, tmpZ, tmpBiasRaw[3], axis, samples
     FIFOMode(FIFO)
     FIFOThreshold (32)
     samples := FIFOThreshold (-2)
-    repeat until FIFOFull
+    repeat until FIFOFull()
 
     repeat samples
 ' Read the accel data stored in the FIFO
@@ -273,7 +271,7 @@ PUB Calibrate | tmpX, tmpY, tmpZ, tmpBiasRaw[3], axis, samples
     FIFOEnabled(FALSE)
     FIFOMode (BYPASS)
 
-PUB DeviceID
+PUB DeviceID()
 ' Read device identification
     result := $00
     readReg(core#WHO_AM_I, 1, @result)
@@ -295,13 +293,13 @@ PUB FIFOEnabled(enabled=-2) | tmp
     tmp := (tmp | enabled) & core#CTRL_REG5_MASK
     writeReg(core#CTRL_REG5, 1, @tmp)
 
-PUB FIFOEmpty | tmp
+PUB FIFOEmpty() | tmp
 ' Flag indicating FIFO is empty
 '   Returns: FALSE (0): FIFO contains at least one sample, TRUE(-1): FIFO is empty
     readReg(core#FIFO_SRC_REG, 1, @result)
     result := ((result >> core#FLD_EMPTY) & %1) * TRUE
 
-PUB FIFOFull | tmp
+PUB FIFOFull() | tmp
 ' Flag indicating FIFO is full
 '   Returns: FALSE (0): FIFO contains less than 32 samples, TRUE(-1): FIFO contains 32 samples
     readReg(core#FIFO_SRC_REG, 1, @result)
@@ -341,13 +339,13 @@ PUB FIFOThreshold(level=-2) | tmp
     tmp := (tmp | level) & core#FIFO_CTRL_REG_MASK
     writeReg(core#FIFO_CTRL_REG, 1, @tmp)
 
-PUB FIFOUnreadSamples
+PUB FIFOUnreadSamples()
 ' Number of unread samples stored in FIFO
 '   Returns: 0..32
     readReg(core#FIFO_SRC_REG, 1, @result)
     result &= core#BITS_FSS
 
-PUB Interrupt
+PUB Interrupt()
 ' Read interrupt state
 '   Bit 6543210 (For each bit, 0: No interrupt, 1: Interrupt has been generated)
 '       6: One or more interrupts have been generated
@@ -394,7 +392,7 @@ PUB IntThresh(level=-2) | tmp
                 16: tmp *= 186_000                          ' Scale threshold register's 7-bit range
             return tmp                                      '   to micro-g's
 
-    case AccelScale(-2)                                     '
+    case AccelScale()                                       '
         2: tmp := 16_000                                    '
         4: tmp := 32_000                                    '
         8: tmp := 62_000                                    '
