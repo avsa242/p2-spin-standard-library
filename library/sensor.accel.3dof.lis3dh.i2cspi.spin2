@@ -1,16 +1,26 @@
 {
     --------------------------------------------
-    Filename: sensor.accel.3dof.lis3dh.spi.spin2
+    Filename: sensor.accel.3dof.lis3dh.i2cspi.spin2
     Author: Jesse Burt
     Description: Driver for the ST LIS3DH 3DoF accelerometer (P2 version)
     Copyright (c) 2020
     Started Mar 16, 2020
-    Updated May 15, 2020
+    Updated May 31, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
-
+#define LIS3DH_SPI
+'#define LIS3DH_I2C
 CON
+
+' Constants used for I2C mode only
+    SLAVE_WR        = core#SLAVE_ADDR
+    SLAVE_RD        = core#SLAVE_ADDR|1
+
+    DEF_SCL         = 28
+    DEF_SDA         = 29
+    DEF_HZ          = 100_000
+    I2C_MAX_FREQ    = core#I2C_MAX_FREQ
 
 ' ADC resolution symbols
     LOWPOWER        = 8
@@ -35,10 +45,17 @@ VAR
     long _aRes
     long _aBias[3], _aBiasRaw[3]
     byte _CS, _MOSI, _MISO, _SCK
+    byte _sa0
 
 OBJ
 
+#ifdef LIS3DH_SPI
     spi : "com.spi.bitbang-fast"
+#elseifdef LIS3DH_I2C
+    i2c : "com.i2c"
+#else
+#error "One of LIS3DH_SPI or LIS3DH_I2C must be defined"
+#endif
     core: "core.con.lis3dh"
     time: "time"                                                'Basic timing functions
     io  : "io"
@@ -46,7 +63,9 @@ OBJ
 PUB Null
 ''This is not a top-level object
 
+#ifdef LIS3DH_SPI
 PUB Start(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_HZ=1_000_000): okay
+
     if lookdown(CS_PIN: 0..63) and lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and lookdown(SDO_PIN: 0..63)
         if SCL_HZ => 1 and SCL_HZ =< core#SCK_MAX_FREQ
             if okay := spi.start (SDA_PIN, SDO_PIN, SCL_PIN, SCL_HZ, core#CPOL)         'SPI Object Started?
@@ -60,7 +79,18 @@ PUB Start(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_HZ=1_000_000): okay
                 io.Output(_CS)
                 if DeviceID == core#WHO_AM_I_RESP
                     return okay
-    return FALSE                                                'If we got here, something went wrong
+    return FALSE                                                ' If we got here, something went wrong
+#elseifdef LIS3DH_I2C
+
+PUB Start(SCL_PIN, SDA_PIN, I2C_HZ, SA0_BIT): okay
+    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and I2C_HZ =< core#I2C_MAX_FREQ
+        if okay := i2c.Setup(SCL_PIN, SDA_PIN, I2C_HZ)
+            _sa0 := (abs(SA0_BIT <> 0)) << 1                    ' If SA0_BIT is nonzero, consider it set
+            time.MSleep (core#TPOR)
+            if DeviceID == core#WHO_AM_I_RESP
+                return okay
+    return FALSE                                                ' If we got here, something went wrong
+#endif
 
 PUB Stop
 
@@ -126,9 +156,9 @@ PUB AccelData(ptr_x, ptr_y, ptr_z) | tmp[2]
     bytefill(@tmp, $00, 8)
     readReg(core#OUT_X_L, 6, @tmp)
 
-    long[ptr_x] := ~~tmp.word[0]
-    long[ptr_y] := ~~tmp.word[1]
-    long[ptr_z] := ~~tmp.word[2]
+    long[ptr_x] := tmp.word[0] signx 15
+    long[ptr_y] := tmp.word[1] signx 15
+    long[ptr_z] := tmp.word[2] signx 15
 
     long[ptr_x] -= _aBiasRaw[X_AXIS]
     long[ptr_y] -= _aBiasRaw[Y_AXIS]
@@ -392,35 +422,64 @@ PUB OpMode(mode) | tmp
     tmp := (tmp | mode) & core#OPMODE_REG_MASK
     writeReg(core#OPMODE_REG, 1, @tmp)
 }
-PRI readReg(reg_nr, nr_bytes, buff_addr) | tmp
+PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp
 ' Read nr_bytes from register 'reg' to address 'buff_addr'
     case reg_nr
         $07..$0D, $0F, $1E..$27, $2E..$3F:
-        $28..$2D:
-            reg_nr |= core#MS
+        $28..$2D:                                               ' If reading from accel data regs,
+#ifdef LIS3DH_SPI
+            reg_nr |= core#MS_SPI                               '   set multi-byte read mode (SPI)
+#elseifdef LIS3DH_I2C
+            reg_nr |= core#MS_I2C                               '   set multi-byte read mode (I2C)
+#endif
         OTHER:
             return FALSE
 
+#ifdef LIS3DH_SPI
     io.Low(_CS)
     spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr | core#R)
 
     repeat tmp from 0 to nr_bytes-1
         byte[buff_addr][tmp] := spi.Read(_MISO, _SCK, core#MISO_BITORDER, 8)
     io.High(_CS)
+#elseifdef LIS3DH_I2C
+    cmd_packet.byte[0] := SLAVE_WR | _sa0
+    cmd_packet.byte[1] := reg_nr
 
-PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
+    i2c.start                                                   ' S
+    repeat tmp from 0 to 1
+        i2c.write(cmd_packet.byte[tmp])                         ' W [SL|W] [REG]
+    i2c.start                                                   ' Rs
+    i2c.write(SLAVE_RD | _sa0)                                  ' W [SL|R]
+    repeat tmp from 0 to nr_bytes-1
+        byte[buff_addr][tmp] := i2c.Read(tmp == nr_bytes-1)     ' R ...
+    i2c.stop                                                    ' P
+#endif
+
+PRI writeReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp
 ' Write nr_bytes to register 'reg' stored at buff_addr
     case reg_nr
         $1E..$26, $2E, $30, $32..$34, $36..$38, $3A..$3F:
         OTHER:
             return FALSE
-
+#ifdef LIS3DH_SPI
     io.Low(_CS)
     spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr)
 
     repeat tmp from 0 to nr_bytes-1
         spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buff_addr][tmp])
     io.High(_CS)
+#elseifdef LIS3DH_I2C
+    cmd_packet.byte[0] := SLAVE_WR | _sa0
+    cmd_packet.byte[1] := reg_nr
+
+    i2c.start
+    repeat tmp from 0 to 1
+        i2c.write(cmd_packet.byte[tmp])
+    repeat tmp from 0 to nr_bytes-1
+        i2c.write(byte[buff_addr][tmp])
+    i2c.stop
+#endif
 
 DAT
 {

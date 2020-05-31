@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2020
     Started Mar 15, 2020
-    Updated Mar 16, 2020
+    Updated Mar 30, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,6 +13,7 @@
 CON
 
 ' I2C Configuration
+    SLAVE_ADDR                  = $18 << 1
     I2C_MAX_FREQ                = 400_000
 
 ' SPI Configuration
@@ -24,7 +25,8 @@ CON
 
     W                           = 0
     R                           = 1 << 7
-    MS                          = 1 << 6
+    MS_SPI                      = 1 << 6
+    MS_I2C                      = 1 << 7
 
     TPOR                        = 5             ' ms
 
