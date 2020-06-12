@@ -6,31 +6,23 @@
         I2C bus
     Copyright (c) 2020
     Started Jun 17, 2019
-    Updated Mar 23, 2020
+    Updated Jun 12, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
+     _xtlfreq   = cfg._xtlfreq
+     _clkfreq   = cfg._clkfreq_def
 
     I2C_SCL     = 39
     I2C_SDA     = 38
     I2C_HZ      = 100_000
 
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
     ESC         = 27
@@ -49,12 +41,12 @@ VAR
     long _key_cog, _keyinput_stack[50]
     byte _fmt
 
-PUB Main | slave_addr, flag, x, y, offsetx, offsety, start, end
+PUB Main() | slave_addr, flag, x, y, offsetx, offsety, start, end
 
-    Setup
-    ser.Clear
-    ser.Bold
-    ser.Underline
+    Setup()
+    ser.Clear()
+    ser.Bold()
+    ser.Underline()
     ser.PrintF ("I2C Scanner")
     ser.Underline(FALSE)
     offsetx := 3
@@ -62,10 +54,10 @@ PUB Main | slave_addr, flag, x, y, offsetx, offsety, start, end
     start := $02
     end := $FF
     _fmt := 7                       '7 or 8 bit format Slave addresses (affects display only)
-    ser.Italic
+    ser.Italic()
     ser.PrintF (" (%d-bit format)", _fmt)
-    ser.Reset
-    ser.HideCursor
+    ser.Reset()
+    ser.HideCursor()
     repeat
         ser.Position(13, 0)
         ser.Dec(_fmt)
@@ -77,7 +69,7 @@ PUB Main | slave_addr, flag, x, y, offsetx, offsety, start, end
         time.MSleep(100)
     until _key_cog == 0
 
-    Stop
+    Stop()
     FlashLED(LED, 100)
 
 PUB PrintSA(x, y, slave_addr, flag)            
@@ -87,40 +79,32 @@ PUB PrintSA(x, y, slave_addr, flag)
             case flag
                 TRUE:
                     ser.Position (x, y)
-                    ser.Color (ser#FG_BLACK, ser#BG_GREEN)
-'                    ser.Char ("/")
+                    ser.Color (ser.BLACK, ser#GREEN)
                     ser.Hex (slave_addr >> 1, 2)
-'                    ser.Char ("/")
-                    ser.Reset
+                    ser.Reset()
 
                 FALSE:
                     ser.Position (x, y)
-'                    ser.Char (" ")
                     ser.Hex (slave_addr >> 1, 2)
-'                    ser.Char (" ")
 
         8:
             case flag
                 TRUE:
                     ser.Position (x, y)
-                    ser.Color (ser#FG_BLACK, ser#BG_GREEN)
- '                   ser.Char ("/")
+                    ser.Color (ser.BLACK, ser#GREEN)
                     ser.Hex (slave_addr, 2)
-'                    ser.Char ("/")
-                    ser.Reset
+                    ser.Reset()
 
                 FALSE:
                     ser.Position (x, y)
- '                   ser.Char (" ")
                     ser.Hex (slave_addr, 2)
-'                    ser.Char (" ")
         OTHER:
 
 PUB KeyInput | tmp
 ' Wait for keypress from user
     repeat
         repeat
-            tmp := ser.RXCheck
+            tmp := ser.RXCheck()
         until tmp <> -1
 
         case tmp
@@ -133,11 +117,10 @@ PUB KeyInput | tmp
 
 PUB Setup
 
-    clkset(ENAFREQ, CLOCKFREQ)
     ser.StartRxTx (SER_RX, SER_TX, 0, SER_BAUD)
     time.MSleep(5)
-    ser.Reset
-    ser.Clear
+    ser.Reset()
+    ser.Clear()
     ser.PrintF("Serial terminal started\n")
     i2c.Setup (I2C_SCL, I2C_SDA, I2C_HZ)
     ser.PrintF("I2C driver started\n")
@@ -145,9 +128,9 @@ PUB Setup
 
 PUB Stop
 
-    ser.Reset
-    ser.ShowCursor
-    ser.Clear
+    ser.Reset()
+    ser.ShowCursor()
+    ser.Clear()
     ser.PrintF("Stopped\n")
 
 #include "lib.utility.spin2"
