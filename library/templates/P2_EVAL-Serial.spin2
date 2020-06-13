@@ -11,8 +11,8 @@
 }
 CON
 
-     _xtlfreq   = cfg._xtlfreq
-     _clkfreq   = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = cfg._clkfreq_def
 
     LED         = cfg.LED1
     SER_RX      = cfg.SER_RX
@@ -30,9 +30,9 @@ VAR
 
     long _ser_cog
 
-PUB Main
+PUB Main()
 
-    Setup
+    Setup()
 
 '   Your
 '   Code
@@ -40,10 +40,10 @@ PUB Main
 
     FlashLED(LED, 100)     ' Signal execution finished
 
-PUB Setup
+PUB Setup()
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear
-    ser.PrintF("Serial terminal started\n")
+    repeat until _ser_cog := ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.clear()
+    ser.printf("Serial terminal started\n")
 
 #include "lib.utility.spin2"

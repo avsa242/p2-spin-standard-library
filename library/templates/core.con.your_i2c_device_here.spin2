@@ -1,0 +1,23 @@
+{
+    --------------------------------------------
+    Filename:
+    Author:
+    Description:
+    Copyright (c) 20__
+    Started Month Day, Year
+    Updated Month Day, Year
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    I2C_MAX_FREQ      = 400_000               'Change to your device's maximum bus rate, according to its datasheet
+    SLAVE_ADDR        = {CHANGE}$00{ME} << 1  'Change to your device's slave address, according to its datasheet
+                                            ' (7-bit format)
+
+'' Register definitions
+    REG_NAME          = $00                   'Brief description of register
+
+PUB Null()
+'' This is not a top-level object
