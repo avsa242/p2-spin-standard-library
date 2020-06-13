@@ -5,27 +5,20 @@
     Description: Demo of the TCS3x7x driver (P2 version)
     Copyright (c) 2020
     Started: Nov 11, 2019
-    Updated: May 13, 2020
+    Updated: Jun 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    XTAL            = cfg#XTAL
-    XDIV            = cfg#XDIV
-    XMUL            = cfg#XMUL
-    XDIVP           = cfg#XDIVP
-    XOSC            = cfg#XOSC
-    XSEL            = cfg#XSEL
-    XPPPP           = cfg#XPPPP
-    CLOCKFREQ       = cfg#CLOCKFREQ
-    SETFREQ         = cfg#SETFREQ
-    ENAFREQ         = cfg#ENAFREQ
+    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = cfg._clkfreq_def
 
-    LED             = cfg#LED1
-    SER_RX          = cfg#SER_RX
-    SER_TX          = cfg#SER_TX
+' -- User-modifiable constants
+    LED             = cfg.LED1
+    SER_RX          = cfg.SER_RX
+    SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
     I2C_SCL         = 11
@@ -35,6 +28,7 @@ CON
 ' I/O Pin connected to the (optional) on-board white LED and INT pin
     WHITE_LED_PIN   = 14
     INT_PIN         = 24
+' --
 
 OBJ
 
@@ -49,11 +43,11 @@ VAR
     byte _ser_cog, _rgb_cog
     byte _led_enabled
 
-PUB Main | rgbc_data[2], rdata, gdata, bdata, cdata, cmax, i, int, thr, rrow, grow, brow, crow, range
+PUB Main() | rgbc_data[2], rdata, gdata, bdata, cdata, cmax, i, int, thr, rrow, grow, brow, crow, range
 
-    Setup
+    Setup()
 
-    rgb.ClearInt                                            ' Clear interrupts
+    rgb.ClearInt()                                          ' Clear interrupts
     rgb.Gain(1)                                             ' 1, 4, 16, 60 (x)
     rgb.WaitTimer(FALSE)                                    ' On-chip timer - wait between measurements
     rgb.IntsEnabled (TRUE)                                  ' TRUE, FALSE
@@ -69,13 +63,13 @@ PUB Main | rgbc_data[2], rdata, gdata, bdata, cdata, cmax, i, int, thr, rrow, gr
     rrow := crow + 1
     grow := crow + 2
     brow := crow + 3
-    ser.clear
+    ser.clear()
     ser.position (0, 0)
-    ser.printf("Gain: %dx  ", rgb.Gain)
+    ser.printf("Gain: %dx  ", rgb.Gain())
 
-    ser.printf("Interrupts: %s", lookupz(abs(rgb.IntsEnabled): string("Off"), string("On ")))
+    ser.printf("Interrupts: %s", lookupz(abs(rgb.IntsEnabled()): string("Off"), string("On ")))
 
-    thr := rgb.IntThreshold                                 ' word 0 = low threshold, word 1 = high threshold
+    thr := rgb.IntThreshold()                               ' word 0 = low threshold, word 1 = high threshold
     ser.printf(" Threshold: %x .. %x", thr & $FFFF, (thr >> 16) & $FFFF)
 
     ser.position (0, crow)
@@ -87,15 +81,15 @@ PUB Main | rgbc_data[2], rdata, gdata, bdata, cdata, cmax, i, int, thr, rrow, gr
     ser.position (0, brow)
     ser.printf("Blue")
 
-    ser.HideCursor
+    ser.HideCursor()
 
     repeat
-        rgb.OpMode(rgb#MEASURE)                             ' Turn on the sensor ADCs
+        rgb.OpMode(rgb.MEASURE)                             ' Turn on the sensor ADCs
         if _led_enabled                                     ' Flash the white LED, if enabled
             io.High (WHITE_LED_PIN)
-        repeat until rgb.DataReady                          ' When the chip has taken a set of measurements,
+        repeat until rgb.DataReady()                        ' When the chip has taken a set of measurements,
         rgb.RGBCData (@rgbc_data)                           '   read the data
-        rgb.OpMode(rgb#PAUSE)                               ' Turn off the sensor ADCs
+        rgb.OpMode(rgb.PAUSE)                               ' Turn off the sensor ADCs
         if _led_enabled
             io.Low (WHITE_LED_PIN)
 
@@ -104,22 +98,22 @@ PUB Main | rgbc_data[2], rdata, gdata, bdata, cdata, cmax, i, int, thr, rrow, gr
         gdata := ((rgbc_data.byte[5] << 8) | rgbc_data.byte[4]) & $FFFF
         bdata := ((rgbc_data.byte[7] << 8) | rgbc_data.byte[6]) & $FFFF
 
-        ser.color(ser#FG_WHITE, ser#BG_BLACK)               ' Draw bargraphs for each color channel
+        ser.color(ser.WHITE, ser.BLACK)               ' Draw bargraphs for each color channel
         Graph (6, crow, cdata, 0, range, 70, TRUE, thr & $FFFF, (thr >> 16) & $FFFF)
 
-        ser.color(ser#FG_RED, ser#BG_BLACK)
+        ser.color(ser.RED, ser.BLACK)
         Graph (6, rrow, rdata, 0, range, 70, FALSE, 0, 0)
 
-        ser.color(ser#FG_GREEN, ser#BG_BLACK)
+        ser.color(ser.GREEN, ser.BLACK)
         Graph (6, grow, gdata, 0, range, 70, FALSE, 0, 0)
 
-        ser.color(ser#FG_BLUE, ser#BG_BLACK)
+        ser.color(ser.BLUE, ser.BLACK)
         Graph (6, brow, bdata, 0, range, 70, FALSE, 0, 0)
 
-        ser.color(ser#FG_WHITE, ser#BG_BLACK)
+        ser.color(ser.WHITE, ser.BLACK)
 
         ser.printf("\nInterrupt: ")                         ' Indicate if an interrupt has been triggered
-        if rgb.Interrupt
+        if rgb.Interrupt()
             ser.printf("Yes")
         else
             ser.printf("No ")
@@ -150,28 +144,27 @@ PUB Graph(graphx, graphy, in, inmin, inmax, outrange, grads, exc_lo, exc_hi) | o
     repeat bar from 0 to outrange
         ser.position (graphx + bar, graphy)
         if bar =< output
-            ser.char ("#")
+            ser.char (".")
         else
             ser.char (" ")
 
-PUB Setup
+PUB Setup()
 
     io.Output (WHITE_LED_PIN)
     io.Low (WHITE_LED_PIN)
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.clear
-    ser.reset
+    ser.clear()
+    ser.reset()
     ser.printf("Serial terminal started\n")
 
     if _rgb_cog := rgb.Start(I2C_SCL, I2C_SDA, I2C_HZ)
         ser.printf("TCS3X7X driver started\n")
     else
         ser.printf("TCS3X7X driver failed to start - halting\n")
-        rgb.Stop
+        rgb.Stop()
         time.MSleep (500)
-        FlashLED(cfg#LED1, 500)
+        FlashLED(cfg.LED1, 500)
 
 #include "lib.utility.spin2"
 
