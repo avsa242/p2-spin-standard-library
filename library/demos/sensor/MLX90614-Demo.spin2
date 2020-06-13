@@ -5,39 +5,33 @@
     Description: Demo for the MLX90614 driver (P2 version)
     Copyright (c) 2020
     Started Nov 10, 2019
-    Updated May 15, 2020
+    Updated Jun 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
+    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = cfg._clkfreq_def
 
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
     I2C_SCL     = 28
     I2C_SDA     = 27
     I2C_HZ      = 100_000
 
+' Choose one of the temperature scales above
+    TEMP_SCALE  = C
+' --
+
     C           = 0
     F           = 1
     K           = 2
-
-' Choose one of the temperature scales above
-    TEMP_SCALE  = C
 
 OBJ
 
@@ -52,15 +46,15 @@ VAR
 
     byte _ser_cog
 
-PUB Main | Tobj, Tamb
+PUB Main() | Tobj, Tamb
 
-    Setup
+    Setup()
 
     mlx.Scale(TEMP_SCALE)
 
     repeat
         Tobj := mlx.ObjTemp (1)
-        Tamb := mlx.AmbientTemp
+        Tamb := mlx.AmbientTemp()
 
         ser.Position (0, 5)
         ser.printf("Tobj: ")
@@ -88,18 +82,17 @@ PUB Decimal(scaled, divisor) | whole[4], part[4], places, tmp
 
     ser.printf("%d.%s", whole, part)
 
-PUB Setup
+PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear
+    ser.Clear()
     ser.PrintF("Serial terminal started\n")
 
     if mlx.Startx(I2C_SCL, I2C_SDA, I2C_HZ)
         ser.PrintF("MLX90614 driver started\n")    
     else
         ser.PrintF("MLX90614 driver failed to start - halting\n")
-        mlx.Stop
+        mlx.Stop()
         time.MSleep (500)
         FlashLED(LED, 500)
 
