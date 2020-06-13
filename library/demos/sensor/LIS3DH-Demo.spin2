@@ -5,7 +5,7 @@
     Description: Demo of the LIS3DH driver (P2 version)
     Copyright (c) 2020
     Started Mar 15, 2020
-    Updated May 31, 2020
+    Updated Jun 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,21 +15,13 @@
 
 CON
 
-    XTAL            = cfg#XTAL
-    XDIV            = cfg#XDIV
-    XMUL            = cfg#XMUL
-    XDIVP           = cfg#XDIVP
-    XOSC            = cfg#XOSC
-    XSEL            = cfg#XSEL
-    XPPPP           = cfg#XPPPP
-    CLOCKFREQ       = cfg#CLOCKFREQ
-    SETFREQ         = cfg#SETFREQ
-    ENAFREQ         = cfg#ENAFREQ
+    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = cfg._clkfreq_def
 
 ' -- User-modifiable constants
-    LED             = cfg#LED1
-    SER_RX          = cfg#SER_RX
-    SER_TX          = cfg#SER_TX
+    LED             = cfg.LED1
+    SER_RX          = cfg.SER_RX
+    SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
     CS_PIN          = 38                                        ' SPI
@@ -66,7 +58,7 @@ PUB Main() | dispmode
     accel.AccelScale(2)                                     ' 2, 4, 8, 16 (g's)
     accel.AccelDataRate(100)                                ' 0, 1, 10, 25, 50, 100, 200, 400, 1344, 1600
     accel.AccelAxisEnabled(%111)                            ' 0 or 1 for each bit (%xyz)
-    accel.FIFOMode(accel#BYPASS)                            ' accel#BYPASS, accel#FIFO, accel#STREAM, accel#TRIGGER
+    accel.FIFOMode(accel.BYPASS)                            ' accel.BYPASS, accel.FIFO, accel.STREAM, accel.TRIGGER
     accel.IntThresh(1_000000)                               ' 0..16_000000 (ug's, i.e., 0..16g)
     accel.IntMask(%100000)                                  ' Bits 5..0: Zhigh event | Zlow event | Yh|Yl|Xh|Xl
 
@@ -80,7 +72,7 @@ PUB Main() | dispmode
     ser.printf("FIFOMode: %d\n", accel.FIFOMode())          '
     ser.printf("Int thresh: %d\n", accel.IntThresh())       '
     ser.printf("IntMask: ")                                 '
-    ser.bin(accel.IntMask, 6)                               '
+    ser.bin(accel.IntMask(), 6)                             '
 
     repeat
         case ser.RxCheck()
@@ -95,7 +87,7 @@ PUB Main() | dispmode
             "r", "R":                                       ' Change display mode: raw/calculated
                 ser.Position(0, 10)
                 repeat 2
-                    ser.ClearLine(ser#CLR_CUR_TO_END)
+                    ser.ClearLine(ser.CLR_CUR_TO_END)
                     ser.Newline()
                 dispmode ^= 1
 
@@ -149,7 +141,6 @@ PUB Calibrate()
 
 PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until ser.StartRXTX(SER_RX, SER_TX, 0, SER_BAUD)
     time.MSleep(30)
     ser.Clear()
