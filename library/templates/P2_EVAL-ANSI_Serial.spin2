@@ -11,8 +11,8 @@
 }
 CON
 
-     _xtlfreq   = cfg._xtlfreq
-     _clkfreq   = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = cfg._clkfreq_def
 
     LED         = cfg.LED1
     SER_RX      = cfg.SER_RX
