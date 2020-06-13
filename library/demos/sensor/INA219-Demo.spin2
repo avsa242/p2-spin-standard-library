@@ -5,32 +5,26 @@
     Description: Demo of the INA219 driver (P2 version)
     Copyright (c) 2020
     Started Nov 4, 2019
-    Updated May 15, 2020
+    Updated Jun 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    XTAL            = cfg#XTAL                                                                                   
-    XDIV            = cfg#XDIV
-    XMUL            = cfg#XMUL
-    XDIVP           = cfg#XDIVP
-    XOSC            = cfg#XOSC
-    XSEL            = cfg#XSEL
-    XPPPP           = cfg#XPPPP
-    CLOCKFREQ       = cfg#CLOCKFREQ
-    SETFREQ         = cfg#SETFREQ
-    ENAFREQ         = cfg#ENAFREQ
+    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = cfg._clkfreq_def
 
-    LED             = cfg#LED1
-    SER_RX          = cfg#SER_RX
-    SER_TX          = cfg#SER_TX
+' -- User-modifiable constants
+    LED             = cfg.LED1
+    SER_RX          = cfg.SER_RX
+    SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
     SCL_PIN         = 27
     SDA_PIN         = 28
     I2C_HZ          = 400_000
+' --
 
     MEASUREMENT_COL = 0
     CURR_MEAS_COL   = 20
@@ -50,9 +44,9 @@ VAR
 
     byte _ser_cog, _row
 
-PUB Main | vbus, vbus_min, vbus_max, vshunt, vshunt_min, vshunt_max, i, i_min, i_max, p, p_min, p_max, cnf, cnf_init
+PUB Main() | vbus, vbus_min, vbus_max, vshunt, vshunt_min, vshunt_max, i, i_min, i_max, p, p_min, p_max, cnf, cnf_init
 
-    Setup
+    Setup()
     ina219.Calibration (20480)
     ina219.BusVoltageRange (32)
     ina219.ShuntVoltageRange (320)
@@ -60,7 +54,7 @@ PUB Main | vbus, vbus_min, vbus_max, vshunt, vshunt_min, vshunt_max, i, i_min, i
 '    ina219.ShuntSamples (128)
     ina219.BusADCRes (12)
 
-    cnf_init := ina219.ConfigWord
+    cnf_init := ina219.ConfigWord()
     _row := 5
     ser.Position (MEASUREMENT_COL, _row)
     ser.Str (string("Measurement:"))
@@ -72,17 +66,17 @@ PUB Main | vbus, vbus_min, vbus_max, vshunt, vshunt_min, vshunt_max, i, i_min, i
     ser.Str (string("Max:"))
 
     _row += 2
-    vbus_min := ina219.BusVoltage
-    vshunt_min := ina219.ShuntVoltage
-    i_min := ina219.Current
-    p_min := ina219.Power
+    vbus_min := ina219.BusVoltage()
+    vshunt_min := ina219.ShuntVoltage()
+    i_min := ina219.Current()
+    p_min := ina219.Power()
 
     repeat
-        vbus := ina219.BusVoltage
-        vshunt := ina219.ShuntVoltage
-        i := ina219.Current
-        p := ina219.Power
-        cnf := ina219.ConfigWord
+        vbus := ina219.BusVoltage()
+        vshunt := ina219.ShuntVoltage()
+        i := ina219.Current()
+        p := ina219.Power()
+        cnf := ina219.ConfigWord()
 
         vbus_min := vbus <# vbus_min
         vbus_max := vbus #> vbus_max
@@ -139,24 +133,18 @@ PUB Main | vbus, vbus_min, vbus_max, vshunt, vshunt_min, vshunt_max, i, i_min, i
         _row := 7
         time.MSleep (10)
 
-PUB Setup
+PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear
+    ser.Clear()
     ser.printf("Serial terminal started\n")
-    if ina219.Startx (SCL_PIN, SDA_PIN, I2C_HZ)
+    if ina219.Start (SCL_PIN, SDA_PIN, I2C_HZ)
         ser.printf("INA219 driver started\n")
     else
         ser.printf("INA219 driver failed to start - halting\n")
-        Flash (LED, 500)
+        FlashLED (LED, 500)
 
-PUB Flash(pin, delay_ms)
-
-    io.Output(pin)
-    repeat
-        io.Toggle(pin)
-        time.MSleep (delay_ms)
+#include "lib.utility.spin2"
 
 DAT
 {
