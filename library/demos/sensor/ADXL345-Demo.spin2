@@ -5,27 +5,20 @@
     Description: Demo of the ADXL345 driver (P2 version)
     Copyright (c) 2020
     Started Mar 14, 2020
-    Updated May 3, 2020
+    Updated Jun 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    XTAL            = cfg#XTAL
-    XDIV            = cfg#XDIV
-    XMUL            = cfg#XMUL
-    XDIVP           = cfg#XDIVP
-    XOSC            = cfg#XOSC
-    XSEL            = cfg#XSEL
-    XPPPP           = cfg#XPPPP
-    CLOCKFREQ       = cfg#CLOCKFREQ
-    SETFREQ         = cfg#SETFREQ
-    ENAFREQ         = cfg#ENAFREQ
+    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = cfg._clkfreq_def
 
-    LED             = cfg#LED1
-    SER_RX          = cfg#SER_RX
-    SER_TX          = cfg#SER_TX
+' -- User-modifiable constants
+    LED             = cfg.LED1
+    SER_RX          = cfg.SER_RX
+    SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
     CS_PIN          = 8
@@ -33,6 +26,7 @@ CON
     SDA_PIN         = 10
     SDO_PIN         = 9
     SCL_HZ          = 5_000_000
+' --
 
 OBJ
 
@@ -48,105 +42,104 @@ VAR
     long _overruns
     byte _ser_cog, _accel_cog
 
-PUB Main | dispmode
+PUB Main() | dispmode
 
-    Setup
+    Setup()
 
-    accel.OpMode(accel#STANDBY)
-    accel.AccelADCRes(accel#FULL)                           ' 10, accel#FULL (dynamic, based on AccelScale)
+    accel.OpMode(accel.STANDBY)
+    accel.AccelADCRes(accel.FULL)                           ' 10, accel.FULL (dynamic, based on AccelScale)
     accel.AccelScale(2)                                     ' 2, 4, 8, 16 (g's)
     accel.AccelDataRate(100)                                ' 0_10, 0_20, 0_39, 0_78, 1_56, 3_13, 6_25, 12_5,
 '                                                               25, 50, 100, 200, 400, 800, 1600, 3200
-    accel.FIFOMode(accel#BYPASS)                            ' accel#BYPASS, accel#FIFO, accel#STREAM, accel#TRIGGER
+    accel.FIFOMode(accel.BYPASS)                            ' accel.BYPASS, accel.FIFO, accel.STREAM, accel.TRIGGER
     accel.IntMask(%0000_0000)                               ' 0, 1 each bit
     accel.AccelSelfTest(FALSE)                              ' FALSE, TRUE
-    accel.OpMode(accel#MEASURE)                             ' accel#STANDBY, accel#MEASURE
-    ser.HideCursor
+    accel.OpMode(accel.MEASURE)                             ' accel.STANDBY, accel.MEASURE
+    ser.HideCursor()
 
     dispmode := 0
 
     ser.position(0, 3)
-    ser.printf("AccelScale: %d\n", accel.AccelScale)
-    ser.printf("AccelADCRes: %d\n", accel.AccelADCRes)
-    ser.printf("AccelDataRate: %d\n", accel.AccelDataRate)
-    ser.printf("FIFOMode: %d\n", accel.FIFOMode)
-    ser.printf("IntMask: %d\n", accel.IntMask)
-    ser.printf("AccelSelfTest: %d\n", accel.AccelSelfTest)
+    ser.printf("AccelScale: %d\n", accel.AccelScale())
+    ser.printf("AccelADCRes: %d\n", accel.AccelADCRes())
+    ser.printf("AccelDataRate: %d\n", accel.AccelDataRate())
+    ser.printf("FIFOMode: %d\n", accel.FIFOMode())
+    ser.printf("IntMask: %d\n", accel.IntMask())
+    ser.printf("AccelSelfTest: %d\n", accel.AccelSelfTest())
 
     repeat
-        case ser.RxCheck
+        case ser.RxCheck()
             "q", "Q":
                 ser.Position(0, 12)
                 ser.str(string("Halting"))
-                accel.Stop
+                accel.Stop()
                 time.MSleep(5)
                 quit
             "c", "C":
-                Calibrate
+                Calibrate()
             "r", "R":
                 ser.Position(0, 10)
                 repeat 2
-                    ser.ClearLine(ser#CLR_CUR_TO_END)
-                    ser.Newline
+                    ser.ClearLine(ser.CLR_CUR_TO_END)
+                    ser.Newline()
                 dispmode ^= 1
 
         ser.Position (0, 10)
         case dispmode
-            0: AccelRaw
-            1: AccelCalc
+            0: AccelRaw()
+            1: AccelCalc()
 
-    ser.ShowCursor
+    ser.ShowCursor()
     FlashLED(LED, 100)
 
-PUB AccelCalc | ax, ay, az
+PUB AccelCalc() | ax, ay, az
 
-    repeat until accel.AccelDataReady
+    repeat until accel.AccelDataReady()
     accel.AccelG (@ax, @ay, @az)
-    if accel.AccelDataOverrun
+    if accel.AccelDataOverrun()
         _overruns++
     ser.Str (string("Accel micro-g: "))
     ser.Str (int.DecPadded (ax, 10))
     ser.Str (int.DecPadded (ay, 10))
     ser.Str (int.DecPadded (az, 10))
-    ser.Newline
+    ser.Newline()
     ser.printf("Overruns: %d", _overruns)
 
-PUB AccelRaw | ax, ay, az
+PUB AccelRaw() | ax, ay, az
 
-    repeat until accel.AccelDataReady
+    repeat until accel.AccelDataReady()
     accel.AccelData (@ax, @ay, @az)
-    if accel.AccelDataOverrun
+    if accel.AccelDataOverrun()
         _overruns++
     ser.Str (string("Raw Accel: "))
     ser.Str (int.DecPadded (ax, 7))
     ser.Str (int.DecPadded (ay, 7))
     ser.Str (int.DecPadded (az, 7))
 
-    ser.Newline
+    ser.Newline()
     ser.Str (string("Overruns: "))
     ser.Dec (_overruns)
 
-PUB Calibrate
+PUB Calibrate()
 
     ser.Position (0, 12)
     ser.Str(string("Calibrating..."))
-    accel.Calibrate
+    accel.Calibrate()
     time.sleep(1)
     ser.Position (0, 12)
     ser.Str(string("              "))
 
-PUB Setup
+PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear
+    ser.Clear()
     ser.printf("Serial terminal started\n")
     if _accel_cog := accel.Startx(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_HZ)
         ser.printf("ADXL345 driver started\n")
-        accel.Defaults
+        accel.Defaults()
     else
         ser.printf("ADXL345 driver failed to start - halting\n")
-        accel.Stop
+        accel.Stop()
         time.MSleep (5)
         FlashLED(LED, 500)
 
