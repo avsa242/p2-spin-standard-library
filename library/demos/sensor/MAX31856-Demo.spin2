@@ -5,27 +5,20 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Created Nov 21, 2019
-    Updated May 15, 2020
+    Updated Jun 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
+    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = cfg._clkfreq_def
 
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
     CS_PIN      = 38
@@ -34,12 +27,12 @@ CON
     SCK_PIN     = 35
     SCK_HZ      = 5_000_000
 
-    LED         = cfg#LED1
-
 ' Temperature scale readings
+    SCALE       = C
+' --
+
     C           = 0
     F           = 1
-    SCALE       = C
 
 OBJ
 
@@ -54,23 +47,23 @@ VAR
 
     byte _ser_cog
 
-PUB Main | cj_temp, tc_temp
+PUB Main() | cj_temp, tc_temp
 
-    Setup
+    Setup()
 
     max31856.NotchFilterFreq (60)
-    max31856.ConversionMode(max31856#CMODE_AUTO)
+    max31856.ConversionMode(max31856.CMODE_AUTO)
 
     repeat
-        cj_temp := max31856.ColdJuncTemp
-        tc_temp := max31856.ThermocoupleTemp
+        cj_temp := max31856.ColdJuncTemp()
+        tc_temp := max31856.ThermocoupleTemp()
 
         ser.Position (0, 3)
         case SCALE
             F:
                 ser.PrintF("Cold junction temp: ")
                 Fractional(CtoF(cj_temp), 100)
-                ser.NewLine
+                ser.NewLine()
 
                 ser.PrintF("Thermocouple temp: ")
                 Fractional(CtoF(tc_temp), 100)
@@ -78,7 +71,7 @@ PUB Main | cj_temp, tc_temp
             OTHER:
                 ser.PrintF("Cold junction temp: ")
                 Fractional(cj_temp, 100)
-                ser.NewLine
+                ser.NewLine()
 
                 ser.PrintF("Thermocouple temp: ")
                 Fractional(tc_temp, 100)
@@ -104,27 +97,21 @@ PUB Fractional(scaled, divisor) | whole, part, places, tmp
     part := int.DecZeroed(scaled // divisor, places)
     ser.printf("%d.%s ", whole, part)
 
-PUB Setup
+PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear
+    ser.Clear()
     ser.PrintF("Serial terminal started\n")
 
     if max31856.start (CS_PIN, SDI_PIN, SDO_PIN, SCK_PIN)
         ser.PrintF("MAX31856 driver started\n")
     else
         ser.PrintF("MAX31856 driver failed to start - halting\n")
-        max31856.Stop
+        max31856.Stop()
         time.MSleep (5)
         FlashLED (LED, 500)
 
-PUB FlashLED(led_pin, delay_ms)
-
-    io.Output(led_pin)
-    repeat
-        io.Toggle(led_pin)
-        time.MSleep(delay_ms)
+#include "lib.utility.spin2"
 
 DAT
 {

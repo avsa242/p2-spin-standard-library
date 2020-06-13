@@ -5,7 +5,7 @@
     Description: Driver object for Maxim's MAX31856 thermocouple amplifier (P2 version)
     Copyright (c) 2020
     Created: Nov 21, 2019
-    Updated: May 15, 2020
+    Updated: Jun 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -38,12 +38,12 @@ CON
     VOLTMODE_GAIN32 = %1100
 
 ' Fault mask bits (OR together any combination for use with FaultMask)
-    FAULT_CJ_HIGH   = 1 << core#FLD_CJ_HIGH
-    FAULT_CJ_LOW    = 1 << core#FLD_CJ_LOW
-    FAULT_TC_HIGH   = 1 << core#FLD_TC_HIGH
-    FAULT_TC_LOW    = 1 << core#FLD_TC_LOW
-    FAULT_OV_UV     = 1 << core#FLD_OV_UV
-    FAULT_OPEN      = 1 << core#FLD_OPEN
+    FAULT_CJ_HIGH   = 1 << core.FLD_CJ_HIGH
+    FAULT_CJ_LOW    = 1 << core.FLD_CJ_LOW
+    FAULT_TC_HIGH   = 1 << core.FLD_TC_HIGH
+    FAULT_TC_LOW    = 1 << core.FLD_TC_LOW
+    FAULT_OV_UV     = 1 << core.FLD_OV_UV
+    FAULT_OPEN      = 1 << core.FLD_OPEN
 
 VAR
 
@@ -56,12 +56,12 @@ OBJ
     u64     : "math.unsigned64"
     io      : "io"
 
-PUB Null
+PUB Null()
 ''This is not a top-level object
 
 PUB Start (CS_PIN, SDI_PIN, SDO_PIN, SCK_PIN, SCK_HZ=5_000_000): okay
 
-    if okay := spi.start (SDI_PIN, SDO_PIN, SCK_PIN, SCK_HZ, core#CPOL)
+    if okay := spi.start (SDI_PIN, SDO_PIN, SCK_PIN, SCK_HZ, core.CPOL)
         _CS := CS_PIN
         _MOSI := SDI_PIN
         _MISO := SDO_PIN
@@ -71,63 +71,65 @@ PUB Start (CS_PIN, SDI_PIN, SDO_PIN, SCK_PIN, SCK_HZ=5_000_000): okay
     else
         return FALSE
 
-PUB Stop
+PUB Stop()
 
 '
 
-PUB ColdJuncHighThresh(thresh=-2) | tmp
+PUB ColdJuncHighThresh(thresh=-2): result | tmp
 ' Set Cold-Junction HIGH fault threshold
 '   Valid values: 0..255
 '   Any other value polls the chip and returns the current setting
-    readReg (core#CJHF, 1, @tmp)
+    readReg (core.CJHF, 1, @tmp)
     case thresh
         0..255:
         OTHER:
-            return tmp & $FF
+            result := tmp & $FF
+            return
 
-    writeReg (core#CJHF, 1, @thresh)
+    writeReg (core.CJHF, 1, @thresh)
 
-PUB ColdJuncLowThresh(thresh=-2) | tmp
+PUB ColdJuncLowThresh(thresh=-2): result | tmp
 ' Set Cold-Junction LOW fault threshold
 '   Valid values: 0..255
 '   Any other value polls the chip and returns the current setting
-    readReg (core#CJLF, 1, @tmp)
+    readReg (core.CJLF, 1, @tmp)
     case thresh
         0..255:
         OTHER:
-            return tmp & $FF
+            result := tmp & $FF
+            return
 
-    writeReg (core#CJLF, 1, @thresh)
+    writeReg (core.CJLF, 1, @thresh)
 
 PUB ColdJuncOffset(offset=-2) | tmp  'XXX Make param units degrees
 ' Set Cold-Junction temperature sensor offset
-    readReg (core#CJTO, 1, @tmp)
+    readReg (core.CJTO, 1, @tmp)
     case offset
         0..255:
         OTHER:
             return tmp
 
-    writeReg (core#CJTO, 1, @offset)
+    writeReg (core.CJTO, 1, @offset)
 
-PUB ColdJuncSensorEnabled(enabled=-2) | tmp
+PUB ColdJuncSensorEnabled(enabled=-2): result | tmp
 ' Enable the on-chip Cold-Junction temperature sensor
 '   Valid values: TRUE (-1 or 1), FALSE
 '   Any other value polls the chip and returns the current setting
-    readReg (core#CR0, 1, @tmp)
+    readReg (core.CR0, 1, @tmp)
     case abs(enabled)
         0, 1:
-            enabled := (abs(enabled) ^ 1) << core#FLD_CJ
+            enabled := (abs(enabled) ^ 1) << core.FLD_CJ
         OTHER:
-            result := (((tmp >> core#FLD_CJ) & %1) ^ 1) * TRUE
+            result := (((tmp >> core.FLD_CJ) & %1) ^ 1) * TRUE
             return
 
-    tmp &= core#MASK_CJ
-    tmp := (tmp | enabled) & core#CR0_MASK
-    writeReg (core#CR0, 1, @tmp)
+    tmp &= core.MASK_CJ
+    tmp := (tmp | enabled) & core.CR0_MASK
+    writeReg (core.CR0, 1, @tmp)
 
-PUB ColdJuncTemp
+PUB ColdJuncTemp(): result
 ' Read the Cold-Junction temperature sensor
-    readReg (core#CJTH, 2, @result)
+    readReg (core.CJTH, 2, @result)
     result.byte[2] := result.byte[0]
     result.byte[0] := result.byte[1]
     result.byte[1] := result.byte[2]
@@ -135,32 +137,32 @@ PUB ColdJuncTemp
     result >>=2
     return u64.multdiv (result, CJ_RES, 10_000)
 
-PUB ConversionMode(mode=-2) | tmp
+PUB ConversionMode(mode=-2): result | tmp
 ' Enable automatic conversion mode
 '   Valid values: CMODE_OFF (0): Normally Off (default), CMODE_AUTO (1): Automatic Conversion Mode
 '   Any other value polls the chip and returns the current setting
 '   NOTE: In Automatic mode, conversions occur continuously approx. every 100ms
-    readReg (core#CR0, 1, @tmp)
+    readReg (core.CR0, 1, @tmp)
     case mode
         CMODE_OFF, CMODE_AUTO:
-            mode := (mode << core#FLD_CMODE)
+            mode := (mode << core.FLD_CMODE)
         OTHER:
-            result := (tmp >> core#FLD_CMODE) & %1
+            result := (tmp >> core.FLD_CMODE) & %1
             return
 
-    tmp &= core#MASK_CMODE
-    tmp := (tmp | mode) & core#CR0_MASK
-    writeReg (core#CR0, 1, @tmp)
+    tmp &= core.MASK_CMODE
+    tmp := (tmp | mode) & core.CR0_MASK
+    writeReg (core.CR0, 1, @tmp)
 
-PUB FaultClear | tmp
+PUB FaultClear() | tmp
 ' Clear fault status
 '   NOTE: This has no effect when FaultMode is set to FAULTMODE_COMP
-    readReg (core#CR0, 1, @tmp)
-    tmp &= core#MASK_FAULTCLR
-    tmp := (tmp | (1 << core#FLD_FAULTCLR)) & core#CR0_MASK
-    writeReg (core#CR0, 1, @tmp)
+    readReg (core.CR0, 1, @tmp)
+    tmp &= core.MASK_FAULTCLR
+    tmp := (tmp | (1 << core.FLD_FAULTCLR)) & core.CR0_MASK
+    writeReg (core.CR0, 1, @tmp)
 
-PUB FaultMask(mask=-2) | tmp
+PUB FaultMask(mask=-2): result | tmp
 ' Set fault output mask
 '   Valid values: (for each individual bit)
 '       0: /FAULT output asserted
@@ -175,16 +177,17 @@ PUB FaultMask(mask=-2) | tmp
 '           0   Thermocouple open-circuit
 '   Example: %111101 would assert the /FAULT pin when an over-voltage or under-voltage condition is detected
 '   Any other value polls the chip and returns the current setting
-    readReg (core#MASK, 1, @tmp)
+    readReg (core.MASK, 1, @tmp)
     case mask
         %000000..%111111:
         OTHER:
-            return tmp & core#MASK_MASK
+            result := tmp & core.MASK_MASK
+            return
 
-    tmp := mask & core#MASK_MASK
-    writeReg (core#MASK, 1, @tmp)
+    tmp := mask & core.MASK_MASK
+    writeReg (core.MASK, 1, @tmp)
 
-PUB FaultMode(mode=-2) | tmp
+PUB FaultMode(mode=-2): result | tmp
 ' Defines behavior of fault flag
 '   Valid values:
 '       *FAULTMODE_COMP (0): Comparator mode - fault flag will be asserted when fault condition is true, and will clear
@@ -193,19 +196,19 @@ PUB FaultMode(mode=-2) | tmp
 '           asserted until fault status is explicitly cleared with FaultClear.
 '           NOTE: If the fault condition is still true when the status is cleared, the flag will be asserted again immediately.
 '   Any other value polls the chip and returns the current setting
-    readReg (core#CR0, 1, @tmp)
+    readReg (core.CR0, 1, @tmp)
     case mode
         FAULTMODE_COMP, FAULTMODE_INT:
-            mode := mode << core#FLD_FAULT
+            mode := mode << core.FLD_FAULT
         OTHER:
-            result := ((tmp >> core#FLD_FAULT) & 1)
+            result := ((tmp >> core.FLD_FAULT) & 1)
             return
 
-    tmp &= core#MASK_FAULT
-    tmp := (tmp | mode) & core#CR0_MASK
-    writeReg (core#CR0, 1, @tmp)
+    tmp &= core.MASK_FAULT
+    tmp := (tmp | mode) & core.CR0_MASK
+    writeReg (core.CR0, 1, @tmp)
 
-PUB FaultStatus
+PUB FaultStatus(): result
 ' Return fault status, as bitfield
 '   Returns: (for each individual bit)
 '       0: No fault detected
@@ -219,37 +222,38 @@ PUB FaultStatus
 '       2   Thermocouple temperature below LOW temperature threshold
 '       1   Over-voltage or Under-voltage
 '       0   Thermocouple open-circuit
-    readReg(core#SR, 1, @result)
+    readReg(core.SR, 1, @result)
 
-PUB FaultTestTime(time_ms=-2) | tmp 'XXX Note recommendations based on circuit design
+PUB FaultTestTime(time_ms=-2): result | tmp 'XXX Note recommendations based on circuit design
 ' Sets open-circuit fault detection test time, in ms
 '   Valid values: 0 (disable fault detection), 10, 32, 100
 '   Any other value polls the chip and returns the current setting
-    readReg (core#CR0, 1, @tmp)
+    readReg (core.CR0, 1, @tmp)
     case time_ms
         0, 10, 32, 100:
-            time_ms := lookdownz(time_ms: 0, 10, 32, 100) << core#FLD_OCFAULT
+            time_ms := lookdownz(time_ms: 0, 10, 32, 100) << core.FLD_OCFAULT
         OTHER:
-            result := ((tmp >> core#FLD_OCFAULT) & core#BITS_OCFAULT)
-            return lookupz(result: 0, 10, 32, 100)
+            result := ((tmp >> core.FLD_OCFAULT) & core.BITS_OCFAULT)
+            result := lookupz(result: 0, 10, 32, 100)
+            return
 
-    tmp &= core#MASK_OCFAULT
-    tmp := (tmp | time_ms) & core#CR0_MASK
-    writeReg (core#CR0, 1, @tmp)
+    tmp &= core.MASK_OCFAULT
+    tmp := (tmp | time_ms) & core.CR0_MASK
+    writeReg (core.CR0, 1, @tmp)
 
-PUB Measure | tmp
+PUB Measure() | tmp
 ' Perform single cold-junction and thermocouple conversion
 ' NOTE: Single conversion is performed only if ConversionMode is set to CMODE_OFF (Normally Off)
 ' Approximate conversion times:
 '   Filter Setting      Time
 '   60Hz                143ms
 '   50Hz                169ms
-    readReg (core#CR0, 1, @tmp)
-    tmp &= core#MASK_ONESHOT
-    tmp := (tmp | (1 << core#FLD_ONESHOT)) & core#CR0_MASK
-    writeReg (core#CR0, 1, @tmp)
+    readReg (core.CR0, 1, @tmp)
+    tmp &= core.MASK_ONESHOT
+    tmp := (tmp | (1 << core.FLD_ONESHOT)) & core.CR0_MASK
+    writeReg (core.CR0, 1, @tmp)
 
-PUB NotchFilterFreq(Hz=-2) | tmp, cmode_tmp
+PUB NotchFilterFreq(Hz=-2): result | tmp, cmode_tmp
 ' Select noise rejection filter frequency, in Hz
 '   Valid values: 50, 60*
 '   Any other value polls the chip and returns the current setting
@@ -257,7 +261,7 @@ PUB NotchFilterFreq(Hz=-2) | tmp, cmode_tmp
 '       per MAX31856 datasheet, if it isn't already.
     if cmode_tmp := ConversionMode (-2)
         ConversionMode (CMODE_OFF)
-    readReg (core#CR0, 1, @tmp)
+    readReg (core.CR0, 1, @tmp)
     case Hz
         50, 60:
             Hz := lookdownz(Hz: 60, 50)
@@ -265,62 +269,64 @@ PUB NotchFilterFreq(Hz=-2) | tmp, cmode_tmp
             if cmode_tmp
                 ConversionMode (CMODE_AUTO)
             result := tmp & %1
-            return lookupz(result: 60, 50)
+            result := lookupz(result: 60, 50)
+            return
 
-    tmp &= core#MASK_NOTCHFILT
-    tmp := (tmp | Hz) & core#CR0_MASK
-    writeReg (core#CR0, 1, @tmp)
+    tmp &= core.MASK_NOTCHFILT
+    tmp := (tmp | Hz) & core.CR0_MASK
+    writeReg (core.CR0, 1, @tmp)
 
     if cmode_tmp
         ConversionMode (CMODE_AUTO)
 
-PUB Temperature
+PUB Temperature()
 
-    return ThermoCoupleTemp
+    return ThermoCoupleTemp()
 
-PUB ThermocoupleSamples(samples=-2) | tmp
+PUB ThermocoupleSamples(samples=-2): result | tmp
 ' Set number of samples averaged during thermocouple conversion
 '   Valid values: 1*, 2, 4, 8, 16
 '   Any other value polls the chip and returns the current setting
-    readReg (core#CR1, 1, @tmp)
+    readReg (core.CR1, 1, @tmp)
     case samples
         1, 2, 4, 8, 16:
-            samples := lookdownz(samples: 1, 2, 4, 8, 16) << core#FLD_AVGSEL
+            samples := lookdownz(samples: 1, 2, 4, 8, 16) << core.FLD_AVGSEL
         OTHER:
-            result := (tmp >> core#FLD_AVGSEL) & core#BITS_AVGSEL
-            return lookupz(result: 1, 2, 4, 8, 16)
+            result := (tmp >> core.FLD_AVGSEL) & core.BITS_AVGSEL
+            result := lookupz(result: 1, 2, 4, 8, 16)
+            return
 
-    tmp &= core#MASK_AVGSEL
-    tmp := (tmp | samples) & core#CR1_MASK
-    writeReg(core#CR1, 1, @tmp)
+    tmp &= core.MASK_AVGSEL
+    tmp := (tmp | samples) & core.CR1_MASK
+    writeReg(core.CR1, 1, @tmp)
 
 PUB ThermocoupleHighThresh(thresh=-2) | tmp
 ' Set Thermocouple HIGH fault threshold
 '   Valid values: 0..32767
 '   Any other value polls the chip and returns the current setting
-    readReg (core#LTHFTH, 2, @tmp)
+    readReg (core.LTHFTH, 2, @tmp)
     case thresh
         0..32767:
         OTHER:
             return tmp & $7FFF
 
-    writeReg (core#LTHFTH, 2, @thresh)
+    writeReg (core.LTHFTH, 2, @thresh)
 
 PUB ThermocoupleLowThresh(thresh=-2) | tmp
 ' Set Thermocouple LOW fault threshold
 '   Valid values: 0..32767
 '   Any other value polls the chip and returns the current setting
-    readReg (core#LTLFTH, 2, @tmp)
+    readReg (core.LTLFTH, 2, @tmp)
     case thresh
         0..32767:
         OTHER:
             return tmp & $7FFF
 
-    writeReg (core#LTLFTH, 2, @thresh)
+    writeReg (core.LTLFTH, 2, @thresh)
 
-PUB ThermocoupleTemp
+PUB ThermocoupleTemp(): result
 ' Read the Thermocouple temperature
-    readReg (core#LTCBH, 3, @result)
+    readReg (core.LTCBH, 3, @result)
     swapByteOrder(@result)
     if result > $7FFFFF
         result |= $FF000000
@@ -328,20 +334,20 @@ PUB ThermocoupleTemp
     result := u64.multdiv (result, TC_RES, 100_000)     'result := (result * TC_RES) / 100_000
     return
 
-PUB ThermocoupleType(type=-2) | tmp
+PUB ThermocoupleType(type=-2): result | tmp
 ' Set type of thermocouple
 '   Valid values: B (0), E (1), J (2), K* (3), N (4), R (5), S (6), T (7)
 '   Any other value polls the chip and returns the current setting
-    readReg (core#CR1, 1, @tmp)
+    readReg (core.CR1, 1, @tmp)
     case type
         B, E, J, K, N, R, S, T:
         OTHER:
-            result := tmp & core#BITS_TC_TYPE
+            result := tmp & core.BITS_TC_TYPE
             return
 
-    tmp &= core#MASK_TC_TYPE
-    tmp := (tmp | type) & core#CR1_MASK
-    writeReg(core#CR1, 1, @tmp)
+    tmp &= core.MASK_TC_TYPE
+    tmp := (tmp | type) & core.CR1_MASK
+    writeReg(core.CR1, 1, @tmp)
 
 PRI swapByteOrder(buff_addr)
 
@@ -350,28 +356,28 @@ PRI swapByteOrder(buff_addr)
     byte[buff_addr][2] := byte[buff_addr][3]
     byte[buff_addr][3] := 0
 
-PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
+PRI writeReg(reg_nr, nr_bytes, buff_addr): result | tmp
 ' Write reg_nr to MOSI
     io.Low(_CS)
     case nr_bytes
         1..4:
-            spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr | core#WRITE_REG)     'Command w/nr_bytes data bytes following
+            spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr | core.WRITE_REG)     'Command w/nr_bytes data bytes following
             repeat tmp from 0 to nr_bytes-1
-                spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buff_addr][tmp])
+                spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
         OTHER:
             result := FALSE
             buff_addr := 0
     io.High(_CS)
 
-PRI readReg(reg_nr, nr_bytes, buff_addr) | tmp
+PRI readReg(reg_nr, nr_bytes, buff_addr): result | tmp
 ' Read reg_nr from MISO
     io.Low(_CS)
-    spi.Write (_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr)              'Which register to query
+    spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)              'Which register to query
 
     case nr_bytes
         1..4:
             repeat tmp from 0 to nr_bytes-1
-                byte[buff_addr][tmp] := spi.Read (_MISO, _SCK, core#MISO_BITORDER, 8)
+                byte[buff_addr][tmp] := spi.Read (_MISO, _SCK, core.MISO_BITORDER, 8)
         OTHER:
             result := FALSE
             buff_addr := 0
