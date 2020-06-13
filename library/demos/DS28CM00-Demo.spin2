@@ -5,7 +5,7 @@
     Description: Demo of the DS28CM00 64-bit ROM ID chip (P2 version)
     Copyright (c) 2020
     Started Nov 16, 2019
-    Updated Feb 7, 2020
+    Updated Jun 13, 2020
     See end of file for terms of use.
     --------------------------------------------
     NOTE: The driver will start successfully if a common EEPROM (e.g. AT24Cxxxx) is on
@@ -15,25 +15,19 @@
 
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
+    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = cfg._clkfreq_def
 
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
     SCL_PIN     = 27
     SDA_PIN     = 28
     I2C_HZ      = 400_000
+' --
 
 OBJ
 
@@ -48,35 +42,34 @@ VAR
     byte _ser_cog
     byte _sn[8]
 
-PUB Main | i
+PUB Main() | i
 
-    Setup
-    ser.NewLine
-    ser.PrintF("Device Family: $%x\n", ssn.DeviceFamily)
+    Setup()
+    ser.NewLine()
+    ser.PrintF("Device Family: $%x\n", ssn.DeviceFamily())
     ser.PrintF("Serial Number: $")
     ssn.SN (@_sn)
     repeat i from 0 to 7
         ser.Hex (_sn.byte[i], 2)
-    ser.Newline
-    ser.PrintF("CRC: $%x", ssn.CRC)
+    ser.Newline()
+    ser.PrintF("CRC: $%x", ssn.CRC())
     ser.PrintF(", Valid: ")
-    case ssn.CRCValid
+    case ssn.CRCValid()
         TRUE: ser.PrintF("Yes\n")
         FALSE: ser.PrintF("No\n")
     ser.PrintF("Halting")
     FlashLED (LED, 100)
 
-PUB Setup
+PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear
+    ser.Clear()
     ser.PrintF("Serial terminal started\n")
     if ssn.Start (SCL_PIN, SDA_PIN, I2C_HZ)
         ser.PrintF("DS28CM00 driver started\n")
     else
         ser.PrintF("DS28CM00 driver failed to start - halting\n")
-        ssn.Stop
+        ssn.Stop()
         time.MSleep (1)
         FlashLED(LED, 500)
 
