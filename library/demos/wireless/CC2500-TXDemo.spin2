@@ -5,27 +5,20 @@ i{
     Description: Simple transmit demo of the cc2500 driver (P2 version)
     Copyright (c) 2020
     Started Dec 31, 2019
-    Updated Apr 28, 2020
+    Updated Jun 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
+    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = cfg._clkfreq_def
 
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
-    SER_BAUD    = 2_000_000
+' -- User-modifiable constants
+    LED             = cfg.LED1
+    SER_RX          = cfg.SER_RX
+    SER_TX          = cfg.SER_TX
+    SER_BAUD        = 2_000_000
 
     CS_PIN          = 1                            ' Change to your module's connections
     SCK_PIN         = 0
@@ -34,6 +27,7 @@ CON
     SCK_FREQ        = 5_000_000
 
     NODE_ADDRESS    = $02
+' --
 
 OBJ
 
@@ -50,57 +44,58 @@ VAR
     long _fifo[16]
     byte _pktlen
 
-PUB Main | choice
+PUB Main() | mod_tmp
 
-    Setup
+    Setup()
 
-    cc2500.GPIO0 (cc2500#IO_HI_Z)                   ' Set CC2500 GPIO0 to Hi-Z mode
-    cc2500.AutoCal(cc2500#IDLE_RXTX)                ' Perform auto-calibration when transitioning from Idle to TX
-    cc2500.Idle
+    cc2500.GPIO0 (cc2500.IO_HI_Z)                   ' Set CC2500 GPIO0 to Hi-Z mode
+    cc2500.AutoCal(cc2500.IDLE_RXTX)                ' Perform auto-calibration when transitioning from Idle to TX
+    cc2500.Idle()
 
     ser.PrintF("Waiting for radio idle status...")
-    repeat until cc2500.State == 1
+    repeat until cc2500.State() == 1
     ser.PrintF("done\n")
 
-    cc2500.CarrierFreq(2_401_000)                 ' Set carrier frequency
-    ser.PrintF("Carrier freq: %dkHz\n", cc2500.CarrierFreq)
+    cc2500.CarrierFreq(2_401_000)                   ' Set carrier frequency
+    ser.PrintF("Carrier freq: %dkHz\n", cc2500.CarrierFreq())
 
     ser.PrintF("Waiting for PLL lock...")
-    repeat until cc2500.PLLLocked == TRUE           ' Don't proceed until PLL is locked
+    repeat until cc2500.PLLLocked() == TRUE         ' Don't proceed until PLL is locked
     ser.PrintF("done\n")
 
     cc2500.TXPowerIndex(0)
-    cc2500.TXPower(0)                              ' -55, -30, -28, -26, -24, -22, -20, -18, -16, -14, -12, -10, -8, -6, -4, -2, 0, 1
-    ser.PrintF("TXPower: %ddBm\n", cc2500.TXPower)
+    cc2500.TXPower(0)                               ' -55, -30, -28, -26, -24, -22, -20, -18, -16, -14, -12, -10, -8, -6, -4, -2, 0, 1
+    ser.PrintF("TXPower: %ddBm\n", cc2500.TXPower())
 
-    ser.PrintF("Data rate: %dbps\n", cc2500.DataRate)
+    ser.PrintF("Data rate: %dbps\n", cc2500.DataRate())
 
-    ser.PrintF("Freq deviation: %dHz\n", cc2500.FreqDeviation)
+    ser.PrintF("Freq deviation: %dHz\n", cc2500.FreqDeviation())
 
-    ser.PrintF("Modulation: %s\n", lookupz(cc2500.Modulation: string("FSK2"), string("GFSK"), string("???"), string("ASK/OOK"), string("FSK4"), string("???"), string("???"), string("MSK")))
+    mod_tmp := cc2500.modulation()
+    ser.PrintF("Modulation: %s\n", lookupz(mod_tmp: string("FSK2"), string("GFSK"), string("???"), string("ASK/OOK"), string("FSK4"), string("???"), string("???"), string("MSK")))
 
     ser.PrintF("Press any key to begin transmitting\n")
-    ser.CharIn
+    ser.CharIn()
 
-    Transmit
+    Transmit()
 
-    FlashLED(LED, 100)     ' Signal execution finished
+    FlashLED(LED, 100)                              ' Signal execution finished
 
-PUB Transmit | count, tmp, to_node
+PUB Transmit() | count, tmp, to_node
 
     _pktlen := 10
     cc2500.NodeAddress(NODE_ADDRESS)                ' Set this node's address
-    cc2500.PayloadLenCfg (cc2500#PKTLEN_FIXED)      ' Fixed payload length
+    cc2500.PayloadLenCfg (cc2500.PKTLEN_FIXED)      ' Fixed payload length
     cc2500.PayloadLen (_pktlen)                     ' Set payload length to _pktlen
     cc2500.CRCCheckEnabled (TRUE)                   ' Enable CRC checks on received payloads
-    cc2500.SyncMode (cc2500#SYNCMODE_3032_CS)       ' Accept payload as valid only if:
+    cc2500.SyncMode (cc2500.SYNCMODE_3032_CS)       ' Accept payload as valid only if:
     cc2500.AppendStatus (FALSE)                     '   At least 30 of 32 syncword bits match
                                                     '   Carrier sense is above set threshold
     to_node := $01
 
-    ser.Clear
+    ser.Clear()
     ser.Position(0, 0)
-    ser.PrintF("Transmit mode - %dHz\n", cc2500.CarrierFreq)
+    ser.PrintF("Transmit mode - %dHz\n", cc2500.CarrierFreq())
     ser.PrintF("Transmitting to node $%x", to_node)
 
     _fifo.byte[0] := to_node                        ' Address of node we're sending to
@@ -111,25 +106,24 @@ PUB Transmit | count, tmp, to_node
     _fifo.byte[5] := "T"
 
     count := 0
-    cc2500.AfterTX (cc2500#TXOFF_IDLE)              ' What state to change the radio to after transmission
+    cc2500.AfterTX (cc2500.TXOFF_IDLE)              ' What state to change the radio to after transmission
     repeat
         tmp := int.DecZeroed(count++, 4)            ' Tack a counter onto the
         bytemove(@_fifo.byte[6], tmp, 4)            '   end of the payload
         ser.position(0, 10)
         ser.PrintF("Sending ")
         ser.str(@_fifo)
-        cc2500.Idle
-        cc2500.FlushTX
-        cc2500.FSTX
-        cc2500.TXMode
+        cc2500.Idle()
+        cc2500.FlushTX()
+        cc2500.FSTX()
+        cc2500.TXMode()
         cc2500.TXPayload (_pktlen, @_fifo)
         time.Sleep (1)                              ' Try not to abuse the airwaves - wait between transmissions
 
-PUB Setup
+PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear
+    ser.Clear()
     ser.PrintF("Serial terminal started\n")
 
     if _cc2500_cog := cc2500.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
