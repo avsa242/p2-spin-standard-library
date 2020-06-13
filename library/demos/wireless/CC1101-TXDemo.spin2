@@ -5,28 +5,20 @@
     Description: Simple transmit demo of the cc1101 driver
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Apr 14, 2020
+    Updated Jun 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
+    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = cfg._clkfreq_def
 
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
-    SER_BAUD    = 2_000_000
-
+' -- User-modifiable constants
+    LED             = cfg.LED1
+    SER_RX          = cfg.SER_RX
+    SER_TX          = cfg.SER_TX
+    SER_BAUD        = 2_000_000
 
     CS_PIN          = 27                             ' Change to your module's connections
     SCK_PIN         = 26
@@ -35,6 +27,7 @@ CON
     SCK_FREQ        = 5_000_000
 
     NODE_ADDRESS    = $02
+' --
 
 OBJ
 
@@ -51,50 +44,50 @@ VAR
     long _fifo[16]
     byte _pktlen
 
-PUB Main | choice
+PUB Main()
 
-    Setup
+    Setup()
 
-    cc1101.GPIO0 (cc1101#IO_HI_Z)                   ' Set CC1101 GPIO0 to Hi-Z mode
-    cc1101.AutoCal(cc1101#IDLE_RXTX)                ' Perform auto-calibration when transitioning from Idle to TX
-    cc1101.Idle
+    cc1101.GPIO0 (cc1101.IO_HI_Z)                   ' Set CC1101 GPIO0 to Hi-Z mode
+    cc1101.AutoCal(cc1101.IDLE_RXTX)                ' Perform auto-calibration when transitioning from Idle to TX
+    cc1101.Idle()
     
     ser.printf("Waiting for radio idle status...")
-    repeat until cc1101.State == 1
+    repeat until cc1101.State() == 1
     ser.printf("done\n")
 
     cc1101.CarrierFreq(433_900_000)                 ' Set carrier frequency
 
     ser.printf("Waiting for PLL lock...")
-    repeat until cc1101.PLLLocked == TRUE           ' Don't proceed until PLL is locked
+    repeat until cc1101.PLLLocked() == TRUE         ' Don't proceed until PLL is locked
     ser.printf("done\n")
 
     cc1101.TXPowerIndex(0)
     cc1101.TXPower(5)                               ' -30, -20, -15, -10, 0, 5, 7, 10 dBm
-    ser.printf("TXPower: %d dBm\n", cc1101.TXPower)
+    ser.printf("TXPower: %d dBm\n", cc1101.TXPower())
 
     ser.printf("Press any key to begin transmitting\n")
-    ser.CharIn
+    ser.CharIn()
 
-    Transmit
+    Transmit()
 
     FlashLED(LED, 100)     ' Signal execution finished
 
-PUB Transmit | count, tmp, to_node
+PUB Transmit() | count, tmp, to_node
 
     _pktlen := 10
     cc1101.NodeAddress(NODE_ADDRESS)                ' Set this node's address
-    cc1101.PayloadLenCfg (cc1101#PKTLEN_FIXED)      ' Fixed payload length
+    cc1101.PayloadLenCfg (cc1101.PKTLEN_FIXED)      ' Fixed payload length
     cc1101.PayloadLen (_pktlen)                     ' Set payload length to _pktlen
     cc1101.CRCCheckEnabled (TRUE)                   ' Enable CRC checks on received payloads
-    cc1101.SyncMode (cc1101#SYNCMODE_3032_CS)       ' Accept payload as valid only if:
+    cc1101.SyncMode (cc1101.SYNCMODE_3032_CS)       ' Accept payload as valid only if:
     cc1101.AppendStatus (FALSE)                     '   At least 30 of 32 syncword bits match
                                                     '   Carrier sense is above set threshold
     to_node := $01
 
-    ser.Clear
+    ser.Clear()
     ser.Position(0, 0)
-    ser.printf("Transmit mode - %dHz\n", cc1101.CarrierFreq)
+    ser.printf("Transmit mode - %dHz\n", cc1101.CarrierFreq())
     ser.printf("Transmitting to node $")
     ser.Hex(to_node, 2)
 
@@ -106,24 +99,23 @@ PUB Transmit | count, tmp, to_node
     _fifo.byte[5] := "T"
 
     count := 0
-    cc1101.AfterTX (cc1101#TXOFF_IDLE)              ' What state to change the radio to after transmission
+    cc1101.AfterTX (cc1101.TXOFF_IDLE)              ' What state to change the radio to after transmission
     repeat
         tmp := int.DecZeroed(count++, 4)            ' Tack a counter onto the
         bytemove(@_fifo.byte[6], tmp, 4)            '   end of the payload
         ser.position(0, 10)
         ser.printf("Sending %s", @_fifo)
-        cc1101.Idle
-        cc1101.FlushTX
-        cc1101.FSTX
-        cc1101.TXMode
+        cc1101.Idle()
+        cc1101.FlushTX()
+        cc1101.FSTX()
+        cc1101.TXMode()
         cc1101.TXPayload (_pktlen, @_fifo)
         time.Sleep (5)                              ' Try not to abuse the airwaves - wait between transmissions
 
-PUB Setup
+PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear
+    ser.Clear()
     ser.PrintF("Serial terminal started\n")
     if _cc1101_cog := cc1101.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
         ser.printf("CC1101 driver started\n")
