@@ -19,7 +19,7 @@ _int_ indicates the type of interface supported by the driver (e.g., spi, i2c, u
 | Method                                                | Description                                         |
 | ------------------------------------------------------|---------------------------------------------------- |
 |`AccelADCRes(bits)`                                    | Set accelerometer ADC resolution                    |
-|`AccelAxisEnabled(x, y, z)`                            | Enable accelerometer axis per bit mask              |
+|`AccelAxisEnabled(xyz_mask)`                           | Enable accelerometer axis per bit mask              |
 |`AccelData(ptr_x, ptr_y, ptr_z)`                       | Read accelerometer raw data                         |
 |`AccelDataOverrun`                                     | Flag indicating accelerometer data overrun          |
 |`AccelDataRate(Hz)`                                    | Set Accelerometer output data rate, in Hz           |
@@ -30,7 +30,7 @@ _int_ indicates the type of interface supported by the driver (e.g., spi, i2c, u
 |`DeviceID`                                             | Returns part identification read from device        |
 |`FIFOEnabled(enabled)`                                 | Enable sensor data FIFO                             |
 |`FIFOUnreadSamples`                                    | Number of unread samples stored in FIFO             |
-|`GyroAxisEnabled(x, y, z)`                             | Enable gyro axis per bit mask                       |
+|`GyroAxisEnabled(xyz_mask)`                            | Enable gyro axis per bit mask                       |
 |`GyroData(ptr_x, ptr_y, ptr_z)`                        | Read gyroscope raw data                             |
 |`GyroDataOverrun`                                      | Flag indicating gyroscope data overrun              |
 |`GyroDataRate(Hz)`                                     | Set Gyroscope output data rate, in Hz               |
@@ -40,7 +40,7 @@ _int_ indicates the type of interface supported by the driver (e.g., spi, i2c, u
 |`GyroOpMode(mode)`                                     | Set gyroscope operating mode                        |
 |`GyroScale(dps)`                                       | Set gyroscope full-scale                            |
 |`MagADCRes(bits)`                                      | Set magnetometer ADC resolution                     |
-|`MagAxisEnabled(xyz)`                                  | Enable magnetomer axis per bitmask                  |
+|`MagAxisEnabled(xyz_mask)`                             | Enable magnetomer axis per bitmask                  |
 |`MagData(ptr_x, ptr_y, ptr_z)`                         | Read magnetometer raw data                          |
 |`MagDataOverrun`                                       | Flag indicating magnetometer data overrun           |
 |`MagDataRate(Hz)`                                      | Set magnetometer output data rate, in Hz            |
