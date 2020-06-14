@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Created: Apr 26, 2018
-    Updated: Mar 28, 2020
+    Updated: Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,8 +14,8 @@
 
 CON
 
-    SLAVE_WR        = core#SLAVE_ADDR
-    SLAVE_RD        = core#SLAVE_ADDR|1
+    SLAVE_WR        = core.SLAVE_ADDR
+    SLAVE_RD        = core.SLAVE_ADDR|1
 
     DEF_HZ          = 400_000
     MAX_COLOR       = 1
@@ -38,7 +38,7 @@ VAR
     byte _disp_width, _disp_height, _disp_xmax, _disp_ymax
     byte _sa0
 
-PUB Null
+PUB Null()
 ' This is not a top-level object
 
 PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, dispbuffer_address, SLAVE_LSB=0): okay
@@ -52,7 +52,7 @@ PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, dispbuffer_address, SLAVE_LSB
 '       SLAVE_LSB: 0, 1
     _sa0 := abs(SLAVE_LSB == 1) << 1
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ =< core#I2C_MAX_FREQ
+        if I2C_HZ =< core.I2C_MAX_FREQ
             i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
             time.MSleep (20)
             if i2c.Present (SLAVE_WR | _sa0)                                         'Response from device?
@@ -65,11 +65,11 @@ PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, dispbuffer_address, SLAVE_LSB
                 return TRUE
     return FALSE                                                'If we got here, something went wrong
 
-PUB Stop
+PUB Stop()
 
     Powered(FALSE)
 
-PUB Defaults
+PUB Defaults()
 ' Apply power-on-reset default settings
     Powered(FALSE)
     ClockFreq (372)
@@ -114,7 +114,7 @@ PUB AddrMode(mode)
         OTHER:
             return
 
-    writeReg(core#CMD_MEM_ADDRMODE, 1, mode)
+    writeReg(core.CMD_MEM_ADDRMODE, 1, mode)
 
 PUB ChargePumpReg(enabled)
 ' Enable Charge Pump Regulator when display power enabled
@@ -126,9 +126,9 @@ PUB ChargePumpReg(enabled)
         OTHER:
             return
 
-    writeReg(core#CMD_CHARGEPUMP, 1, enabled)
+    writeReg(core.CMD_CHARGEPUMP, 1, enabled)
 
-PUB ClearAccel
+PUB ClearAccel()
 ' Dummy method
 
 PUB ClockFreq(kHz)
@@ -137,12 +137,12 @@ PUB ClockFreq(kHz)
 '   Any other value is ignored
 '   NOTE: Range is interpolated, based solely on the range specified in the datasheet, divided into 16 steps
     case kHz
-        core#FOSC_MIN..core#FOSC_MAX:
-            kHz := lookdownz(kHz: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407) << core#FLD_OSCFREQ
+        core.FOSC_MIN..core.FOSC_MAX:
+            kHz := lookdownz(kHz: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407) << core.FLD_OSCFREQ
         OTHER:
             return
 
-    writeReg(core#CMD_SETOSCFREQ, 1, kHz)
+    writeReg(core.CMD_SETOSCFREQ, 1, kHz)
 
 PUB COMLogicHighLevel(level)
 ' Set COMmon pins high logic level, relative to Vcc
@@ -161,7 +161,7 @@ PUB COMLogicHighLevel(level)
         OTHER:
             level := %010 << 4
 
-    writeReg(core#CMD_SETVCOMDESEL, 1, level)
+    writeReg(core.CMD_SETVCOMDESEL, 1, level)
 
 PUB COMPinCfg(pin_config, remap) | config
 ' Set COM Pins Hardware Configuration and Left/Right Remap
@@ -180,7 +180,7 @@ PUB COMPinCfg(pin_config, remap) | config
             config := config | (1 << 5)
         OTHER:
 
-    writeReg(core#CMD_SETCOM_CFG, 1, config)
+    writeReg(core.CMD_SETCOM_CFG, 1, config)
 
 PUB Contrast(level)
 ' Set Contrast Level
@@ -191,7 +191,7 @@ PUB Contrast(level)
         OTHER:
             level := 127
 
-    writeReg(core#CMD_CONTRAST, 1, level)
+    writeReg(core.CMD_CONTRAST, 1, level)
 
 PUB DisplayBounds(sx, sy, ex, ey)
 ' Set displayable area
@@ -200,8 +200,8 @@ PUB DisplayBounds(sx, sy, ex, ey)
 
     sy >>= 3
     ey >>= 3
-    writeReg(core#CMD_SET_COLADDR, 2, (ex << 8) | sx)
-    writeReg(core#CMD_SET_PAGEADDR, 2, (ey << 8) | sy)
+    writeReg(core.CMD_SET_COLADDR, 2, (ex << 8) | sx)
+    writeReg(core.CMD_SET_PAGEADDR, 2, (ey << 8) | sy)
 
 PUB DisplayInverted(enabled) | tmp
 ' Invert display colors
@@ -224,7 +224,7 @@ PUB DisplayLines(lines)
         OTHER:
             return
 
-    writeReg(core#CMD_SETMUXRATIO, 1, lines)
+    writeReg(core.CMD_SETMUXRATIO, 1, lines)
 
 PUB DisplayOffset(offset)
 ' Set display offset/vertical shift
@@ -235,7 +235,7 @@ PUB DisplayOffset(offset)
         OTHER:
             offset := 0
 
-    writeReg(core#CMD_SETDISPOFFS, 1, offset)
+    writeReg(core.CMD_SETDISPOFFS, 1, offset)
 
 PUB DisplayStartLine(start_line)
 ' Set Display Start Line
@@ -252,12 +252,12 @@ PUB DisplayVisibility(mode) | tmp
 ' Set display visibility
     case mode
         NORMAL:
-            writeReg (core#CMD_RAMDISP_ON, 0, 0)
-            writeReg (core#CMD_DISP_NORM, 0, 0)
+            writeReg (core.CMD_RAMDISP_ON, 0, 0)
+            writeReg (core.CMD_DISP_NORM, 0, 0)
         ALL_ON:
-            writeReg (core#CMD_RAMDISP_ON, 0, 1)
+            writeReg (core.CMD_RAMDISP_ON, 0, 1)
         INVERTED:
-            writeReg (core#CMD_DISP_NORM, 0, 1)
+            writeReg (core.CMD_DISP_NORM, 0, 1)
         OTHER:
             return FALSE
 
@@ -271,7 +271,7 @@ PUB MirrorH(enabled)
         OTHER:
             return
 
-    writeReg(core#CMD_SEG_MAP0, 0, enabled)
+    writeReg(core.CMD_SEG_MAP0, 0, enabled)
 
 PUB MirrorV(enabled)
 ' Mirror display, vertically
@@ -284,13 +284,13 @@ PUB MirrorV(enabled)
         OTHER:
             return
 
-    writeReg(core#CMD_COMDIR_NORM, 0, enabled)
+    writeReg(core.CMD_COMDIR_NORM, 0, enabled)
 
 PUB Powered(enabled) | tmp
 ' Enable display power
     case abs(enabled)
         0, 1:
-            enabled := abs(enabled) + core#CMD_DISP_OFF
+            enabled := abs(enabled) + core.CMD_DISP_OFF
         OTHER:
             return
     writeReg(enabled, 0, 0)
@@ -309,18 +309,18 @@ PUB PrechargePeriod(phs1_clks, phs2_clks)
         OTHER:
             phs2_clks := 2
 
-    writeReg(core#CMD_SETPRECHARGE, 1, (phs2_clks << 4) | phs1_clks)
+    writeReg(core.CMD_SETPRECHARGE, 1, (phs2_clks << 4) | phs1_clks)
 
-PUB Update | tmp
+PUB Update() | tmp
 ' Write display buffer to display
     DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
 
-    i2c.start
+    i2c.start()
     i2c.write (SLAVE_WR | _sa0)
-    i2c.write (core#CTRLBYTE_DATA)
+    i2c.write (core.CTRLBYTE_DATA)
     repeat tmp from 0 to _buff_sz-1
         i2c.write (byte[_ptr_drawbuffer][tmp])
-    i2c.stop
+    i2c.stop()
 
 PUB WriteBuffer(buff_addr, buff_sz) | tmp
 ' Write alternate buffer to display
@@ -328,17 +328,17 @@ PUB WriteBuffer(buff_addr, buff_sz) | tmp
 '   buff_addr: address of buffer to write to display
     DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
 
-    i2c.start
+    i2c.start()
     i2c.write (SLAVE_WR | _sa0)
-    i2c.write (core#CTRLBYTE_DATA)
+    i2c.write (core.CTRLBYTE_DATA)
     repeat tmp from 0 to buff_sz-1
         i2c.write (byte[buff_addr][tmp])
-    i2c.stop
+    i2c.stop()
 
 PRI writeReg(reg_nr, nr_bytes, val) | cmd_packet[2], tmp, ackbit
 ' Write to device internal registers
     cmd_packet.byte[0] := SLAVE_WR | _sa0
-    cmd_packet.byte[1] := core#CTRLBYTE_CMD
+    cmd_packet.byte[1] := core.CTRLBYTE_CMD
     case nr_bytes
         0:
             cmd_packet.byte[2] := reg_nr | val 'Simple command
@@ -352,13 +352,13 @@ PRI writeReg(reg_nr, nr_bytes, val) | cmd_packet[2], tmp, ackbit
         OTHER:
             return FALSE
 
-    i2c.start
+    i2c.start()
     repeat tmp from 0 to 2 + nr_bytes
         ackbit := i2c.write (cmd_packet.byte[tmp])
-        if ackbit == i2c#NAK
-          i2c.stop
+        if ackbit == i2c.NAK
+          i2c.stop()
           return ($DEAD << 16)|tmp
-    i2c.stop
+    i2c.stop()
 
 DAT
 {
