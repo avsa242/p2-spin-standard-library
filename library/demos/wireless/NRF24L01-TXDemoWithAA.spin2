@@ -13,20 +13,13 @@
 
 CON
 
-    XTAL            = cfg#XTAL
-    XDIV            = cfg#XDIV
-    XMUL            = cfg#XMUL
-    XDIVP           = cfg#XDIVP
-    XOSC            = cfg#XOSC
-    XSEL            = cfg#XSEL
-    XPPPP           = cfg#XPPPP
-    CLOCKFREQ       = cfg#CLOCKFREQ
-    SETFREQ         = cfg#SETFREQ
-    ENAFREQ         = cfg#ENAFREQ
+    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = cfg._clkfreq_def
 
-    LED             = cfg#LED1
-    SER_RX          = cfg#SER_RX
-    SER_TX          = cfg#SER_TX
+' -- User-modifiable constants
+    LED             = cfg.LED1
+    SER_RX          = cfg.SER_RX
+    SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
     CS_PIN          = 45
@@ -36,8 +29,10 @@ CON
     CE_PIN          = 44
     SCK_FREQ        = 10_000_000
 
-    CLEAR           = 1
     CHANNEL         = 2
+' --
+
+    CLEAR           = 1
 
 OBJ
 
@@ -54,17 +49,17 @@ VAR
     long _fifo[16]
     byte _pktlen
 
-PUB Main | choice
+PUB Main()
 
-    Setup
+    Setup()
 
     nrf24.Channel(CHANNEL)
     ser.printf("Press any key to begin transmitting\n")
-    ser.CharIn
+    ser.CharIn()
 
-    Transmit
+    Transmit()
 
-PUB Transmit | count, tmp, addr[2], to_node, i, max_retrans, pkts_retrans, lost_pkts, countdown
+PUB Transmit() | count, tmp, addr[2], to_node, i, max_retrans, pkts_retrans, lost_pkts, countdown
 
     _pktlen := 10
 
@@ -76,8 +71,8 @@ PUB Transmit | count, tmp, addr[2], to_node, i, max_retrans, pkts_retrans, lost_
     nrf24.NodeAddress (@addr)                               ' Set TX and RX address to the same
                                                             ' (RX pipe is used for receipt of Auto-Acknowledgement)
 
-    nrf24.TXMode                                            ' Set to Transmit mode and
-    nrf24.FlushTX                                           '   empty the transmit FIFO
+    nrf24.TXMode()                                          ' Set to Transmit mode and
+    nrf24.FlushTX()                                         '   empty the transmit FIFO
     nrf24.CRCCheckEnabled(TRUE)                             ' TRUE, FALSE (enable CRC generation, checking)
     nrf24.CRCLength (2)                                     ' 1, 2 bytes (CRC length)
     nrf24.DataRate(2000)                                    ' 250, 1000, 2000 (kbps)
@@ -89,9 +84,9 @@ PUB Transmit | count, tmp, addr[2], to_node, i, max_retrans, pkts_retrans, lost_
     nrf24.MaxRetransReached (CLEAR)                         '
     nrf24.PayloadLen (_pktlen, 0)                           ' Payload length 0..32 (bytes), 0..5 (pipe number)
 
-    ser.Clear
+    ser.Clear()
     ser.Position(0, 0)
-    ser.printf("Transmit mode - %dMHz\n", nrf24.CarrierFreq)
+    ser.printf("Transmit mode - %dMHz\n", nrf24.CarrierFreq())
     ser.printf("Transmitting to node $")
     repeat i from 4 to 0
         ser.Hex(addr.byte[i], 2)
@@ -107,9 +102,9 @@ PUB Transmit | count, tmp, addr[2], to_node, i, max_retrans, pkts_retrans, lost_
     countdown := 20
     count := 0
     repeat
-        max_retrans := nrf24.MaxRetransReached              '
-        pkts_retrans := nrf24.PacketsRetransmitted          ' Collect some packet statistics
-        lost_pkts := nrf24.LostPackets                      '
+        max_retrans := nrf24.MaxRetransReached()            '
+        pkts_retrans := nrf24.PacketsRetransmitted()        ' Collect some packet statistics
+        lost_pkts := nrf24.LostPackets()                    '
         ser.position(0, 5)
         ser.printf("Max retrans: %d \nPackets retransmitted: %d \nLost packets: %d \n", max_retrans, pkts_retrans, lost_pkts)
         if max_retrans == TRUE                              ' If max number of retransmissions reached,
@@ -130,11 +125,10 @@ PUB Transmit | count, tmp, addr[2], to_node, i, max_retrans, pkts_retrans, lost_
         if countdown-- < 0
             countdown := 20
 
-PUB Setup
+PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear
+    ser.Clear()
     ser.PrintF("Serial terminal started\n")
     if _nrf24_cog := nrf24.Start (CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
         ser.printf("NRF24L01+ driver started\n")

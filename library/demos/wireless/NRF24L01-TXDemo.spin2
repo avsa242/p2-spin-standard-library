@@ -5,27 +5,20 @@
     Description: nRF24L01+ Transmit demo (no ShockBurst/Auto Acknowledgement)
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated May 7, 2020
+    Updated Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    XTAL            = cfg#XTAL
-    XDIV            = cfg#XDIV
-    XMUL            = cfg#XMUL
-    XDIVP           = cfg#XDIVP
-    XOSC            = cfg#XOSC
-    XSEL            = cfg#XSEL
-    XPPPP           = cfg#XPPPP
-    CLOCKFREQ       = cfg#CLOCKFREQ
-    SETFREQ         = cfg#SETFREQ
-    ENAFREQ         = cfg#ENAFREQ
+    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = cfg._clkfreq_def
 
-    LED             = cfg#LED1
-    SER_RX          = cfg#SER_RX
-    SER_TX          = cfg#SER_TX
+' -- User-modifiable constants
+    LED             = cfg.LED1
+    SER_RX          = cfg.SER_RX
+    SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
     CS_PIN          = 45
@@ -35,8 +28,10 @@ CON
     CE_PIN          = 44
     SCK_FREQ        = 5_000_000                                                                                  
 
-    CLEAR           = 1
     CHANNEL         = 2
+' --
+
+    CLEAR           = 1
 
 OBJ
 
@@ -53,21 +48,21 @@ VAR
     long _fifo[16]
     byte _payloadlen
 
-PUB Main
+PUB Main()
 
-    Setup
+    Setup()
 
     ser.printf("Press any key to begin transmitting\n")
-    ser.CharIn
+    ser.CharIn()
 
-    Transmit
+    Transmit()
 
-PUB Transmit | addr[2], count, i, tmp
+PUB Transmit() | addr[2], count, i, tmp
 
     _payloadlen := 8                                        ' Payload length. MUST match the RX side for
     nrf24.PayloadLen (_payloadlen, 0)                       '   successful transmission
 
-    nrf24.TXMode                                            ' Set to Transmit mode
+    nrf24.TXMode()                                          ' Set to Transmit mode
     nrf24.Powered (TRUE)
     nrf24.TXPower (-18)                                     ' Set transmit power: -18, -12, -6, 0 (dBm)
     nrf24.Channel (2)                                       ' Set transmit channel. MUST match the RX side for
@@ -78,14 +73,14 @@ PUB Transmit | addr[2], count, i, tmp
     nrf24.MaxRetransReached(CLEAR)                          ' Clear Max. Retransmit Reached interrupt
 
     addr := string($E7, $E7, $E7, $E7, $E7)                 ' Set address to transmit to
-    nrf24.TXAddr (addr, nrf24#WRITE)                        '   MUST match one pipe on the RX side
+    nrf24.TXAddr (addr, nrf24.WRITE)                        '   MUST match one pipe on the RX side
 
-    ser.Clear
+    ser.Clear()
     ser.Position(0, 0)
-    ser.printf("Transmit mode: Channel %d\n", nrf24.Channel)' Show the currently set channel
+    ser.printf("Transmit mode: Channel %d\n", nrf24.Channel())' Show the currently set channel
     ser.printf("Transmitting to node $")
 
-    nrf24.TXAddr (@addr, nrf24#READ)                        ' Read back transmit-to address
+    nrf24.TXAddr (@addr, nrf24.READ)                        ' Read back transmit-to address
     repeat i from 4 to 0                                    ' ...
         ser.Hex(addr.byte[i], 2)                            '   and show it
 
@@ -107,14 +102,13 @@ PUB Transmit | addr[2], count, i, tmp
         ser.Hexdump(@_fifo, 0, _payloadlen, _payloadlen, 0, 9)
 
         nrf24.PayloadSent(CLEAR)                            ' Clear interrupt
-        nrf24.FlushTX                                       '   and flush FIFO. Ready for the next packet
+        nrf24.FlushTX()                                     '   and flush FIFO. Ready for the next packet
         time.MSleep(1000)                                   ' Don't abuse the airwaves - wait between packets
 
-PUB Setup
+PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear
+    ser.Clear()
     ser.PrintF("Serial terminal started\n")
     if _nrf24_cog := nrf24.Start (CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
         ser.printf("NRF24L01+ driver started\n")
