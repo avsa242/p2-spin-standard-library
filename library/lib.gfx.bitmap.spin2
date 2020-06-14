@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2020
     Started May 19, 2019
-    Updated Jun 6, 2020
+    Updated Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -45,6 +45,23 @@ PUB Box(x0, y0, x1, y1, color, filled=0) | x, y
                 Plot(x0, y, color)
                 Plot(x1, y, color)
         TRUE:
+#ifdef SSD130X
+            repeat y from y0 to y1                          ' Temporary for 1bpp drivers
+                repeat x from x0 to x1
+                    Plot(x, y, color)
+#elseifdef IL3820
+            repeat y from y0 to y1
+                repeat x from x0 to x1
+                    Plot(x, y, color)
+#elseifdef LEDMATRIX_CHARLIEPLEXED
+            repeat y from y0 to y1
+                repeat x from x0 to x1
+                    Plot(x, y, color)
+#elseifdef HT16K33-ADAFRUIT
+            repeat y from y0 to y1
+                repeat x from x0 to x1
+                    Plot(x, y, color)
+#else
             if x0 >= 0 and x0 <= _disp_width and y0 >= 0 and y0 <= _disp_height and x1 >= 0 and x1 <= _disp_width and y1 >= 0 and y1 <= _disp_height
                 x := abs(x1-x0)
                 if x1 < x0
@@ -55,6 +72,7 @@ PUB Box(x0, y0, x1, y1, color, filled=0) | x, y
                         memFill(x0, y, color, x)
             else
                 return FALSE
+#endif
 
 PUB Char (ch) | glyph_col, glyph_row, x, last_glyph_col, last_glyph_row, ch_offset
 ' Write a character to the display
