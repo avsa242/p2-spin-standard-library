@@ -5,36 +5,29 @@
     Description: Test of the VEML6075 driver (P2 version)
     Copyright (c) 2020
     Started Nov 14, 2019
-    Updated May 15, 2020
+    Updated Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
+    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = cfg._clkfreq_def
 
     TEXT_COL    = 0
     DATA_COL    = 9
 
-' User-modifiable constants
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
     SCL_PIN     = 27
     SDA_PIN     = 28
     I2C_HZ      = 400_000
+' --
 
 OBJ
 
@@ -50,37 +43,37 @@ VAR
     long _fails, _expanded
     byte _ser_cog, _row
 
-PUB Main | uva, uvb, vis, ir, i
+PUB Main() | uva, uvb, vis, ir, i
 
-    Setup
+    Setup()
     uv.Powered (TRUE)
-    uv.Dynamic (uv#DYNAMIC_NORM)
+    uv.Dynamic (uv.DYNAMIC_NORM)
     uv.IntegrationTime (100)
-    uv.OpMode (uv#CONTINUOUS)
+    uv.OpMode (uv.CONTINUOUS)
 
     repeat
-        uva := uv.UVA
-        uvb := uv.UVB
-        vis := uv.Visible
-        ir := uv.IR
+        uva := uv.UVA()
+        uvb := uv.UVB()
+        vis := uv.Visible()
+        ir := uv.IR()
 
         ser.Position (TEXT_COL, 5)
         ser.PrintF("UVA:")
         ser.Position (DATA_COL, 5)
         ser.Str(int.DecPadded (uva, 5))
-        ser.NewLine
+        ser.newline()
 
         ser.Position (TEXT_COL, 6)
         ser.PrintF("UVB:")
         ser.Position (DATA_COL, 6)
         ser.Str(int.DecPadded (uvb, 5))
-        ser.NewLine
+        ser.newline()
 
         ser.Position (TEXT_COL, 7)
         ser.PrintF("Visible:")
         ser.Position (DATA_COL, 7)
         ser.Str(int.DecPadded (vis, 5))
-        ser.NewLine
+        ser.newline()
 
         ser.Position (TEXT_COL, 8)
         ser.PrintF("IR:")
@@ -89,18 +82,17 @@ PUB Main | uva, uvb, vis, ir, i
         time.MSleep (50)
     FlashLED (LED, 100)
 
-PUB Setup
+PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear
+    ser.Clear()
     ser.PrintF("Serial terminal started\n")
 
     if uv.Start (SCL_PIN, SDA_PIN, I2C_HZ)
         ser.PrintF("VEML6075 driver started\n")
     else
         ser.PrintF("VEML6075 driver failed to start - halting\n")
-        uv.Stop
+        uv.Stop()
         time.MSleep (500)
         FlashLED (LED, 500)
 
