@@ -5,27 +5,19 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated May 14, 2020
+    Updated Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
+    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = cfg._clkfreq_def
 
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
     I2C_SCL     = 27
@@ -51,16 +43,16 @@ VAR
 
     byte _ser_cog, _tsl2591_cog
 
-PUB Main | atime_ms, againx, Lux1, cpl, ch0, ch1, scale
+PUB Main() | atime_ms, againx, Lux1, cpl, ch0, ch1, scale
 
-    Setup
+    Setup()
 
     tsl2591.Gain (1)                                                ' Gain factor (x): 1, 25, 428, 9876
     tsl2591.IntegrationTime (100)                                   ' ADC Integration Time (ms): 100, 200, 300, 400, 500, 600
 
     scale := 1_000
-    ATIME_ms := tsl2591.IntegrationTime
-    AGAINx:= tsl2591.Gain
+    ATIME_ms := tsl2591.IntegrationTime()
+    AGAINx:= tsl2591.Gain()
     CPL := ((ATIME_ms * AGAINx) * scale) / (GA * DF)
 
     ser.Position (0, 4)
@@ -71,10 +63,10 @@ PUB Main | atime_ms, againx, Lux1, cpl, ch0, ch1, scale
     ser.PrintF("Counts per Lux: %d\n", CPL)
 
     repeat
-        repeat until tsl2591.DataReady
-        tsl2591.Measure (tsl2591#BOTH)
-        ch0 := tsl2591.LastFull * scale
-        ch1 := tsl2591.LastIR * scale
+        repeat until tsl2591.DataReady()
+        tsl2591.Measure (tsl2591.BOTH)
+        ch0 := tsl2591.LastFull() * scale
+        ch1 := tsl2591.LastIR() * scale
         Lux1 := ((ch0 - ch1) * ((1 * scale) - (ch1 / ch0))) / CPL   ' XXX Unverified
         ser.Position (0, 10)
         ser.PrintF("CH0: %s     \n", int.DecPadded (ch0 / scale, PADDING))
@@ -85,7 +77,7 @@ PUB Main | atime_ms, againx, Lux1, cpl, ch0, ch1, scale
         Fractional (Lux1, scale)
 
 PUB Fractional(scaled, divisor) | whole, part, places, tmp
-' Display a scaled up number in its natural form (#.###...) - scale it back down by divisor
+' Display a scaled up number in its natural form (........) - scale it back down by divisor
     whole := scaled / divisor
     tmp := divisor
     places := 0
@@ -97,29 +89,23 @@ PUB Fractional(scaled, divisor) | whole, part, places, tmp
     part := int.DecZeroed(abs(scaled // divisor), places)
     ser.printf(" %d.%s      ", whole, part)
 
-PUB Setup
+PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear
+    ser.Clear()
     ser.PrintF("Serial terminal started\n")
     if _tsl2591_cog := tsl2591.Start(I2C_SCL, I2C_SDA, I2C_HZ)
         ser.PrintF("TSL2591 object started\n")
     else
         ser.PrintF("TSL2591 object failed to start - halting\n")
         time.MSleep (1)
-        tsl2591.Stop
+        tsl2591.Stop()
         FlashLED (LED, 500)
-    tsl2591.Reset
+    tsl2591.Reset()
     tsl2591.Powered (TRUE)
     tsl2591.SensorEnabled (TRUE)
 
-PUB FlashLED(led_pin, delay_ms)
-
-    io.Output(led_pin)
-    repeat
-        io.Toggle(led_pin)
-        time.MSleep(delay_ms)
+#include "lib.utility.spin2"
 
 DAT
 {
