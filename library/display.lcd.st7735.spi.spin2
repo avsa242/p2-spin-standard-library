@@ -14,6 +14,9 @@
 
 CON
 
+    MAX_COLOR           = 65535
+    BYTESPERPX          = 2
+
 ' Display visibility modes
     NORMAL              = 0
     ALL_OFF             = 1
@@ -61,6 +64,8 @@ VAR
 '   Shadow registers
     byte _colmod, _madctl, _opmode
 
+    byte BYTESPERLN
+
 OBJ
 
     spi : "com.spi"
@@ -91,7 +96,8 @@ PUB Start(CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RESET_PIN, SCK_HZ, disp_width, disp_
         _disp_height := disp_height
         _disp_xmax := _disp_width-1
         _disp_ymax := _disp_height-1
-        _buff_sz := (_disp_width * _disp_height) * 2
+        BYTESPERLN := _disp_width * BYTESPERPX
+        _buff_sz := (_disp_width * _disp_height) * BYTESPERPX
         Reset()
         Address(drawbuffer_address)
         return okay
