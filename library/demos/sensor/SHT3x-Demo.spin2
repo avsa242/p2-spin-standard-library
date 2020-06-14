@@ -90,7 +90,7 @@ PUB Setup()
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear()
     ser.printf("Serial terminal started\n")
-    if _sht3x_cog := sht3x.Startx(SCL_PIN, SDA_PIN, I2C_HZ, 0)
+    if _sht3x_cog := sht3x.Start(SCL_PIN, SDA_PIN, I2C_HZ, 0)
         ser.printf("SHT3x driver (S/N %x) started\n", sht3x.SerialNum())
     else
         ser.printf("SHT3x driver failed to start - halting")
