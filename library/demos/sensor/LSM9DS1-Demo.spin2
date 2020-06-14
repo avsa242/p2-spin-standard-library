@@ -6,7 +6,7 @@
         outputs live data from the chip. (P2 version)
     Copyright (c) 2020
     Started Nov 3, 2019
-    Updated Jun 13, 2020
+    Updated Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -22,12 +22,12 @@ CON
     SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
-    SCL_PIN     = 14
-    SDIO_PIN    = 12
-    CS_AG_PIN   = 10
-    CS_M_PIN    = 8
-    INT_AG_PIN  = 9
-    INT_M_PIN   = 11
+    SCL_PIN     = 32
+    SDIO_PIN    = 33
+    CS_AG_PIN   = 34
+    CS_M_PIN    = 35
+    INT_AG_PIN  = 24
+    INT_M_PIN   = 25
     SCK_FREQ    = 5_000_000
 ' --
 
