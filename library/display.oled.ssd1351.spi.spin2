@@ -5,7 +5,7 @@
     Description: Driver for Solomon Systech SSD1351 RGB OLED displays (P2 version)
     Copyright (c) 2020
     Started: Mar 12, 2020
-    Updated: May 13, 2020
+    Updated: Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -82,15 +82,15 @@ PUB Start (CS_PIN, DC_PIN, DIN_PIN, CLK_PIN, RES_PIN, CLK_HZ, WIDTH, HEIGHT, dra
             _buff_sz := _disp_width * _disp_height * 2
 
             Address(drawbuffer_address)
-            Reset
+            Reset()
             Powered(TRUE)
             time.MSleep(300)
             LockDisplay(ALL_UNLOCK)
             LockDisplay(CFG_UNLOCK)
             return okay
-    return FALSE
+    return
 
-PUB Stop
+PUB Stop()
 
     DisplayVisibility(ALL_OFF)
     Powered (FALSE)
@@ -101,7 +101,7 @@ PUB Address(addr)
 '       display.Address(@_framebuffer)
     _ptr_drawbuffer := addr
 
-PUB Defaults
+PUB Defaults()
 ' Apply power-on-reset default settings
     DisplayBounds(0, 0, 127, 127)
     AddrMode(ADDR_HORIZ)
@@ -125,7 +125,7 @@ PUB Defaults
     Powered(TRUE)
     DisplayVisibility(NORMAL)
 
-PUB DefaultsCommon
+PUB DefaultsCommon()
 ' Apply settings that may be more commonly used but differ from factory settings
     DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
     AddrMode(ADDR_HORIZ)
@@ -149,7 +149,7 @@ PUB DefaultsCommon
     Powered(TRUE)
     DisplayVisibility(NORMAL)
 
-PUB AddrMode(mode) | tmp
+PUB AddrMode(mode): result | tmp
 ' Set display internal addressing mode
 '   Valid values:
 '  *ADDR_HORIZ (0): Horizontal addressing mode
@@ -158,17 +158,18 @@ PUB AddrMode(mode) | tmp
     case_fast mode
         ADDR_HORIZ, ADDR_VERT:
         OTHER:
-            return (tmp >> core#FLD_ADDRINC) & %1
+            result := (tmp >> core.FLD_ADDRINC) & %1
+            return
 
-    _sh_REMAPCOLOR &= core#MASK_SEGREMAP
-    _sh_REMAPCOLOR := (_sh_REMAPCOLOR | mode) & core#SETREMAP_MASK
-    writeReg (core#SETREMAP, 1, @_sh_REMAPCOLOR)
+    _sh_REMAPCOLOR &= core.MASK_SEGREMAP
+    _sh_REMAPCOLOR := (_sh_REMAPCOLOR | mode) & core.SETREMAP_MASK
+    writeReg (core.SETREMAP, 1, @_sh_REMAPCOLOR)
 
-PUB ClearAccel | tmp
+PUB ClearAccel() | tmp
 ' Clear the display directly, bypassing the display buffer
     tmp := $00_00_00_00
     repeat _buff_sz/4
-        writeReg(core#WRITERAM, 4, @tmp)
+        writeReg(core.WRITERAM, 4, @tmp)
 
 PUB ClockDiv(divider) | tmp
 ' Set clock frequency divider used by the display controller
@@ -179,13 +180,13 @@ PUB ClockDiv(divider) | tmp
         1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024:
             divider -= 1
         OTHER:
-            return 1 << (tmp & core#BITS_CLKDIV)
+            return 1 << (tmp & core.BITS_CLKDIV)
 
-    _sh_CLK &= core#MASK_CLKDIV
+    _sh_CLK &= core.MASK_CLKDIV
     _sh_CLK := _sh_CLK | divider
-    writeReg (core#CLOCKDIV, 1, @_sh_CLK)
+    writeReg (core.CLOCKDIV, 1, @_sh_CLK)
 
-PUB ClockFreq(freq) | tmp
+PUB ClockFreq(freq): result | tmp
 ' Set display internal oscillator frequency, in kHz
 '   Valid values: 2500..3100 (default: 3020)
 '   Any other value returns the current setting
@@ -194,16 +195,17 @@ PUB ClockFreq(freq) | tmp
     tmp := _sh_CLK
     case freq
         2500..3100:
-            freq := ((freq-2500) / 40) << core#FLD_FOSCFREQ
+            freq := ((freq-2500) / 40) << core.FLD_FOSCFREQ
         OTHER:
-            tmp := (tmp >> core#FLD_FOSCFREQ) & core#BITS_FOSCFREQ
-            return (tmp * 40) + 2500
+            result := (tmp >> core.FLD_FOSCFREQ) & core.BITS_FOSCFREQ
+            result := (result * 40) + 2500
+            return
 
-    _sh_CLK &= core#MASK_FOSCFREQ
+    _sh_CLK &= core.MASK_FOSCFREQ
     _sh_CLK := _sh_CLK | freq
-    writeReg (core#CLOCKDIV, 1, @_sh_CLK)
+    writeReg (core.CLOCKDIV, 1, @_sh_CLK)
 
-PUB ColorDepth(format) | tmp
+PUB ColorDepth(format): result | tmp
 ' Set expected color format of pixel data
 '   Valid values:
 '      *COLOR_65K (0): 16-bit/65536 color format 1
@@ -213,14 +215,15 @@ PUB ColorDepth(format) | tmp
     tmp := _sh_REMAPCOLOR
     case_fast format
         COLOR_65K, COLOR_262K, COLOR_262K65K2:
-            format <<= core#FLD_COLORFORMAT
+            format <<= core.FLD_COLORFORMAT
         OTHER:
-            return tmp >> core#FLD_COLORFORMAT
+            result := tmp >> core.FLD_COLORFORMAT
+            return
 
-    _sh_REMAPCOLOR &= core#MASK_COLORFORMAT
+    _sh_REMAPCOLOR &= core.MASK_COLORFORMAT 
     _sh_REMAPCOLOR := _sh_REMAPCOLOR | format
 
-    writeReg (core#SETREMAP, 1, @_sh_REMAPCOLOR)
+    writeReg (core.SETREMAP, 1, @_sh_REMAPCOLOR)
 
 PUB COMHVoltage(mV) | tmp
 ' Set logic high level threshold of COM pins rel. to Vcc, in millivolts
@@ -232,9 +235,9 @@ PUB COMHVoltage(mV) | tmp
         720..860:
             mV := (mV - 720) / 20
         OTHER:
-            return FALSE
+            return
 
-    writeReg (core#VCOMH, 1, @mV)
+    writeReg (core.VCOMH, 1, @mV)
 
 PUB Contrast(level)
 ' Set display contrast/brightness of all subpixels to the same value
@@ -249,20 +252,20 @@ PUB ContrastABC(a, b, c)
     case a
         0..255:
         OTHER:
-            return FALSE
+            return
     case b
         0..255:
         OTHER:
-            return FALSE
+            return
     case c
         0..255:
         OTHER:
-            return FALSE
+            return
 
     a.byte[0] := a
     a.byte[1] := b
     a.byte[2] := c 
-    writeReg(core#SETCONTRASTABC, 3, @a)
+    writeReg(core.SETCONTRASTABC, 3, @a)
 
 PUB DisplayBounds(sx, sy, ex, ey) | tmp[2]
 ' Set drawable display region for subsequent drawing operations
@@ -277,8 +280,8 @@ PUB DisplayBounds(sx, sy, ex, ey) | tmp[2]
     tmp.byte[1] := ex
     tmp.byte[2] := sy
     tmp.byte[3] := ey
-    writeReg (core#SETCOLUMN, 2, @tmp)
-    writeReg (core#SETROW, 2, @tmp.byte[2])
+    writeReg (core.SETCOLUMN, 2, @tmp)
+    writeReg (core.SETROW, 2, @tmp.byte[2])
 
 PUB DisplayLines(lines)
 ' Set total number of display lines
@@ -288,9 +291,9 @@ PUB DisplayLines(lines)
         16..128:
             lines -= 1
         OTHER:
-            return FALSE
+            return
 
-    writeReg (core#SETMUXRATIO, 1, @lines)
+    writeReg (core.SETMUXRATIO, 1, @lines)
 
 PUB DisplayInverted(enabled)
 ' Invert display colors
@@ -300,7 +303,7 @@ PUB DisplayInverted(enabled)
         0, 1:
             DisplayVisibility(INVERTED - abs(enabled))
         OTHER:
-            return FALSE
+            return
 
 PUB DisplayOffset(disp_line)
 ' Set display offset/vertical shift, in lines
@@ -309,9 +312,9 @@ PUB DisplayOffset(disp_line)
     case_fast disp_line
         0..127:
         OTHER:
-            return FALSE
+            return
 
-    writeReg (core#DISPLAYOFFSET, 1, @disp_line)
+    writeReg (core.DISPLAYOFFSET, 1, @disp_line)
 
 PUB DisplayStartLine(disp_line)
 ' Set display start line
@@ -320,9 +323,9 @@ PUB DisplayStartLine(disp_line)
     case_fast disp_line
         0..127:
         OTHER:
-            return FALSE
+            return
 
-    writeReg (core#STARTLINE, 1, @disp_line)
+    writeReg (core.STARTLINE, 1, @disp_line)
 
 PUB DisplayVisibility(mode)
 ' Set display visibility
@@ -334,13 +337,13 @@ PUB DisplayVisibility(mode)
 '   NOTE: This setting doesn't affect the contents of graphics RAM, only how they are displayed
     case_fast mode
         ALL_OFF, ALL_ON, NORMAL, INVERTED:
-            mode := mode + core#DISPLAYALLOFF
+            mode := mode + core.DISPLAYALLOFF
         OTHER:
             return
 
     writeReg(mode, 0, 0)
 
-PUB Interlaced(enabled) | tmp
+PUB Interlaced(enabled): result | tmp
 ' Alternate every other display line:
 ' Lines 0..31 will appear on even rows (starting on row 0)
 ' Lines 32..63 will appear on odd rows (starting on row 1)
@@ -349,13 +352,14 @@ PUB Interlaced(enabled) | tmp
     tmp := _sh_REMAPCOLOR
     case_fast abs(enabled)
         0, 1:
-            enabled := (abs(enabled) ^ 1) << core#FLD_COMSPLIT
+            enabled := (abs(enabled) ^ 1) << core.FLD_COMSPLIT
         OTHER:
-            return not (((tmp >> core#FLD_COMSPLIT) & %1) * TRUE)
+            result := not (((tmp >> core.FLD_COMSPLIT) & %1) * TRUE)
+            return
 
-    _sh_REMAPCOLOR &= core#MASK_COMSPLIT
-    _sh_REMAPCOLOR := (_sh_REMAPCOLOR | enabled) & core#SETREMAP_MASK
-    writeReg (core#SETREMAP, 1, @_sh_REMAPCOLOR)
+    _sh_REMAPCOLOR &= core.MASK_COMSPLIT
+    _sh_REMAPCOLOR := (_sh_REMAPCOLOR | enabled) & core.SETREMAP_MASK
+    writeReg (core.SETREMAP, 1, @_sh_REMAPCOLOR)
 
 PUB LockDisplay(mode)
 ' Lock the display controller from executing commands
@@ -367,41 +371,43 @@ PUB LockDisplay(mode)
     case_fast mode
         ALL_UNLOCK, ALL_LOCK, CFG_LOCK, CFG_UNLOCK:
         OTHER:
-            return FALSE
+            return
 
-    writeReg(core#SETLOCK, 1, @mode)
+    writeReg(core.SETLOCK, 1, @mode)
 
-PUB MirrorH(enabled) | tmp
+PUB MirrorH(enabled): result | tmp
 ' Mirror the display, horizontally
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value returns the current setting
     tmp := _sh_REMAPCOLOR
     case_fast abs(enabled)
         0, 1:
-            enabled := (abs(enabled)) << core#FLD_SEGREMAP
+            enabled := (abs(enabled)) << core.FLD_SEGREMAP
         OTHER:
-            return ((tmp >> core#FLD_SEGREMAP) & %1) * TRUE
+            result := ((tmp >> core.FLD_SEGREMAP) & %1) * TRUE
+            return
 
-    _sh_REMAPCOLOR &= core#MASK_SEGREMAP
-    _sh_REMAPCOLOR := (_sh_REMAPCOLOR | enabled) & core#SETREMAP_MASK
-    writeReg (core#SETREMAP, 1, @_sh_REMAPCOLOR)
+    _sh_REMAPCOLOR &= core.MASK_SEGREMAP
+    _sh_REMAPCOLOR := (_sh_REMAPCOLOR | enabled) & core.SETREMAP_MASK
+    writeReg (core.SETREMAP, 1, @_sh_REMAPCOLOR)
 
-PUB MirrorV(enabled) | tmp
+PUB MirrorV(enabled): result | tmp
 ' Mirror the display, vertically
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value returns the current setting
     tmp := _sh_REMAPCOLOR
     case_fast abs(enabled)
         0, 1:
-            enabled := (abs(enabled)) << core#FLD_COMREMAP
+            enabled := (abs(enabled)) << core.FLD_COMREMAP
         OTHER:
-            return ((tmp >> core#FLD_COMREMAP) & %1) * TRUE
+            result := ((tmp >> core.FLD_COMREMAP) & %1) * TRUE
+            return
 
-    _sh_REMAPCOLOR &= core#MASK_COMREMAP
-    _sh_REMAPCOLOR := (_sh_REMAPCOLOR | enabled) & core#SETREMAP_MASK
-    writeReg (core#SETREMAP, 1, @_sh_REMAPCOLOR)
+    _sh_REMAPCOLOR &= core.MASK_COMREMAP
+    _sh_REMAPCOLOR := (_sh_REMAPCOLOR | enabled) & core.SETREMAP_MASK
+    writeReg (core.SETREMAP, 1, @_sh_REMAPCOLOR)
 
-PUB Phase1Period(clks) | tmp
+PUB Phase1Period(clks): result | tmp
 ' Set discharge/phase 1 period, in display clocks
 '   Valid values: *5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31
 '   Any other value returns the current setting
@@ -410,27 +416,29 @@ PUB Phase1Period(clks) | tmp
         5..31:
             clks := lookdown(clks: 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31)
         OTHER:
-            tmp &= core#BITS_PHASE1
-            return lookup(tmp: 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31)
+            tmp &= core.BITS_PHASE1
+            result := lookup(tmp: 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31)
+            return
 
-    _sh_PHASE12PER &= core#MASK_PHASE1
+    _sh_PHASE12PER &= core.MASK_PHASE1
     _sh_PHASE12PER := (_sh_PHASE12PER | clks)
-    writeReg (core#PRECHARGE, 1, @_sh_PHASE12PER)
+    writeReg (core.PRECHARGE, 1, @_sh_PHASE12PER)
 
-PUB Phase2Period(clks) | tmp
+PUB Phase2Period(clks): result | tmp
 ' Set charge/phase 2 period, in display clocks
 '   Valid values: 3..15 (default: 8)
 '   Any other value returns the current setting
     tmp := _sh_PHASE12PER
     case_fast clks
         3..15:
-            clks <<= core#FLD_PHASE2
+            clks <<= core.FLD_PHASE2
         OTHER:
-            return (tmp >> core#FLD_PHASE2) & core#BITS_PHASE2
+            result := (tmp >> core.FLD_PHASE2) & core.BITS_PHASE2
+            return
 
-    _sh_PHASE12PER &= core#MASK_PHASE2
+    _sh_PHASE12PER &= core.MASK_PHASE2
     _sh_PHASE12PER := (_sh_PHASE12PER | clks)
-    writeReg (core#PRECHARGE, 1, @_sh_PHASE12PER)
+    writeReg (core.PRECHARGE, 1, @_sh_PHASE12PER)
 
 PUB Phase3Period(clks) | tmp[2]
 ' Set second charge/phase 3 period, in display clocks
@@ -439,9 +447,9 @@ PUB Phase3Period(clks) | tmp[2]
     case_fast clks
         1..15:
         OTHER:
-            return FALSE
+            return
 
-    writeReg (core#SETSECPRECHG, 1, @clks)
+    writeReg (core.SETSECPRECHG, 1, @clks)
 
 PUB PlotAccel(x, y, c) | tmp[2]
 ' Draw a pixel, using the display's native/accelerated plot/pixel function
@@ -449,7 +457,7 @@ PUB PlotAccel(x, y, c) | tmp[2]
     y := 0 #> y <# _disp_height-1
 
     DisplayBounds(x, y, x, y)
-    writeReg (core#WRITERAM, 2, @c)
+    writeReg (core.WRITERAM, 2, @c)
 
 PUB Powered(enabled) | tmp
 ' Enable display power
@@ -459,9 +467,9 @@ PUB Powered(enabled) | tmp
 '   Any other value returns the current setting
     case_fast abs(enabled)
         OFF, ON:
-            enabled := lookupz(abs(enabled): core#DISPLAYOFF, core#DISPLAYON)
+            enabled := lookupz(abs(enabled): core.DISPLAYOFF, core.DISPLAYON)
         OTHER:
-            return FALSE
+            return
 
     writeReg (enabled, 0, 0)
 
@@ -475,11 +483,11 @@ PUB PrechargeLevel(mV) | tmp
         200..600:
             mV := (mv-200) / 13
         OTHER:
-            return FALSE
+            return
 
-    writeReg (core#PRECHARGELEVEL, 1, @mV)
+    writeReg (core.PRECHARGELEVEL, 1, @mV)
 
-PUB SubpixelOrder(order)
+PUB SubpixelOrder(order): result
 ' Set subpixel color order
 '   Valid values:
 '      *RGB (0): Red-Green-Blue order
@@ -487,29 +495,30 @@ PUB SubpixelOrder(order)
 '   Any other value returns the current setting
     case_fast order
         RGB, BGR:
-            order <<= core#FLD_SUBPIX_ORDER
+            order <<= core.FLD_SUBPIX_ORDER
         OTHER:
-            return (_sh_REMAPCOLOR >> core#FLD_SUBPIX_ORDER) & %1
+            result := (_sh_REMAPCOLOR >> core.FLD_SUBPIX_ORDER) & %1
+            return
 
-    _sh_REMAPCOLOR &= core#MASK_SUBPIX_ORDER
-    _sh_REMAPCOLOR := (_sh_REMAPCOLOR | order) & core#SETREMAP_MASK
-    writeReg (core#SETREMAP, 1, @_sh_REMAPCOLOR)
+    _sh_REMAPCOLOR &= core.MASK_SUBPIX_ORDER
+    _sh_REMAPCOLOR := (_sh_REMAPCOLOR | order) & core.SETREMAP_MASK
+    writeReg (core.SETREMAP, 1, @_sh_REMAPCOLOR)
 
-PUB Reset
+PUB Reset()
 ' Reset the display controller
     io.High(_RES)
     io.Low(_RES)
     time.USleep (2)
     io.High(_RES)
 
-PUB Update
+PUB Update()
 ' Send the draw buffer to the display
-    writeReg(core#WRITERAM, _buff_sz, _ptr_drawbuffer)
+    writeReg(core.WRITERAM, _buff_sz, _ptr_drawbuffer)
 
 PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
 
     case_fast reg_nr
-        core#WRITERAM:                                                              ' Display RAM
+        core.WRITERAM:                                                              ' Display RAM
             io.Low(_CS)
             io.Low(_DC)
             spi.Write(reg_nr)
