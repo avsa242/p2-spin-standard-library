@@ -5,7 +5,7 @@
     Author: Ray Allen
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Apr 12, 2020
+    Updated: Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is a derivative of raycast5b_SpinDisplay2a.spin2,
@@ -20,12 +20,15 @@ CON
     FCLK        = _CLKFREQ
     FPIX        = 25_000_000.0/2.0
     FSET        = (FPIX / FCLK * 2.0) * float($4000_0000)
+    BYTESPERPX  = 1
+    BYTESPERLN  = 320
     MAX_COLOR   = 255
     HSYNC_PAR   = 0
     RED_PAR     = 1
     GREEN_PAR   = 2
     BLUE_PAR    = 3
     VSYNC_PAR   = 4
+    PTR_FB_PAR  = 5
 
     INTENSITY   = 80                                        ' 0..128
 
@@ -49,7 +52,7 @@ PUB Start(pinbase, ptr_framebuffer, ptr_palette, WIDTH, HEIGHT): okay
     _params[GREEN_PAR] := pinbase+2
     _params[BLUE_PAR] := pinbase+3
     _params[VSYNC_PAR] := pinbase+4
-    _params[5] := ptr_framebuffer
+    _params[PTR_FB_PAR] := ptr_framebuffer
 
     _disp_width := WIDTH
     _disp_height := HEIGHT
@@ -60,7 +63,7 @@ PUB Start(pinbase, ptr_framebuffer, ptr_palette, WIDTH, HEIGHT): okay
     _cog := okay := cognew(@DisplayEntry, @_params) + 1
     return
 
-PUB Stop
+PUB Stop()
 
     if _cog
         cogstop(_cog-1)
@@ -71,7 +74,7 @@ PUB Address(addr)
     _ptr_framebuffer := addr
     _ptr_drawbuffer := addr
 
-PUB ClearAccel
+PUB ClearAccel()
 ' Clear the display
     longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 
@@ -82,12 +85,12 @@ PUB DrawTo(addr)
 '       once a complete frame is rendered.
     _ptr_drawbuffer := addr
 
-PUB Update
+PUB Update()
 ' Write the draw buffer to the display
 '   NOTE: This is only required when using double-buffering
     longmove(_ptr_framebuffer, _ptr_drawbuffer, _buff_sz/4)
 
-PUB WaitVSync
+PUB WaitVSync()
 ' Wait for vertical sync signal to be high
     repeat until _pinr(_params[VSYNC_PAR]) == 0
     repeat until _pinr(_params[VSYNC_PAR]) == 1
@@ -183,14 +186,14 @@ hsync                   xcont   m_bs, #0                    'horizontal sync
 '
 ' Initialized data
 '
-dacmode_s               long    smartpins#DAC_123OHM_3V3 | smartpins#OUTPUT_ENABLED ' HSync
-dacmode_c               long    smartpins#DAC_75OHM_2V0 | smartpins#OUTPUT_ENABLED  ' R, G, B
+dacmode_s               long    smartpins.DAC_123OHM_3V3 | smartpins.OUTPUT_ENABLED ' HSync
+dacmode_c               long    smartpins.DAC_75OHM_2V0 | smartpins.OUTPUT_ENABLED  ' R, G, B
 
-m_bs                    long    STREAMER_SETUP | (1 << streamer#LUTBASE) + 16/2     ' Before sync
-m_sn                    long    STREAMER_SETUP | (1 << streamer#LUTBASE) + 96/2     ' Sync
-m_bv                    long    STREAMER_SETUP | (1 << streamer#LUTBASE) + 48/2     ' Before visible
-m_vi                    long    STREAMER_SETUP | (1 << streamer#LUTBASE) + 640/2    ' Visible
-m_rf                    long    STREAMER_SETUP | (8 << streamer#LUTBASE) + 640/2    ' Visible RLONG 8BPP LUT
+m_bs                    long    STREAMER_SETUP | (1 << streamer.LUTBASE) + 16/2     ' Before sync
+m_sn                    long    STREAMER_SETUP | (1 << streamer.LUTBASE) + 96/2     ' Sync
+m_bv                    long    STREAMER_SETUP | (1 << streamer.LUTBASE) + 96/2     ' Before visible
+m_vi                    long    STREAMER_SETUP | (1 << streamer.LUTBASE) + 640/2    ' Visible
+m_rf                    long    STREAMER_SETUP | (8 << streamer.LUTBASE) + 640/2    ' Visible RLONG 8BPP LUT
 
 framebuff_addr          long    0
 hsync_pin               long    0
@@ -207,7 +210,7 @@ mycogid                 long    0
 
 CON
 
-    STREAMER_SETUP  = streamer#RFLONG_LUT_8BIT | streamer#X3X2X1X0 | streamer#OUT_DISABLE
+    STREAMER_SETUP  = streamer.RFLONG_LUT_8BIT | streamer.X3X2X1X0 | streamer.OUT_DISABLE
 
 {
     --------------------------------------------------------------------------------------------------------
