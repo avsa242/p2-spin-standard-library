@@ -5,23 +5,15 @@
     Description: Demo of the SHT3x driver (P2 version)
     Copyright (c) 2020
     Started Nov 3, 2019
-    Updated May 15, 2020
+    Updated Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    XTAL            = cfg#XTAL
-    XDIV            = cfg#XDIV
-    XMUL            = cfg#XMUL
-    XDIVP           = cfg#XDIVP
-    XOSC            = cfg#XOSC
-    XSEL            = cfg#XSEL
-    XPPPP           = cfg#XPPPP
-    CLOCKFREQ       = cfg#CLOCKFREQ
-    SETFREQ         = cfg#SETFREQ
-    ENAFREQ         = cfg#ENAFREQ
+    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = cfg._clkfreq_def
 
     COL_REG         = 0
     COL_SET         = 12
@@ -31,14 +23,14 @@ CON
     F               = 0
     C               = 1
 
-    LOW             = sht3x#RPT_LOW
-    MED             = sht3x#RPT_MED
-    HIGH            = sht3x#RPT_HIGH
+    LOW             = sht3x.RPT_LOW
+    MED             = sht3x.RPT_MED
+    HIGH            = sht3x.RPT_HIGH
 
-' User-modifiable constants
-    LED             = cfg#LED1
-    SER_RX          = cfg#SER_RX
-    SER_TX          = cfg#SER_TX
+' -- User-modifiable constants
+    LED             = cfg.LED1
+    SER_RX          = cfg.SER_RX
+    SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
     SCL_PIN         = 27            ' Change these to match your I2C pin configuration
@@ -49,6 +41,7 @@ CON
     TEMP_SCALE      = F             ' Change this to one of F (0), or C (1)
 
     REPEATABILITY   = HIGH          ' Change this to one of LOW (0), MED (1), or HIGH (2)
+' --
 
 OBJ
 
@@ -63,25 +56,25 @@ VAR
 
     byte _ser_cog, _sht3x_cog
 
-PUB Main | temp, rh
+PUB Main() | temp, rh
 
-    Setup
+    Setup()
     sht3x.Repeatability (REPEATABILITY)
     repeat
-        sht3x.Measure
+        sht3x.Measure()
         ser.Position (0, 3)
         case TEMP_SCALE
             F:
-                temp := sht3x.TemperatureF
+                temp := sht3x.TemperatureF()
                 ser.printf("Temperature: ")
                 Fractional(temp)
             OTHER:
-                temp := sht3x.TemperatureC
+                temp := sht3x.TemperatureC()
                 ser.printf("Temperature: ")
                 Fractional(temp)
-        ser.NewLine
+        ser.NewLine()
 
-        rh := sht3x.Humidity
+        rh := sht3x.Humidity()
         ser.printf("Relative humidity: ")
         Fractional(rh)
         time.MSleep (100)
@@ -92,19 +85,18 @@ PUB Fractional(hundredths) | whole, part
     part := int.DecZeroed(hundredths // 100, 2)
     ser.printf("%d.%s ", whole, part)
 
-PUB Setup
+PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear
+    ser.Clear()
     ser.printf("Serial terminal started\n")
     if _sht3x_cog := sht3x.Startx(SCL_PIN, SDA_PIN, I2C_HZ, 0)
-        ser.printf("SHT3x driver (S/N %x) started\n", sht3x.SerialNum)
+        ser.printf("SHT3x driver (S/N %x) started\n", sht3x.SerialNum())
     else
         ser.printf("SHT3x driver failed to start - halting")
         FlashLED(LED, 500)
 
-    sht3x.ClearStatus
+    sht3x.ClearStatus()
     sht3x.Heater (FALSE)
 
 #include "lib.utility.spin2"
