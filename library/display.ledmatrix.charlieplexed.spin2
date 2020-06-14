@@ -3,9 +3,8 @@
     Filename: display.ledmatrix.charlieplexed.spin2
     Author: Jesse Burt
     Description: Driver to write a buffer to an 8x7 charlieplexed LED matrix
-    Copyright (c) 2019
     Started Jun 16, 2019
-    Updated Jun 17, 2019
+    Updated Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This was written specifically for the Parallax P2-EVAL add-on board #64006-ES(c),
@@ -57,7 +56,9 @@ PUB Address(addr=-2)
         OTHER:
             return _ptr_drawbuffer
 
-PUB Update
+PUB ClearAccel()
+
+PUB Update()
 ' Send the display buffer to the display
     WriteBuffer(_ptr_drawbuffer)
 
