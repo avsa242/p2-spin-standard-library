@@ -6,27 +6,19 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Created Nov 16, 2019
-    Updated May 24, 2020
+    Updated Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
+    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = cfg._clkfreq_def
 
 ' -- User modifiable constants
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
     WIDTH       = 16        ' Your display's dimensions, in character cells
@@ -40,7 +32,7 @@ CON
 ' --
 
     DEMO_DELAY  = 2         ' Delay (sec) between different demos
-    MODE_DELAY  = 1         ' Delay (sec) between different modes within a particular demo
+    MODE_DELAY  = 1         ' Delay (sec) between different modes within a particular demo()
 
 VAR
 
@@ -54,50 +46,50 @@ OBJ
     oled: "display.oled.us2066.i2c.spin2"
     ser : "com.serial.terminal.ansi"
 
-PUB Main
+PUB Main()
 
-    Setup
+    Setup()
 
-    Greet_Demo
+    Greet_Demo()
     time.Sleep (DEMO_DELAY)
-    oled.Clear
+    oled.Clear()
 
-    Count_Demo
+    Count_Demo()
     time.Sleep (DEMO_DELAY)
-    oled.Clear
+    oled.Clear()
 
-    DoubleHeight_Demo
+    DoubleHeight_Demo()
     time.Sleep (DEMO_DELAY)
-    oled.Clear
+    oled.Clear()
 
-    Contrast_Demo
+    Contrast_Demo()
     time.Sleep (DEMO_DELAY)
-    oled.Clear
+    oled.Clear()
 
-    Position_Demo
+    Position_Demo()
     time.Sleep (DEMO_DELAY)
-    oled.Clear
+    oled.Clear()
 
-    Cursor_demo
+    Cursor_demo()
     time.Sleep (DEMO_DELAY)
-    oled.Clear
+    oled.Clear()
 
-    Invert_demo
+    Invert_demo()
     time.Sleep (DEMO_DELAY)
-    oled.Clear
+    oled.Clear()
 
-    FontWidth_Demo
+    FontWidth_Demo()
     time.Sleep (DEMO_DELAY)
-    oled.Clear
+    oled.Clear()
 
-    Mirror_Demo
+    Mirror_Demo()
     time.Sleep (DEMO_DELAY)
-    oled.Clear
+    oled.Clear()
 
-    oled.Stop
+    oled.stop()
     FlashLED (LED, 100)
 
-PUB Contrast_Demo | i
+PUB Contrast_Demo() | i
 
     oled.Position (0, 0)
     oled.printf("Change contrast\nlevel:")
@@ -111,7 +103,7 @@ PUB Contrast_Demo | i
                 oled.Hex(abs(i), 2)
                 time.MSleep (10)
         4:
-            oled.Newline
+            oled.newline()
             oled.DoubleHeight (1)
 
             repeat i from -255 to 255 step 1
@@ -126,14 +118,14 @@ PUB Contrast_Demo | i
 
     oled.DoubleHeight (0)
 
-PUB Count_Demo | i
+PUB Count_Demo() | i
 
     case HEIGHT
         2:
             oled.Position (0, 0)
             oled.printf("Rapidly changing\ndisplay contents")
             time.sleep (3)
-            oled.clear
+            oled.clear()
             oled.printf("Compare to LCD!:\ni = ")
             repeat i from 0 to 3000
                 oled.Position (4, 1)
@@ -145,13 +137,13 @@ PUB Count_Demo | i
                 oled.Position (4, 3)
                 oled.Dec (i)
 
-PUB Cursor_demo | delay, dbl_mode
+PUB Cursor_Demo() | delay, dbl_mode
 
     delay := 25
     case HEIGHT
         2:
             repeat dbl_mode from 0 to 3 step 3
-                oled.Clear
+                oled.Clear()
                 oled.DoubleHeight (dbl_mode)
                 oled.CursorMode (0)
                 oled.Position (0, 0)
@@ -177,7 +169,7 @@ PUB Cursor_demo | delay, dbl_mode
                 time.Sleep (2)
         4:
             repeat dbl_mode from 0 to 2 step 2
-                oled.Clear
+                oled.Clear()
                 oled.DoubleHeight (dbl_mode)
                 oled.CursorMode (0)
                 oled.Position (0, 0)
@@ -208,7 +200,7 @@ PUB Cursor_demo | delay, dbl_mode
     oled.DoubleHeight (0)
     oled.CursorMode (0)
 
-PUB DoubleHeight_Demo | mode, line
+PUB DoubleHeight_Demo() | mode, line
 
     case HEIGHT
         2:
@@ -233,9 +225,9 @@ PUB DoubleHeight_Demo | mode, line
                     oled.Str (string("Double-height"))
                 time.Sleep (MODE_DELAY)
 
-PUB FontWidth_demo | px, dbl_mode
+PUB FontWidth_Demo() | px, dbl_mode
 
-    oled.Clear
+    oled.Clear()
 
     repeat dbl_mode from 0 to 3 step 3
         oled.DoubleHeight (dbl_mode)
@@ -249,7 +241,7 @@ PUB FontWidth_demo | px, dbl_mode
     oled.FontWidth (5)
     oled.DoubleHeight (0)
 
-PUB Greet_Demo
+PUB Greet_Demo()
 
     case HEIGHT
         2:
@@ -279,9 +271,9 @@ PUB Greet_Demo
 
     time.Sleep (1)
 
-PUB Invert_demo | i
+PUB Invert_Demo() | i
 
-    oled.Clear
+    oled.Clear()
     oled.Position (0, 0)
     oled.Str (string("Display"))
 
@@ -295,9 +287,9 @@ PUB Invert_demo | i
         oled.Str (string("NORMAL  "))
         time.Sleep (MODE_DELAY)
 
-PUB Mirror_Demo | row, col
+PUB Mirror_Demo() | row, col
 
-    oled.Clear
+    oled.Clear()
 
     case HEIGHT
         2:
@@ -335,11 +327,11 @@ PUB Mirror_Demo | row, col
     oled.Str (string("Mirror BOTH"))
     time.Sleep (2)
 
-    oled.Clear
+    oled.Clear()
     oled.MirrorH (FALSE)
     oled.MirrorV (FALSE)
 
-PUB Position_Demo | x, y
+PUB Position_Demo() | x, y
 
     repeat y from 0 to HEIGHT-1
         repeat x from 0 to WIDTH-1
@@ -350,26 +342,25 @@ PUB Position_Demo | x, y
             oled.Char("-")
             time.MSleep (25)
 
-PUB Setup
+PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear
+    ser.Clear()
     ser.PrintF("Serial terminal started\n")
 
     if oled.Start (SCL_PIN, SDA_PIN, RESET_PIN, I2C_HZ, SLAVE_BIT)
         ser.PrintF("US2066 driver started\n")
     else
         ser.PrintF("US2066 driver failed to start - halting\n")
-        oled.stop
+        oled.stop()
         time.MSleep (500)
-        FlashLED (cfg#LED1, 500)
+        FlashLED (cfg.LED1, 500)
 
     oled.MirrorH (FALSE)
     oled.MirrorV (FALSE)
-    oled.Clear
+    oled.Clear()
     oled.Position (0, 0)
-    oled.DisplayVisibility (oled#NORMAL)
+    oled.DisplayVisibility (oled.NORMAL)
     time.MSleep (100)
 
 #include "lib.utility.spin2"

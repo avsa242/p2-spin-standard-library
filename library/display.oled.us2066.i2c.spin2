@@ -6,7 +6,7 @@
         alphanumeric displays (P2 version)
     Copyright (c) 2020
     Created Dec 30, 2017
-    Updated May 24, 2020
+    Updated Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,18 +14,18 @@
 
 CON
 ' I2C Defaults
-    SLAVE_WR        = core#SLAVE_ADDR
+    SLAVE_WR        = core.SLAVE_ADDR
     SLAVE_RD        = SLAVE_WR|1
     R               = %1
 
     DEF_SCL         = 28
     DEF_SDA         = 29
     DEF_HZ          = 400_000
-    I2C_MAX_FREQ    = core#I2C_MAX_FREQ
+    I2C_MAX_FREQ    = core.I2C_MAX_FREQ
 
 ' Build some basic headers for I2C transactions
-    CMD_HDR         = ((core#CTRLBYTE_CMD << 8) | SLAVE_WR)
-    DAT_HDR         = ((core#CTRLBYTE_DATA << 8) | SLAVE_WR)
+    CMD_HDR         = ((core.CTRLBYTE_CMD << 8) | SLAVE_WR)
+    DAT_HDR         = ((core.CTRLBYTE_DATA << 8) | SLAVE_WR)
 
     TRANSTYPE_CMD   = 0
     TRANSTYPE_DATA  = 1
@@ -35,8 +35,8 @@ CON
     CMDSET_EXTD_IS  = 2
     CMDSET_OLED     = 3
 
-    LEFT            = core#DISP_LEFT
-    RIGHT           = core#DISP_RIGHT
+    LEFT            = core.DISP_LEFT
+    RIGHT           = core.DISP_RIGHT
 
 ' Display visibility modes
     OFF             = 0
@@ -95,7 +95,7 @@ OBJ
     time    : "time"
     io      : "io"
 
-PUB Null
+PUB Null()
 ' This is not a top-level object
 
 PUB Start(SCL_PIN, SDA_PIN, RESET_PIN, I2C_HZ, SLAVE_BIT): okay
@@ -106,7 +106,7 @@ PUB Start(SCL_PIN, SDA_PIN, RESET_PIN, I2C_HZ, SLAVE_BIT): okay
 '  hz          - I2C Bus Frequency (max 400kHz)
 '  slave_bit   - Flag to indicate optional alternative slave address
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ =< core#I2C_MAX_FREQ
+        if I2C_HZ =< core.I2C_MAX_FREQ
             if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
                 time.MSleep (1)
                 _reset := RESET_PIN
@@ -114,46 +114,46 @@ PUB Start(SCL_PIN, SDA_PIN, RESET_PIN, I2C_HZ, SLAVE_BIT): okay
                         1: _sa0_addr := 1 << 1
                         0: _sa0_addr := 0
                         OTHER:
-                            return FALSE
-                Reset
-                Defaults4x20
-                if DeviceID == core#DEVID_RESP
+                            return
+                Reset()
+                Defaults4x20()
+                if DeviceID() == core.DEVID_RESP
                     return okay
                 else
-                    return FALSE
-    return FALSE                                                'If we got here, something went wrong
+                    return
+    return                                                'If we got here, something went wrong
 
-PUB Stop
+PUB Stop()
 ' Turn the display visibility off and stop the I2C cog
     DisplayVisibility (OFF)
 
-PUB Defaults2x16
+PUB Defaults2x16()
 ' Set some sane defaults
-    _fontwidth := core#FONTWIDTH_5
-    _cursor_invert := core#CURSOR_NORMAL
-    _disp_lines_NW := core#NW_1_2_LINE
+    _fontwidth := core.FONTWIDTH_5
+    _cursor_invert := core.CURSOR_NORMAL
+    _disp_lines_NW := core.NW_1_2_LINE
 
-    _disp_lines_N := core#DISP_LINES_2_4
+    _disp_lines_N := core.DISP_LINES_2_4
     _dblht_en := 0
 
     _disp_en := 0
     _cursor_en := 0
     _blink_en := 0
 
-    _char_predef := core#CG_ROM_RAM_240_8
-    _char_set := core#CHAR_ROM_A
+    _char_predef := core.CG_ROM_RAM_240_8
+    _char_set := core.CHAR_ROM_A
 
     _frequency := %0111
     _divider := %0000
 
-    _mirror_h := core#SEG0_99
-    _mirror_v := core#COM0_31
+    _mirror_h := core.SEG0_99
+    _mirror_v := core.COM0_31
 
-    _seg_remap := core#SEG_LR_REMAP_DIS
-    _seg_pincfg := core#ALT_SEGPINCFG
+    _seg_remap := core.SEG_LR_REMAP_DIS
+    _seg_pincfg := core.ALT_SEGPINCFG
 
-    _ext_vsl := core#VSL_INTERNAL
-    _gpio_state := core#GPIO_OUT_LOW
+    _ext_vsl := core.VSL_INTERNAL
+    _gpio_state := core.GPIO_OUT_LOW
 
     _contrast := 127
 
@@ -162,38 +162,38 @@ PUB Defaults2x16
 
     _vcomh_des_lvl := 2
 
-    _cgram_blink := core#CGRAM_BLINK_DIS
-    _disp_invert := core#NORMAL_DISPLAY
+    _cgram_blink := core.CGRAM_BLINK_DIS
+    _disp_invert := core.NORMAL_DISPLAY
 
     _fadeblink := 0
 
-PUB Defaults4x20
+PUB Defaults4x20()
 ' Set some sane defaults
-    _fontwidth := core#FONTWIDTH_5
-    _cursor_invert := core#CURSOR_NORMAL
-    _disp_lines_NW := core#NW_3_4_LINE
+    _fontwidth := core.FONTWIDTH_5
+    _cursor_invert := core.CURSOR_NORMAL
+    _disp_lines_NW := core.NW_3_4_LINE
 
-    _disp_lines_N := core#DISP_LINES_2_4
+    _disp_lines_N := core.DISP_LINES_2_4
     _dblht_en := 0
 
     _disp_en := 0
     _cursor_en := 0
     _blink_en := 0
 
-    _char_predef := core#CG_ROM_RAM_240_8
-    _char_set := core#CHAR_ROM_A
+    _char_predef := core.CG_ROM_RAM_240_8
+    _char_set := core.CHAR_ROM_A
 
     _frequency := %0111
     _divider := %0000
 
-    _mirror_h := core#SEG0_99
-    _mirror_v := core#COM0_31
+    _mirror_h := core.SEG0_99
+    _mirror_v := core.COM0_31
 
-    _seg_remap := core#SEG_LR_REMAP_DIS
-    _seg_pincfg := core#ALT_SEGPINCFG
+    _seg_remap := core.SEG_LR_REMAP_DIS
+    _seg_pincfg := core.ALT_SEGPINCFG
 
-    _ext_vsl := core#VSL_INTERNAL
-    _gpio_state := core#GPIO_OUT_LOW
+    _ext_vsl := core.VSL_INTERNAL
+    _gpio_state := core.GPIO_OUT_LOW
 
     _contrast := 127
 
@@ -202,12 +202,12 @@ PUB Defaults4x20
 
     _vcomh_des_lvl := 2
 
-    _cgram_blink := core#CGRAM_BLINK_DIS
-    _disp_invert := core#NORMAL_DISPLAY
+    _cgram_blink := core.CGRAM_BLINK_DIS
+    _disp_invert := core.NORMAL_DISPLAY
 
     _fadeblink := 0
 
-PUB Busy | flag
+PUB Busy(): result | flag
 ' Flag indicating display is busy
 '   Returns: TRUE (-1) if busy, FALSE (0) otherwise
     writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, $00, 0)
@@ -219,7 +219,7 @@ PUB Busy | flag
     if (flag >> 7) & %1
         return TRUE
     else
-        return FALSE
+        return
 
 PUB Char(ch) | col, row, pos
 ' Display single character.
@@ -231,7 +231,7 @@ PUB Char(ch) | col, row, pos
             time.MSleep (50)
             DisplayVisibility (NORMAL)
         BS, $7F:
-            case pos := GetPos
+            case pos := GetPos()
                 $00..$13:
                     if pos > $00            ' Keep backing up as long as
                         Position(pos-1, 0)  ' we're not at the left-most column
@@ -273,7 +273,7 @@ PUB Char(ch) | col, row, pos
                         Position (19, 2)
                 OTHER: return
         LF:
-            case pos := GetPos              ' Get current display RAM address pointer
+            case pos := GetPos()            ' Get current display RAM address pointer
                 $00..$13:                   ' Pointer is somewhere in row 0's range, so
                     row := 1                '   line-feed to row 1
                 $20..$33:
@@ -288,9 +288,9 @@ PUB Char(ch) | col, row, pos
                 OTHER: row := 0
             Position (pos, row)             ' Set new position to same column on new row
         CB:
-            Clear
+            Clear()
         CR:
-            case GetPos
+            case GetPos()
                 $00..$13: row := 0          ' As in LF, row 0
                 $20..$33: row := 1          ' .. 1
                 $40..$53: row := 2          ' .. 2
@@ -314,15 +314,15 @@ PUB CharGen(count)
 '       250 (leaves 6 available user-defined characters)
 '       256 (leaves 0 available user-defined characters)
     case count
-        240: _char_predef := core#CG_ROM_RAM_240_8
-        248: _char_predef := core#CG_ROM_RAM_248_8
-        250: _char_predef := core#CG_ROM_RAM_250_6
-        256: _char_predef := core#CG_ROM_RAM_256_0
+        240: _char_predef := core.CG_ROM_RAM_240_8
+        248: _char_predef := core.CG_ROM_RAM_248_8
+        250: _char_predef := core.CG_ROM_RAM_250_6
+        256: _char_predef := core.CG_ROM_RAM_256_0
         OTHER: return
 
-    writeReg (TRANSTYPE_CMD, 2, CMDSET_EXTD, core#FUNCTION_SEL_B, _char_predef | _char_set)
+    writeReg (TRANSTYPE_CMD, 2, CMDSET_EXTD, core.FUNCTION_SEL_B, _char_predef | _char_set)
 
-PUB CharROM(char_set)
+PUB CharROM(char_set): result
 ' Select ROM font / character set
 '   Valid values:
 '       0: ROM A
@@ -330,17 +330,18 @@ PUB CharROM(char_set)
 '       2: ROM C
 '   Any other value returns the current setting
     case char_set
-        0: _char_set := core#CHAR_ROM_A
-        1: _char_set := core#CHAR_ROM_B
-        2: _char_set := core#CHAR_ROM_C
+        0: _char_set := core.CHAR_ROM_A
+        1: _char_set := core.CHAR_ROM_B
+        2: _char_set := core.CHAR_ROM_C
         OTHER:
-            return _char_set
+            result := _char_set
+            return
 
-    writeReg (TRANSTYPE_CMD, 2, CMDSET_EXTD, core#FUNCTION_SEL_B, _char_predef | _char_set)
+    writeReg (TRANSTYPE_CMD, 2, CMDSET_EXTD, core.FUNCTION_SEL_B, _char_predef | _char_set)
 
-PUB Clear
+PUB Clear()
 ' Clear display
-    writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, core#CLEAR_DISPLAY, 0)
+    writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, core.CLEAR_DISPLAY, 0)
 
 PUB ClearLine(line)
 ' Clear specified line
@@ -351,7 +352,7 @@ PUB ClearLine(line)
         repeat 20
             Char(" ")
 
-PUB ClockFreq(freq)
+PUB ClockFreq(freq): result
 ' Set display internal oscillator frequency, in kHz
 '   Valid values:
 '       454..556 (see lookup tables below for specific values)
@@ -364,20 +365,21 @@ PUB ClockFreq(freq)
             result := lookupz(result: 54, 460, 467, 474, 481, 488, 494, 501, 508, 515, 522, 528, 535, 542, 549, 556)
             return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core#DISP_CLKDIV_OSC, _frequency | _divider)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core.DISP_CLKDIV_OSC, _frequency | _divider)
 
-PUB ClockDiv(divider)
+PUB ClockDiv(divider): result
 ' Set clock frequency divider used by the display controller
 '   Valid values: 1..16 (default: 1)
     case divider
         1..16:
             _divider := divider - 1
         OTHER:
-            return _divider + 1
+            result := _divider + 1
+            return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core#DISP_CLKDIV_OSC, _frequency | _divider)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core.DISP_CLKDIV_OSC, _frequency | _divider)
 
-PUB COMLogicHighLevel(level)
+PUB COMLogicHighLevel(level): result
 ' Set COMmon pins high logic level, relative to Vcc
 '   Valid values:
 '       0_65: 0.65 * Vcc
@@ -392,46 +394,49 @@ PUB COMLogicHighLevel(level)
             result := lookupz(_vcomh_des_lvl >> 4: 0_65, 0_71, 0_77, 0_83, 1_00)
             return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core#SET_VCOMH_DESEL, _vcomh_des_lvl)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core.SET_VCOMH_DESEL, _vcomh_des_lvl)
 
-PUB Contrast(level)
+PUB Contrast(level): result
 ' Set display contrast level
 '   Valid values: 0..127 (POR: 127)
 '   Any other value returns the current setting
     case level
         0..255: _contrast := level
         OTHER:
-            return _contrast
+            result := _contrast
+            return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core#SET_CONTRAST, _contrast)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core.SET_CONTRAST, _contrast)
 
-PUB CursorBlink(enable)
+PUB CursorBlink(enable): result
 ' Enable cursor blinking
 '   Valid values:
 '      *FALSE (0): Steady cursor
 '       TRUE (-1 or 1): Blinking cursor
 '   Any other value returns the current setting
     case abs(enable)
-        0: _blink_en := core#BLINK_OFF
-        1: _blink_en := core#BLINK_ON
+        0: _blink_en := core.BLINK_OFF
+        1: _blink_en := core.BLINK_ON
         OTHER:
-            return _blink_en
+            result := _blink_en
+            return
 
-    writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, core#DISPLAY_ONOFF | _disp_en | _cursor_en | _blink_en, 0)
+    writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, core.DISPLAY_ONOFF | _disp_en | _cursor_en | _blink_en, 0)
 
-PUB CursorInvert(enable)
+PUB CursorInvert(enable): result
 ' Invert cursor
 '   Valid values:
 '      *FALSE (0): Normal cursor
 '       TRUE (-1 or 1): Inverted cursor
 '   Any other value returns the current setting
     case abs(enable)
-        1: _cursor_invert := core#CURSOR_INVERT
-        0: _cursor_invert := core#CURSOR_NORMAL
+        1: _cursor_invert := core.CURSOR_INVERT
+        0: _cursor_invert := core.CURSOR_NORMAL
         OTHER:
-            return _cursor_invert
+            result := _cursor_invert
+            return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core#EXTENDED_FUNCSET | _fontwidth | _cursor_invert | _disp_lines_NW, 0)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core.EXTENDED_FUNCSET | _fontwidth | _cursor_invert | _disp_lines_NW, 0)
 
 PUB CursorMode(type)
 ' Select cursor display mode
@@ -443,60 +448,62 @@ PUB CursorMode(type)
     case type
         0:  _cursor_invert := _blink_en := _cursor_en := FALSE
         1:
-            _cursor_en := core#CURSOR_OFF
-            _cursor_invert := core#CURSOR_INVERT
-            _blink_en := core#BLINK_ON
+            _cursor_en := core.CURSOR_OFF
+            _cursor_invert := core.CURSOR_INVERT
+            _blink_en := core.BLINK_ON
         2:
-            _cursor_en := core#CURSOR_ON
-            _cursor_invert := core#CURSOR_NORMAL
-            _blink_en := core#BLINK_OFF
+            _cursor_en := core.CURSOR_ON
+            _cursor_invert := core.CURSOR_NORMAL
+            _blink_en := core.BLINK_OFF
         3:
-            _cursor_en := core#CURSOR_ON
-            _cursor_invert := core#CURSOR_NORMAL
-            _blink_en := core#BLINK_ON
+            _cursor_en := core.CURSOR_ON
+            _cursor_invert := core.CURSOR_NORMAL
+            _blink_en := core.BLINK_ON
         OTHER: return
 
-    writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, core#DISPLAY_ONOFF | _disp_en | _cursor_en | _blink_en, 0)
+    writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, core.DISPLAY_ONOFF | _disp_en | _cursor_en | _blink_en, 0)
     CursorInvert (_cursor_invert >> 1)
 
-PUB DeviceID
+PUB DeviceID(): result
 ' Read device ID
 '   Returns: $21 if successful
     writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, $00, 0)
 
-    i2c.start
+    i2c.start()
     i2c.write (SLAVE_RD | _sa0_addr)
     i2c.read (FALSE)          'First read gets the address counter register - throw it away
-    result := i2c.read (i2c#NAK)    'Second read gets the Part ID
-    i2c.stop
+    result := i2c.read (i2c.NAK)    'Second read gets the Part ID
+    i2c.stop()
 
-PUB DisplayBlink(delay)
+PUB DisplayBlink(delay): result
 ' Gradually fade out/in display
 '   Valid values:
 '       0..128, in multiples of 8
 '   Any other value returns the current setting
 '   NOTE: 0 effectively disables the setting
     case delay
-        0: _fadeblink := core#FADE_BLINK_DIS
-        8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128: _fadeblink := (core#BLINK_ENA | ((delay / 8) - 1))
+        0: _fadeblink := core.FADE_BLINK_DIS
+        8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128: _fadeblink := (core.BLINK_ENA | ((delay / 8) - 1))
         OTHER:
-            return _fadeblink
+            result := _fadeblink
+            return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core#FADEOUT_BLINK, _fadeblink)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core.FADEOUT_BLINK, _fadeblink)
 
-PUB DisplayFade(delay)
+PUB DisplayFade(delay): result
 ' Gradually fade out display (just once)
 '   Valid values:
 '       0..128, in multiples of 8
 '   Any other value returns the current setting
 '   NOTE: 0 effectively disables the function
     case delay
-        0: _fadeblink := core#FADE_BLINK_DIS
-        8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128: _fadeblink := (core#FADE_OUT_ENA | ((delay / 8) - 1))
+        0: _fadeblink := core.FADE_BLINK_DIS
+        8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128: _fadeblink := (core.FADE_OUT_ENA | ((delay / 8) - 1))
         OTHER:
-            return _fadeblink
+            result := _fadeblink
+            return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core#FADEOUT_BLINK, _fadeblink)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core.FADEOUT_BLINK, _fadeblink)
 
 PUB DisplayInverted(enabled)
 ' Invert display colors
@@ -507,7 +514,7 @@ PUB DisplayInverted(enabled)
             enabled := lookupz(abs(enabled): NORMAL, INVERT)
             DisplayVisibility(enabled)
         OTHER:
-            return FALSE
+            return
 
 PUB DisplayLines(lines)
 ' Set number of display lines
@@ -516,22 +523,22 @@ PUB DisplayLines(lines)
 '   Any other value is ignored
     case lines
         1:
-            _disp_lines_N := core#DISP_LINES_1_3
-            _disp_lines_NW := core#NW_1_2_LINE
+            _disp_lines_N := core.DISP_LINES_1_3
+            _disp_lines_NW := core.NW_1_2_LINE
         2:
-            _disp_lines_N := core#DISP_LINES_2_4
-            _disp_lines_NW := core#NW_1_2_LINE
+            _disp_lines_N := core.DISP_LINES_2_4
+            _disp_lines_NW := core.NW_1_2_LINE
         3:
-            _disp_lines_N := core#DISP_LINES_1_3
-            _disp_lines_NW := core#NW_3_4_LINE
+            _disp_lines_N := core.DISP_LINES_1_3
+            _disp_lines_NW := core.NW_3_4_LINE
         4:
-            _disp_lines_N := core#DISP_LINES_2_4
-            _disp_lines_NW := core#NW_3_4_LINE
+            _disp_lines_N := core.DISP_LINES_2_4
+            _disp_lines_NW := core.NW_3_4_LINE
 
         OTHER: return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_FUND, core#FUNCTION_SET_0 | _disp_lines_N | _dblht_en, 0)
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core#EXTENDED_FUNCSET | _fontwidth | _cursor_invert | _disp_lines_NW, 0)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_FUND, core.FUNCTION_SET_0 | _disp_lines_N | _dblht_en, 0)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core.EXTENDED_FUNCSET | _fontwidth | _cursor_invert | _disp_lines_NW, 0)
 
 PUB DisplayShift(direction)
 ' Shift the display left or right by one character cell's width
@@ -544,9 +551,9 @@ PUB DisplayShift(direction)
         RIGHT:            '  leave it alone, and use it directly in the writeReg line.
         OTHER: return
 
-    writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, core#CURS_DISP_SHIFT | direction, 0)
+    writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, core.CURS_DISP_SHIFT | direction, 0)
 
-PUB DoubleHeight(mode)
+PUB DoubleHeight(mode): result
 ' Set double-height font style mode
 '   Valid values:
 '      *0: Standard height font all 4 lines / double-height disabled
@@ -560,20 +567,21 @@ PUB DoubleHeight(mode)
         0:
             _dblht_mode := 0
             _dblht_en := 0
-            writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core#FUNCTION_SET_0 | core#DISP_LINES_2_4 | core#DBLHT_FONT_DIS, 0)
+            writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core.FUNCTION_SET_0 | core.DISP_LINES_2_4 | core.DBLHT_FONT_DIS, 0)
             return
-        1: _dblht_mode := core#DBLHEIGHT_BOTTOM
-        2: _dblht_mode := core#DBLHEIGHT_MIDDLE
-        3: _dblht_mode := core#DBLHEIGHT_BOTH
-        4: _dblht_mode := core#DBLHEIGHT_TOP
+        1: _dblht_mode := core.DBLHEIGHT_BOTTOM
+        2: _dblht_mode := core.DBLHEIGHT_MIDDLE
+        3: _dblht_mode := core.DBLHEIGHT_BOTH
+        4: _dblht_mode := core.DBLHEIGHT_TOP
         OTHER:
-            return _dblht_mode
+            result := _dblht_mode
+            return
 
-    _dblht_en := core#DBLHT_FONT_EN
+    _dblht_en := core.DBLHT_FONT_EN
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core#DBLHEIGHT | _dblht_mode, 0)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core.DBLHEIGHT | _dblht_mode, 0)
 
-PUB DisplayVisibility(mode)
+PUB DisplayVisibility(mode): result
 ' Set display visibility
 '   Valid values:
 '       OFF (0): Display off
@@ -586,40 +594,41 @@ PUB DisplayVisibility(mode)
         OFF:
             _disp_en := 0
         NORMAL:
-            _disp_en := core#DISP_ON
-            _disp_invert := core#NORMAL_DISPLAY
+            _disp_en := core.DISP_ON
+            _disp_invert := core.NORMAL_DISPLAY
         INVERT:
-            _disp_en := core#DISP_ON
-            _disp_invert := core#REVERSE_DISPLAY
+            _disp_en := core.DISP_ON
+            _disp_invert := core.REVERSE_DISPLAY
         OTHER:
             result := ( (_disp_en >> 2) & 1 ) | ((_disp_invert & 1) << 1)
             return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_FUND, core#DISPLAY_ONOFF | _disp_en | _cursor_en | _blink_en, 0)
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core#FUNCTION_SET_1 | _cgram_blink | _disp_invert, 0)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_FUND, core.DISPLAY_ONOFF | _disp_en | _cursor_en | _blink_en, 0)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core.FUNCTION_SET_1 | _cgram_blink | _disp_invert, 0)
 
-PUB FontWidth(dots)
+PUB FontWidth(dots): result
 ' Set Font width
 '   Valid values: *5 or 6
 '   Any other value returns the current setting
     case dots
-        5: _fontwidth := core#FONTWIDTH_5
-        6: _fontwidth := core#FONTWIDTH_6
+        5: _fontwidth := core.FONTWIDTH_5
+        6: _fontwidth := core.FONTWIDTH_6
         OTHER:
-            return _fontwidth
+            result := _fontwidth
+            return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core#EXTENDED_FUNCSET | _fontwidth | _cursor_invert | _disp_lines_NW, 0)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core.EXTENDED_FUNCSET | _fontwidth | _cursor_invert | _disp_lines_NW, 0)
 
 PUB GetPos: addr | data_in
 ' Get current position in DDRAM
 '   Returns: Display address of current cursor position
     writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, $00, 0)
-    i2c.start
+    i2c.start()
     i2c.write (SLAVE_RD | _sa0_addr)
     addr := i2c.read (TRUE)
-    i2c.stop
+    i2c.stop()
 
-PUB GPIOState(state)
+PUB GPIOState(state): result
 ' Set state of GPIO pin
 '   Valid values:
 '       0: GPIO pin HiZ, input disabled (always read as low)
@@ -627,43 +636,46 @@ PUB GPIOState(state)
 '      *2: GPIO pin output, low
 '       3: GPIO pin output, high
     case state
-        0: _gpio_state := core#GPIO_HIZ_INP_DIS
-        1: _gpio_state := core#GPIO_HIZ_INP_ENA
-        2: _gpio_state := core#GPIO_OUT_LOW
-        3: _gpio_state := core#GPIO_OUT_HIGH
+        0: _gpio_state := core.GPIO_HIZ_INP_DIS
+        1: _gpio_state := core.GPIO_HIZ_INP_ENA
+        2: _gpio_state := core.GPIO_OUT_LOW
+        3: _gpio_state := core.GPIO_OUT_HIGH
         OTHER:
-            return _gpio_state
+            result := _gpio_state
+            return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core#FUNCTION_SEL_C, _ext_vsl | _gpio_state)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core.FUNCTION_SEL_C, _ext_vsl | _gpio_state)
 
-PUB Home
+PUB Home()
 ' Returns cursor to home position (0, 0)
 '   NOTE: Doesn't clear the display
-    writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, core#HOME_DISPLAY, 0)
+    writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, core.HOME_DISPLAY, 0)
 
-PUB MirrorH(enable)
+PUB MirrorH(enable): result
 ' Mirror display, horizontally
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value returns the current setting
     case abs(enable)
-        0: _mirror_h := core#SEG99_0
-        1: _mirror_h := core#SEG0_99
+        0: _mirror_h := core.SEG99_0
+        1: _mirror_h := core.SEG0_99
         OTHER:
-            return _mirror_h
+            result := _mirror_h
+            return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core#ENTRY_MODE_SET | _mirror_h | _mirror_v, 0)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core.ENTRY_MODE_SET | _mirror_h | _mirror_v, 0)
 
-PUB MirrorV(enable)
+PUB MirrorV(enable): result
 ' Mirror display, vertically
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value returns the current setting
     case abs(enable)
-        0: _mirror_v := core#COM0_31
-        1: _mirror_v := core#COM31_0
+        0: _mirror_v := core.COM0_31
+        1: _mirror_v := core.COM31_0
         OTHER:
-            return _mirror_v
+            result := _mirror_v
+            return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core#ENTRY_MODE_SET | _mirror_h | _mirror_v, 0)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core.ENTRY_MODE_SET | _mirror_h | _mirror_v, 0)
 
 PUB PinCfg(cfg)
 ' Change mapping between display data column address and segment driver.
@@ -672,11 +684,11 @@ PUB PinCfg(cfg)
 '       1: Alternative (odd/even) SEG pin cfg
 '   NOTE: Only affects subsequent data input. Data already displayed/in DDRAM will be unchanged.
     case cfg
-        0: _seg_pincfg := core#SEQ_SEGPINCFG
-        1: _seg_pincfg := core#ALT_SEGPINCFG
+        0: _seg_pincfg := core.SEQ_SEGPINCFG
+        1: _seg_pincfg := core.ALT_SEGPINCFG
         OTHER: return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core#SET_SEG_PINS, _seg_remap | _seg_pincfg)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core.SET_SEG_PINS, _seg_remap | _seg_pincfg)
 
 PUB Phase1Period(clocks)
 ' Set length of phase 1 of segment waveform of the driver
@@ -685,7 +697,7 @@ PUB Phase1Period(clocks)
         2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32: _phs1_per := (clocks >> 1) - 1
         OTHER: return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core#SET_PHASE_LEN, _phs2_per | _phs1_per)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core.SET_PHASE_LEN, _phs2_per | _phs1_per)
 
 PUB Phase2Period(clocks)
 ' Set length of phase 2 of segment waveform of the driver
@@ -694,7 +706,7 @@ PUB Phase2Period(clocks)
         1..15: _phs2_per := (clocks << 4)
         OTHER: return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core#SET_PHASE_LEN, _phs2_per | _phs1_per)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core.SET_PHASE_LEN, _phs2_per | _phs1_per)
 
 PUB Position(column, row) | offset
 ' Set current cursor position
@@ -705,17 +717,17 @@ PUB Position(column, row) | offset
                 OTHER: return
         OTHER: return
 
-    writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, core#SET_DDRAM_ADDR|offset, 0)
+    writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, core.SET_DDRAM_ADDR|offset, 0)
 
-PUB Reset
+PUB Reset()
 ' Send reset signal to display controller
     io.Output(_reset)
     io.Low(_reset)
-    time.USleep(core#TRES)
+    time.USleep(core.TRES)
     io.High(_reset)
     time.MSleep (1)
 
-PUB SEGVoltageRef(ref)
+PUB SEGVoltageRef(ref): result
 ' Select segment voltage reference
 '   Valid values:
 '      *INTERNAL (0): Internal VSL
@@ -723,13 +735,14 @@ PUB SEGVoltageRef(ref)
 '   Any other value returns the current setting
     case ref
         INTERNAL:
-            _ext_vsl := core#VSL_INTERNAL
+            _ext_vsl := core.VSL_INTERNAL
         EXTERNAL:
-            _ext_vsl := core#VSL_EXTERNAL
+            _ext_vsl := core.VSL_EXTERNAL
         OTHER:
-            return _ext_vsl
+            result := _ext_vsl
+            return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core#FUNCTION_SEL_C, _ext_vsl | _gpio_state)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core.FUNCTION_SEL_C, _ext_vsl | _gpio_state)
 
 PUB StrDelay(stringptr, delay)
 ' Display zero-terminated string with inter-character delay, in ms
@@ -759,44 +772,45 @@ PUB SupplyVoltage(V)
     case V
         3, 3_3:
         5:
-            V := core#INT_REG_ENABLE
+            V := core.INT_REG_ENABLE
         OTHER: return
 
-    writeReg (TRANSTYPE_CMD, 2, CMDSET_EXTD, core#FUNCTION_SEL_A, V)
+    writeReg (TRANSTYPE_CMD, 2, CMDSET_EXTD, core.FUNCTION_SEL_A, V)
 
-PUB TextDirection(direction)
+PUB TextDirection(direction): result
 ' Change mapping between display data column address and segment driver.
 '   Valid values:
 '       0: Disable SEG left/right remap
 '       1: Enable SEG left/right remap
 '   NOTE: Only affects subsequent data input. Data already displayed/in DDRAM will be unchanged.
     case direction
-        0: _seg_remap := core#SEG_LR_REMAP_DIS
-        1: _seg_remap := core#SEG_LR_REMAP_EN
+        0: _seg_remap := core.SEG_LR_REMAP_DIS
+        1: _seg_remap := core.SEG_LR_REMAP_EN
         OTHER:
-            return _seg_remap
+            result := _seg_remap
+            return
 
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core#SET_SEG_PINS, _seg_remap | _seg_pincfg)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_OLED, core.SET_SEG_PINS, _seg_remap | _seg_pincfg)
 
 PRI wrdata(databyte) | cmd_packet, tmp
 ' Write bytes with the DATA control byte set
     cmd_packet.byte[0] := SLAVE_WR | _sa0_addr
-    cmd_packet.byte[1] := core#CTRLBYTE_DATA
+    cmd_packet.byte[1] := core.CTRLBYTE_DATA
     cmd_packet.byte[2] := databyte
 
-    i2c.start
+    i2c.start()
     repeat tmp from 0 to 2
         i2c.write(cmd_packet.byte[tmp])
-    i2c.stop
+    i2c.stop()
 
-PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp
+PRI readReg(reg_nr, nr_bytes, buff_addr): result | cmd_packet, tmp
 
     case reg_nr
         0:
-            i2c.start
+            i2c.start()
             i2c.write (SLAVE_RD | _sa0_addr)
             result := i2c.read (TRUE)
-            i2c.stop
+            i2c.stop()
             return
 
     case nr_bytes
@@ -806,15 +820,15 @@ PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp
         OTHER:
             return
 
-    i2c.start
+    i2c.start()
     repeat tmp from 0 to 1
         i2c.write(cmd_packet.byte[tmp])
 
-    i2c.start
+    i2c.start()
     i2c.write (SLAVE_RD)
     repeat tmp from 0 to nr_bytes-1
         byte[buff_addr][tmp] := i2c.read (tmp == nr_bytes-1)
-    i2c.stop
+    i2c.stop()
 
 PRI writeReg(trans_type, nr_bytes, cmd_set, cmd, val) | cmd_packet[4], tmp
 
@@ -830,21 +844,21 @@ PRI writeReg(trans_type, nr_bytes, cmd_set, cmd, val) | cmd_packet[4], tmp
                 CMDSET_EXTD:
                     case nr_bytes
                         1:
-                            cmd_packet.byte[2] := core#CMDSET_EXTENDED | _disp_lines_N | _dblht_en
-                            cmd_packet.byte[3] := core#CTRLBYTE_CMD
+                            cmd_packet.byte[2] := core.CMDSET_EXTENDED | _disp_lines_N | _dblht_en
+                            cmd_packet.byte[3] := core.CTRLBYTE_CMD
                             cmd_packet.byte[4] := cmd
-                            cmd_packet.byte[5] := core#CTRLBYTE_CMD
-                            cmd_packet.byte[6] := core#CMDSET_FUNDAMENTAL | _disp_lines_N | _dblht_en
+                            cmd_packet.byte[5] := core.CTRLBYTE_CMD
+                            cmd_packet.byte[6] := core.CMDSET_FUNDAMENTAL | _disp_lines_N | _dblht_en
                             nr_bytes := 7
 
                         2:
-                            cmd_packet.byte[2] := core#CMDSET_EXTENDED | _disp_lines_N | _dblht_en
-                            cmd_packet.byte[3] := core#CTRLBYTE_CMD
+                            cmd_packet.byte[2] := core.CMDSET_EXTENDED | _disp_lines_N | _dblht_en
+                            cmd_packet.byte[3] := core.CTRLBYTE_CMD
                             cmd_packet.byte[4] := cmd
-                            cmd_packet.byte[5] := core#CTRLBYTE_DATA
+                            cmd_packet.byte[5] := core.CTRLBYTE_DATA
                             cmd_packet.byte[6] := val
-                            cmd_packet.byte[7] := core#CTRLBYTE_CMD
-                            cmd_packet.byte[8] := core#CMDSET_FUNDAMENTAL | _disp_lines_N | _dblht_en
+                            cmd_packet.byte[7] := core.CTRLBYTE_CMD
+                            cmd_packet.byte[8] := core.CMDSET_FUNDAMENTAL | _disp_lines_N | _dblht_en
                             nr_bytes := 9
 
                         OTHER:
@@ -853,49 +867,49 @@ PRI writeReg(trans_type, nr_bytes, cmd_set, cmd, val) | cmd_packet[4], tmp
                 CMDSET_EXTD_IS:
                     case nr_bytes
                         1:
-                            cmd_packet.byte[2] := core#CMDSET_EXTENDED | _disp_lines_N | _dblht_en | %1{IS = 1}
-                            cmd_packet.byte[3] := core#CTRLBYTE_CMD
+                            cmd_packet.byte[2] := core.CMDSET_EXTENDED | _disp_lines_N | _dblht_en | %1{IS = 1}
+                            cmd_packet.byte[3] := core.CTRLBYTE_CMD
                             cmd_packet.byte[4] := cmd
-                            cmd_packet.byte[5] := core#CTRLBYTE_CMD
-                            cmd_packet.byte[6] := core#CMDSET_FUNDAMENTAL | _disp_lines_N | _dblht_en
+                            cmd_packet.byte[5] := core.CTRLBYTE_CMD
+                            cmd_packet.byte[6] := core.CMDSET_FUNDAMENTAL | _disp_lines_N | _dblht_en
                             nr_bytes := 7
 
                         2:
-                            cmd_packet.byte[2] := core#CMDSET_EXTENDED | _disp_lines_N | _dblht_en
-                            cmd_packet.byte[3] := core#CTRLBYTE_CMD
+                            cmd_packet.byte[2] := core.CMDSET_EXTENDED | _disp_lines_N | _dblht_en
+                            cmd_packet.byte[3] := core.CTRLBYTE_CMD
                             cmd_packet.byte[4] := cmd
-                            cmd_packet.byte[5] := core#CTRLBYTE_DATA
+                            cmd_packet.byte[5] := core.CTRLBYTE_DATA
                             cmd_packet.byte[6] := val
-                            cmd_packet.byte[7] := core#CTRLBYTE_CMD
-                            cmd_packet.byte[8] := core#CMDSET_FUNDAMENTAL | _disp_lines_N | _dblht_en
+                            cmd_packet.byte[7] := core.CTRLBYTE_CMD
+                            cmd_packet.byte[8] := core.CMDSET_FUNDAMENTAL | _disp_lines_N | _dblht_en
                             nr_bytes := 9
                         OTHER:
                             return
 
                 CMDSET_OLED:
-                    cmd_packet.byte[2] := core#CMDSET_EXTENDED | _disp_lines_N | _dblht_en
-                    cmd_packet.byte[3] := core#CTRLBYTE_CMD
-                    cmd_packet.byte[4] := core#OLED_CMDSET_ENA
-                    cmd_packet.byte[5] := core#CTRLBYTE_CMD
+                    cmd_packet.byte[2] := core.CMDSET_EXTENDED | _disp_lines_N | _dblht_en
+                    cmd_packet.byte[3] := core.CTRLBYTE_CMD
+                    cmd_packet.byte[4] := core.OLED_CMDSET_ENA
+                    cmd_packet.byte[5] := core.CTRLBYTE_CMD
                     cmd_packet.byte[6] := cmd
-                    cmd_packet.byte[7] := core#CTRLBYTE_CMD ' Yes, command - not data
+                    cmd_packet.byte[7] := core.CTRLBYTE_CMD ' Yes, command - not data
                     cmd_packet.byte[8] := val
-                    cmd_packet.byte[9] := core#CTRLBYTE_CMD
-                    cmd_packet.byte[10] := core#OLED_CMDSET_DIS
-                    cmd_packet.byte[11] := core#CTRLBYTE_CMD
-                    cmd_packet.byte[12] := core#CMDSET_FUNDAMENTAL | _disp_lines_N | _dblht_en
+                    cmd_packet.byte[9] := core.CTRLBYTE_CMD
+                    cmd_packet.byte[10] := core.OLED_CMDSET_DIS
+                    cmd_packet.byte[11] := core.CTRLBYTE_CMD
+                    cmd_packet.byte[12] := core.CMDSET_FUNDAMENTAL | _disp_lines_N | _dblht_en
                     nr_bytes := 13
 
         TRANSTYPE_DATA:
             cmd_packet.byte[0] := SLAVE_WR | _sa0_addr
-            cmd_packet.byte[1] := core#CTRLBYTE_DATA
+            cmd_packet.byte[1] := core.CTRLBYTE_DATA
             cmd_packet.byte[2] := val
             nr_bytes := 3
 
-    i2c.start
+    i2c.start()
     repeat tmp from 0 to nr_bytes-1
         i2c.write(cmd_packet.byte[tmp])
-    i2c.stop
+    i2c.stop()
 
 DAT
 {
