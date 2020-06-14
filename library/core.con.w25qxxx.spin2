@@ -3,9 +3,9 @@
     Filename: core.con.w25qxxx.spin2
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 09, 2019
-    Updated Nov 10, 2019
+    Updated May 15, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,7 +14,7 @@ CON
 
 ' SPI Configuration
     CPOL                        = 0
-    SPI_HZ_MAX                  = 104_000_000
+    SCK_MAX_FREQ                = 104_000_000
     MOSI_BITORDER               = 5             'MSBFIRST
     MISO_BITORDER               = 0             'MSBPRE
 

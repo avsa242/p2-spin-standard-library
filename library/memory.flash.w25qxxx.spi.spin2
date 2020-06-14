@@ -5,7 +5,7 @@
     Description: Driver for the Winbond W25Qxxx-series SPI FLASH memories
     Copyright (c) 2020
     Started Nov 09, 2019
-    Updated May 15, 2020
+    Updated Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -31,38 +31,37 @@ OBJ
     time: "time"
     io  : "io"
 
-PUB Null
+PUB Null()
 ''This is not a top-level object
 
-PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN) : okay
+PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ): okay
 
-    okay := Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, DEF_SPI_CLK, core#CPOL)
+    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63)
+        if SCK_HZ >= 1 and SCK_HZ <= core.SCK_MAX_FREQ
+            if okay := spi.Start (MOSI_PIN, MISO_PIN, SCK_PIN, SCK_HZ, core.CPOL)              'SPI Object Started?
+                time.MSleep (1)                                     'Add startup delay appropriate to your device (consult its datasheet)
+                _CS := CS_PIN
+                _MOSI := MOSI_PIN
+                _MISO := MISO_PIN
+                _SCK := SCK_PIN
 
-PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ, SCK_CPOL): okay
+                io.High(_CS)
+                io.Output(_CS)
 
-    if SCK_HZ => 1 and lookdown(SCK_CPOL: 0, 1)
-        if okay := spi.Start (MOSI_PIN, MISO_PIN, SCK_PIN, SCK_HZ, SCK_CPOL)              'SPI Object Started?
-            time.MSleep (1)                                     'Add startup delay appropriate to your device (consult its datasheet)
-            _CS := CS_PIN
-            _MOSI := MOSI_PIN
-            _MISO := MISO_PIN
-            _SCK := SCK_PIN
-
-            io.High(_CS)
-
-            return okay
+                if DeviceID() == $17
+                    return okay
 
     return FALSE                                                'If we got here, something went wrong
 
-PUB Busy
+PUB Busy(): result
 ' Busy flag
 '   Returns: TRUE when flash chip is executing any of the following, FALSE otherwise:
 '       Page program, Erase, Write status reg, Erase/Program security reg
-    return (readStatusReg(1) & core#FLAG_BUSY) * TRUE
+    return (readStatusReg(1) & core.FLAG_BUSY) * TRUE
 
-PUB DeviceID
+PUB DeviceID(): result
 ' Read the device ID from the flash chip
-    readReg(core#MANUF_DEV_ID, 2, @result)
+    readReg(core.MANUF_DEV_ID, 2, @result)
     result >>= 8
 
 PUB Erase(erase_unit, flash_addr) | tmp
@@ -78,43 +77,43 @@ PUB Erase(erase_unit, flash_addr) | tmp
 '   NOTE: Erased state of a flash cell is $FF
     case erase_unit
         SECTOR, BLOCK32, BLOCK64:
-            erase_unit := lookup(erase_unit: core#SECTOR_ERASE, core#BLOCK32_ERASE, core#BLOCK64_ERASE)
+            erase_unit := lookup(erase_unit: core.SECTOR_ERASE, core.BLOCK32_ERASE, core.BLOCK64_ERASE)
             erase_unit |= (flash_addr << 8)
         CHIP:
-            erase_unit := core#CHIP_ERASE
+            erase_unit := core.CHIP_ERASE
         OTHER:
             return FALSE
     writeReg(erase_unit, 0, 0)
 
-PUB GlobalUnlock
+PUB GlobalUnlock()
 
-    writeReg(core#GLOBAL_BLOCK_UNLOCK, 0, 0)
+    writeReg(core.GLOBAL_BLOCK_UNLOCK, 0, 0)
 
-PUB JEDECID
+PUB JEDECID(): result
 ' Read the JEDEC ID from the flash chip
-    readReg(core#JEDEC_ID, 3, @result)
+    readReg(core.JEDEC_ID, 3, @result)
 
-PUB ManufacturerID
+PUB ManufacturerID(): result
 ' Read the Mfr ID from the flash chip
 '   Known values: $EF (Winbond)
-    readReg(core#MANUF_DEV_ID, 1, @result)
+    readReg(core.MANUF_DEV_ID, 1, @result)
 
 PUB ReadBlock(flash_start_addr, nr_bytes, buff_addr)
 ' Read a block of bytes from the flash chip
 '   NOTE: If the operation reaches the end of the flash chip, the address will restart at 0 and continue reading
-    readReg(core#READ_DATA | (flash_start_addr << 8), nr_bytes, buff_addr)
+    readReg(core.READ_DATA | (flash_start_addr << 8), nr_bytes, buff_addr)
 
 PUB ReadByte(flash_addr)
 ' Read a byte of data from flash
-    readReg(core#READ_DATA | (flash_addr << 8), 1, @result)
+    readReg(core.READ_DATA | (flash_addr << 8), 1, @result)
 
-PRI readStatusReg(reg_nr) | tmp
+PRI readStatusReg(reg_nr): result | tmp
 ' Read status register
 '   Valid values: 1, 2, 3
 '   Any other value polls the chip and returns the current setting
     case_fast reg_nr
         1, 2, 3:
-            reg_nr := lookup(reg_nr: core#READ_STATUS1, core#READ_STATUS2, core#READ_STATUS3)
+            reg_nr := lookup(reg_nr: core.READ_STATUS1, core.READ_STATUS2, core.READ_STATUS3)
         OTHER:
             return FALSE
     readReg(reg_nr, 1, @result)
@@ -122,7 +121,7 @@ PRI readStatusReg(reg_nr) | tmp
 PUB UID(buff_addr)
 ' Read unique 64-bit ID/serial number
 '   NOTE: Buffer at buff_addr must be at least 8 bytes in length
-    readReg(core#UNIQUE_ID, 8, buff_addr)
+    readReg(core.UNIQUE_ID, 8, buff_addr)
 
 PUB WriteBlock(flash_start_addr, nr_bytes, buff_addr)
 ' Write a block of data to the flash chip
@@ -130,26 +129,26 @@ PUB WriteBlock(flash_start_addr, nr_bytes, buff_addr)
 '       nr_bytes: 1..256
 '   Any other value will be ignored
     if lookdown(nr_bytes: 1..256)
-        writeReg(core#PAGE_PROG | (flash_Addr << 8), nr_bytes, buff_addr)
+        writeReg(core.PAGE_PROG | (flash_Addr << 8), nr_bytes, buff_addr)
     else
         return FALSE
 
-PUB WriteByte(flash_addr, val) | tmp
+PUB WriteByte(flash_addr, val): result | tmp
 ' Write one byte to the flash chip
 '   NOTE: WriteEnable must be called first before performing any writes
 '       The request will be ignored, otherwise
-    writeReg(core#PAGE_PROG | (flash_addr << 8), 1, @val)
-    return core#PAGE_PROG | (flash_addr << 8)
+    writeReg(core.PAGE_PROG | (flash_addr << 8), 1, @val)
+    return core.PAGE_PROG | (flash_addr << 8)
 
-PUB WritesEnabled(enabled=-2) | tmp
+PUB WritesEnabled(enabled=-2): result | tmp
 ' Enable writes to flash chip (page programming, sector/block/chip erase, write status reg, erase/program security registers)
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
     tmp := $00
-    readReg(core#READ_STATUS1, 1, @tmp)
+    readReg(core.READ_STATUS1, 1, @tmp)
     case_fast abs(enabled)
         0, 1:
-            enabled := lookupz(abs(enabled): core#WRITE_DISABLE, core#WRITE_ENABLE)
+            enabled := lookupz(abs(enabled): core.WRITE_DISABLE, core.WRITE_ENABLE)
         OTHER:
             result := ((tmp >> 1) & %1) * TRUE
             return
@@ -161,26 +160,26 @@ PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet[2], cmd_bytes, tmp
 
 ' Handle quirky registers on a case-by-case basis
     case reg_nr.byte[0]
-        core#MANUF_DEV_ID:
+        core.MANUF_DEV_ID:
             cmd_bytes := 4
             cmd_packet.byte[0] := reg_nr
             cmd_packet.byte[1] := $00
             cmd_packet.byte[2] := $00
             cmd_packet.byte[3] := $00
-        core#UNIQUE_ID:
+        core.UNIQUE_ID:
             cmd_bytes := 5
             cmd_packet.byte[0] := reg_nr
             cmd_packet.byte[1] := $00
             cmd_packet.byte[2] := $00
             cmd_packet.byte[3] := $00
             cmd_packet.byte[4] := $00
-        core#READ_DATA:
+        core.READ_DATA:
             cmd_bytes := 4
             cmd_packet.byte[0] := reg_nr.byte[0]   ' Read Flash
             cmd_packet.byte[1] := reg_nr.byte[3]   '   address A23..A16
             cmd_packet.byte[2] := reg_nr.byte[2]   '   address A15..A8
             cmd_packet.byte[3] := reg_nr.byte[1]   '   address A7..A0
-        core#READ_STATUS1, core#READ_STATUS2, core#READ_STATUS3:
+        core.READ_STATUS1, core.READ_STATUS2, core.READ_STATUS3:
             cmd_bytes := 1
             cmd_packet.byte[0] := reg_nr.byte[0]
         OTHER:
@@ -189,32 +188,32 @@ PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet[2], cmd_bytes, tmp
 
     io.Low(_CS)
     repeat tmp from 0 to cmd_bytes-1
-        spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, cmd_packet.byte[tmp])
+        spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, cmd_packet.byte[tmp])
 
     repeat tmp from 0 to nr_bytes-1
-        byte[buff_addr][tmp] := spi.Read(_MISO, _SCK, core#MISO_BITORDER, 8)
+        byte[buff_addr][tmp] := spi.Read(_MISO, _SCK, core.MISO_BITORDER, 8)
     io.High(_CS)
 
 PRI writeReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, cmd_bytes, tmp
 ' Write nr_bytes to register 'reg_nr' stored at buf_addr
     case reg_nr.byte[0]
-        core#WRITE_ENABLE, core#WRITE_DISABLE:
+        core.WRITE_ENABLE, core.WRITE_DISABLE:
             cmd_bytes := 1
             cmd_packet.byte[0] := reg_nr.byte[0]
-        core#PAGE_PROG:
+        core.PAGE_PROG:
             cmd_bytes := 4
             cmd_packet.byte[0] := reg_nr.byte[0]   ' Write Flash
             cmd_packet.byte[1] := reg_nr.byte[3]   '   address A23..A16
             cmd_packet.byte[2] := reg_nr.byte[2]   '   address A15..A8
             cmd_packet.byte[3] := reg_nr.byte[1]   '   address A7..A0
-        core#SECTOR_ERASE, core#BLOCK32_ERASE, core#BLOCK64_ERASE, core#CHIP_ERASE, core#CHIP_ERASE2:
+        core.SECTOR_ERASE, core.BLOCK32_ERASE, core.BLOCK64_ERASE, core.CHIP_ERASE, core.CHIP_ERASE2:
             cmd_bytes := 4
             cmd_packet.byte[0] := reg_nr.byte[0]   ' Erase Flash
             cmd_packet.byte[1] := reg_nr.byte[3]   '   address A23..A16
             cmd_packet.byte[2] := reg_nr.byte[2]   '   address A15..A8
             cmd_packet.byte[3] := reg_nr.byte[1]   '   address A7..A0
 
-        core#GLOBAL_BLOCK_UNLOCK:
+        core.GLOBAL_BLOCK_UNLOCK:
             cmd_bytes := 1
             cmd_packet.byte[0] := reg_nr.byte[0]
 
@@ -222,14 +221,14 @@ PRI writeReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, cmd_bytes, tmp
 
     io.Low(_CS)
     repeat tmp from 0 to cmd_bytes-1
-        spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, cmd_packet.byte[tmp])
+        spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, cmd_packet.byte[tmp])
 
     if nr_bytes == 0
         io.High(_CS)
         return
 
     repeat tmp from 0 to nr_bytes-1
-        spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, byte[buff_addr][tmp])
+        spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
     io.High(_CS)
 
 DAT
