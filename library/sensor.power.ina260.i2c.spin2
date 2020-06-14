@@ -5,7 +5,7 @@
     Description: Driver for the TI INA260 Precision Current and Power Monitor IC
     Copyright (c) 2020
     Started Nov 13, 2019
-    Updated Jun 13, 2020
+    Updated Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -45,9 +45,9 @@ VAR
 
 OBJ
 
-    i2c : "com.i2c"                                             'PASM I2C Driver
-    core: "core.con.ina260.spin2"                       'File containing your device's register set
-    time: "time"                                                'Basic timing functions
+    i2c : "com.i2c"
+    core: "core.con.ina260"
+    time: "time"
 
 PUB Null()
 ''This is not a top-level object
