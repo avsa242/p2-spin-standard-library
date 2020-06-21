@@ -23,19 +23,19 @@ PUB StartRxTx(rxpin, txpin, mode, baudrate) | bitperiod, txmode, rxmode
     tx_pin := txpin
     txmode := _txmode
     rxmode := _rxmode
-    wrpin_(txmode, txpin)
-    wxpin_(bitperiod, txpin)
+    wrpin(txpin, txmode)
+    wxpin(txpin, bitperiod)
     dirh_(txpin)
-    wrpin_(rxmode, rxpin)
-    wxpin_(bitperiod, rxpin)
+    wrpin(rxpin, rxmode)
+    wxpin(rxpin, bitperiod)
     dirh_(rxpin)
     return 1
 
 PUB Char(val) | txpin
 ' Send one character
     txpin := tx_pin
-    wypin_(val, txpin)
-    waitx_(1)
+    wypin(txpin, val)
+    _waitx(1)
     txflush
 
 PUB TXFlush | txpin, z
