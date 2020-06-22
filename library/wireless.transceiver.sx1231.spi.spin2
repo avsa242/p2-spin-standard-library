@@ -5,7 +5,7 @@
     Description: Driver for the Semtech SX1231 UHF Transceiver IC (P2 version)
     Copyright (c) 2020
     Started Apr 21, 2020
-    Updated Jun 14, 2020
+    Updated Jun 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -1218,7 +1218,7 @@ PUB WaitRX() | tmp
 PRI readReg(reg_nr, nr_bytes, buff_addr) | tmp
 ' Read nr_bytes from register 'reg_nr' to address 'buff_addr'
     case reg_nr
-        $00..$13, $18..$4F, $58..59, $5F, $6F, $71:
+        $00..$13, $18..$4F, $58..$59, $5F, $6F, $71:
             io.Low(_CS)
 '            spi.Write(reg_nr)
             spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
@@ -1233,7 +1233,7 @@ PRI readReg(reg_nr, nr_bytes, buff_addr) | tmp
 PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
 ' Write nr_bytes to register 'reg_nr' stored in val
     case reg_nr
-        $00..$13, $18..$4F, $58..59, $5F, $6F, $71:
+        $00..$13, $18..$4F, $58..$59, $5F, $6F, $71:
             io.Low(_CS)
 '            spi.Write(reg_nr | core.W)
             spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr | core.W)

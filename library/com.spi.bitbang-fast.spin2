@@ -4,7 +4,7 @@
     Description: SPI engine (bit-banged, faster) for the Propeller 2
     Author: Jesse Burt
     Created: Nov 9, 2019
-    Updated: Nov 9, 2019
+    Updated: Jun 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -45,18 +45,18 @@ VAR
 PUB Start(MOSI, MISO, SCK, SCK_HZ, CPOL=0): okay
 
     _CPOL := CPOL
-    _dir(MOSI, 1)
+    _dirw(MOSI, 1)
     if MISO <> -1
-        _dir(MISO, 0)
-    out_(SCK, _CPOL)
-    _dir(SCK, 1)
+        _dirw(MISO, 0)
+    _out(SCK, _CPOL)
+    _dirw(SCK, 1)
     _clock_delay := ((clkfreq / SCK_HZ) / 2) #> 2
     okay := cogid + 1
 
 PUB Read(MISO, SCK, mode, nr_bits) | clk_delay, tmp
 
     clk_delay := _clock_delay
-    out_(SCK, _CPOL)                                         ' Set initial clock state/clock polarity
+    _out(SCK, _CPOL)                                         ' Set initial clock state/clock polarity
     tmp := 32 - nr_bits
 
     result := 0
@@ -65,34 +65,34 @@ PUB Read(MISO, SCK, mode, nr_bits) | clk_delay, tmp
         MSBPRE:
             repeat nr_bits
                 result := (result << 1) | _pinr(MISO)
-                waitx_(clk_delay)
+                _waitx(clk_delay)
                 drvnot_(SCK)
-                waitx_(clk_delay)
+                _waitx(clk_delay)
                 drvnot_(SCK)
 
         LSBPRE:
             repeat nr_bits + 1
                 result := (result >> 1) | (_pinr(MISO) << 31)
-                waitx_(clk_delay)
+                _waitx(clk_delay)
                 drvnot_(SCK)
-                waitx_(clk_delay)
+                _waitx(clk_delay)
                 drvnot_(SCK)
                 result >>= tmp
 
         MSBPOST:
             repeat nr_bits
                 drvnot_(SCK)
-                waitx_(clk_delay)
+                _waitx(clk_delay)
                 drvnot_(SCK)
-                waitx_(clk_delay)
+                _waitx(clk_delay)
                 result := (result << 1) | _pinr(MISO)
 
         LSBPOST:
             repeat nr_bits + 1
                 drvnot_(SCK)
-                waitx_(clk_delay)
+                _waitx(clk_delay)
                 drvnot_(SCK)
-                waitx_(clk_delay)
+                _waitx(clk_delay)
                 result := (result >> 1) | (_pinr(MISO) << 31)
                 result >>= tmp
 
@@ -110,11 +110,11 @@ PUB Write(MOSI, SCK, mode, nr_bits, val) | clk_delay, tmp
             val := val REV 31
 
     repeat nr_bits
-        out_(MOSI, val & %1)
+        _out(MOSI, val & %1)
 
-        waitx_(clk_delay)
+        _waitx(clk_delay)
         drvnot_(SCK)
-        waitx_(clk_delay)
+        _waitx(clk_delay)
         drvnot_(SCK)
 
         val >>= 1

@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2020
     Started May 19, 2019
-    Updated Jun 14, 2020
+    Updated Jun 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -36,7 +36,7 @@ PUB Box(x0, y0, x1, y1, color, filled=0) | x, y
 '   x1, y1: End coordinates
 '   color:  Box color
 '   filled: Flag to set whether to fill the box or not
-    case_fast filled
+    case filled
         FALSE:
             repeat x from x0 to x1
                 Plot(x, y0, color)
@@ -214,7 +214,7 @@ PUB FontWidth(): result
 
 PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 ' Draw line from x1, y1 to x2, y2, in color c
-    case_fast x1 == x2 or y1 == y2
+    case x1 == x2 or y1 == y2
         TRUE:
             if x1 == x2                     ' X's are the same - use Plot to draw a straight Vertical line
                 repeat sy from y1 to y2

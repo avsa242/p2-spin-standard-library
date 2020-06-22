@@ -4,7 +4,7 @@
     Description: SPI engine (smart-pin driven) for the Propeller 2
     Author: Jesse Burt
     Created: Apr 15, 2020
-    Updated: May 10, 2020
+    Updated: Jun 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -66,9 +66,9 @@ PUB Stop | SCK, MOSI, MISO
     wrpin(SCK, 0)
     wrpin(MISO, 0)
     wrpin(MOSI, 0)
-    _dir(SCK, 0)
-    _dir(MISO, 0)
-    _dir(MOSI, 0)
+    _dirl(SCK)
+    _dirl(MISO)
+    _dirl(MOSI)
 
 PUB Read | SCK, MOSI, MISO, tmp
 ' Read a byte from SPI slave

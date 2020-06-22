@@ -3,9 +3,8 @@
     Filename: com.i2c.spin2
     Description: Bitbanged I2C driver for the P2X8C4M64P
     Author: Jesse Burt
-    Copyright (c) 2019
     Created: Jun 15, 2019
-    Updated: Jun 15, 2019
+    Updated: Jun 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -51,8 +50,8 @@ PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000)
 
     _scl := I2C_SCL
     _sda := I2C_SDA
-    _dir(_scl, 0)                                              ' Float pins
-    _dir(_sda, 0)
+    _dirw(_scl, 0)                                              ' Float pins
+    _dirw(_sda, 0)
     Reset
     result := cogid + 1
     return
@@ -66,21 +65,21 @@ PUB Present(slave_addr)
 PUB Read(ackbit) | i2cbyte
 ' Read byte from I2C bus
 '      Send ackbit to slave: ACK (0) or NAK (1)
-    _dir(_sda, 0)                                             ' Make SDA input
+    _dirw(_sda, 0)                                             ' Make SDA input
 
     repeat 8
         qd
-        _dir(_scl, 0)                                         ' Float SCL
+        _dirw(_scl, 0)                                         ' Float SCL
         hd
         i2cbyte := (i2cbyte << 1) | _pinr(_sda)               ' Read the bit
-        _dir(_scl, 1)                                         ' SCL low
+        _dirw(_scl, 1)                                         ' SCL low
         qd
 
-    _dir(_sda, !ackbit)                                       ' Output ack bit
+    _dirw(_sda, !ackbit)                                       ' Output ack bit
     qd
-    _dir(_scl, 0)                                             ' Float SCL
+    _dirw(_scl, 0)                                             ' Float SCL
     hd
-    _dir(_scl, 1)                                             ' SCL low
+    _dirw(_scl, 1)                                             ' SCL low
     qd
 
     return (i2cbyte & $FF)
@@ -88,9 +87,9 @@ PUB Read(ackbit) | i2cbyte
 PUB Reset
 ' Reset device
     repeat 9
-        _dir(_scl, 1)
+        _dirw(_scl, 1)
         hd
-        _dir(_scl, 0)
+        _dirw(_scl, 0)
         hd
         if (_pinr(_sda))
             quit
@@ -98,25 +97,25 @@ PUB Reset
 PUB Start
 ' I2C Start condition (S, Sr)
 ' -- will wait if I2C bus SDA pin is held low
-    _dir(_sda, 0)                                               ' Float pins
-    _dir(_scl, 0)
+    _dirw(_sda, 0)                                               ' Float pins
+    _dirw(_scl, 0)
     repeat
     while (_pinr(_scl) == 0)                                    ' Allow "clock stretching"
     hd
-    _dir(_sda, 1)                                               ' SDA low
+    _dirw(_sda, 1)                                               ' SDA low
     hd
-    _dir(_scl, 1)                                               ' SCL low
+    _dirw(_scl, 1)                                               ' SCL low
     hd
 
 PUB Stop
 ' I2C Stop condition (P)
-    _dir(_sda, 1)                                               ' SDA low
+    _dirw(_sda, 1)                                               ' SDA low
     hd
-    _dir(_scl, 0)                                               ' Float SCL
+    _dirw(_scl, 0)                                               ' Float SCL
     hd
     repeat
     until (_pinr(_scl) == 1)                                    ' Hold for clock stretch
-    _dir(_sda, 0)                                               ' Float SDA
+    _dirw(_sda, 0)                                               ' Float SDA
     hd
 
 PUB Wait(slave_addr) | ackbit
@@ -146,26 +145,26 @@ PUB Write(i2cbyte) | ackbit
 ' -- leaves SCL low
     i2cbyte := (i2cbyte ^ $FF) << 24                             ' Move msb (bit7) to bit31
     repeat 8                                                     ' Output eight bits
-        _dir(_sda, i2cbyte <-= 1)                                ' Send msb first
+        _dirw(_sda, i2cbyte <-= 1)                                ' Send msb first
         hd
-        _dir(_scl, 0)                                            ' Float SCL
+        _dirw(_scl, 0)                                            ' Float SCL
         hd
-        _dir(_scl, 1)                                            ' SCL low
-    _dir(_sda, 0)                                                ' Release SDA to read ack bit
+        _dirw(_scl, 1)                                            ' SCL low
+    _dirw(_sda, 0)                                                ' Release SDA to read ack bit
     hd
-    _dir(_scl, 0)                                                ' Float SCL
+    _dirw(_scl, 0)                                                ' Float SCL
     hd
     ackbit := _pinr(_sda)                                        ' Read ack bit
-    _dir(_scl, 1)                                                ' SCL low
+    _dirw(_scl, 1)                                                ' SCL low
     return ackbit
 
 PRI hd
 
-    waitx_ (_hdelay)
+    _waitx (_hdelay)
 
 PRI qd
 
-    waitx_ (_qdelay)
+    _waitx (_qdelay)
 
 DAT
 {{

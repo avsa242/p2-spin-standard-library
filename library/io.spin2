@@ -5,7 +5,7 @@
     Description: Methods for setting the state of IO pins
     Copyright (c) 2020
     Started Jun 16, 2019
-    Updated Mar 18, 2020
+    Updated Jun 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -23,28 +23,28 @@ OBJ
 
 PUB Direction(pin, direction)
 ' Set IO pin to input (0) or output (1)
-    _dir(pin, direction)
+    _dirw(pin, direction)
 
 PUB High(pin)
 ' Sets IO pin high
-    out_(pin, 1)
+    _out(pin, 1)
 
 PUB Input(pin)
 ' Sets IO pin to an input and returns the current state
-    _dir(pin, 0)
+    _dirw(pin, 0)
     return _pinr(pin)
 
 PUB Low(pin)
 ' Sets IO pin low
-    out_(pin, 0)
+    _out(pin, 0)
 
 PUB Output(pin)
 ' Sets IO pin to an output
-    _dir(pin, 1)
+    _dirw(pin, 1)
 
 PUB Set(pin, state)
 ' Sets IO pin to state low (0) or high (1)
-    out_(pin, state)
+    _out(pin, state)
 
 PUB Toggle(pin)
 ' Toggles IO pin high/low

@@ -4,7 +4,7 @@
     Description: SPI engine (bit-banged) for the Propeller 2
     Author: Jesse Burt
     Created: Nov 2, 2019
-    Updated: Nov 3, 2019
+    Updated: Jun 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -45,18 +45,18 @@ VAR
 PUB Start(MOSI, MISO, SCK, spi_clock, CPOL=0): okay
 
     _CPOL := CPOL
-    _dir(MOSI, 1)
+    _dirw(MOSI, 1)
     if MISO <> -1
-        _dir(MISO, 0)
-    _dir(SCK, 1)
+        _dirw(MISO, 0)
+    _dirw(SCK, 1)
     _clock_delay := ((clkfreq / spi_clock) / 7) #> 2 ' xxx minimum??
     okay := cogid + 1
 
 PUB Read(MISO, SCK, mode, nr_bits)
 
-    _dir(MISO, 0)                                            ' Make MISO input
-    out_(SCK, _CPOL)                                         ' Set initial clock state/clock polarity
-    _dir(SCK, 1)                                             ' Make SCK output
+    _dirw(MISO, 0)                                            ' Make MISO input
+    _out(SCK, _CPOL)                                         ' Set initial clock state/clock polarity
+    _dirw(SCK, 1)                                             ' Make SCK output
 
     result := 0
 
@@ -90,21 +90,21 @@ PUB ShiftIn = Read
 
 PUB Write(MOSI, SCK, mode, nr_bits, val)
 ' ~ 600kHz max
-    _dir(MOSI, 1)
-    out_(SCK, _CPOL)                            ' set initial clock state
-    _dir(SCK, 1)
+    _dirw(MOSI, 1)
+    _out(SCK, _CPOL)                            ' set initial clock state
+    _dirw(SCK, 1)
 
     case_fast mode
         LSBFIRST:
             val <-= 1                                       ' pre-align lsb
             repeat nr_bits
-                out_(MOSI, (val ->= 1) & 1)                 ' output data bit
+                _out(MOSI, (val ->= 1) & 1)                 ' output data bit
                 PostClock(SCK)
 
         MSBFIRST:
             val <<= (32 - nr_bits)                             ' pre-align msb
             repeat nr_bits
-                out_(MOSI, (val <-= 1) & 1)                 ' output data bit
+                _out(MOSI, (val <-= 1) & 1)                 ' output data bit
                 PostClock(SCK)
 
 PRI postClock(SCK) | clkd

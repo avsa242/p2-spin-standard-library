@@ -448,7 +448,7 @@ PUB start(status)
 
   if usbcog
     dirl_(USB_EVENT_REPO)                               ' DIR bit low puts smart pin in reset mode
-    wrpin_(SP_REPO1_MODE, USB_EVENT_REPO)               ' Set "long repository" mode to act as an event mailbox
+    wrpin(SP_REPO1_MODE, USB_EVENT_REPO)               ' Set "long repository" mode to act as an event mailbox
     dirh_(USB_EVENT_REPO)                               ' Enable the event mailbox smart pin (will raise IN)
     byte[status][0] := usbcog                           ' Pack the USB port data into a single long
     byte[status][1] := USB_EVENT_REPO                   ' Long repository smart pin to poll for event notifications

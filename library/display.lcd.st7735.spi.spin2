@@ -5,7 +5,7 @@
     Description: Driver for Sitronix ST7735-based displays (4W SPI, P2 version)
     Copyright (c) 2020
     Started Mar 10, 2020
-    Updated Jun 14, 2020
+    Updated Jun 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -638,7 +638,7 @@ PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
             io.High(_CS)
             return
 
-        $2A..$2C, $30, $36, $3A, $B1..$B4, $B6, $C0..$C5, $E0, $E1, $FC:
+        $2A, $2B, $30, $36, $3A, $B1..$B4, $B6, $C0..$C5, $E0, $E1, $FC:
             io.Low(_CS)
             io.Low(_DC)                                 ' D/C = Command
             spi.Write(reg_nr)                           ' Write reg
