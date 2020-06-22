@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started: Apr 6, 2020
-    Updated: Jun 6, 2020
+    Updated: Jun 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -55,11 +55,12 @@ OBJ
 
 PUB Main() | time_ms
 
+    vga.SetTimings(10, 33, 16, 96, 48, 640)
     Setup()
     vga.clear()
 
     Demo_Greet()
-    time.Sleep (8)
+    time.Sleep (5)
     vga.clearall()
 
     time_ms := 10_000
@@ -503,6 +504,7 @@ PUB Setup()
     ser.clear()
     ser.printf("Serial terminal started - p2 @ %dMHz\n", clkfreq/1000000)
     SetupPalette()
+
     if vga.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
         ser.printf("VGA 8bpp driver started\n")
         vga.FontAddress(fnt.BaseAddr())

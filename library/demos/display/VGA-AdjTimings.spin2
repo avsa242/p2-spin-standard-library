@@ -1,0 +1,192 @@
+{
+    --------------------------------------------
+    Filename: VGA-AdjTimings.spin2
+    Description: Utility for adjusting VGA driver display
+        timings while displaying a simple test pattern
+    Author: Jesse Burt
+    Copyright (c) 2020
+    Started: Jun 21, 2020
+    Updated: Jun 22, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+CON
+
+    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = 250_000_000                           ' XXX Must be the same as that defined in the VGA driver (default 250MHz)
+
+    WIDTH           = 320
+    HEIGHT          = 240
+    XMAX            = WIDTH-1
+    YMAX            = HEIGHT-1
+    BUFFSZ          = WIDTH * HEIGHT
+    BPP             = 1
+    BPL             = WIDTH * BPP
+
+' Default 640x480 timings
+    VF_DEF          = 10
+    VB_DEF          = 33
+    BS_DEF          = 16
+    SN_DEF          = 96
+    BV_DEF          = 48
+    VI_DEF          = 640
+
+' -- User-modifiable constants
+    SER_RX          = cfg.SER_RX
+    SER_TX          = cfg.SER_TX
+    SER_BAUD        = 2_000_000
+    LED             = cfg.LED1
+
+    VGA_BASEPIN     = 0                                     ' 0, 8, 16, 24, 32, 40, 48
+'                                                           Works with all basepins on the P2ES except 56
+' --
+
+VAR
+
+    long _stack_timer[50]
+    long _timer_set
+    long _rndSeed
+
+    long _palette[256]
+    byte _framebuffer[BUFFSZ]
+
+    byte _timer_cog, _ser_cog, _vga_cog
+
+OBJ
+
+    cfg         : "core.con.boardcfg.p2eval"
+    ser         : "com.serial.terminal.ansi"
+    time        : "time"
+    io          : "io"
+    vga         : "display.vga.bitmap-8bpp"
+    int         : "string.integer"
+    fnt         : "font.5x8"
+
+PUB Main() | ch, vf, vb, bs, sn, bv, vi
+
+    vf := VF_DEF
+    vb := VB_DEF
+    bs := BS_DEF
+    sn := SN_DEF
+    bv := BV_DEF
+    vi := VI_DEF
+
+    vga.SetTimings(vf, vb, bs, sn, bv, vi)
+
+    Setup()
+    vga.clear()
+
+    ser.position(0, 20)
+
+    repeat
+        vga.box(0, 0, XMAX, YMAX, 255)
+        vga.line(0, 0, XMAX, YMAX, 255)
+        vga.line(XMAX, 0, 0, YMAX, 255)
+        vga.circle(XMAX/2, YMAX/2, YMAX/2, 255)
+
+        ser.position(0, 10)
+        ser.printf("vf: %d, vb: %d, bs: %d, sn: %d, bv: %d, vi: %d\n\n", vf, vb, bs, sn, bv, vi)
+        ser.printf("vga.SetTimings(%d, %d, %d, %d, %d, %d)", vf, vb, bs, sn, bv, vi)
+
+        if ch := ser.CharIn
+            case ch
+                "q":    vf++
+                "a":    vf--
+                "w":    vb++
+                "s":    vb--
+                "e":    bs++
+                "d":    bs--
+                "r":    sn++
+                "f":    sn--
+                "t":    bv++
+                "g":    bv--
+                "y":    vi++
+                "h":    vi--
+                " ":
+                    vf := VF_DEF
+                    vb := VB_DEF
+                    bs := BS_DEF
+                    sn := SN_DEF
+                    bv := BV_DEF
+                    vi := VI_DEF
+                OTHER:
+                    next
+
+            vga.Stop
+            vga.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
+            vga.SetTimings(vf, vb, bs, sn, bv, vi)
+            vga.WaitVSync
+            vga.Update
+    repeat
+
+PUB Setup()
+
+    repeat until ser.StartRXTX(SER_RX, SER_TX, 0, SER_BAUD)
+    ser.clear()
+    ser.printf("Serial terminal started - p2 @ %dMHz\n", clkfreq/1000000)
+
+    SetupPalette()
+    if vga.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
+        ser.printf("VGA 8bpp driver started\n")
+        vga.FontAddress(fnt.BaseAddr())
+        vga.FontSize(6, 8)
+        vga.clear()
+    else
+        ser.printf("VGA 8bpp driver failed to start\n")
+        repeat
+
+PUB SetupPalette() | i, r, g, b, c
+' Set up palette
+    r := 0
+    g := 0
+    b := 0
+
+    repeat i from 0 to 255
+        c := 0 | (r << 16) | (g << 8) | b
+        _palette[i] := c
+
+        case i
+            0..63:
+                r += 4
+                g := 0
+                b := 0
+            64..127:
+                r := 0
+                g += 4
+                b := 0
+            128..191:
+                r := 0
+                g := 0
+                b += 4
+            192..253:
+                r += 4
+                g += 4
+                b := 0
+            254..255:
+                r := 255
+                g := 255
+                b := 255
+
+#include "lib.utility.spin2"
+
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
+

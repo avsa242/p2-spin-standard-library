@@ -5,7 +5,7 @@
     Author: Ray Allen
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Jun 14, 2020
+    Updated: Jun 22, 2020
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is a derivative of raycast5b_SpinDisplay2a.spin2,
@@ -18,7 +18,7 @@ CON
 
     _CLKFREQ    = 250_000_000                               ' Must match CLOCKFREQ symbol in parent object
     FCLK        = _CLKFREQ
-    FPIX        = 25_000_000.0/2.0
+    FPIX        = 25_175_000.0/2.0
     FSET        = (FPIX / FCLK * 2.0) * float($4000_0000)
     BYTESPERPX  = 1
     BYTESPERLN  = 320
@@ -30,7 +30,7 @@ CON
     VSYNC_PAR   = 4
     PTR_FB_PAR  = 5
 
-    INTENSITY   = 80                                        ' 0..128
+    INTENSITY   = 127                                        ' 0..128
 
 OBJ
 
@@ -68,6 +68,10 @@ PUB Stop()
     if _cog
         cogstop(_cog-1)
 
+PUB Defaults()
+' Default timings for 640x480 signalling
+    SetTimings(10, 33, 16, 96, 48, 640)
+
 PUB Address(addr)
 ' Set address of display buffer
 '   NOTE: Also sets address of (optional) offscreen buffer to the same address
@@ -84,6 +88,21 @@ PUB DrawTo(addr)
 '       to subsequently be copied to the display or "live" buffer,
 '       once a complete frame is rendered.
     _ptr_drawbuffer := addr
+
+PUB SetTimings(vfront, vback, hfront, hsync, hback, hvisible)
+' Set video timings
+'   vfront:     Vertical front porch
+'   vback:      Vertical back porch
+'   hfront:     Horizontal front porch
+'   hsync:      Horizontal sync pulse
+'   hback:      Horizontal back porch
+'   hvisible:   Horizontal visible lines
+    _vf := vfront
+    _vb := vback
+    _hf := STREAMER_SETUP | (1 << streamer.LUTBASE) + hfront/2
+    _hs := STREAMER_SETUP | (1 << streamer.LUTBASE) + hsync/2
+    _hb := STREAMER_SETUP | (1 << streamer.LUTBASE) + hback/2
+    _hv := STREAMER_SETUP | (1 << streamer.LUTBASE) + hvisible/2
 
 PUB Update()
 ' Write the draw buffer to the display
@@ -148,7 +167,7 @@ DisplayEntry
 '
 ' Field loop
 '
-field                   mov     x, #33                      'top blanks  XXX May need to be tweaked for your monitor
+field                   mov     x, _vb                      'top blanks
                         call    #blank
                         mov     m_buf, framebuff_addr
                         mov     x, #480/2                   'set visible lines
@@ -161,7 +180,7 @@ lineloop                call    #hsync                      'do horizontal sync
                         add     m_buf, #320
                         djnz    x, #lineloop                'another line?
 
-                        mov     x, #10                      'bottom blanks
+                        mov     x, _vf                      'bottom blanks
                         call    #blank
 
                         drvnot  vsync_pin                   'sync on
@@ -176,12 +195,12 @@ lineloop                call    #hsync                      'do horizontal sync
 ' Subroutines
 '
 blank                   call    #hsync                      'blank lines
-                        xcont   m_vi, #0
+                        xcont   _hv, #0
             _ret_       djnz    x, #blank
 
-hsync                   xcont   m_bs, #0                    'horizontal sync
-                        xcont   m_sn, #1
-            _ret_       xcont   m_bv, #0
+hsync                   xcont   _hf, #0                    'horizontal sync
+                        xcont   _hs, #1
+            _ret_       xcont   _hb, #0
 
 '
 ' Initialized data
@@ -189,10 +208,13 @@ hsync                   xcont   m_bs, #0                    'horizontal sync
 dacmode_s               long    smartpins.DAC_123OHM_3V3 | smartpins.OUTPUT_ENABLED ' HSync
 dacmode_c               long    smartpins.DAC_75OHM_2V0 | smartpins.OUTPUT_ENABLED  ' R, G, B
 
-m_bs                    long    STREAMER_SETUP | (1 << streamer.LUTBASE) + 16/2     ' Before sync
-m_sn                    long    STREAMER_SETUP | (1 << streamer.LUTBASE) + 96/2     ' Sync
-m_bv                    long    STREAMER_SETUP | (1 << streamer.LUTBASE) + 96/2     ' Before visible
-m_vi                    long    STREAMER_SETUP | (1 << streamer.LUTBASE) + 640/2    ' Visible
+_vf                     long    0
+_vb                     long    0
+_hf                     long    0   ' Before sync
+_hs                     long    0   ' Sync
+_hb                     long    0   ' Before visible
+_hv                     long    0   ' Visible
+
 m_rf                    long    STREAMER_SETUP | (8 << streamer.LUTBASE) + 640/2    ' Visible RLONG 8BPP LUT
 
 framebuff_addr          long    0
