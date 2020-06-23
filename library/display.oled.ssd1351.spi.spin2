@@ -5,7 +5,7 @@
     Description: Driver for Solomon Systech SSD1351 RGB OLED displays (P2 version)
     Copyright (c) 2020
     Started: Mar 12, 2020
-    Updated: Jun 14, 2020
+    Updated: Jun 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -48,9 +48,7 @@ CON
 OBJ
 
     core    : "core.con.ssd1351"
-    time    : "time"
     spi     : "com.spi"
-    io      : "io"
 
 VAR
 
@@ -69,12 +67,9 @@ PUB Start (CS_PIN, DC_PIN, DIN_PIN, CLK_PIN, RES_PIN, CLK_HZ, WIDTH, HEIGHT, dra
             _MOSI := DIN_PIN
             _SCK := CLK_PIN
             _CS := CS_PIN
-            io.High(_CS)
-            io.Output(_CS)
-            io.High(_DC)
-            io.Output(_DC)
-            io.High(_RES)
-            io.Output(_RES)
+            pinh(_CS)
+            pinh(_DC)
+            pinh(_RES)
             _disp_width := WIDTH
             _disp_height := HEIGHT
             _disp_xmax := _disp_width - 1
@@ -84,7 +79,7 @@ PUB Start (CS_PIN, DC_PIN, DIN_PIN, CLK_PIN, RES_PIN, CLK_HZ, WIDTH, HEIGHT, dra
             Address(drawbuffer_address)
             Reset()
             Powered(TRUE)
-            time.MSleep(300)
+            waitms(300)
             LockDisplay(ALL_UNLOCK)
             LockDisplay(CFG_UNLOCK)
             return okay
@@ -171,7 +166,7 @@ PUB ClearAccel() | tmp
     repeat _buff_sz/4
         writeReg(core.WRITERAM, 4, @tmp)
 
-PUB ClockDiv(divider) | tmp
+PUB ClockDiv(divider): result | tmp
 ' Set clock frequency divider used by the display controller
 '   Valid values: 1..1024 (default: 2)
 '   Any other value returns the current setting
@@ -506,10 +501,10 @@ PUB SubpixelOrder(order): result
 
 PUB Reset()
 ' Reset the display controller
-    io.High(_RES)
-    io.Low(_RES)
-    time.USleep (2)
-    io.High(_RES)
+    pinh(_RES)
+    pinl(_RES)
+    waitus (2)
+    pinh(_RES)
 
 PUB Update()
 ' Send the draw buffer to the display
@@ -519,27 +514,27 @@ PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
 
     case_fast reg_nr
         core.WRITERAM:                                                              ' Display RAM
-            io.Low(_CS)
-            io.Low(_DC)
+            pinl(_CS)
+            pinl(_DC)
             spi.Write(reg_nr)
-            io.High(_DC)
+            pinh(_DC)
             spi.WriteBytes(nr_bytes, buff_addr)
-            io.High(_CS)
+            pinh(_CS)
 
         $9E, $9F, $A4..$A7, $AD..$AF, $B0, $B9, $D1, $E3:                           ' Single-byte command
-            io.Low(_CS)
-            io.Low(_DC)
+            pinl(_CS)
+            pinl(_DC)
             spi.Write(reg_nr)
-            io.High(_CS)
+            pinh(_CS)
             return
 
         $15, $75, $96, $A0..$A2, $AB, $B1..$B6, $B8, $BB, $BE, $C1, $C7, $CA, $FD:  ' Multi-byte command
-            io.Low(_CS)
-            io.Low(_DC)
+            pinl(_CS)
+            pinl(_DC)
             spi.Write(reg_nr)
-            io.High(_DC)
+            pinh(_DC)
             spi.WriteBytes(nr_bytes, buff_addr)
-            io.High(_CS)
+            pinh(_CS)
             return
 
         OTHER:
