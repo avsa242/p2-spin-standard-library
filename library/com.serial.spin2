@@ -12,11 +12,11 @@ VAR
 
     long rx_pin, tx_pin
 
-PUB Start(baudrate)
+PUB Start(baudrate): okay
 ' Start with default serial pins and mode
     return StartRxTx(63, 62, 0, baudrate)
 
-PUB StartRxTx(rxpin, txpin, mode, baudrate) | bitperiod, txmode, rxmode
+PUB StartRxTx(rxpin, txpin, mode, baudrate): okay | bitperiod, txmode, rxmode
 
     bitperiod := 7 + ((CLKFREQ / baudrate) << 16)
     rx_pin := rxpin
@@ -38,33 +38,31 @@ PUB Char(val) | txpin
     _waitx(1)
     txflush
 
-PUB TXFlush | txpin, z
+PUB TXFlush() | txpin, z
+' Flush transmit buffer
+    txpin := tx_pin
+    z := 1
+    repeat while z <> 0
+        asm
+                testp   txpin           wc
+        if_c    mov     z,  #0
+        endasm
 
-  txpin := tx_pin
-  z := 1
-  repeat while z <> 0
-    asm
-      testp txpin wc
-   if_c mov z, #0
-    endasm
-
-PUB RXCheck: rxbyte | rxpin, z
+PUB RXCheck(): rxbyte | rxpin, z
 ' Check if byte received (never waits)
 '   Returns:
 '       -1 if no byte, otherwise byte
     rxbyte := -1
     rxpin := rx_pin
     asm
-        testp rxpin wc  ' char ready?
-        if_c rdpin rxbyte, rxpin
-        if_c shr rxbyte, #24
+                testp   rxpin           wc  ' char ready?
+        if_c    rdpin   rxbyte, rxpin
+        if_c    shr     rxbyte, #24
     endasm
 
-PUB CharIn : v
+PUB CharIn(): v
 ' Receive a byte (waits until one ready)
     repeat
         v := rxcheck
     while v == -1
 
-' Provide the usual str(), dec(), etc. routines
-'#include "lib.terminalfunc.spin2"

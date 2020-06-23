@@ -36,7 +36,7 @@ CON
 
 VAR
 
-    byte buf[32]
+    byte buffer[MAXSTR_LENGTH+1]
 
 PUB Bin(val, digits = 32) | mask
 ' Print a number in binary form
@@ -120,7 +120,7 @@ PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
             digit += "0"
         else
             digit := (digit - 10) + "A"
-        buf[i++] := digit
+        buffer[i++] := digit
         --digitsNeeded
     while (val <> 0 or digitsNeeded > 0) and (i < 32)
     if (signflag > 1)
@@ -128,7 +128,7 @@ PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
 
 ' Now print the digits in reverse order
     repeat while (i > 0)
-        Char(buf[--i])
+        Char(buffer[--i])
 
 PUB PrintF(fmt = string(""), an=0, bn=0, cn=0, dn=0, en=0, fn=0) | c, valptr, val
 ' C like formatted print
