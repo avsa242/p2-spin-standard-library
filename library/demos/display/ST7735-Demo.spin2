@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started: Mar 10, 2020
-    Updated: Jun 14, 2020
+    Updated: Jun 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,6 +15,7 @@ CON
     _xtlfreq    = cfg._xtlfreq
     _clkfreq    = cfg._clkfreq_def
 
+' -- User-modifiable constants
     LED         = cfg.LED1
     SER_RX      = cfg.SER_RX
     SER_TX      = cfg.SER_TX
@@ -29,6 +30,8 @@ CON
 
     WIDTH       = 128
     HEIGHT      = 128
+' --
+
     BPP         = 2
     BPL         = WIDTH * BPP
     BUFFSZ      = (WIDTH * HEIGHT) * 2  'in BYTEs - 12288
@@ -53,7 +56,7 @@ VAR
     byte _framebuff[BUFFSZ]
     byte _timer_cog, _ser_cog, _lcd_cog
 
-PUB Main() | time_ms, r
+PUB Main() | time_ms
 
     Setup()
     lcd.ClearAll()
@@ -65,7 +68,7 @@ PUB Main() | time_ms, r
     time.Sleep (5)
     lcd.ClearAll()
 
-    time_ms := 10_000
+    time_ms := 5_000
 
     ser.position (0, 3)
 
@@ -120,16 +123,16 @@ PUB Demo_BouncingBall(testtime, radius) | iteration, bx, by, dx, dy
     dx := rnd(4) // 2 * 2 - 1                               'Pick a random direction to
     dy := rnd(4) // 2 * 2 - 1                               ' start moving
 
-    ser.str(string("Demo_BouncingBall - "))
+    ser.printf("Demo_BouncingBall - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
         bx += dx
         by += dy
-        if (by =< radius OR by => HEIGHT - radius)          'If we reach the top or bottom of the screen,
+        if (by <= radius OR by >= XMAX - radius)          'If we reach the top or bottom of the screen,
             dy *= -1                                        ' change direction
-        if (bx =< radius OR bx => WIDTH - radius)           'Ditto with the left or right sides
+        if (bx <= radius OR bx >= YMAX - radius)           'Ditto with the left or right sides
             dx *= -1
 
         lcd.Circle (bx, by, radius, $FFFF)
@@ -141,7 +144,7 @@ PUB Demo_BouncingBall(testtime, radius) | iteration, bx, by, dx, dy
 
 PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
 ' Continuously redraws bitmap at address bitmap_addr
-    ser.str(string("Demo_Bitmap - "))
+    ser.printf("Demo_Bitmap - ")
     _timer_set := testtime
     iteration := 0
 
@@ -154,7 +157,7 @@ PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
 
 PUB Demo_Circle(testtime) | iteration, x, y, r
 ' Draws circles at random locations
-    ser.str(string("Demo_Circle - "))
+    ser.printf("Demo_Circle - ")
     _timer_set := testtime
     iteration := 0
 
@@ -170,15 +173,15 @@ PUB Demo_Circle(testtime) | iteration, x, y, r
 
 PUB Demo_Contrast(reps, delay_ms) | contrast_level
 ' Fades out and in display contrast
-    ser.str(string("Demo_Contrast - N/A"))
+    ser.printf("Demo_Contrast - N/A")
 
     repeat reps
         repeat contrast_level from 255 to 1
             lcd.Contrast (contrast_level)
-            time.MSleep (delay_ms)
+            waitms (delay_ms)
         repeat contrast_level from 0 to 254
             lcd.Contrast (contrast_level)
-            time.MSleep (delay_ms)
+            waitms (delay_ms)
 
     ser.newline()
 
@@ -195,7 +198,7 @@ PUB Demo_Greet()
 
 PUB Demo_Line (testtime) | iteration
 ' Draws random lines with color -1 (invert)
-    ser.str(string("Demo_Line - "))
+    ser.printf("Demo_Line - ")
     _timer_set := testtime
     iteration := 0
 
@@ -211,7 +214,7 @@ PUB Demo_LineSweepX (testtime) | iteration, x
 '  from the top-down
     x := 0
 
-    ser.str(string("Demo_LineSweepX - "))
+    ser.printf("Demo_LineSweepX - ")
     _timer_set := testtime
     iteration := 0
 
@@ -230,7 +233,7 @@ PUB Demo_LineSweepY (testtime) | iteration, y
 '  from the top-down
     y := 0
 
-    ser.str(string("Demo_LineSweepY - "))
+    ser.printf("Demo_LineSweepY - ")
     _timer_set := testtime
     iteration := 0
 
@@ -248,7 +251,7 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
 ' Dumps Propeller Hub RAM (and/or ROM) to the display buffer
     pos := start_addr
 
-    ser.str(string("Demo_MEMScroller - "))
+    ser.printf("Demo_MEMScroller - ")
     _timer_set := testtime
     iteration := 0
 
@@ -264,7 +267,7 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
 
 PUB Demo_Plot(testtime) | iteration, x, y
 ' Draws random pixels to the screen, with color -1 (invert)
-    ser.str(string("Demo_Plot - "))
+    ser.printf("Demo_Plot - ")
     _timer_set := testtime
     iteration := 0
 
@@ -277,7 +280,7 @@ PUB Demo_Plot(testtime) | iteration, x, y
 
 PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 ' Draws a sine wave the length of the screen, influenced by the system counter
-    ser.str(string("Demo_Sinewave - "))
+    ser.printf("Demo_Sinewave - ")
 
     div := 3072
     offset := YMAX/2                                    ' Offset for Y axis
@@ -299,10 +302,10 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 
 PUB Demo_SeqText(testtime) | iteration, ch, chars
 ' Sequentially draws the whole font table to the screen
-    chars := lcd.TextCols * lcd.TextRows
+    chars := lcd.TextCols() * lcd.TextRows()
     ch := 32
 
-    ser.str(string("Demo_SeqText - "))
+    ser.printf("Demo_SeqText - ")
     _timer_set := testtime
     iteration := 0
 
@@ -322,8 +325,8 @@ PUB Demo_SeqText(testtime) | iteration, ch, chars
 
 PUB Demo_RndText(testtime) | iteration, chars
 ' Draw random text characters
-    chars := lcd.TextCols * lcd.TextRows
-    ser.str(string("Demo_RndText - "))
+    chars := lcd.TextCols() * lcd.TextRows()
+    ser.printf("Demo_RndText - ")
     _timer_set := testtime
     iteration := 0
 
@@ -342,7 +345,7 @@ PUB Demo_TriWave(testtime) | iteration, x, y, ydir
     ydir := 1
     y := 0
 
-    ser.str(string("Demo_TriWave - "))
+    ser.printf("Demo_TriWave - ")
     _timer_set := testtime
     iteration := 0
 
@@ -366,7 +369,7 @@ PUB Demo_Wander(testtime) | iteration, x, y, d
     x := XMAX/2
     y := YMAX/2
 
-    ser.str(string("Demo_Wander - "))
+    ser.printf("Demo_Wander - ")
     _timer_set := testtime
     iteration := 0
 
@@ -399,14 +402,8 @@ PUB RND565: rgb565
     rgb565 := (rnd(31) << 11) | (rnd(63) << 5) | rnd(31)
 
 PUB RND(maxval): r
-
-    asm
-        getrnd r
-        shr r, #16
-        add maxval, #1
-        mul r, maxval
-        shr r, #16
-    endasm
+' Return a random number up to maximum 'maxval'
+    r := getrnd() +// maxval
 
 PUB Sin(angle): sine | tmp
 ' Return the sine of angle
@@ -418,14 +415,14 @@ PUB Sin(angle): sine | tmp
 
 PRI Report(testtime, iterations)
 
-    ser.str(string("Total iterations: "))
+    ser.printf("Total iterations: ")
     ser.dec(iterations)
 
-    ser.str(string(", Iterations/sec: "))
+    ser.printf(", Iterations/sec: ")
     ser.dec(iterations / (testtime/1000))
 
-    ser.str(string(", Iterations/ms: "))
-    Decimal( (iterations * 1_000) / testtime, 1_000)
+    ser.printf(", ms/Iteration: ")
+    Decimal( (testtime * 1_000) / iterations, 1_000)
     ser.newline()
 
 PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
@@ -443,9 +440,7 @@ PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
     until tmp == 1
     part := int.DecZeroed(abs(scaled // divisor), places)
 
-    ser.Dec (whole)
-    ser.Char (".")
-    ser.Str (part)
+    ser.printf("%d.%s", whole, part)
 
 PRI cog_Timer() | time_left
 
@@ -455,27 +450,28 @@ PRI cog_Timer() | time_left
 
         repeat
             time_left--
-            time.MSleep(1)
+            waitms(1)
         while time_left > 0
         _timer_set := 0
 
 PUB Setup()
 
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    time.MSleep(30)
+    waitms(30)
     ser.Clear()
-    ser.str(string("Serial terminal started", ser.CR, ser.LF))
+    ser.printf("Serial terminal started\n")
+
     if _lcd_cog := lcd.Start (CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RESET_PIN, SCK_HZ, WIDTH, HEIGHT, @_framebuff)
-        ser.str(string("ST7735 driver started", ser.CR, ser.LF))
-        lcd.FontAddress(fnt.BaseAddr)
+        ser.printf("ST7735 driver started\n")
+        lcd.FontAddress(fnt.BaseAddr())
         lcd.FontSize(6, 8)
         lcd.DefaultsCommon()
         lcd.ClearAll()
     else
-        ser.str(string("ST7735 driver failed to start - halting", ser.CR, ser.LF))
+        ser.printf("ST7735 driver failed to start - halting\n")
         Stop()
 
-    _timer_cog := cognew(cog_Timer, @_stack_timer)
+    _timer_cog := cogspin(16, cog_Timer, @_stack_timer)
 
 PUB Stop()
 

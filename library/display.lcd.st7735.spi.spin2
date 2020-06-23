@@ -5,7 +5,7 @@
     Description: Driver for Sitronix ST7735-based displays (4W SPI, P2 version)
     Copyright (c) 2020
     Started Mar 10, 2020
-    Updated Jun 22, 2020
+    Updated Jun 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -70,8 +70,6 @@ OBJ
 
     spi : "com.spi"
     core: "core.con.st7735"
-    time: "time"
-    io  : "io"
 
 PUB Null()
 ''This is not a top-level object
@@ -85,12 +83,9 @@ PUB Start(CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RESET_PIN, SCK_HZ, disp_width, disp_
         _RESET := RESET_PIN
         _DC := DC_PIN
 
-        io.High(_CS)
-        io.Output(_CS)
-        io.High(_RESET)
-        io.Output(_RESET)
-        io.High(_DC)
-        io.Output(_DC)
+        pinh(_CS)
+        pinh(_RESET)
+        pinh(_DC)
 
         _disp_width := disp_width
         _disp_height := disp_height
@@ -269,7 +264,7 @@ PUB DisplayVisibility(mode) | inv_state
 
     writeReg(mode, 0, 0)
     writeReg(inv_state, 0, 0)
-    time.MSleep(120)
+    waitms(120)
 
 PUB FrameRateCtrl(line_period, f_porch, b_porch, lim_line_period, lim_f_porch, lim_b_porch): result | tmp[2], nr_bytes
 ' Set frame frequency
@@ -429,14 +424,14 @@ PUB Powered(enabled) | tmp
             return
 
     writeReg(enabled, 0, 0)
-    time.MSleep(120)
+    waitms(120)
 
 PUB Reset()
 ' Reset the display controller
-    io.Low(_RESET)
-    time.USleep(10)
-    io.High(_RESET)
-    time.MSleep(5)
+    pinl(_RESET)
+    waitus(10)
+    pinh(_RESET)
+    waitms(5)
 
 PUB PowerControl(mode, AP, SAP, bclkdiv1, bclkdiv2, bclkdiv3, bclkdiv4, bclkdiv5) | tmp
 ' Set partial mode/full-colors power control
@@ -599,23 +594,23 @@ PRI readReg(reg, nr_bytes, buff_addr) | tmp         ' * Not possible on Adafruit
 ' Handle quirky registers on a case-by-case basis
     case reg
         core.RDDID:
-            io.Low(_DC)
-            io.Low(_CS)
+            pinl(_DC)
+            pinl(_CS)
             spi.ShiftOut(_SDA, _SCK, core.MOSI_BITORDER, 8, reg)'d, c, m, b, v)
-            io.High(_DC)
+            pinh(_DC)
             spi.ShiftIn(_SDA, _SCK, core.MISO_BITORDER, 8) ' Dummy read
             repeat tmp from 0 to 2
                 byte[buff_addr][tmp] := spi.ShiftIn(_SDA, _SCK, core.MISO_BITORDER, 8)
-            io.High(_CS)
+            pinh(_CS)
         OTHER:
 
 {
-    io.Low(_CS)
+    pinl(_CS)
     spi.SHIFTOUT(_SDA, _SCK, core.SDA_BITORDER, 8, reg)
 
     repeat i from 0 to nr_bytes-1
         byte[buf_addr][i] := spi.SHIFTIN(_SDA, _SCK, core.SDA_BITORDER, 8)
-    io.High(_CS)
+    pinh(_CS)
 }
 }
 
@@ -623,28 +618,28 @@ PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
 ' Write nr_bytes to register 'reg' stored at buf_addr
     case_fast reg_nr
         core.RAMWR:
-            io.Low(_CS)
-            io.Low(_DC)                                 ' D/C = Command
+            pinl(_CS)
+            pinl(_DC)                                   ' D/C = Command
             spi.Write(reg_nr)                           ' Write reg
-            io.High(_DC)                                ' D/C = Data
+            pinh(_DC)                                   ' D/C = Data
             spi.WriteBytes(nr_bytes, buff_addr)         ' Write data
-            io.High(_CS)
+            pinh(_CS)
             return
 
         $00, $01, $11..$13, $20, $21, $28, $29, $38, $39:   ' One byte command, no params
-            io.Low(_CS)
-            io.Low(_DC)                                 ' D/C = Command
+            pinl(_CS)
+            pinl(_DC)                                   ' D/C = Command
             spi.Write(reg_nr)
-            io.High(_CS)
+            pinh(_CS)
             return
 
         $2A, $2B, $30, $36, $3A, $B1..$B4, $B6, $C0..$C5, $E0, $E1, $FC:
-            io.Low(_CS)
-            io.Low(_DC)                                 ' D/C = Command
+            pinl(_CS)
+            pinl(_DC)                                   ' D/C = Command
             spi.Write(reg_nr)                           ' Write reg
-            io.High(_DC)                                ' D/C = Data
+            pinh(_DC)                                   ' D/C = Data
             spi.WriteBytes(nr_bytes, buff_addr)         ' Write data
-            io.High(_CS)
+            pinh(_CS)
             return
 
 DAT
