@@ -6,7 +6,7 @@
      for low-level async serial.
     Author: Jesse Burt
     Created: Jun 15, 2019
-    Updated: Jun 22, 2020
+    Updated: Jun 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -16,10 +16,6 @@
 #include "lib.terminal.spin2"
 #include "lib.ansiterminal.spin2"
 #include "lib.termwidgets.spin2"
-
-CON
-
-    MAXSTR_LENGTH   = 32                                    ' Max length of received numerical string (not including null/0) - accommodates worst-case, a binary number with 32 digits
 
 OBJ
 
