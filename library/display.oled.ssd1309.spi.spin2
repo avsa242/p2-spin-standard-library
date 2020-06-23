@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Created: Dec 27, 2019
-    Updated: Jun 14, 2020
+    Updated: Jun 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -54,12 +54,9 @@ PUB Start(width, height, CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RES_PIN, SCK_FREQ, di
             _DC := DC_PIN
             _RES := RES_PIN
 
-            io.Low (_DC)
-            io.High (_CS)
-            io.High (_RES)
-            io.Output (_DC)
-            io.Output (_CS)
-            io.Output (_RES)
+            pinl (_DC)
+            pinh (_CS)
+            pinh (_RES)
 
             Reset()
 
@@ -307,29 +304,29 @@ PUB PrechargePeriod(phs1_clks, phs2_clks)
 PUB Reset()
 ' Reset the display controller
     if lookup(_RES: 0..63)
-        io.High(_RES)
-        time.USleep(3)
-        io.Low(_RES)
-        time.USleep(3)
-        io.High(_RES)
+        pinh(_RES)
+        waitus(3)
+        pinl(_RES)
+        waitus(3)
+        pinh(_RES)
 
 PUB Update() | tmp
 ' Write display buffer to display
     DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
 
-    io.Low(_CS)
-    io.High(_DC)
+    pinl(_CS)
+    pinh(_DC)
     spi.WriteBytes(_buff_sz, _ptr_drawbuffer)
-    io.High(_CS)
+    pinh(_CS)
 
 PUB WriteBuffer(buff_addr, buff_sz) | tmp
 ' Write buff_sz bytes of buff_addr to display
     DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
 
-    io.Low(_CS)
-    io.High(_DC)
+    pinl(_CS)
+    pinh(_DC)
     spi.WriteBytes(buff_sz, buff_addr)
-    io.High(_CS)
+    pinh(_CS)
 
 PRI writeReg(reg_nr, nr_bytes, val) | cmd_packet[2], tmp, ackbit
 ' Write nr_bytes to reg_nrister 'reg_nr' stored in val
@@ -353,10 +350,10 @@ PRI writeReg(reg_nr, nr_bytes, val) | cmd_packet[2], tmp, ackbit
         OTHER:
             return
 
-    io.Low(_CS)
-    io.Low(_DC)
+    pinl(_CS)
+    pinl(_DC)
     spi.WriteBytes(nr_bytes, @cmd_packet)
-    io.High(_CS)
+    pinh(_CS)
 
 DAT
 {
