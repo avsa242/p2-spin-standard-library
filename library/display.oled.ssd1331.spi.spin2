@@ -5,7 +5,7 @@
     Description: Driver for Solomon Systech 96x64 RGB OLED
     Copyright (c) 2020
     Started: Nov 8, 2019
-    Updated: Jun 14, 2020
+    Updated: Jun 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -54,9 +54,7 @@ CON
 OBJ
 
     core    : "core.con.ssd1331"
-    time    : "time"
     spi     : "com.spi"
-    io      : "io"
 
 VAR
 
@@ -77,12 +75,9 @@ PUB Start (CS_PIN, DC_PIN, DIN_PIN, CLK_PIN, RES_PIN, CLK_HZ, drawbuffer_address
             _MOSI := DIN_PIN
             _SCK := CLK_PIN
             _CS := CS_PIN
-            io.High(_DC)
-            io.Output(_DC)
-            io.High(_RES)
-            io.Output(_RES)
-            io.High(_CS)
-            io.Output(_CS)
+            pinh(_DC)
+            pinh(_RES)
+            pinh(_CS)
             Reset()
             Address (drawbuffer_address)
             return okay
@@ -117,7 +112,7 @@ PUB Defaults()
     ContrastB (127)
     ContrastC (127)
     Powered (TRUE)
-    DisplayBounds (0, 0, 95, 63)
+    DisplayBounds (0, 0, _DISP_XMAX, _DISP_YMAX)
     ClearAccel()
     DisplayVisibility(NORMAL)
 
@@ -183,8 +178,8 @@ PUB ClearAccel() | tmp[2]
     tmp.byte[1] := core.SSD1331_CMD_CLEAR
     tmp.byte[2] := 0
     tmp.byte[3] := 0
-    tmp.byte[4] := 95
-    tmp.byte[5] := 63
+    tmp.byte[4] := _DISP_XMAX
+    tmp.byte[5] := _DISP_YMAX
     writeReg (TRANS_CMD, 6, @tmp)
 
 PUB ClockDiv(divider): result | tmp
@@ -273,7 +268,7 @@ PUB Contrast(level)
     ContrastB (level)
     ContrastC (level)
 
-PUB ContrastA(level) | tmp
+PUB ContrastA(level): tmp
 ' Set contrast/brightness level of subpixel a
 '   Valid values: 0..255
 '   Any other value returns the current setting
@@ -288,7 +283,7 @@ PUB ContrastA(level) | tmp
     tmp.byte[1] := level
     writeReg (TRANS_CMD, 2, @tmp)
 
-PUB ContrastB(level) | tmp
+PUB ContrastB(level): tmp
 ' Set contrast/brightness level of subpixel b
 '   Valid values: 0..255
 '   Any other value returns the current setting
@@ -303,7 +298,7 @@ PUB ContrastB(level) | tmp
     tmp.byte[1] := level
     writeReg (TRANS_CMD, 2, @tmp)
 
-PUB ContrastC(level) | tmp
+PUB ContrastC(level): tmp
 ' Set contrast/brightness level of subpixel c
 '   Valid values: 0..255
 '   Any other value returns the current setting
@@ -379,7 +374,7 @@ PUB CopyAccelInverted(enabled): result | tmp
     tmp.byte[1] := _sh_FILL
     writeReg (TRANS_CMD, 2, @tmp)
 
-PUB CurrentLimit(divisor) | tmp
+PUB CurrentLimit(divisor): tmp
 ' Set master current limit divisor
     tmp := _sh_MASTERCCTRL
     case divisor
@@ -399,7 +394,7 @@ PUB DisplayBounds(sx, sy, ex, ey) | tmp[2]
 '       sx, ex: 0..95
 '       sy, ey: 0..63
 '   Any other value will be ignored
-    ifnot lookup(sx: 0..95) or lookup(sy: 0..63) or lookup(ex: 0..95) or lookup(ey: 0..63)
+    ifnot lookup(sx: 0.._DISP_XMAX) or lookup(sy: 0.._DISP_YMAX) or lookup(ex: 0.._DISP_XMAX) or lookup(ey: 0.._DISP_YMAX)
         return
 
     tmp.byte[0] := core.SSD1331_CMD_SETCOLUMN
@@ -414,7 +409,7 @@ PUB DisplayBounds(sx, sy, ex, ey) | tmp[2]
 
     writeReg (TRANS_CMD, 3, @tmp)
 
-PUB DisplayInverted(enabled) | tmp
+PUB DisplayInverted(enabled)
 ' Invert display colors
     case abs(enabled)
         0:
@@ -424,7 +419,7 @@ PUB DisplayInverted(enabled) | tmp
         OTHER:
             return FALSE
 
-PUB DisplayLines(lines) | tmp
+PUB DisplayLines(lines): tmp
 ' Set maximum number of display lines
 '   Valid values: 16..64
 '   Any other value returns the current setting
@@ -440,7 +435,7 @@ PUB DisplayLines(lines) | tmp
     tmp.byte[1] := lines
     writeReg (TRANS_CMD, 2, @tmp)
 
-PUB DisplayOffset(lines) | tmp
+PUB DisplayOffset(lines): tmp
 ' Set display offset/vertical shift
     tmp := _sh_DISPOFFSET
     case lines
@@ -453,7 +448,7 @@ PUB DisplayOffset(lines) | tmp
     tmp.byte[1] := lines
     writeReg (TRANS_CMD, 2, @tmp)
 
-PUB DisplayStartLine(disp_line) | tmp
+PUB DisplayStartLine(disp_line): tmp
 ' Set display start line
     tmp := _sh_DISPSTARTLINE
     case disp_line
@@ -466,7 +461,7 @@ PUB DisplayStartLine(disp_line) | tmp
     tmp.byte[1] := disp_line
     writeReg (TRANS_CMD, 2, @tmp)
 
-PUB DisplayVisibility(mode) | tmp
+PUB DisplayVisibility(mode): result | tmp
 ' Set display visibility
     tmp := _sh_DISPMODE
     case mode
@@ -622,7 +617,7 @@ PUB PlotAccel(x, y, color) | tmp[2]
     
     writeReg (TRANS_CMD, 6, @tmp)
 
-    time.USleep (3)
+    waitus (3)
 
     writeReg (TRANS_DATA, 2, @color)
 
@@ -701,11 +696,11 @@ PUB PrechargeSpeed(seg_a, seg_b, seg_c) | tmp[2]
 
 PUB Reset()
 ' Reset the display controller
-    io.High(_RES)
-    time.MSleep (1)
-    io.Low(_RES)
-    time.MSleep (10)
-    io.High(_RES)
+    pinh(_RES)
+    waitms (1)
+    pinl(_RES)
+    waitms (10)
+    pinh(_RES)
 
 PUB SubpixelOrder(order): result | tmp
 ' Set subpixel color order
@@ -757,16 +752,16 @@ PRI writeReg(trans_type, nr_bytes, buff_addr) | tmp
 
     case trans_type
         TRANS_DATA:
-            io.High(_DC)
+            pinh(_DC)
         TRANS_CMD:
-            io.Low(_DC)
+            pinl(_DC)
 
         OTHER:
             return
 
-    io.Low(_CS)
+    pinl(_CS)
     spi.WriteBytes(nr_bytes, buff_addr)
-    io.High(_CS)
+    pinh(_CS)
 
 {
     --------------------------------------------------------------------------------------------------------

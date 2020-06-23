@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started: Nov 3, 2019
-    Updated: Jun 14, 2020
+    Updated: Jun 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,6 +15,7 @@ CON
     _xtlfreq    = cfg._xtlfreq
     _clkfreq    = cfg._clkfreq_def
 
+' -- User-modifiable constants
     LED         = cfg.LED1
     SER_RX      = cfg.SER_RX
     SER_TX      = cfg.SER_TX
@@ -24,14 +25,15 @@ CON
     DC_PIN      = 11
     CS_PIN      = 10
     CLK_PIN     = 8
-    DIN_PIN     = 9
+    DIN_PIN     = 9                                         ' Must be CLK_PIN+1 (SmartPin SPI limitation)
     CLK_HZ      = 20_000_000
+' --
 
     WIDTH       = 96
     HEIGHT      = 64
     BPP         = 2
     BPL         = WIDTH * BPP
-    BUFFSZ      = (WIDTH * HEIGHT) * 2  'in BYTEs - 12288
+    BUFFSZ      = (WIDTH * HEIGHT) * BPP
     XMAX        = WIDTH - 1
     YMAX        = HEIGHT - 1
 
@@ -40,7 +42,6 @@ OBJ
     cfg         : "core.con.boardcfg.p2eval"
     ser         : "com.serial.terminal.ansi"
     time        : "time"
-    io          : "io"
     oled        : "display.oled.ssd1331.spi"
     int         : "string.integer"
     fnt         : "font.5x8"
@@ -121,7 +122,7 @@ PUB Main() | time_ms, r
 
 PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
 ' Continuously redraws bitmap at address bitmap_addr
-    ser.str(string("Demo_Bitmap - "))
+    ser.printf("Demo_Bitmap - ")
     _timer_set := testtime
     iteration := 0
 
@@ -139,19 +140,19 @@ PUB Demo_BouncingBall(testtime, radius) | iteration, bx, by, dx, dy
     dx := rnd(4) // 2 * 2 - 1                               'Pick a random direction to
     dy := rnd(4) // 2 * 2 - 1                               ' start moving
 
-    ser.str(string("Demo_BouncingBall - "))
+    ser.printf("Demo_BouncingBall - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
         bx += dx
         by += dy
-        if (by =< radius OR by => HEIGHT - radius)          'If we reach the top or bottom of the screen,
+        if (by <= radius OR by >= XMAX-radius)          'If we reach the top or bottom of the screen,
             dy *= -1                                        ' change direction
-        if (bx =< radius OR bx => WIDTH - radius)           'Ditto with the left or right sides
+        if (bx <= radius OR bx >= YMAX-radius)           'Ditto with the left or right sides
             dx *= -1
 
-        oled.Circle (bx, by, radius, $FFFF)
+        oled.Circle (bx, by, radius, oled.MAX_COLOR)
         oled.Update()
         iteration++
         oled.Clear()
@@ -159,36 +160,34 @@ PUB Demo_BouncingBall(testtime, radius) | iteration, bx, by, dx, dy
     Report(testtime, iteration)
 
 PUB Demo_Box (testtime) | iteration, c
-' Draws random lines
-    ser.str(string("Demo_Box - "))
+' Draws random boxes
+    ser.printf("Demo_Box - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
+        c := rnd(oled.MAX_COLOR)
         oled.Box (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c, FALSE)
-        oled.Update()
         iteration++
 
     Report(testtime, iteration)
 
 PUB Demo_BoxFilled (testtime) | iteration, c, x1, y1, x2, y2
 ' Draws random lines
-    ser.str(string("Demo_BoxFilled - "))
+    ser.printf("Demo_BoxFilled - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
+        c := rnd(oled.MAX_COLOR)
         oled.Box (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c, TRUE)
-        oled.Update()
         iteration++
 
     Report(testtime, iteration)
 
 PUB Demo_Circle(testtime) | iteration, x, y, r, c
 ' Draws circles at random locations
-    ser.str(string("Demo_Circle - "))
+    ser.printf("Demo_Circle - ")
     _timer_set := testtime
     iteration := 0
 
@@ -196,64 +195,48 @@ PUB Demo_Circle(testtime) | iteration, x, y, r, c
         x := rnd(XMAX)
         y := rnd(YMAX)
         r := rnd(YMAX/2)
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
+        c := rnd(oled.MAX_COLOR)
         oled.Circle (x, y, r, c)
-        oled.Update()
         iteration++
 
     Report(testtime, iteration)
 
 PUB Demo_Contrast(reps, delay_ms) | contrast_level
 ' Fades out and in display contrast
-    ser.str(string("Demo_Contrast - N/A"))
+    ser.printf("Demo_Contrast - N/A")
 
     repeat reps
         repeat contrast_level from 255 to 1
             oled.Contrast (contrast_level)
-            time.MSleep (delay_ms)
+            waitms (delay_ms)
         repeat contrast_level from 0 to 254
             oled.Contrast (contrast_level)
-            time.MSleep (delay_ms)
+            waitms (delay_ms)
 
     ser.newline()
 
 PUB Demo_Greet
 ' Display the banner/greeting on the OLED
-    oled.FGColor($FFFF)
+    oled.FGColor(oled.MAX_COLOR)
     oled.BGColor(0)
     oled.Position (0, 0)
-    oled.Str (string("SSD1331 on the"))
-
-    oled.Position (0, 1)
-    oled.Str (string("Parallax"))
-
-    oled.Position (0, 2)
-    oled.Str (string("P2X8C4M64P @ "))
-
-    oled.Position (0, 3)
+    oled.printf("SSD1331 on the\n")
+    oled.printf("Parallax\n")
+    oled.printf("P2X8C4M64P @\n")
     oled.Str (int.Dec(clkfreq/1_000_000))
-    oled.Str (string("MHz"))
-
-    oled.Position (0, 4)
-    oled.Str (int.DecPadded (WIDTH, 3))
-
-    oled.Position (3, 4)
-    oled.Str (string("x"))
-
-    oled.Position (4, 4)
-    oled.Str (int.DecPadded (HEIGHT, 2))
+    oled.printf("MHz\n")
+    oled.printf("%dx%d", WIDTH, HEIGHT)
     oled.Update()
 
 PUB Demo_Line (testtime) | iteration, c
-' Draws random lines with color -1 (invert)
-    ser.str(string("Demo_Line - "))
+' Draws random lines
+    ser.printf("Demo_Line - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
+        c := rnd(oled.MAX_COLOR)
         oled.Line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c)
-        oled.Update()
         iteration++
 
     Report(testtime, iteration)
@@ -263,7 +246,7 @@ PUB Demo_LineSweepX (testtime) | iteration, x
 '  from the top-down
     x := 0
 
-    ser.str(string("Demo_LineSweepX - "))
+    ser.printf("Demo_LineSweepX - ")
     _timer_set := testtime
     iteration := 0
 
@@ -282,7 +265,7 @@ PUB Demo_LineSweepY (testtime) | iteration, y
 '  from the top-down
     y := 0
 
-    ser.str(string("Demo_LineSweepY - "))
+    ser.printf("Demo_LineSweepY - ")
     _timer_set := testtime
     iteration := 0
 
@@ -300,7 +283,7 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
 ' Dumps Propeller Hub RAM (and/or ROM) to the display buffer
     pos := start_addr
 
-    ser.str(string("Demo_MEMScroller - "))
+    ser.printf("Demo_MEMScroller - ")
     _timer_set := testtime
     iteration := 0
 
@@ -315,22 +298,21 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
     Report(testtime, iteration)
 
 PUB Demo_Plot(testtime) | iteration, x, y, c
-' Draws random pixels to the screen, with color -1 (invert)
-    ser.str(string("Demo_Plot - "))
+' Draws random pixels to the screen
+    ser.printf("Demo_Plot - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
+        c := rnd(oled.MAX_COLOR)
         oled.Plot (rnd(XMAX), rnd(YMAX), c)
-        oled.Update()
         iteration++
 
     Report(testtime, iteration)
 
 PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 ' Draws a sine wave the length of the screen, influenced by the system counter
-    ser.str(string("Demo_Sinewave - "))
+    ser.printf("Demo_Sinewave - ")
 
     div := 3072
     offset := YMAX/2                                    ' Offset for Y axis
@@ -342,7 +324,7 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
         repeat x from 0 to XMAX
             modifier := (abs(cnt) / 1_000_000)           ' Use system counter as modifier
             y := offset + sin(x * modifier) / div
-            oled.Plot(x, y, $FFFF)
+            oled.Plot(x, y, oled.MAX_COLOR)
 
         oled.Update()
         iteration++
@@ -350,56 +332,46 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 
     Report(testtime, iteration)
 
-PUB Demo_SeqText(testtime) | iteration, col, row, maxcol, maxrow, ch, st
-' Sequentially draws the whole font table to the screen, then random characters
-'    oled.FGColor(1)
-'    oled.BGColor(0)
-    maxcol := (WIDTH/oled.FontWidth)-1
-    maxrow := (HEIGHT/oled.FontHeight)-1
-    ch := $00
-
-    ser.str(string("Demo_SeqText - "))
+PUB Demo_SeqText(testtime) | iteration, col, row, ch, fg, bg
+' Sequentially draws the whole font table to the screen
+    ch := $20
+    ser.printf("Demo_SeqText - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        repeat row from 0 to maxrow
-            repeat col from 0 to maxcol
-                ch++
-                if ch > $7F
-                    ch := $00
-                oled.FGColor((?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26))
-                oled.BGColor((?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26))
-                oled.Position (col, row)
-                oled.Char (ch)
-        oled.Update()
+        ch++
+        if ch > $7F
+            ch := $20
+        fg++
+        if fg > 255
+            fg := 0
+        bg--
+        if bg < 0
+            bg := 255
+        oled.FGColor(fg)
+        oled.BGColor(bg)
+        oled.Char (ch)
         iteration++
 
     Report(testtime, iteration)
 
-PUB Demo_RndText(testtime) | iteration, col, row, maxcol, maxrow, ch, st
-
-    oled.FGColor(1)
-    oled.BGColor(0)
-    maxcol := (WIDTH/oled.FontWidth)-1
-    maxrow := (HEIGHT/oled.FontHeight)-1
-    ch := $00
-
-    ser.str(string("Demo_RndText - "))
+PUB Demo_RndText(testtime) | iteration, col, row, fg, bg
+' Draws random characters to the screen
+    ser.printf("Demo_RndText - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        repeat row from 0 to maxrow
-            repeat col from 0 to maxcol
-                ch++
-                if ch > $7F
-                    ch := $00
-                oled.FGColor((?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26))
-                oled.BGColor((?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26))
-                oled.Position (col, row)
-                oled.Char (rnd(127))
-        oled.Update()
+        fg++
+        if fg > oled.MAX_COLOR
+            fg := 0
+        bg--
+        if bg < 0
+            bg := oled.MAX_COLOR
+        oled.FGColor(fg)
+        oled.BGColor(bg)
+        oled.Char (32 #> rnd(127))
         iteration++
 
     Report(testtime, iteration)
@@ -409,7 +381,7 @@ PUB Demo_TriWave(testtime) | iteration, x, y, ydir
     ydir := 1
     y := 0
 
-    ser.str(string("Demo_TriWave - "))
+    ser.printf("Demo_TriWave - ")
     _timer_set := testtime
     iteration := 0
 
@@ -420,7 +392,7 @@ PUB Demo_TriWave(testtime) | iteration, x, y, ydir
             if y == 0
                 ydir := 1
             y := y + ydir
-            oled.Plot (x, y, $FFFF)
+            oled.Plot (x, y, oled.MAX_COLOR)
         oled.Update()
         iteration++
         oled.Clear()
@@ -429,11 +401,10 @@ PUB Demo_TriWave(testtime) | iteration, x, y, ydir
 
 PUB Demo_Wander(testtime) | iteration, x, y, d, c
 ' Draws randomly wandering pixels
-    _rndSeed := cnt
     x := XMAX/2
     y := YMAX/2
 
-    ser.str(string("Demo_Wander - "))
+    ser.printf("Demo_Wander - ")
     _timer_set := testtime
     iteration := 0
 
@@ -463,14 +434,8 @@ PUB Demo_Wander(testtime) | iteration, x, y, d, c
     Report(testtime, iteration)
 
 PUB RND(maxval): r
-
-    asm
-        getrnd r
-        shr r, #16
-        add maxval, #1
-        mul r, maxval
-        shr r, #16
-    endasm
+' Return a random number up to maximum 'maxval'
+    r := getrnd() +// maxval
 
 PUB Sin(angle): sine | tmp
 ' Return the sine of angle
@@ -482,14 +447,14 @@ PUB Sin(angle): sine | tmp
 
 PRI Report(testtime, iterations)
 
-    ser.str(string("Total iterations: "))
+    ser.printf("Total iterations: ")
     ser.dec(iterations)
 
-    ser.str(string(", Iterations/sec: "))
+    ser.printf(", Iterations/sec: ")
     ser.dec(iterations / (testtime/1000))
 
-    ser.str(string(", Iterations/ms: "))
-    Decimal( (iterations * 1_000) / testtime, 1_000)
+    ser.printf(", ms/Iteration: ")
+    Decimal( (testtime * 1_000) / iterations, 1_000)
     ser.newline()
 
 PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
@@ -519,7 +484,7 @@ PRI cog_Timer() | time_left
 
         repeat
             time_left--
-            time.MSleep(1)
+            waitms(1)
         while time_left > 0
         _timer_set := 0
 
@@ -539,7 +504,7 @@ PUB Setup()
         Stop()
     SwapBMBytes()
 
-    _timer_cog := cognew(cog_Timer, @_stack_timer)
+    _timer_cog := cogspin(16, cog_Timer, @_stack_timer)
 
 PUB Stop()
 
