@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started: Apr 6, 2020
-    Updated: Jun 22, 2020
+    Updated: Jun 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -36,7 +36,6 @@ VAR
 
     long _stack_timer[50]
     long _timer_set
-    long _rndSeed
 
     long _palette[256]
     byte _framebuffer[BUFFSZ]
@@ -124,7 +123,7 @@ PUB Demo_BouncingBall(testtime, radius) | iteration, bx, by, dx, dy
     dx := rnd(4) // 2 * 2 - 1                               'Pick a random direction to
     dy := rnd(4) // 2 * 2 - 1                               ' start moving
 
-    ser.str(string("Demo_BouncingBall - "))
+    ser.printf("Demo_BouncingBall - ")
     _timer_set := testtime
     iteration := 0
 
@@ -137,7 +136,7 @@ PUB Demo_BouncingBall(testtime, radius) | iteration, bx, by, dx, dy
             dx *= -1
 
         vga.Circle (bx, by, radius, $FFFF)
-        vga.WaitVSync
+        vga.WaitVSync()
         iteration++
         vga.clear()
 
@@ -145,7 +144,7 @@ PUB Demo_BouncingBall(testtime, radius) | iteration, bx, by, dx, dy
 
 PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
 ' Continuously redraws bitmap at address bitmap_addr
-    ser.str(string("Demo_Bitmap - "))
+    ser.printf("Demo_Bitmap - ")
     _timer_set := testtime
     iteration := 0
 
@@ -156,26 +155,26 @@ PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
     Report(testtime, iteration)
 
 PUB Demo_Box (testtime) | iteration, c
-' Draws random lines
-    ser.str(string("Demo_Box - "))
+' Draws random boxes
+    ser.printf("Demo_Box - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        c := rnd(255)
+        c := rnd(vga.MAX_COLOR)
         vga.Box (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c, FALSE)
         iteration++
 
     Report(testtime, iteration)
 
-PUB Demo_BoxFilled (testtime) | iteration, c, x1, y1, x2, y2
-' Draws random lines
-    ser.str(string("Demo_BoxFilled - "))
+PUB Demo_BoxFilled (testtime) | iteration, c
+' Draws random filled boxes
+    ser.printf("Demo_BoxFilled - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        c := rnd(255)
+        c := rnd(vga.MAX_COLOR)
         vga.Box (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c, TRUE)
         iteration++
 
@@ -183,7 +182,7 @@ PUB Demo_BoxFilled (testtime) | iteration, c, x1, y1, x2, y2
 
 PUB Demo_Circle(testtime) | iteration, x, y, r, c
 ' Draws circles at random locations
-    ser.str(string("Demo_Circle - "))
+    ser.printf("Demo_Circle - ")
     _timer_set := testtime
     iteration := 0
 
@@ -191,7 +190,7 @@ PUB Demo_Circle(testtime) | iteration, x, y, r, c
         x := rnd(XMAX)
         y := rnd(YMAX)
         r := rnd(YMAX/2)
-        c := rnd(255)
+        c := rnd(vga.MAX_COLOR)
         vga.Circle (x, y, r, c)
         iteration++
 
@@ -199,7 +198,7 @@ PUB Demo_Circle(testtime) | iteration, x, y, r, c
 
 PUB Demo_Greet()
 ' Display the banner/greeting
-    vga.FGColor(255)
+    vga.FGColor(vga.MAX_COLOR)
     vga.BGColor(0)
     vga.Position (0, 1)
     vga.printf("VGA 8bpp on the Parallax P2X8C4M64P @ %dMHz\n", clkfreq/1_000_000)
@@ -207,12 +206,12 @@ PUB Demo_Greet()
 
 PUB Demo_Line (testtime) | iteration, c
 ' Draws random lines
-    ser.str(string("Demo_Line - "))
+    ser.printf("Demo_Line - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        c := rnd(255)
+        c := rnd(vga.MAX_COLOR)
         vga.Line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c)
         iteration++
 
@@ -222,7 +221,7 @@ PUB Demo_LineSweepX (testtime) | iteration, x, c
 ' Draws lines sweeping from left-right to the opposite diagonal direction
     x := 0
 
-    ser.str(string("Demo_LineSweepX - "))
+    ser.printf("Demo_LineSweepX - ")
     _timer_set := testtime
     iteration := 0
 
@@ -231,7 +230,7 @@ PUB Demo_LineSweepX (testtime) | iteration, x, c
         if x > XMAX
             x := 0
         c++
-        if c > 255
+        if c > vga.MAX_COLOR
             c := 0
         vga.Line (x, 0, XMAX-x, YMAX, c)
         iteration++
@@ -242,7 +241,7 @@ PUB Demo_LineSweepY (testtime) | iteration, y, c
 ' Draws lines sweeping from top-down to the opposite diagonal direction
     y := 0
 
-    ser.str(string("Demo_LineSweepY - "))
+    ser.printf("Demo_LineSweepY - ")
     _timer_set := testtime
     iteration := 0
 
@@ -251,7 +250,7 @@ PUB Demo_LineSweepY (testtime) | iteration, y, c
         if y > YMAX
             y := 0
         c++
-        if c > 255
+        if c > vga.MAX_COLOR
             c := 0
         vga.Line (XMAX, y, 0, YMAX-y, c)
         iteration++
@@ -262,7 +261,7 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
 ' Dumps Propeller Hub RAM (and/or ROM) to the display buffer
     pos := start_addr
 
-    ser.str(string("Demo_MEMScroller - "))
+    ser.printf("Demo_MEMScroller - ")
     _timer_set := testtime
     iteration := 0
 
@@ -277,12 +276,12 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
 
 PUB Demo_Plot(testtime) | iteration, x, y, c
 ' Draws random pixels to the screen
-    ser.str(string("Demo_Plot - "))
+    ser.printf("Demo_Plot - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        c := rnd(255)
+        c := rnd(vga.MAX_COLOR)
         vga.Plot (rnd(XMAX), rnd(YMAX), c)
         iteration++
 
@@ -290,7 +289,7 @@ PUB Demo_Plot(testtime) | iteration, x, y, c
 
 PUB Demo_Shadebobs(testtime) | iteration, x, y, xs, ys, p, offset, div, modifier
 ' Draws Shadebobs along a sine-wave
-    ser.str(string("Demo_Shadebobs - "))
+    ser.printf("Demo_Shadebobs - ")
 
     div := 1024
     offset := YMAX/2
@@ -305,7 +304,7 @@ PUB Demo_Shadebobs(testtime) | iteration, x, y, xs, ys, p, offset, div, modifier
             repeat ys from y to y+10
                 repeat xs from x to x+10
                     p := vga.Point(xs, ys) + 1
-                    if p > 255
+                    if p > vga.MAX_COLOR
                         p := 0
                     vga.Plot(xs, ys, p)
         iteration++
@@ -314,7 +313,7 @@ PUB Demo_Shadebobs(testtime) | iteration, x, y, xs, ys, p, offset, div, modifier
 
 PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 ' Draws a sine wave the length of the screen, influenced by the system counter
-    ser.str(string("Demo_Sinewave - "))
+    ser.printf("Demo_Sinewave - ")
 
     div := 1024
     offset := YMAX/2                                    ' Offset for Y axis
@@ -326,9 +325,9 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
         repeat x from 0 to XMAX
             modifier := (abs(cnt) / 1_000_000)           ' Use system counter as modifier
             y := offset + sin(x * modifier) / div
-            vga.Plot(x, y, $FFFF)
+            vga.Plot(x, y, vga.MAX_COLOR)
 
-        vga.WaitVSync
+        vga.WaitVSync()
         iteration++
         vga.clear()
 
@@ -336,22 +335,21 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 
 PUB Demo_SeqText(testtime) | iteration, col, row, ch, fg, bg
 ' Sequentially draws the whole font table to the screen
-    ch := $00
-
-    ser.str(string("Demo_SeqText - "))
+    ch := $20
+    ser.printf("Demo_SeqText - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
         ch++
         if ch > $7F
-            ch := $00
+            ch := $20
         fg++
-        if fg > 255
+        if fg > vga.MAX_COLOR
             fg := 0
         bg--
         if bg < 0
-            bg := 255
+            bg := vga.MAX_COLOR
         vga.FGColor(fg)
         vga.BGColor(bg)
         vga.Char (ch)
@@ -361,20 +359,20 @@ PUB Demo_SeqText(testtime) | iteration, col, row, ch, fg, bg
 
 PUB Demo_RndText(testtime) | iteration, col, row, fg, bg
 ' Draws random characters to the screen
-    ser.str(string("Demo_RndText - "))
+    ser.printf("Demo_RndText - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
         fg++
-        if fg > 255
+        if fg > vga.MAX_COLOR
             fg := 0
         bg--
         if bg < 0
-            bg := 255
+            bg := vga.MAX_COLOR
         vga.FGColor(fg)
         vga.BGColor(bg)
-        vga.Char (rnd(127))
+        vga.Char (32 #> rnd(127))
         iteration++
 
     Report(testtime, iteration)
@@ -384,7 +382,7 @@ PUB Demo_TriWave(testtime) | iteration, x, y, ydir
     ydir := 1
     y := 0
 
-    ser.str(string("Demo_TriWave - "))
+    ser.printf("Demo_TriWave - ")
     _timer_set := testtime
     iteration := 0
 
@@ -395,8 +393,8 @@ PUB Demo_TriWave(testtime) | iteration, x, y, ydir
             if y == 0
                 ydir := 1
             y := y + ydir
-            vga.Plot (x, y, 255)
-        vga.WaitVSync
+            vga.Plot (x, y, vga.MAX_COLOR)
+        vga.WaitVSync()
         vga.clear()
         iteration++
 
@@ -404,12 +402,11 @@ PUB Demo_TriWave(testtime) | iteration, x, y, ydir
 
 PUB Demo_Wander(testtime) | iteration, x, y, d, c, movestep
 ' Draws randomly wandering pixels
-    _rndSeed := cnt
     x := XMAX/2
     y := YMAX/2
     movestep := 2
 
-    ser.str(string("Demo_Wander - "))
+    ser.printf("Demo_Wander - ")
     _timer_set := testtime
     iteration := 0
 
@@ -431,7 +428,7 @@ PUB Demo_Wander(testtime) | iteration, x, y, d, c, movestep
                 y -= movestep
                 if y < 0
                     y := YMAX
-        c := (?_rndseed >> 24)
+        c := rnd(vga.MAX_COLOR)
         vga.Plot (x, y, c)
         iteration++
 
@@ -439,13 +436,7 @@ PUB Demo_Wander(testtime) | iteration, x, y, d, c, movestep
 
 PUB RND(maxval): r
 ' Return a random number up to maximum 'maxval'
-    asm
-        getrnd r
-        shr r, #16
-        add maxval, #1
-        mul r, maxval
-        shr r, #16
-    endasm
+    r := getrnd() +// maxval
 
 PUB Sin(angle): sine
 ' Return the sine of angle
@@ -457,13 +448,13 @@ PUB Sin(angle): sine
 
 PRI Report(testtime, iterations)
 ' Display performance results
-    ser.str(string("Total iterations: "))
+    ser.printf("Total iterations: ")
     ser.dec(iterations)
 
-    ser.str(string(", Iterations/sec: "))
+    ser.printf(", Iterations/sec: ")
     ser.dec(iterations / (testtime/1000))
 
-    ser.str(string(", ms/Iteration: "))
+    ser.printf(", ms/Iteration: ")
     Decimal( (testtime * 1_000) / iterations, 1_000)
     ser.newline()
 
@@ -494,7 +485,7 @@ PRI cog_Timer() | time_left
 
         repeat
             time_left--
-            time.MSleep(1)
+            waitms(1)
         while time_left > 0
         _timer_set := 0
 
@@ -514,7 +505,7 @@ PUB Setup()
         ser.printf("VGA 8bpp driver failed to start\n")
         repeat
 
-    _timer_cog := cognew(cog_Timer, @_stack_timer)
+    _timer_cog := cogspin(16, cog_Timer, @_stack_timer)
 
 PUB SetupPalette() | i, r, g, b, c
 ' Set up palette
@@ -522,7 +513,7 @@ PUB SetupPalette() | i, r, g, b, c
     g := 0
     b := 0
 
-    repeat i from 0 to 255
+    repeat i from 0 to vga.MAX_COLOR
         c := 0 | (r << 16) | (g << 8) | b
         _palette[i] := c
 
