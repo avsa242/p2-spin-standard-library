@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Created: Apr 26, 2018
-    Updated: Jun 14, 2020
+    Updated: Jun 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -52,9 +52,9 @@ PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, dispbuffer_address, SLAVE_LSB
 '       SLAVE_LSB: 0, 1
     _sa0 := abs(SLAVE_LSB == 1) << 1
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ =< core.I2C_MAX_FREQ
+        if I2C_HZ <= core.I2C_MAX_FREQ
             i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
-            time.MSleep (20)
+            waitms (20)
             if i2c.Present (SLAVE_WR | _sa0)                                         'Response from device?
                 _disp_width := width
                 _disp_height := height
@@ -335,7 +335,7 @@ PUB WriteBuffer(buff_addr, buff_sz) | tmp
         i2c.write (byte[buff_addr][tmp])
     i2c.stop()
 
-PRI writeReg(reg_nr, nr_bytes, val) | cmd_packet[2], tmp, ackbit
+PRI writeReg(reg_nr, nr_bytes, val) | cmd_packet[2], tmp
 ' Write to device internal registers
     cmd_packet.byte[0] := SLAVE_WR | _sa0
     cmd_packet.byte[1] := core.CTRLBYTE_CMD
@@ -354,10 +354,7 @@ PRI writeReg(reg_nr, nr_bytes, val) | cmd_packet[2], tmp, ackbit
 
     i2c.start()
     repeat tmp from 0 to 2 + nr_bytes
-        ackbit := i2c.write (cmd_packet.byte[tmp])
-        if ackbit == i2c.NAK
-          i2c.stop()
-          return ($DEAD << 16)|tmp
+        i2c.write (cmd_packet.byte[tmp])
     i2c.stop()
 
 DAT
