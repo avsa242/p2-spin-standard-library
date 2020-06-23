@@ -32,7 +32,7 @@
            2400          9600          19200
 }}
 
-#include "lib.terminal.spin"
+#include "lib.terminal.spin2"
 
 CON
 
