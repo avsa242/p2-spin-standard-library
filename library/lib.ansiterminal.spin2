@@ -73,14 +73,14 @@ CON
     FG                  = 30
     BG                  = 40
     BRIGHT              = 60
-    BLACK               = 30
-    RED                 = 31
-    GREEN               = 32
-    YELLOW              = 33
-    BLUE                = 34
-    MAGENTA             = 35
-    CYAN                = 36
-    WHITE               = 37
+    BLACK               = 0
+    RED                 = 1
+    GREEN               = 2
+    YELLOW              = 3
+    BLUE                = 4
+    MAGENTA             = 5
+    CYAN                = 6
+    WHITE               = 7
 
 PUB BGColor(color)
 ' Set background color
