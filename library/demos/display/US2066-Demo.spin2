@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Created Nov 16, 2019
-    Updated Jun 14, 2020
+    Updated Jun 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -42,7 +42,6 @@ OBJ
 
     cfg : "core.con.boardcfg.p2eval"
     time: "time"
-    io  : "io"
     oled: "display.oled.us2066.i2c.spin2"
     ser : "com.serial.terminal.ansi"
 
@@ -101,7 +100,7 @@ PUB Contrast_Demo() | i
                 oled.DecUns(abs(i), 3)
                 oled.Char(" ")
                 oled.Hex(abs(i), 2)
-                time.MSleep (10)
+                waitms (10)
         4:
             oled.newline()
             oled.DoubleHeight (1)
@@ -114,7 +113,7 @@ PUB Contrast_Demo() | i
                 oled.Hex(abs(i), 2)
                 oled.Char(" ")
                 oled.Bin(abs(i), 8)
-                time.MSleep (10)
+                waitms (10)
 
     oled.DoubleHeight (0)
 
@@ -209,7 +208,7 @@ PUB DoubleHeight_Demo() | mode, line
                 oled.DoubleHeight (mode)
                 repeat line from 0 to 1
                     oled.Position (0, line)
-                    oled.Str (string("Double-height"))
+                    oled.printf("Double-height")
                 time.Sleep (MODE_DELAY)
                 mode += 3
                 if mode > 3
@@ -222,7 +221,7 @@ PUB DoubleHeight_Demo() | mode, line
                 oled.printf("Mode %d", mode)
                 repeat line from 0 to 3
                     oled.Position (0, line)
-                    oled.Str (string("Double-height"))
+                    oled.printf("Double-height")
                 time.Sleep (MODE_DELAY)
 
 PUB FontWidth_Demo() | px, dbl_mode
@@ -275,16 +274,16 @@ PUB Invert_Demo() | i
 
     oled.Clear()
     oled.Position (0, 0)
-    oled.Str (string("Display"))
+    oled.printf("Display")
 
     repeat i from 1 to 3
         oled.DisplayInverted (TRUE)
         oled.Position (WIDTH-8, HEIGHT-1)
-        oled.Str (string("INVERTED"))
+        oled.printf("INVERTED")
         time.Sleep (MODE_DELAY)
         oled.DisplayInverted (FALSE)
         oled.Position (WIDTH-8, HEIGHT-1)
-        oled.Str (string("NORMAL  "))
+        oled.printf("NORMAL  ")
         time.Sleep (MODE_DELAY)
 
 PUB Mirror_Demo() | row, col
@@ -303,28 +302,28 @@ PUB Mirror_Demo() | row, col
     oled.MirrorV (FALSE)
     oled.ClearLine (0)
     oled.Position (0, 0)
-    oled.Str (string("Mirror OFF"))
+    oled.printf("Mirror OFF")
     time.Sleep (2)
 
     oled.MirrorH (TRUE)
     oled.MirrorV (FALSE)
     oled.ClearLine (0)
     oled.Position (col, 0)
-    oled.Str (string("Mirror HORIZ."))
+    oled.printf("Mirror HORIZ.")
     time.Sleep (2)
 
     oled.MirrorH (FALSE)
     oled.MirrorV (TRUE)
     oled.ClearLine (0)
     oled.Position (0, row)
-    oled.Str (string("Mirror VERT."))
+    oled.printf("Mirror VERT.")
     time.Sleep (2)
 
     oled.MirrorH (TRUE)
     oled.MirrorV (TRUE)
     oled.ClearLine (0)
     oled.Position (col, row)
-    oled.Str (string("Mirror BOTH"))
+    oled.printf("Mirror BOTH")
     time.Sleep (2)
 
     oled.Clear()
@@ -340,7 +339,7 @@ PUB Position_Demo() | x, y
             oled.Position((x-1 #> 0), y)
             oled.Char(" ")
             oled.Char("-")
-            time.MSleep (25)
+            waitms (25)
 
 PUB Setup()
 
@@ -353,7 +352,7 @@ PUB Setup()
     else
         ser.PrintF("US2066 driver failed to start - halting\n")
         oled.stop()
-        time.MSleep (500)
+        waitms (500)
         FlashLED (cfg.LED1, 500)
 
     oled.MirrorH (FALSE)
@@ -361,7 +360,7 @@ PUB Setup()
     oled.Clear()
     oled.Position (0, 0)
     oled.DisplayVisibility (oled.NORMAL)
-    time.MSleep (100)
+    waitms (100)
 
 #include "lib.utility.spin2"
 

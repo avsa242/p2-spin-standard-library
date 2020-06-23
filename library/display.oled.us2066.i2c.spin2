@@ -6,7 +6,7 @@
         alphanumeric displays (P2 version)
     Copyright (c) 2020
     Created Dec 30, 2017
-    Updated Jun 14, 2020
+    Updated Jun 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -106,9 +106,9 @@ PUB Start(SCL_PIN, SDA_PIN, RESET_PIN, I2C_HZ, SLAVE_BIT): okay
 '  hz          - I2C Bus Frequency (max 400kHz)
 '  slave_bit   - Flag to indicate optional alternative slave address
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ =< core.I2C_MAX_FREQ
-            if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
-                time.MSleep (1)
+        if I2C_HZ <= core.I2C_MAX_FREQ
+            if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ) ' I2C Object Started?
+                waitms (1)
                 _reset := RESET_PIN
                 case abs(slave_bit)
                         1: _sa0_addr := 1 << 1
@@ -121,7 +121,7 @@ PUB Start(SCL_PIN, SDA_PIN, RESET_PIN, I2C_HZ, SLAVE_BIT): okay
                     return okay
                 else
                     return
-    return                                                'If we got here, something went wrong
+    return                                                  ' If we got here, something went wrong
 
 PUB Stop()
 ' Turn the display visibility off and stop the I2C cog
@@ -228,7 +228,7 @@ PUB Char(ch) | col, row, pos
     case ch
         7:                                  ' Flash the display
             DisplayVisibility (INVERT)
-            time.MSleep (50)
+            waitms (50)
             DisplayVisibility (NORMAL)
         BS, $7F:
             case pos := GetPos()
@@ -287,8 +287,6 @@ PUB Char(ch) | col, row, pos
                     pos -= $60
                 OTHER: row := 0
             Position (pos, row)             ' Set new position to same column on new row
-        CB:
-            Clear()
         CR:
             case GetPos()
                 $00..$13: row := 0          ' As in LF, row 0
@@ -482,8 +480,10 @@ PUB DisplayBlink(delay): result
 '   Any other value returns the current setting
 '   NOTE: 0 effectively disables the setting
     case delay
-        0: _fadeblink := core.FADE_BLINK_DIS
-        8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128: _fadeblink := (core.BLINK_ENA | ((delay / 8) - 1))
+        0:
+            _fadeblink := core.FADE_BLINK_DIS
+        8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128:
+            _fadeblink := (core.BLINK_ENA | ((delay / 8) - 1))
         OTHER:
             result := _fadeblink
             return
@@ -497,8 +497,10 @@ PUB DisplayFade(delay): result
 '   Any other value returns the current setting
 '   NOTE: 0 effectively disables the function
     case delay
-        0: _fadeblink := core.FADE_BLINK_DIS
-        8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128: _fadeblink := (core.FADE_OUT_ENA | ((delay / 8) - 1))
+        0:
+            _fadeblink := core.FADE_BLINK_DIS
+        8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128:
+            _fadeblink := (core.FADE_OUT_ENA | ((delay / 8) - 1))
         OTHER:
             result := _fadeblink
             return
@@ -553,6 +555,31 @@ PUB DisplayShift(direction)
 
     writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, core.CURS_DISP_SHIFT | direction, 0)
 
+PUB DisplayVisibility(mode): result
+' Set display visibility
+'   Valid values:
+'       OFF (0): Display off
+'       NORMAL (1): Normal display
+'       INVERT (2): Inverted display
+'   Any other value returns the current setting
+'   NOTE: Takes effect immediately. Does not affect display RAM contents
+'   NOTE: Display may appear dimmer, overall, when inverted
+    case mode
+        OFF:
+            _disp_en := 0
+        NORMAL:
+            _disp_en := core.DISP_ON
+            _disp_invert := core.NORMAL_DISPLAY
+        INVERT:
+            _disp_en := core.DISP_ON
+            _disp_invert := core.REVERSE_DISPLAY
+        OTHER:
+            result := ( (_disp_en >> 2) & 1 ) | ((_disp_invert & 1) << 1)
+            return
+
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_FUND, core.DISPLAY_ONOFF | _disp_en | _cursor_en | _blink_en, 0)
+    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core.FUNCTION_SET_1 | _cgram_blink | _disp_invert, 0)
+
 PUB DoubleHeight(mode): result
 ' Set double-height font style mode
 '   Valid values:
@@ -581,31 +608,6 @@ PUB DoubleHeight(mode): result
 
     writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core.DBLHEIGHT | _dblht_mode, 0)
 
-PUB DisplayVisibility(mode): result
-' Set display visibility
-'   Valid values:
-'       OFF (0): Display off
-'       NORMAL (1): Normal display
-'       INVERT (2): Inverted display
-'   Any other value returns the current setting
-'   NOTE: Takes effect immediately. Does not affect display RAM contents
-'   NOTE: Display may appear dimmer, overall, when inverted
-    case mode
-        OFF:
-            _disp_en := 0
-        NORMAL:
-            _disp_en := core.DISP_ON
-            _disp_invert := core.NORMAL_DISPLAY
-        INVERT:
-            _disp_en := core.DISP_ON
-            _disp_invert := core.REVERSE_DISPLAY
-        OTHER:
-            result := ( (_disp_en >> 2) & 1 ) | ((_disp_invert & 1) << 1)
-            return
-
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_FUND, core.DISPLAY_ONOFF | _disp_en | _cursor_en | _blink_en, 0)
-    writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core.FUNCTION_SET_1 | _cgram_blink | _disp_invert, 0)
-
 PUB FontWidth(dots): result
 ' Set Font width
 '   Valid values: *5 or 6
@@ -619,7 +621,7 @@ PUB FontWidth(dots): result
 
     writeReg (TRANSTYPE_CMD, 1, CMDSET_EXTD, core.EXTENDED_FUNCSET | _fontwidth | _cursor_invert | _disp_lines_NW, 0)
 
-PUB GetPos: addr | data_in
+PUB GetPos(): addr | data_in
 ' Get current position in DDRAM
 '   Returns: Display address of current cursor position
     writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, $00, 0)
@@ -722,10 +724,10 @@ PUB Position(column, row) | offset
 PUB Reset()
 ' Send reset signal to display controller
     io.Output(_reset)
-    io.Low(_reset)
-    time.USleep(core.TRES)
-    io.High(_reset)
-    time.MSleep (1)
+    pinl(_reset)
+    waitus(core.TRES)
+    pinh(_reset)
+    waitms (1)
 
 PUB SEGVoltageRef(ref): result
 ' Select segment voltage reference
@@ -748,14 +750,14 @@ PUB StrDelay(stringptr, delay)
 ' Display zero-terminated string with inter-character delay, in ms
     repeat strsize(stringptr)
         Char(byte[stringptr++])
-        time.MSleep (delay)
+        waitms (delay)
 
 PUB StrDelay_Literal(stringptr, delay)
 ' Display zero-terminated string with inter-character delay, in ms
 '   NOTE: Control characters will not be processed, but will be displayed
     repeat strsize(stringptr)
         Char_Literal(byte[stringptr++])
-        time.MSleep (delay)
+        waitms (delay)
 
 PUB Str_Literal(stringptr)
 ' Display zero-terminated string
