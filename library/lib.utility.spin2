@@ -3,23 +3,20 @@
     Filename: lib.utility.spin2
     Author: Jesse Burt
     Description: Library of utility functions
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Dec 1, 2019
-    Updated Dec 28, 2019
+    Updated Jun 23, 2020
     See end of file for terms of use. 
     --------------------------------------------
 }
 
 '   Must be included using the preprocessor #include directive
-'   Requires:
-'       time.spin declared with the symbol name 'time'
-'       io.spin declared with the symbol name 'io'
 
 PUB FlashLED(led_pin, delay_ms)
 ' Flash an LED
 '   led_pin: I/O pin
 '   delay_ms: Delay between pin toggle states, in milliseconds
-    io.Output(led_pin)
+    pinl(led_pin)
     repeat
-        io.Toggle (led_pin)
-        time.MSleep (delay_ms)
+        pint(led_pin)
+        waitms (delay_ms)

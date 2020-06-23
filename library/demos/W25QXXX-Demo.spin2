@@ -34,8 +34,6 @@ OBJ
 
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
-    io          : "io"
-    time        : "time"
     flash       : "memory.flash.w25qxxx.spi"
 
 VAR
@@ -155,7 +153,7 @@ PUB WriteTest(start_addr) | i, s, e, tmp
     ser.printf("done (%d cycles/%dns).\n", e, CyclesTonsec(e))
     ser.ClearLine()
 
-PUB CyclesTonsec(cycles)
+PUB CyclesTonsec(cycles): nsec
 
     return cycles / CYCLES_USEC
 

@@ -5,7 +5,7 @@
     Description: Driver for the Winbond W25Qxxx-series SPI FLASH memories
     Copyright (c) 2020
     Started Nov 09, 2019
-    Updated Jun 14, 2020
+    Updated Jun 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -28,8 +28,6 @@ OBJ
 
     spi : "com.spi.bitbang-fast"
     core: "core.con.w25qxxx"
-    time: "time"
-    io  : "io"
 
 PUB Null()
 ''This is not a top-level object
@@ -39,15 +37,13 @@ PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ): okay
     if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63)
         if SCK_HZ >= 1 and SCK_HZ <= core.SCK_MAX_FREQ
             if okay := spi.Start (MOSI_PIN, MISO_PIN, SCK_PIN, SCK_HZ, core.CPOL)              'SPI Object Started?
-                time.MSleep (1)                                     'Add startup delay appropriate to your device (consult its datasheet)
+                waitms (1)
                 _CS := CS_PIN
                 _MOSI := MOSI_PIN
                 _MISO := MISO_PIN
                 _SCK := SCK_PIN
 
-                io.High(_CS)
-                io.Output(_CS)
-
+                pinh(_CS)
                 if DeviceID() == $17
                     return okay
 
@@ -186,13 +182,13 @@ PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet[2], cmd_bytes, tmp
             cmd_bytes := 1
             cmd_packet.byte[0] := reg_nr
 
-    io.Low(_CS)
+    pinl(_CS)
     repeat tmp from 0 to cmd_bytes-1
         spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, cmd_packet.byte[tmp])
 
     repeat tmp from 0 to nr_bytes-1
         byte[buff_addr][tmp] := spi.Read(_MISO, _SCK, core.MISO_BITORDER, 8)
-    io.High(_CS)
+    pinh(_CS)
 
 PRI writeReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, cmd_bytes, tmp
 ' Write nr_bytes to register 'reg_nr' stored at buf_addr
@@ -219,17 +215,17 @@ PRI writeReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, cmd_bytes, tmp
 
         OTHER:
 
-    io.Low(_CS)
+    pinl(_CS)
     repeat tmp from 0 to cmd_bytes-1
         spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, cmd_packet.byte[tmp])
 
     if nr_bytes == 0
-        io.High(_CS)
+        pinh(_CS)
         return
 
     repeat tmp from 0 to nr_bytes-1
         spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
-    io.High(_CS)
+    pinh(_CS)
 
 DAT
 {
