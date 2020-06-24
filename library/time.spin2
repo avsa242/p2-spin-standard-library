@@ -20,21 +20,19 @@ PUB Sleep(secs)
     Sleep for `secs` seconds.
 }}
 
-    _waitx(clkfreq * secs - 400 #> WMIN)
+    waitx(clkfreq * secs - 400 #> WMIN)
 
 PUB MSleep(msecs)
 {{
     Sleep for `msecs` milliseconds.
 }}
-
-    _waitx(clkfreq / 1_000 * msecs - 400 #> WMIN)
+    waitms(msecs)
 
 PUB USleep(usecs)
 {{
     Sleep for `usecs` microseconds.
 }}
-
-    _waitx((clkfreq / 1_000_000 * usecs) - 391 #> WMIN)
+    waitus(usecs)
 
 PUB SetSync
 {{
@@ -50,6 +48,5 @@ PUB WaitForSync(secs)
 
     Must call `SetSync` before calling `WaitForSync` the first time.
 }}
-
     _waitx((sync += clkfreq * secs) #> WMIN)
 
