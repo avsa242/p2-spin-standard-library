@@ -30,8 +30,6 @@ OBJ
 
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
-    io          : "io"
-    time        : "time"
     ina260      : "sensor.power.ina260.i2c.spin2"
     int         : "string.integer"
 
@@ -62,7 +60,7 @@ PUB Main()
         if ser.RXCheck() == "Q"                     ' Press captial Q to quit the demo
             ser.ShowCursor()
             ser.newline()
-            ser.str(string("Halting"))
+            ser.printf("Halting")
             quit
 
     FlashLED(LED, 100)     ' Signal execution finished

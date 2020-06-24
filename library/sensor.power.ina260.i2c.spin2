@@ -5,7 +5,7 @@
     Description: Driver for the TI INA260 Precision Current and Power Monitor IC
     Copyright (c) 2020
     Started Nov 13, 2019
-    Updated Jun 14, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -47,7 +47,6 @@ OBJ
 
     i2c : "com.i2c"
     core: "core.con.ina260"
-    time: "time"
 
 PUB Null()
 ''This is not a top-level object
@@ -55,9 +54,9 @@ PUB Null()
 PUB Start(SCL_PIN, SDA_PIN, I2C_HZ=100_000): okay
 
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ =< core.I2C_MAX_FREQ
+        if I2C_HZ <= core.I2C_MAX_FREQ
             if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)     'I2C Object Started?
-                time.MSleep (1)
+                waitms (1)
                 if i2c.Present (SLAVE_WR)                       'Response from device?
                     if DeviceID() == $2270_5449
                         return okay
@@ -73,27 +72,20 @@ PUB BusVoltage(): result
 '   NOTE: Full-scale range is 40_960_000uV
     result := $0000
     readReg(core.BUS_VOLTAGE, 2, @result)
-    result &= $7FFF
-    result *= 1_250
-    return result
+    result := (result & $7FFF) * 1_250
 
 PUB ConversionReady(): result
 ' Indicates data from the last conversion is available for reading
 '   Returns: TRUE if data available, FALSE otherwise
     readReg(core.MASK_ENABLE, 2, @result)
-    result >>= core.FLD_CVRF
-    result &= %1
-    result *= TRUE
+    result := ((result >> core.FLD_CVRF) & 1) * TRUE
 
 PUB Current(): result
 ' Read the measured current, in microamperes
 '   NOTE: If averaging is enabled, this will return the averaged value
     result := $0000
     readReg(core.CURRENT, 2, @result)
-    if result > 32767
-        result := 65536-result
-    result *= 1_250
-    return
+    result := (result signx 15) * 1_250
 
 PUB CurrentConvTime(microseconds=-2): result | tmp
 ' Set conversion time for shunt current measurement, in microseconds
@@ -119,7 +111,7 @@ PUB DeviceID(): result
 '   Returns:
 '       Most-significant word: Die ID
 '       Least-significant word: Mfr ID
-    return (DieID << 16) | MfrID
+    return (DieID() << 16) | MfrID()
 
 PUB DieID(): result
 ' Read the Die ID from the chip
@@ -128,7 +120,7 @@ PUB DieID(): result
     readReg(core.DIE_ID, 2, @result)
     return
 
-PUB IntLevel(level=-2) | tmp
+PUB IntLevel(level=-2): tmp
 ' Set interrupt active level/polarity
 '   Valid values:
 '      *INTLVL_LO   (0) Active low
@@ -166,7 +158,7 @@ PUB IntsLatched(enabled=-2): result | tmp
     tmp := (tmp | enabled) & core.MASK_ENABLE_MASK
     writeReg(core.MASK_ENABLE, 2, @tmp)
 
-PUB IntSource (src=-2) | tmp
+PUB IntSource (src=-2): tmp
 ' Set interrupt/alert pin assertion source
 '   Valid values:
 '       INT_CURRENT_HI  (32)    Over current limit
@@ -192,7 +184,7 @@ PUB IntSource (src=-2) | tmp
     tmp := (tmp | src) & core.MASK_ENABLE_MASK
     writeReg(core.MASK_ENABLE, 2, @tmp)
 
-PUB IntThresh(threshold=-2) | tmp
+PUB IntThresh(threshold=-2): tmp
 ' Set interrupt/alert threshold
 '   Valid values: 0..65535
 '   Any other value polls the chip and returns the current setting
@@ -212,7 +204,7 @@ PUB MfrID(): result
     readReg(core.MFR_ID, 2, @result)
     return
 
-PUB OpMode(mode=-2) | tmp
+PUB OpMode(mode=-2): tmp
 ' Set operation mode
 '   Valid values:
 '       POWERDN (0): Power-down/shutdown
@@ -244,14 +236,11 @@ PUB Power(): result
     result := $0000
     readReg(core.POWER, 2, @result)
     result *= 10_000
-    return
 
 PUB PowerOverflowed(): result
 ' Indicates the power data exceeded the maximum measurable value (419_430_000uW/419.43W)
     readReg(core.MASK_ENABLE, 2, @result)
-    result >>= core.FLD_OVF
-    result &= %1
-    result *= TRUE
+    result := ((result >> core.FLD_OVF) & 1) * TRUE
 
 PUB Reset() | tmp
 ' Reset the chip
