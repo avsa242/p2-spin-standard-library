@@ -100,8 +100,8 @@ CON
         #27, ESC
 '------------------------------------------------------------------------------
 ' System stuff:
-        _clkmode = $010007f8
-        _clkfreq = 160_000_000
+        _xtlfreq   = 20_000_000
+        _clkfreq   = 160_000_000
         _fclkfreq = float(_clkfreq)
         baud = 2_000_000'230_400
         rx_pin = 63
@@ -126,9 +126,8 @@ DAT
   szusbfail     byte "USB%u cog start failed\n", 0
   szbackspace   byte BSP, " ", BSP, 0
 
-PUB KbMObjTest | event, data, eventa
-  clkset(_clkmode, _clkfreq)
-  waitcnt(clkfreq * 2 + cnt)                            ' Wait a bit for user to get the terminai ready
+PUB KbMObjTest() | event, data, eventa
+  waitms(2000)                            ' Wait a bit for user to get the terminai ready
   ser.StartRXTX(rx_pin, tx_pin, 0, baud)
   ser.PrintF("Sysclock: %u, baudrate: %u\n", clkfreq, baud)
   ser.PrintF("Tiny client + USB low/full speed keyboard/mouse %s.\n", @szversion)
@@ -136,7 +135,7 @@ PUB KbMObjTest | event, data, eventa
   usb1.start(@usbA)
   if (usbA.byte[COGNUM])
     eventa := usbA.byte[EVTPIN]
-    ser.PrintF(@szusbstart, 1, usbA.byte[COGNUM] - 1, eventa, usb1.getVersion)
+    ser.PrintF(@szusbstart, 1, usbA.byte[COGNUM] - 1, eventa, usb1.getVersion())
   else
     ser.PrintF(@szusbfail, 1)
     repeat                                              ' Nothing to do...
@@ -152,7 +151,7 @@ PUB KbMObjTest | event, data, eventa
     if event
       USBEvent(@usbA, 1, event)
 
-    if (usbA.byte[KBCON] and (data := usb1.key))
+    if (usbA.byte[KBCON] and (data := usb1.key()))
       handleKeyData(data)
 
 
@@ -166,7 +165,7 @@ PRI handleKeyData(keydata) | tglstates, modkey, scancode, asciival
     KEY_BKSPACE:
       ser.Str(@szbackspace)
     KEY_ENTER:
-      ser.newline
+      ser.newline()
     KEY_CAPSLK, KEY_SCRLK, KEY_NUMLK:
       ser.Char(BELL)                                      ' Ring the terminal bell on toggle key state change
     other:
@@ -202,7 +201,7 @@ PRI handleMouseUpdate(data) | b, x, y
 
 ' Scroll the mouse data if middle button pressed
   if b & MOUSE_CBTNF
-    ser.newline
+    ser.newline()
   else
     ser.Char(CR)
 
@@ -226,19 +225,19 @@ PRI usbEvent(portptr, portnum, event) | ptr, val
       byte[portptr][MCON]++
     USB_ERROR:
       if portnum == 1
-        ptr := usb1.getErrorCode
+        ptr := usb1.getErrorCode()
       ser.PrintF("\nUSB%u error: %u\n", portnum, long[ptr])
     USB_DBG_INFO:
       if portnum == 1
-        (ptr, val) := usb1.getDebugInfo
+        (ptr, val) := usb1.getDebugInfo()
       ser.PrintF("PC%u: $", portnum)
       ser.Hex(ptr, 5)
       ser.Str(", val: ")
       ser.Hex(val)
-      ser.newline
+      ser.newline()
     M_DATA:
       if portnum == 1
-        val := usb1.mouse
+        val := usb1.mouse()
         handleMouseUpdate(val)
     other:
       ser.PrintF("Event%u: %u\n", portnum, event)

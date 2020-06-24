@@ -455,7 +455,7 @@ PUB start(status)
 '    byte[status][2] := 0                                ' Client must set <> 0 at kbd "ready" event, zero at disconnect event
 '    byte[status][3] := 0                                ' Client must set <> 0 at mouse "ready" event, zero at disconnect event
 
-PUB mouse : data
+PUB mouse(): data
   data := dataVals
 {
   if mouse_tail <> mouse_head
@@ -463,18 +463,18 @@ PUB mouse : data
     mouse_tail := ++mouse_tail & MOUSE_BUFFMASK
 '    drvnot_(LED56)
 }
-PUB key : data
+PUB key(): data
   if kbd_tail <> kbd_head
     data := kbd_buffer[kbd_tail]
     kbd_tail := ++kbd_tail & KBD_BUFFMASK
 
-PUB getErrorCode
+PUB getErrorCode(): result
   return @usb_error_code                                ' Hub long with the error value
 
-PUB getVersion
+PUB getVersion(): result
   return @sz_usb_kbm_ver                                ' ASCIIZ version string pointer
 
-PUB getDebugInfo
+PUB getDebugInfo(): result
   return itemAddr, dataVals
 ' #endregion (Spin VAR and functions)
 ' #region (USB host cog)
