@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Jun 14, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,6 +15,7 @@ CON
     _xtlfreq    = cfg._xtlfreq
     _clkfreq    = cfg._clkfreq_def
 
+' -- User-definable constants
     LED         = cfg.LED1
     SER_RX      = cfg.SER_RX
     SER_TX      = cfg.SER_TX
@@ -23,6 +24,7 @@ CON
     I2C_SCL     = 27
     I2C_SDA     = 28
     I2C_HZ      = 400_000
+' --
 
     GA          = 1             ' Glass attenuation factor
     DF          = 408 '53       ' Device factor
@@ -35,8 +37,6 @@ OBJ
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     int     : "string.integer"
-    time    : "time"
-    io      : "io"
     tsl2591 : "sensor.lux.tsl2591.i2c.spin2"
 
 VAR
@@ -98,7 +98,7 @@ PUB Setup()
         ser.PrintF("TSL2591 object started\n")
     else
         ser.PrintF("TSL2591 object failed to start - halting\n")
-        time.MSleep (1)
+        waitms (1)
         tsl2591.Stop()
         FlashLED (LED, 500)
     tsl2591.Reset()

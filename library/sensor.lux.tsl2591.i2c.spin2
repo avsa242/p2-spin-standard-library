@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Jun 14, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -46,7 +46,7 @@ PUB Null()
 PUB Start(SCL_PIN, SDA_PIN, I2C_HZ=100_000): okay
 
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ =< core.I2C_MAX_FREQ
+        if I2C_HZ <= core.I2C_MAX_FREQ
             if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)
                 if DeviceID() == core.DEV_ID_RESP
                     Reset()
@@ -62,11 +62,11 @@ PUB ClearAllInts()
 
 PUB ClearInt()
 ' Clears NPALS Interrupt
-    writeReg ( core.TRANS_SPECIAL, core.SF_CLEAR_NOPERSIST_INT, 0, 0)
+    writeReg (core.TRANS_SPECIAL, core.SF_CLEAR_NOPERSIST_INT, 0, 0)
 
 PUB ClearPersistInt()
 ' Clears ALS Interrupt
-    writeReg ( core.TRANS_SPECIAL, core.SF_CLEARALSINT, 0, 0)
+    writeReg (core.TRANS_SPECIAL, core.SF_CLEARALSINT, 0, 0)
 
 PUB DataReady(): result
 ' Indicates ADCs completed integration cycle since AEN bit was set
@@ -144,7 +144,7 @@ PUB IntsEnabled(enabled=-2): result | tmp
 
     tmp &= core.MASK_NPIEN
     tmp := (tmp | enabled) & core.ENABLE_MASK
-    writeReg ( core.TRANS_NORMAL, core.ENABLE, 1, tmp)
+    writeReg (core.TRANS_NORMAL, core.ENABLE, 1, tmp)
 
 PUB IntThresh(low, high): result | tmp
 ' Set non-persistent interrupt thresholds
