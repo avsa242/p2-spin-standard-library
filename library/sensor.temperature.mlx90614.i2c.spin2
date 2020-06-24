@@ -5,7 +5,7 @@
     Description: Driver for the Melexis MLX90614 IR thermometer
     Copyright (c) 2020
     Started Mar 17, 2019
-    Updated Jun 13, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -35,7 +35,6 @@ OBJ
 
     i2c : "com.i2c"                                             'PASM I2C Driver
     core: "core.con.mlx90614"
-    time: "time"                                                'Basic timing functions
 
 PUB Null()
 ''This is not a top-level object
@@ -43,12 +42,12 @@ PUB Null()
 PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): okay
 
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ =< core.I2C_MAX_FREQ
+        if I2C_HZ <= core.I2C_MAX_FREQ
             if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)     'I2C Object Started?
-                time.MSleep (1)
+                waitms (1)
                 if i2c.present (SLAVE_WR)                       'Response from device?
                     if DeviceID()
-                        time.MSleep (250)                       'First data available approx 250ms after POR
+                        waitms (250)                            'First data available approx 250ms after POR
                         return okay
 
     return FALSE                                                'If we got here, something went wrong
@@ -100,19 +99,19 @@ PUB ObjTemp(channel): result | tmp
     tmp := result.byte[PEC]
     result &= $FFFF
 
+    result *= 2                             ' Start by scaling to Kelvin - the other two scales build on this calc
     case _temp_scale
         C:                                  ' Result will be in centidegrees Celsius
-            result := (result * 2) - 273_15
+            result -= 273_15
         F:                                  ' Result will be in centidegrees Fahrenheit
-            result := ((result * 2) - 273_15) * 9_00/5_00 + 32_00
+            result := (result - 273_15) * 9_00/5_00 + 32_00
         K:                                  ' Result will be in centidegrees Kelvin
-            result := result * 2
         OTHER:
             return
 
     return
 
-PUB Scale(temp_scale)
+PUB Scale(temp_scale): result
 ' Set scale of temperature data returned by AmbientTemp and ObjTemp methods
 '   Valid values:
 '      *C (0): Celsius

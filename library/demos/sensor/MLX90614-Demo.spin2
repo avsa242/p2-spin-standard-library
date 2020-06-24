@@ -25,7 +25,7 @@ CON
     I2C_SDA     = 27
     I2C_HZ      = 100_000
 
-' Choose one of the temperature scales above
+' Choose one of the temperature scales below
     TEMP_SCALE  = C
 ' --
 
@@ -37,14 +37,8 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
-    io      : "io"
     mlx     : "sensor.temperature.mlx90614.i2c.spin2"
     int     : "string.integer"
-
-VAR
-
-    byte _ser_cog
 
 PUB Main() | Tobj, Tamb
 
@@ -63,7 +57,7 @@ PUB Main() | Tobj, Tamb
         ser.printf("\nTa: ")
         Decimal(Tamb, 100)
 
-        time.MSleep (100)
+        waitms (100)
 
 PUB Decimal(scaled, divisor) | whole[4], part[4], places, tmp
 ' Display a fixed-point scaled up number in decimal-dot notation - scale it back down by divisor
@@ -84,7 +78,7 @@ PUB Decimal(scaled, divisor) | whole[4], part[4], places, tmp
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear()
     ser.PrintF("Serial terminal started\n")
 
@@ -93,7 +87,7 @@ PUB Setup()
     else
         ser.PrintF("MLX90614 driver failed to start - halting\n")
         mlx.Stop()
-        time.MSleep (500)
+        waitms (500)
         FlashLED(LED, 500)
 
 #include "lib.utility.spin2"
