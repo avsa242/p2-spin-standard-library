@@ -2,19 +2,20 @@
     --------------------------------------------
     Filename: LSM9DS1-Demo.spin2
     Author: Jesse Burt
-    Description: Simple demo of the LSM9DS1 driver that
-        outputs live data from the chip. (P2 version)
+    Description: Demo of the LSM9DS1 driver
     Copyright (c) 2020
     Started Nov 3, 2019
-    Updated Jun 14, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
-
+' Uncomment one of the following to choose which interface the LSM9DS1 is connected to
+'#define LSM9DS1_I2C    NOT IMPLEMENTED YET
+'#define LSM9DS1_SPI    NOT IMPLEMENTED YET
 CON
 
-    _xtlfreq    = cfg._xtlfreq
-    _clkfreq    = cfg._clkfreq_def
+     _xtlfreq   = cfg._xtlfreq
+     _clkfreq   = cfg._clkfreq_def
 
 ' -- User-modifiable constants
     LED         = cfg.LED1
@@ -35,121 +36,160 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
-    io      : "io"
-    imu     : "sensor.imu.9dof.lsm9ds1.3wspi.spin2"
     int     : "string.integer"
+    imu     : "sensor.imu.9dof.lsm9ds1.3wspi"
 
 VAR
 
-    byte _ser_cog, _imu_cog
+    long _overruns
+    byte _imu_cog
 
-PUB Main()
+PUB Main() | dispmode, axo, ayo, azo, gxo, gyo, gzo
 
     Setup()
+    imu.AccelScale(2)                                       ' 2, 4, 8, 16 (g's)
+    imu.AccelAxisEnabled(%111)                              ' 0 or 1 for each bit (%xyz)
 
+    imu.GyroScale(250)                                      ' 245, 500, 2000
+    imu.GyroAxisEnabled(%111)                               ' 0 or 1 for each bit (%xyz)
+    imu.GyroBias(0, 0, 0, 1)                                ' x, y, z: 0..65535, rw = 1 (write)
+
+    imu.MagScale(4)                                         ' 4, 8, 12, 16
     imu.MagDataRate(80_000)
+
     ser.HideCursor()
+    dispmode := 0
+
+    gxo := gyo := gzo := 0
+    axo := ayo := azo := 0
+    ser.position(0, 3)                                      ' Read back the settings from above
+    ser.printf("AccelScale: %d\n", imu.AccelScale())
+
+    imu.AccelBias(@axo, @ayo, @azo)                       ' lsm9ds1 Accel has some factory trim accel offsets
+    ser.printf("AccelBias: %d(x), %d(y), %d(z)\n", axo, ayo, azo)
+
+    ser.printf("GyroScale: %d\n", imu.GyroScale())
+    imu.GyroBias(@gxo, @gyo, @gzo)
+    ser.printf("GyroBias: %d(x), %d(y), %d(z)\n", gxo, gyo, gzo)
+
+    ser.printf("MagScale: %d\n", imu.MagScale())
+
+    ser.newline()
 
     repeat
-        ser.Position (0, 3)
-        AccelCalc()
-        ser.Position (0, 4)
-        GyroCalc()
-        ser.Position (0, 5)
-        MagCalc()
-        ser.Position (0, 6)
-        TempRaw()
-
-        time.MSleep (10)
-
-{
-    repeat
-        ser.Position (0, 3)
-        AccelRaw
-        ser.Position (0, 4)
-        GyroRaw
-        ser.Position (0, 5)
-        MagRaw
-        ser.Position (0, 6)
-        TempRaw
-
-        time.MSleep (10)
-}
-
         case ser.RxCheck()
-            27:
+            "q", "Q":                                       ' Quit the demo
+                ser.Position(0, 15)
+                ser.printf("Halting")
+                imu.Stop()
+                waitms(5)
                 quit
-            "c", "C":
+            "c", "C":                                       ' Perform calibration
                 Calibrate()
+            "r", "R":                                       ' Change display mode: raw/calculated
+                ser.Position(0, 10)
+                repeat 2
+                    ser.ClearLine(ser.CLR_CUR_TO_END)
+                    ser.Newline()
+                dispmode ^= 1
+
+        ser.Position (0, 10)
+        case dispmode
+            0:
+                AccelRaw()
+                GyroRaw()
+                MagRaw()
+            1:
+                AccelCalc()
+                GyroCalc()
+                MagCalc()
+
+        ser.position (0, 15)
+        ser.printf("Interrupt: ")
+        ser.bin(imu.Interrupt(), 8)
 
     ser.ShowCursor()
     FlashLED(LED, 100)
-
-PUB Calibrate()
-
-    ser.Position (0, 8)
-    ser.Str(string("Calibrating..."))
-    imu.CalibrateXLG()
-    imu.CalibrateMag (10)
-    ser.Position (0, 8)
-    ser.Str(string("              "))
 
 PUB AccelCalc() | ax, ay, az
 
     repeat until imu.AccelDataReady()
     imu.AccelG (@ax, @ay, @az)
-    ser.printf("Accel:  %s", int.DecPadded (ax, 10)) 'Combining all 3 lines into one printf doesn't work;
-    ser.printf(" %s", int.DecPadded (ay, 10))        'all values end up the same
-    ser.printf(" %s", int.DecPadded (az, 10))
-
-PUB GyroCalc() | gx, gy, gz
-
-    repeat until imu.GyroDataReady()
-    imu.GyroDPS (@gx, @gy, @gz)
-    ser.printf("Gyro:   %s", int.DecPadded (gx, 10)) 'Combining all 3 lines into one printf doesn't work;
-    ser.printf(" %s", int.DecPadded (gy, 10))        'all values end up the same
-    ser.printf(" %s", int.DecPadded (gz, 10))
-
-PUB MagCalc() | mx, my, mz
-
-    repeat until imu.MagDataReady()
-    imu.MagGauss (@mx, @my, @mz)
-    ser.printf("Mag:    %s", int.DecPadded (mx, 10)) 'Combining all 3 lines into one printf doesn't work;
-    ser.printf(" %s", int.DecPadded (my, 10))        'all values end up the same
-    ser.printf(" %s", int.DecPadded (mz, 10))
+    ser.printf("Accel micro-g: ")
+    ser.Str (int.DecPadded (ax, 10))
+    ser.Str (int.DecPadded (ay, 10))
+    ser.Str (int.DecPadded (az, 10))
+    ser.clearline(ser.CLR_CUR_TO_END)
+    ser.Newline()
 
 PUB AccelRaw() | ax, ay, az
 
     repeat until imu.AccelDataReady()
     imu.AccelData (@ax, @ay, @az)
-    ser.printf("Accel:  %s", int.DecPadded (ax, 7)) 'Combining all 3 lines into one printf doesn't work;
-    ser.printf(" %s", int.DecPadded (ay, 7))        'all values end up the same
-    ser.printf(" %s", int.DecPadded (az, 7))
+    ser.printf("Accel raw: ")
+    ser.Str (int.DecPadded (ax, 7))
+    ser.Str (int.DecPadded (ay, 7))
+    ser.Str (int.DecPadded (az, 7))
+    ser.clearline(ser.CLR_CUR_TO_END)
+    ser.Newline()
+
+PUB GyroCalc() | gx, gy, gz
+
+    repeat until imu.GyroDataReady()
+    imu.GyroDPS (@gx, @gy, @gz)
+    ser.printf("Gyro micro DPS:  ")
+    ser.Str (int.DecPadded (gx, 11))
+    ser.Str (int.DecPadded (gy, 11))
+    ser.Str (int.DecPadded (gz, 11))
+    ser.clearline(ser.CLR_CUR_TO_END)
+    ser.newline()
 
 PUB GyroRaw() | gx, gy, gz
 
     repeat until imu.GyroDataReady()
     imu.GyroData (@gx, @gy, @gz)
-    ser.printf("Gyro:  %s", int.DecPadded (gx, 7)) 'Combining all 3 lines into one printf doesn't work;
-    ser.printf(" %s", int.DecPadded (gy, 7))        'all values end up the same
-    ser.printf(" %s", int.DecPadded (gz, 7))
+    ser.printf("Gyro raw:  ")
+    ser.Str (int.DecPadded (gx, 7))
+    ser.Str (int.DecPadded (gy, 7))
+    ser.Str (int.DecPadded (gz, 7))
+    ser.clearline(ser.CLR_CUR_TO_END)
+    ser.newline()
+
+PUB MagCalc() | mx, my, mz
+
+    repeat until imu.MagDataReady()
+    imu.MagGauss (@mx, @my, @mz)
+    ser.printf("Mag nano T:   ")
+    ser.Str (int.DecPadded (mx, 10))
+    ser.Str (int.DecPadded (my, 10))
+    ser.Str (int.DecPadded (mz, 10))
+    ser.clearline(ser.CLR_CUR_TO_END)
+    ser.newline()
 
 PUB MagRaw() | mx, my, mz
 
     repeat until imu.MagDataReady()
     imu.MagData (@mx, @my, @mz)
-    ser.printf("Mag:  %s", int.DecPadded (mx, 7)) 'Combining all 3 lines into one printf doesn't work;
-    ser.printf(" %s", int.DecPadded (my, 7))        'all values end up the same
-    ser.printf(" %s", int.DecPadded (mz, 7))
+    ser.printf("Mag raw:  ")
+    ser.Str (int.DecPadded (mx, 7))
+    ser.Str (int.DecPadded (my, 7))
+    ser.Str (int.DecPadded (mz, 7))
+    ser.clearline(ser.CLR_CUR_TO_END)
+    ser.newline()
 
-PUB TempRaw()
+PUB Calibrate()
 
-    ser.printf("Temperature: %s", int.DecPadded(imu.Temperature(), 7))
+    ser.Position (0, 14)
+    ser.printf("Calibrating...")
+    imu.CalibrateXLG()
+    imu.CalibrateMag (10)
+    ser.Position (0, 14)
+    ser.printf("              ")
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    waitms(30)
     ser.Clear()
     ser.printf("Serial terminal started\n")
 
@@ -159,10 +199,9 @@ PUB Setup()
         ser.printf("LSM9DS1 driver failed to start- halting\n")
         FlashLED(LED, 500)
 
-PUB waitkey(message)
-
-    ser.Str (message)
-    ser.CharIn()
+        imu.Stop()
+        waitms(5)
+        FlashLED(LED, 500)
 
 #include "lib.utility.spin2"
 

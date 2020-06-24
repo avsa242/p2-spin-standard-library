@@ -5,7 +5,7 @@
     Description: Driver for the ST LSM9DS1 9DoF/3-axis IMU (P2 version)
     Copyright (c) 2020
     Started Aug 12, 2017
-    Updated Jun 14, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -63,8 +63,6 @@ OBJ
 
     spi     : "com.spi.bitbang"
     core    : "core.con.lsm9ds1"
-    io      : "io"
-    time    : "time"
 
 VAR
 
@@ -80,7 +78,7 @@ PUB Null()
 PUB Start(SCL_PIN, SDIO_PIN, CS_AG_PIN, CS_M_PIN, INT_AG_PIN, INT_M_PIN, SCK_FREQ=1_000_000): okay | tmp
 
     if lookdown(SCL_PIN: 0..63) and lookdown(SDIO_PIN: 0..63) and lookdown(CS_AG_PIN: 0..63) and lookdown(CS_M_PIN: 0..63) and lookdown(INT_AG_PIN: 0..63) and lookdown(INT_M_PIN: 0..63)
-    if SCK_FREQ => 0 and SCK_FREQ =< core.SCK_MAX_FREQ
+    if SCK_FREQ >= 0 and SCK_FREQ <= core.SCK_MAX_FREQ
         okay := spi.start (SDIO_PIN, SDIO_PIN, SCL_PIN, SCK_FREQ, core.CPOL)
         _SCL := SCL_PIN
         _SDIO := SDIO_PIN
@@ -89,14 +87,12 @@ PUB Start(SCL_PIN, SDIO_PIN, CS_AG_PIN, CS_M_PIN, INT_AG_PIN, INT_M_PIN, SCK_FRE
         _INT_AG := INT_AG_PIN
         _INT_M := INT_M_PIN
 
-        io.High (_CS_AG)
-        io.High (_CS_M)
-        io.Output (_CS_AG)
-        io.Output (_CS_M)
-        io.Input (_INT_AG)
-        io.Input (_INT_M)
+        pinh (_CS_AG)
+        pinh (_CS_M)
+        tmp := pinr (_INT_AG)
+        tmp := pinr (_INT_M)
 
-        time.MSleep (110)
+        waitms (110)
 ' Initialize the IMU
 
         XLGSoftReset()
@@ -108,7 +104,7 @@ PUB Start(SCL_PIN, SDIO_PIN, CS_AG_PIN, CS_M_PIN, INT_AG_PIN, INT_M_PIN, SCK_FRE
         MagI2C (FALSE)      'Disable the Magnetometer I2C interface
 
 ' Once everything is initialized, check the WHO_AM_I registers
-        if DeviceID(BOTH) == core.WHOAMI_BOTH_RESP
+        if DeviceID() == core.WHOAMI_BOTH_RESP
             Defaults()
             return okay
     Stop()
@@ -228,9 +224,9 @@ PUB AccelData(ax, ay, az) | tmp[2]
 ' Reads the Accelerometer output registers
     readReg(XLG, core.OUT_X_L_XL, 6, @tmp)
 
-    long[ax] := ~~tmp.word[0]
-    long[ay] := ~~tmp.word[1]
-    long[az] := ~~tmp.word[2]
+    long[ax] := tmp.word[0] signx 15
+    long[ay] := tmp.word[1] signx 15
+    long[az] := tmp.word[2] signx 15
 
     if (_autoCalc)
         long[ax] -= _aBiasRaw[X_AXIS]
@@ -340,7 +336,7 @@ PUB CalibrateXLG() | aBiasRawtmp[3], gBiasRawtmp[3], axis, ax, ay, az, gx, gy, g
     FIFOEnabled(FALSE)
     FIFOMode (FIFO_OFF)
 
-PUB DeviceID(sensor=2): result | tmp
+PUB DeviceID(sensor=-2): result | tmp
 ' Poll sensor for WHO_AM_I ID
 '   Valid values: AG (0) or MAG (1)
 '   Any other value returns both values OR'd together as a word (MSB=AG ID, LSB=M ID)
@@ -489,9 +485,9 @@ PUB GyroClearInt() | tmp, reg_nr
 PUB GyroData(gx, gy, gz) | tmp[2]
 ' Reads the Gyroscope output registers
     readReg(XLG, core.OUT_X_G_L, 6, @tmp)
-    long[gx] := ~~tmp.word[0]
-    long[gy] := ~~tmp.word[1]
-    long[gz] := ~~tmp.word[2]
+    long[gx] := tmp.word[0] signx 15
+    long[gy] := tmp.word[1] signx 15
+    long[gz] := tmp.word[2] signx 15
 
     if (_autoCalc)
         long[gx] -= _gBiasRaw[X_AXIS]
@@ -655,7 +651,7 @@ PUB MagBlockUpdate(enabled=-2): result
 '   Any other value polls the chip and returns the current setting
     result := booleanChoice (MAG, core.CTRL_REG5_M, core.FLD_BDU_M, core.MASK_BDU_M, core.CTRL_REG5_M_MASK, enabled, 1)
 
-PUB MagBias(mxBias, myBias, mzBias, rw) | axis, msb, lsb
+PUB MagBias(mxBias, myBias, mzBias, rw=0) | axis, msb, lsb
 ' Read or write/manually set Magnetometer calibration offset values
 '   Valid values:
 '       rw:
@@ -703,9 +699,9 @@ PUB MagClearInt() | tmp
 PUB MagData(mx, my, mz) | tmp[2]
 ' Read the Magnetometer output registers
     readReg(MAG, core.OUT_X_L_M, 6, @tmp)
-    long[mx] := ~~tmp.word[0]
-    long[my] := ~~tmp.word[1]
-    long[mz] := ~~tmp.word[2]
+    long[mx] := tmp.word[0] signx 15
+    long[my] := tmp.word[1] signx 15
+    long[mz] := tmp.word[2] signx 15
 
 PUB MagDataOverrun(): result
 ' Magnetometer data overrun
@@ -949,7 +945,7 @@ PUB MagSoftReset() | tmp
     tmp := (1 << core.FLD_REBOOT) | (1 << core.FLD_SOFT_RST)
     tmp &= core.CTRL_REG2_M_MASK
     writeReg(MAG, core.CTRL_REG2_M, 1, @tmp)
-    time.MSleep (10)
+    waitms (10)
 
     tmp := $00                                  'Mag doesn't seem to come out of reset unless
     writeReg(MAG, core.CTRL_REG2_M, 1, @tmp)  ' clearing the reset bit manually - Why would this behave
@@ -1016,7 +1012,7 @@ PUB XLGSoftReset() | tmp
 ' Perform soft-reset of accelerometer/gyroscope
     tmp := %1
     writeReg(XLG, core.CTRL_REG8, 1, @tmp)
-    time.MSleep (10)
+    waitms (10)
 
 PUB setAccelInterrupt(axis, threshold, duration, overUnder, andOr) | tmpRegValue, accelThs, accelThsH, tmpThs
 'Configures the Accelerometer interrupt output to the INT_A/G pin.
@@ -1168,7 +1164,7 @@ PRI addressAutoInc(enabled): result | tmp
     tmp := (tmp | enabled) & core.CTRL_REG8_MASK
     writeReg(XLG, core.CTRL_REG8, 1, @tmp)
 
-PUB MagI2C(enabled): result | tmp
+PRI MagI2C(enabled): result | tmp
 ' Enable Magnetometer I2C interface
 '   Valid values: *TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
@@ -1220,11 +1216,11 @@ PRI readReg(device, reg_nr, nr_bytes, buff_addr) | tmp
             case reg_nr
                 $04..$0D, $0F..$24, $26..$37:
                     reg_nr |= READ
-                    io.Low(_CS_AG)
+                    pinl(_CS_AG)
                     spi.Write(_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
                     repeat tmp from 0 to nr_bytes-1
                         byte[buff_addr][tmp] := spi.Read(_SDIO, _SCL, core.MISO_BITORDER, 8)
-                    io.High(_CS_AG)
+                    pinh(_CS_AG)
                 OTHER:
                     return FALSE
         MAG:
@@ -1232,11 +1228,11 @@ PRI readReg(device, reg_nr, nr_bytes, buff_addr) | tmp
                 $05..$0A, $0F, $20..$24, $27..$2D, $30..$33:
                     reg_nr |= READ
                     reg_nr |= MS
-                    io.Low(_CS_M)
+                    pinl(_CS_M)
                     spi.Write(_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
                     repeat tmp from 0 to nr_bytes-1
                         byte[buff_addr][tmp] := spi.Read(_SDIO, _SCL, core.MISO_BITORDER, 8)
-                    io.High(_CS_M)
+                    pinh(_CS_M)
                 OTHER:
                     return FALSE
 
@@ -1252,18 +1248,18 @@ PRI writeReg(device, reg_nr, nr_bytes, buff_addr) | tmp
         XLG:
             case reg_nr
                 $04..$0D, $10..$13, $1E..$21, $23, $24, $2E, $30..$37:
-                    io.Low (_CS_AG)
+                    pinl (_CS_AG)
                     spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
                     repeat tmp from 0 to nr_bytes-1
                         spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
-                    io.High (_CS_AG)
+                    pinh (_CS_AG)
                 core.CTRL_REG8:
-                    io.Low (_CS_AG)
+                    pinl (_CS_AG)
                     spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
                     byte[buff_addr][0] := byte[buff_addr][0] | (1 << core.FLD_SIM)   'Enforce 3-wire SPI mode
                      repeat tmp from 0 to nr_bytes-1
                         spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
-                    io.High (_CS_AG)
+                    pinh (_CS_AG)
 
                 OTHER:
                     return FALSE
@@ -1273,19 +1269,19 @@ PRI writeReg(device, reg_nr, nr_bytes, buff_addr) | tmp
                 $05..$0A, $0F, $20, $21, $23, $24, $27..$2D, $30..$33:
                     reg_nr |= WRITE
                     reg_nr |= MS
-                    io.Low (_CS_M)
+                    pinl (_CS_M)
                     spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
                     repeat tmp from 0 to nr_bytes-1
                         spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
-                    io.High (_CS_M)
+                    pinh (_CS_M)
                 core.CTRL_REG3_M:   'Ensure any writes to this register also keep the 3-wire SPI mode bit set
                     reg_nr |= WRITE
-                    io.Low (_CS_M)
+                    pinl (_CS_M)
                     spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
                     byte[buff_addr][0] := byte[buff_addr][0] | (1 << core.FLD_M_SIM)    'Enforce 3-wire SPI mode
                     repeat tmp from 0 to nr_bytes-1
                         spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
-                    io.High (_CS_M)
+                    pinh (_CS_M)
                 OTHER:
                     return FALSE
         OTHER:
