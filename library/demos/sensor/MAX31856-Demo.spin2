@@ -38,9 +38,7 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
     max31856: "sensor.thermocouple.max31856.spi.spin2"
-    io      : "io"
     int     : "string.integer"
 
 VAR
@@ -75,7 +73,7 @@ PUB Main() | cj_temp, tc_temp
 
                 ser.PrintF("Thermocouple temp: ")
                 Fractional(tc_temp, 100)
-        time.MSleep (100)
+        waitms (100)
 
 PUB CtoF (deg_c): deg_f
 'T(°F) = T(°C) × 9/5 + 32
@@ -108,7 +106,7 @@ PUB Setup()
     else
         ser.PrintF("MAX31856 driver failed to start - halting\n")
         max31856.Stop()
-        time.MSleep (5)
+        waitms (5)
         FlashLED (LED, 500)
 
 #include "lib.utility.spin2"

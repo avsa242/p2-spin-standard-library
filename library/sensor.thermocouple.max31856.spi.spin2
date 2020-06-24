@@ -5,7 +5,7 @@
     Description: Driver object for Maxim's MAX31856 thermocouple amplifier (P2 version)
     Copyright (c) 2020
     Created: Nov 21, 2019
-    Updated: Jun 13, 2020
+    Updated: Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -54,7 +54,6 @@ OBJ
     core    : "core.con.max31856"
     spi     : "com.spi.bitbang"
     u64     : "math.unsigned64"
-    io      : "io"
 
 PUB Null()
 ''This is not a top-level object
@@ -66,8 +65,7 @@ PUB Start (CS_PIN, SDI_PIN, SDO_PIN, SCK_PIN, SCK_HZ=5_000_000): okay
         _MOSI := SDI_PIN
         _MISO := SDO_PIN
         _SCK := SCK_PIN
-        io.Output(_CS)
-        io.High(_CS)
+        pinh(_CS)
     else
         return FALSE
 
@@ -101,7 +99,7 @@ PUB ColdJuncLowThresh(thresh=-2): result | tmp
 
     writeReg (core.CJLF, 1, @thresh)
 
-PUB ColdJuncOffset(offset=-2) | tmp  'XXX Make param units degrees
+PUB ColdJuncOffset(offset=-2): tmp  'XXX Make param units degrees
 ' Set Cold-Junction temperature sensor offset
     readReg (core.CJTO, 1, @tmp)
     case offset
@@ -300,7 +298,7 @@ PUB ThermocoupleSamples(samples=-2): result | tmp
     tmp := (tmp | samples) & core.CR1_MASK
     writeReg(core.CR1, 1, @tmp)
 
-PUB ThermocoupleHighThresh(thresh=-2) | tmp
+PUB ThermocoupleHighThresh(thresh=-2): tmp
 ' Set Thermocouple HIGH fault threshold
 '   Valid values: 0..32767
 '   Any other value polls the chip and returns the current setting
@@ -312,7 +310,7 @@ PUB ThermocoupleHighThresh(thresh=-2) | tmp
 
     writeReg (core.LTHFTH, 2, @thresh)
 
-PUB ThermocoupleLowThresh(thresh=-2) | tmp
+PUB ThermocoupleLowThresh(thresh=-2): tmp
 ' Set Thermocouple LOW fault threshold
 '   Valid values: 0..32767
 '   Any other value polls the chip and returns the current setting
@@ -358,7 +356,7 @@ PRI swapByteOrder(buff_addr)
 
 PRI writeReg(reg_nr, nr_bytes, buff_addr): result | tmp
 ' Write reg_nr to MOSI
-    io.Low(_CS)
+    pinl(_CS)
     case nr_bytes
         1..4:
             spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr | core.WRITE_REG)     'Command w/nr_bytes data bytes following
@@ -367,11 +365,11 @@ PRI writeReg(reg_nr, nr_bytes, buff_addr): result | tmp
         OTHER:
             result := FALSE
             buff_addr := 0
-    io.High(_CS)
+    pinh(_CS)
 
 PRI readReg(reg_nr, nr_bytes, buff_addr): result | tmp
 ' Read reg_nr from MISO
-    io.Low(_CS)
+    pinl(_CS)
     spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)              'Which register to query
 
     case nr_bytes
@@ -381,7 +379,7 @@ PRI readReg(reg_nr, nr_bytes, buff_addr): result | tmp
         OTHER:
             result := FALSE
             buff_addr := 0
-    io.High(_CS)
+    pinh(_CS)
 
 DAT
 {
