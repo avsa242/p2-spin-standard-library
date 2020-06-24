@@ -5,7 +5,7 @@
     Description: Driver of the TI INA219 current/power monitor IC (P2 version)
     Copyright (c) 2020
     Started Nov 4, 2019
-    Updated Jun 13, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -35,9 +35,9 @@ PUB Null()
 PUB Start(SCL_PIN, SDA_PIN, I2C_HZ): okay
 
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ =< core.I2C_MAX_FREQ
+        if I2C_HZ <= core.I2C_MAX_FREQ
             if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)     'I2C Object Started?
-                time.MSleep (1)
+                waitms (1)
                 if i2c.present (SLAVE_WR)                       'Response from device?
                     if DeviceID() == core.CONFIG_POR
                         return okay
@@ -52,9 +52,8 @@ PUB BusVoltage(): result
 '   Returns: Voltage in millivolts
     result := $0000
     readReg(core.BUS_VOLTAGE, 2, @result)
-    result ~>= 3                            'Chop off the 3 LSBs (as they're status bits, not part of the measurement),
+    result := (result sar 3) * 4                           'Chop off the 3 LSBs (as they're status bits, not part of the measurement),
                                             '   and preserve the sign.
-    result *= 4
 
 PUB BusADCRes(bits): result | tmp
 ' Set bus ADC resolution, in bits
@@ -116,8 +115,7 @@ PUB Current(): result
 ' Read current flowing through shunt resistor
 '   Returns: Current in microamps
     readReg(core.CURRENT, 2, @result)
-    ~~result
-    result *= 20
+    result := (result signx 15) * 20
 
 PUB DeviceID(): result
 ' Identify the device
@@ -188,8 +186,7 @@ PUB ShuntVoltage(): result
 ' Read shunt voltage
 '   Returns: Voltage in millivolts
     readReg(core.SHUNT_VOLTAGE, 2, @result)
-    ~~result
-    return result * 10
+    return (result signx 15) * 10
 
 PUB ShuntVoltageRange(mV): result | tmp
 ' Set shunt voltage range, in millivolts

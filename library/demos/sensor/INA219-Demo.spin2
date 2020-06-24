@@ -5,7 +5,7 @@
     Description: Demo of the INA219 driver (P2 version)
     Copyright (c) 2020
     Started Nov 4, 2019
-    Updated Jun 13, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -35,35 +35,32 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
     ina219  : "sensor.power.ina219.i2c.spin2"
     int     : "string.integer"
-    io      : "io"
 
 VAR
 
     byte _ser_cog, _row
 
-PUB Main() | vbus, vbus_min, vbus_max, vshunt, vshunt_min, vshunt_max, i, i_min, i_max, p, p_min, p_max, cnf, cnf_init
+PUB Main() | vbus, vbus_min, vbus_max, vshunt, vshunt_min, vshunt_max, i, i_min, i_max, p, p_min, p_max
 
     Setup()
     ina219.Calibration (20480)
     ina219.BusVoltageRange (32)
     ina219.ShuntVoltageRange (320)
     ina219.ShuntADCRes (12)
-'    ina219.ShuntSamples (128)
+    ina219.ShuntSamples (128)
     ina219.BusADCRes (12)
 
-    cnf_init := ina219.ConfigWord()
     _row := 5
     ser.Position (MEASUREMENT_COL, _row)
-    ser.Str (string("Measurement:"))
+    ser.printf("Measurement:")
     ser.Position (CURR_MEAS_COL, _row)
-    ser.Str (string("Current val:"))
+    ser.printf("Current val:")
     ser.Position (MIN_MEAS_COL, _row)
-    ser.Str (string("Min:"))
+    ser.printf("Min:")
     ser.Position (MAX_MEAS_COL, _row)
-    ser.Str (string("Max:"))
+    ser.printf("Max:")
 
     _row += 2
     vbus_min := ina219.BusVoltage()
@@ -76,7 +73,6 @@ PUB Main() | vbus, vbus_min, vbus_max, vshunt, vshunt_min, vshunt_max, i, i_min,
         vshunt := ina219.ShuntVoltage()
         i := ina219.Current()
         p := ina219.Power()
-        cnf := ina219.ConfigWord()
 
         vbus_min := vbus <# vbus_min
         vbus_max := vbus #> vbus_max
@@ -88,10 +84,10 @@ PUB Main() | vbus, vbus_min, vbus_max, vshunt, vshunt_min, vshunt_max, i, i_min,
         p_max := p #> p_max
 
         ser.Position (MEASUREMENT_COL, _row)
-        ser.Str (string("Bus voltage"))
+        ser.printf("Bus voltage")
         ser.Position (CURR_MEAS_COL+3, _row)
         ser.Str (int.DecPadded(vbus, 7))
-        ser.Str (string("mV"))
+        ser.printf("mV")
         ser.Position (MIN_MEAS_COL-3, _row)
         ser.Str (int.DecPadded(vbus_min, 7))
         ser.Position (MAX_MEAS_COL-3, _row)
@@ -99,10 +95,10 @@ PUB Main() | vbus, vbus_min, vbus_max, vshunt, vshunt_min, vshunt_max, i, i_min,
 
         _row++
         ser.Position (MEASUREMENT_COL, _row)
-        ser.Str (string("Shunt voltage"))
+        ser.printf("Shunt voltage")
         ser.Position (CURR_MEAS_COL+3, _row)
         ser.Str (int.DecPadded(vshunt, 7))
-        ser.Str (string("uV"))
+        ser.printf("uV")
         ser.Position (MIN_MEAS_COL-3, _row)
         ser.Str (int.DecPadded(vshunt_min, 7))
         ser.Position (MAX_MEAS_COL-3, _row)
@@ -110,10 +106,10 @@ PUB Main() | vbus, vbus_min, vbus_max, vshunt, vshunt_min, vshunt_max, i, i_min,
 
         _row++
         ser.Position (MEASUREMENT_COL, _row)
-        ser.Str (string("Current"))
+        ser.printf("Current")
         ser.Position (CURR_MEAS_COL+3, _row)
         ser.Str (int.DecPadded(i, 7))
-        ser.Str (string("uA"))
+        ser.printf("uA")
         ser.Position (MIN_MEAS_COL-3, _row)
         ser.Str (int.DecPadded(i_min, 7))
         ser.Position (MAX_MEAS_COL-3, _row)
@@ -121,17 +117,17 @@ PUB Main() | vbus, vbus_min, vbus_max, vshunt, vshunt_min, vshunt_max, i, i_min,
 
         _row++
         ser.Position (MEASUREMENT_COL, _row)
-        ser.Str (string("Power"))
+        ser.printf("Power")
         ser.Position (CURR_MEAS_COL+3, _row)
         ser.Str (int.DecPadded(p, 7))
-        ser.Str (string("uW"))
+        ser.printf("uW")
         ser.Position (MIN_MEAS_COL-3, _row)
         ser.Str (int.DecPadded(p_min, 7))
         ser.Position (MAX_MEAS_COL-3, _row)
         ser.Str (int.DecPadded(p_max, 7))
 
         _row := 7
-        time.MSleep (10)
+        waitms (10)
 
 PUB Setup()
 
