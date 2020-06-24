@@ -5,7 +5,7 @@
     Author: Philip C. Pilgrim
     Copyright (c) 2008
     Created 2008
-    Updated Jun 11, 2019
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is a derivative of umath.spin by Philip C. Pilgrim.
@@ -36,14 +36,14 @@ VAR
 
     long _producth, _productl
 
-PUB MultDiv(x, num, denom)
+PUB MultDiv(x, num, denom): result
 '' Multiply x by num, forming a 64-bit unsigned product.
 '' Divide this by denom, returning the result.
 '' x ** num must be less than (unsigned) denom.
     Mult(x, num)
     return Div(_producth, _productl, denom)   
 
-PUB Div(dvndh, dvndl, dvsr) | carry, quotient
+PUB Div(dvndh, dvndl, dvsr): result | carry, quotient
 '' Divide the 64-bit dividend, dvdnh:dvndl by the 32-bit divisor, dvsr,
 '' returning a 32-bit quotient. Returns 0 on overflow.
     quotient~
@@ -59,19 +59,19 @@ PUB Div(dvndh, dvndl, dvsr) | carry, quotient
             dvndh -= dvsr
     return quotient
 
-PUB GT(x,y)
+PUB GT(x,y): result
 '' Return true if x > y unsigned.
     return CPR(x,y) & UGT <> 0
 
-PUB GE(x,y)
+PUB GE(x,y): result
 '' Return true if x => y unsigned.
     return CPR(x,y) & constant(UGT | EQ) <> 0
 
-PUB LE(x,y)
+PUB LE(x,y): result
 '' Return true if x =< y unsigned.
     return CPR(x,y) & constant(ULT | EQ) <> 0
 
-PUB LT(x,y)
+PUB LT(x,y): result
 '' Return true if x < y unsigned.
     return CPR(x,y) & ULT <> 0
   
@@ -91,7 +91,7 @@ PRI DAdd(addh, addl, augh, augl)
     if (LT(_productl, addl))
         _producth++
 
-PRI CPR(x, y)
+PRI CPR(x, y): result
 
     if (x == y)
         return EQ
