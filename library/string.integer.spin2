@@ -6,7 +6,7 @@
     Description: Library of simple numeric conversion methods
     Copyright (c) 2020
     Started Dec 14, 2019
-    Updated May 13, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -25,7 +25,7 @@ VAR
     long  idx                                             ' pointer into string
     byte  nstr[MAX_LEN]                                   ' string for numeric data
 
-PUB Dec(value)
+PUB Dec(value): result
 {{
     Returns pointer to signed-decimal string
 }}
@@ -33,7 +33,7 @@ PUB Dec(value)
     ClearStr(@nstr, MAX_LEN)                              ' clear output string
     return DecToStr(value)                                ' return pointer to numeric string
 
-PUB DecPadded(value, width) | t_val, field
+PUB DecPadded(value, width): result | t_val, field
 {{
     Returns pointer to signed-decimal, fixed-width (space padded) string
 }}
@@ -58,7 +58,7 @@ PUB DecPadded(value, width) | t_val, field
 
     return DecToStr(value)
 
-PUB DecZeroed(value, digits) | div
+PUB DecZeroed(value, digits): result | div
 {{
     Returns pointer to zero-padded, signed-decimal string
 
@@ -86,7 +86,7 @@ PUB DecZeroed(value, digits) | div
 
     return @nstr
 
-PUB Hex(value, digits)
+PUB Hex(value, digits): result
 {{
     Returns pointer to a digits-wide hexadecimal string
 }}
@@ -94,7 +94,7 @@ PUB Hex(value, digits)
     ClearStr(@nstr, MAX_LEN)
     return HexToStr(value, digits)
 
-PUB HexIndicated(value, digits)
+PUB HexIndicated(value, digits): result
 {{
     Returns pointer to a digits-wide, indicated (with $) hexadecimal string
 }}
@@ -103,7 +103,7 @@ PUB HexIndicated(value, digits)
     nstr[idx++] := "$"
     return HexToStr(value, digits)
 
-PUB Bin(value, digits)
+PUB Bin(value, digits): result
 {{
     Returns pointer to a digits-wide binary string
 }}
@@ -111,7 +111,7 @@ PUB Bin(value, digits)
     ClearStr(@nstr, MAX_LEN)
     return BinToStr(value, digits)
 
-PUB BinIndicated(value, digits)
+PUB BinIndicated(value, digits): result
 {{
     Returns pointer to a digits-wide, indicated (with %) binary string
 }}
@@ -120,7 +120,7 @@ PUB BinIndicated(value, digits)
     nstr[idx++] := "%"                                    ' preface with binary indicator
     return BinToStr(value, digits)
 
-PRI ClearStr(strAddr, size)
+PRI ClearStr(strAddr, size): result
 {{
     Clears string at strAddr
 
@@ -130,7 +130,7 @@ PRI ClearStr(strAddr, size)
     bytefill(strAddr, 0, size)                            ' clear string to zeros
     idx~                                                  ' reset index
 
-PRI DecToStr(value) | div, z_pad
+PRI DecToStr(value): result | div, z_pad
 {{
     Converts value to signed-decimal string equivalent
     -- characters written to current position of idx
@@ -145,17 +145,17 @@ PRI DecToStr(value) | div, z_pad
     z_pad~                                                ' clear zero-pad flag
 
     repeat 10
-        if (value => div)                                 ' printable character?
+        if (value >= div)                                 ' printable character?
             nstr[idx++] := (value / div + "0")            '   yes, print ASCII digit
             value //= div                                 '   update value
             z_pad~~                                       '   set zflag
-        elseif z_pad or (div == 1)                        ' printing or last column?
+        elseif z_pad || (div == 1)                        ' printing or last column?
             nstr[idx++] := "0"
         div /= 10
 
     return @nstr
 
-PRI HexToStr(value, digits)
+PRI HexToStr(value, digits): result
 {{
     Converts value to digits-wide hexadecimal string equivalent
     -- characters written to current position of idx
@@ -165,11 +165,11 @@ PRI HexToStr(value, digits)
     digits := 1 #> digits <# 8                            ' qualify digits
     value <<= (8 - digits) << 2                           ' prep most significant digit
     repeat digits
-        nstr[idx++] := lookupz((value <-= 4) & $F : "0".."9", "A".."F")
+        nstr[idx++] := lookupz((value rol= 4) & $F : "0".."9", "A".."F")
 
     return @nstr
 
-PRI BinToStr(value, digits)
+PRI BinToStr(value, digits): result
 {{
     Converts value to digits-wide binary string equivalent
     -- characters written to current position of idx
@@ -179,11 +179,11 @@ PRI BinToStr(value, digits)
     digits := 1 #> digits <# 32                           ' qualify digits
     value <<= 32 - digits                                 ' prep MSB
     repeat digits
-        nstr[idx++] := (value <-= 1) & 1 + "0"            ' move digits (ASCII) to string
+        nstr[idx++] := (value rol= 1) & 1 + "0"            ' move digits (ASCII) to string
 
     return @nstr
 
-PUB StrToBase(stringptr, base) : value | chr, index
+PUB StrToBase(stringptr, base): value | chr, index
 {{
     Converts a zero terminated string representation of a number to a value in the designated base.
 
@@ -193,8 +193,8 @@ PUB StrToBase(stringptr, base) : value | chr, index
     value := index := 0
     repeat until ((chr := byte[stringptr][index++]) == 0)
         chr := -15 + --chr & %11011111 + 39*(chr > 56)    ' Make "0"-"9","A"-"F","a"-"f" be 0 - 15, others out of range
-        if (chr > -1) and (chr < base)                    ' Accumulate valid values into result; ignore others
+        if (chr > -1) && (chr < base)                    ' Accumulate valid values into result; ignore others
             value := value * base + chr
-    if (base == 10) and (byte[stringptr] == "-")          ' If decimal, address negative sign; ignore otherwise
+    if (base == 10) && (byte[stringptr] == "-")          ' If decimal, address negative sign; ignore otherwise
         value := - value
 
