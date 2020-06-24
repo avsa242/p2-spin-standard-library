@@ -5,7 +5,7 @@
     Description: Driver for the ST LIS3DH 3DoF accelerometer (P2 version)
     Copyright (c) 2020
     Started Mar 16, 2020
-    Updated Jun 13, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -55,8 +55,6 @@ OBJ
 #error "One of LIS3DH_SPI or LIS3DH_I2C must be defined"
 #endif
     core: "core.con.lis3dh"
-    time: "time"                                                'Basic timing functions
-    io  : "io"
 
 PUB Null()
 ''This is not a top-level object
@@ -65,26 +63,26 @@ PUB Null()
 PUB Start(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_HZ=1_000_000): okay
 
     if lookdown(CS_PIN: 0..63) and lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and lookdown(SDO_PIN: 0..63)
-        if SCL_HZ => 1 and SCL_HZ =< core.SCK_MAX_FREQ
+        if SCL_HZ >= 1 and SCL_HZ <= core.SCK_MAX_FREQ
             if okay := spi.start (SDA_PIN, SDO_PIN, SCL_PIN, SCL_HZ, core.CPOL)         'SPI Object Started?
-                time.MSleep (core.TPOR)
+                waitms (core.TPOR)
                 _CS := CS_PIN
                 _MOSI := SDA_PIN
                 _MISO := SDO_PIN
                 _SCK := SCL_PIN
 
-                io.High(_CS)
-                io.Output(_CS)
+                pinh(_CS)
                 if DeviceID() == core.WHO_AM_I_RESP
                     return okay
     return FALSE                                                ' If we got here, something went wrong
 #elseifdef LIS3DH_I2C
 
 PUB Start(SCL_PIN, SDA_PIN, I2C_HZ, SA0_BIT): okay
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and I2C_HZ =< core.I2C_MAX_FREQ
+
+    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and I2C_HZ <= core.I2C_MAX_FREQ
         if okay := i2c.Setup(SCL_PIN, SDA_PIN, I2C_HZ)
             _sa0 := (abs(SA0_BIT <> 0)) << 1                    ' If SA0_BIT is nonzero, consider it set
-            time.MSleep (core.TPOR)
+            waitms (core.TPOR)
             if DeviceID() == core.WHO_AM_I_RESP
                 return okay
     return FALSE                                                ' If we got here, something went wrong
@@ -132,7 +130,7 @@ PUB AccelADCRes(bits=-2): result | tmp1, tmp2
     writeReg(core.CTRL_REG1, 1, @tmp1)
     writeReg(core.CTRL_REG4, 1, @tmp2)
 
-PUB AccelAxisEnabled(xyz_mask=-2) | tmp
+PUB AccelAxisEnabled(xyz_mask=-2): result | tmp
 ' Enable data output for Accelerometer - per axis
 '   Valid values: 0 or 1, for each axis:
 '       Bits    210
@@ -361,7 +359,7 @@ PUB Interrupt(): result
 '       0: X-axis low event
     readReg(core.INT1_SRC, 1, @result)
 
-PUB IntMask(mask=-2) | tmp
+PUB IntMask(mask=-2): tmp
 ' Set interrupt mask
 '   Bits:   543210
 '       5: Z-axis high event
@@ -381,7 +379,7 @@ PUB IntMask(mask=-2) | tmp
 
     writeReg(core.INT1_CFG, 1, @mask)
 
-PUB IntThresh(level=-2) | tmp
+PUB IntThresh(level=-2): tmp
 ' Set interrupt threshold level, in micro-g's
 '   Valid values: 0..16_000000
     tmp := $00
@@ -438,12 +436,12 @@ PRI readReg(reg_nr, nr_bytes, buff_addr): result | cmd_packet, tmp
             return FALSE
 
 #ifdef LIS3DH_SPI
-    io.Low(_CS)
+    pinl(_CS)
     spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr | core.R)
 
     repeat tmp from 0 to nr_bytes-1
         byte[buff_addr][tmp] := spi.Read(_MISO, _SCK, core.MISO_BITORDER, 8)
-    io.High(_CS)
+    pinh(_CS)
 #elseifdef LIS3DH_I2C
     cmd_packet.byte[0] := SLAVE_WR | _sa0
     cmd_packet.byte[1] := reg_nr
@@ -465,12 +463,12 @@ PRI writeReg(reg_nr, nr_bytes, buff_addr): result | cmd_packet, tmp
         OTHER:
             return FALSE
 #ifdef LIS3DH_SPI
-    io.Low(_CS)
+    pinl(_CS)
     spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
 
     repeat tmp from 0 to nr_bytes-1
         spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
-    io.High(_CS)
+    pinh(_CS)
 #elseifdef LIS3DH_I2C
     cmd_packet.byte[0] := SLAVE_WR | _sa0
     cmd_packet.byte[1] := reg_nr

@@ -5,7 +5,7 @@
     Description: Demo of the LIS3DH driver (P2 version)
     Copyright (c) 2020
     Started Mar 15, 2020
-    Updated Jun 13, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -37,13 +37,11 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
-    io      : "io"
     int     : "string.integer"
 #ifdef LIS3DH_I2C
-    accel   : "sensor.accel.3dof.lis3dh.i2c.spin2"
+    accel   : "sensor.accel.3dof.lis3dh.i2c"
 #elseifdef LIS3DH_SPI
-    accel   : "sensor.accel.3dof.lis3dh.spi.spin2"
+    accel   : "sensor.accel.3dof.lis3dh.spi"
 #endif
 
 VAR
@@ -80,7 +78,7 @@ PUB Main() | dispmode
                 ser.Position(0, 15)
                 ser.printf("Halting")
                 accel.Stop()
-                time.MSleep(5)
+                waitms(5)
                 quit
             "c", "C":                                       ' Perform calibration
                 Calibrate()
@@ -142,7 +140,7 @@ PUB Calibrate()
 PUB Setup()
 
     repeat until ser.StartRXTX(SER_RX, SER_TX, 0, SER_BAUD)
-    time.MSleep(30)
+    waitms(30)
     ser.Clear()
     ser.printf("Serial terminal started\n")
 #ifdef LIS3DH_SPI
@@ -157,7 +155,7 @@ PUB Setup()
     else
         ser.printf("LIS3DH driver failed to start - halting\n")
         accel.Stop()
-        time.MSleep(5)
+        waitms(5)
         FlashLED(LED, 500)
 
 #include "lib.utility.spin2"
