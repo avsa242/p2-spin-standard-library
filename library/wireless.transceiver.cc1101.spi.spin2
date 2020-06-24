@@ -5,7 +5,7 @@
     Description: Driver for TI's CC1101 ISM-band transceiver (P2 version)
     Copyright (c) 2020
     Started Mar 25, 2019
-    Updated Jun 13, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -97,25 +97,22 @@ OBJ
 
     spi     : "com.spi"
     core    : "core.con.cc1101"
-    time    : "time"
     umath   : "math.unsigned64"
-    io      : "io"
 
 PUB Null()
 ''This is not a top-level object
 
 PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=6_500_000): okay | tmp
 
-    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) and SCK_FREQ > 0 and SCK_FREQ =< core.SCK_MAX_FREQ
+    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) and SCK_FREQ > 0 and SCK_FREQ <= core.SCK_MAX_FREQ
         if okay := spi.Start (SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
-            time.MSleep (5)
+            waitms (5)
             _CS := CS_PIN
             _MOSI := MOSI_PIN
             _MISO := MISO_PIN
             _SCK := SCK_PIN
 
-            io.High(_CS)
-            io.Output(_CS)
+            pinh(_CS)
             tmp := DeviceID()
             if lookdown(tmp: $04, $14..$FE)                     ' Poll chip for version
                 Reset()
@@ -156,7 +153,7 @@ PUB Defaults()
     SyncWord($D391)
     DataWhitening(TRUE)
 
-PUB AddressCheck(mode=-2) | tmp
+PUB AddressCheck(mode=-2): result | tmp
 ' Enable address checking/matching/filtering
 '   Valid values:
 '      *ADRCHK_NONE (0): No address check
@@ -338,7 +335,7 @@ PUB CarrierFreq(Hz=-2): result | tmp
 
     writeReg (core.FREQ2, 3, @Hz)
 
-PUB CarrierFreqWord(freq_word=-2) | tmp
+PUB CarrierFreqWord(freq_word=-2): tmp
 ' Set carrier/center frequency, by frequency word (use CalcFreqWord to calculate)
 '   Any other value polls the chip and returns the current setting
     tmp := $00
@@ -395,7 +392,7 @@ PUB CarrierSenseAbs(threshold=-2): result | tmp
     tmp := (tmp | threshold) & core.AGCCTRL1_MASK
     writeReg (core.AGCCTRL1, 1, @tmp)
 
-PUB Channel(number=-2) | tmp
+PUB Channel(number=-2): tmp
 ' Set device channel number
 '   Resulting frequency is the channel number multiplied by the channel spacing setting, added to the base frequency
 '   Valid values: 0..255
@@ -421,7 +418,7 @@ PUB ChannelSpacing(Hz=-2): result | tmp, chanspc_e, chanspc_m, chanspc_res_tmp
         25390..405456:
             repeat chanspc_e from 0 to 3
                 chanspc_m :=  (Hz / (99 * (1 << chanspc_e)) - 256)
-                if chanspc_m => 0 and chanspc_m < 256
+                if chanspc_m >= 0 and chanspc_m < 256
                     quit
         OTHER:
             chanspc_e := tmp.byte[0] & core.BITS_CHANSPC_E
@@ -653,7 +650,7 @@ PUB FSTX()
 ' Enable frequency synthesizer and calibrate
     writeReg (core.CS_SFSTXON, 0, 0)
 
-PUB GPIO0(config=-2) | tmp
+PUB GPIO0(config=-2): result | tmp
 ' Configure test signal output on GD0 pin
 '   Valid values: $00..$0F, $16..$17, $1B..$1D, $24..$39, $41, $43, $46..$3F (see IO_* constants near top of this file)
 '   Default value: $3F
@@ -673,7 +670,7 @@ PUB GPIO0(config=-2) | tmp
     tmp := (tmp | config)
     writeReg (core.IOCFG0, 1, @tmp)
 
-PUB GPIO1(config=-2) | tmp
+PUB GPIO1(config=-2): result | tmp
 ' Configure test signal output on GD1 pin
 '   Valid values: $00..$0F, $16..$17, $1B..$1D, $24..$39, $41, $43, $46..$3F
 '   Any other value polls the chip and returns the current setting
@@ -691,7 +688,7 @@ PUB GPIO1(config=-2) | tmp
     tmp := (tmp | config)
     writeReg (core.IOCFG1, 1, @tmp)
 
-PUB GPIO2(config=-2) | tmp
+PUB GPIO2(config=-2): result | tmp
 ' Configure test signal output on GD2 pin
 '   Valid values: $00..$0F, $16..$17, $1B..$1D, $24..$39, $41, $43, $46..$3F
 '   Any other value polls the chip and returns the current setting
@@ -796,7 +793,7 @@ PUB ManchesterEnc(enabled=-2): result | tmp
     tmp := (tmp | enabled)
     writeReg (core.MDMCFG2, 1, @tmp)
 
-PUB Modulation(type=-2) | tmp
+PUB Modulation(type=-2): result | tmp
 ' Set modulation of transmitted or expected signal
 '   Valid values:
 '      *FSK2 (%000): 2-level or binary Frequency Shift-Keyed
@@ -818,7 +815,7 @@ PUB Modulation(type=-2) | tmp
     tmp := (tmp | type)
     writeReg (core.MDMCFG2, 1, @tmp)
 
-PUB NodeAddress(addr=-2) | tmp
+PUB NodeAddress(addr=-2): tmp
 ' Set address used for packet filtration
 '   Valid values: $00..$FF (000-255)
 '   Default value: $00
@@ -849,7 +846,7 @@ PUB PAWrite(buff_addr)
 '   NOTE: Table will be written starting at index 0 from the LSB of buff_addr
     writeReg (core.PATABLE | core.BURST, 8, buff_addr)
 
-PUB PayloadLen(length=-2) | tmp
+PUB PayloadLen(length=-2): result | tmp
 ' Set payload length, when using fixed payload length mode,
 '   or maximum payload length when using variable payload length mode.
 '   Valid values: 1..*255
@@ -864,7 +861,7 @@ PUB PayloadLen(length=-2) | tmp
 
     writeReg (core.PKTLEN, 1, @length)
 
-PUB PayloadLenCfg(mode=-2) | tmp
+PUB PayloadLenCfg(mode=-2): result | tmp
 ' Set payload length mode
 '   Valid values:
 '       PKTLEN_FIXED (0): Fixed payload length mode. Set length with PayloadLen
@@ -928,14 +925,13 @@ PUB PreambleQual(threshold=-2): result | tmp
 PUB Reset()
 ' Reset the chip
     writeReg (core.CS_SRES, 0, 0)
-    time.MSleep(5)
+    waitms(5)
 
 PUB RSSI(): result
 ' Received Signal Strength Indicator
     result := $00
     readReg (core.RSSI, 1, @result)
-    result := ~result
-    result := (result >> 1) - 74
+    result := ((result signx 7) >> 1) - 74
 
 PUB RXBandwidth(kHz=-2): result | tmp
 ' Set receiver channel filter bandwidth, in kHz
@@ -995,12 +991,12 @@ PUB State(): result
     result := $00
     readReg (core.MARCSTATE, 1, @result)
 
-PUB Status()
+PUB Status(): result
 ' Read the status byte
     writeReg (core.CS_SNOP, 0, 0)
     return _status_byte
 
-PUB SyncMode(mode=-2) | tmp
+PUB SyncMode(mode=-2): result | tmp
 ' Set sync-word qualifier mode
 '   Valid values:
 '       SYNCMODE_NONE (0): No preamble or syncword
@@ -1023,7 +1019,7 @@ PUB SyncMode(mode=-2) | tmp
     tmp := (tmp | mode) & core.MDMCFG2_MASK
     writeReg (core.MDMCFG2, 1, @tmp)
 
-PUB SyncWord(sync_word=-2) | tmp
+PUB SyncWord(sync_word=-2): tmp
 ' Set transmitted (TX) or expected (RX) sync word
 '   Valid values: $0000..$FFFF
 '   Default value: $D391
@@ -1086,7 +1082,7 @@ PUB TXPower(dBm=-255): result | tmp
 
     writeReg(core.PATABLE, 1, @dBm)
 
-PUB TXPowerIndex(entry=-2) | tmp
+PUB TXPowerIndex(entry=-2): result | tmp
 ' Set index within PA table to write TX power to (used for FSK power ramping, or ASK shaping)
 '   Valid values: 0..7
 '   Any other value polls the chip and returns the current setting
@@ -1107,7 +1103,7 @@ PUB WOR()
 ' Change chip state to WOR (Wake-on-Radio)
     writeReg (core.CS_SWOR, 0, 0)
 
-PRI log2(num) | tmp
+PRI log2(num): tmp
 ' Return log2 of num
     tmp := 0
     case num > 1
@@ -1141,18 +1137,18 @@ PUB readReg(reg_nr, nr_bytes, buff_addr): result | i
                 0:
                     return
 
-            io.Low(_CS)
+            pinl(_CS)
             spi.Write(reg_nr | core.R)
             repeat i from 0 to nr_bytes-1
                 byte[buff_addr][i] := spi.Read
-            io.High(_CS)
+            pinh(_CS)
             return
 
-    io.Low(_CS)
+    pinl(_CS)
     spi.Write(reg_nr | core.R)
     repeat i from 0 to nr_bytes-1
         byte[buff_addr][i] := spi.Read & $FF
-    io.High(_CS)
+    pinh(_CS)
     return
 
 PRI writeReg(reg_nr, nr_bytes, buff_addr): result | tmp
@@ -1174,19 +1170,19 @@ PRI writeReg(reg_nr, nr_bytes, buff_addr): result | tmp
                 OTHER:
                     return
 
-            io.Low(_CS)
+            pinl(_CS)
             spi.Write(reg_nr)
             repeat tmp from 0 to nr_bytes-1
                 spi.Write(byte[buff_addr][tmp])
-            time.usleep(10)
-            io.High(_CS)
+            waitus(10)
+            pinh(_CS)
             return
 
         $30..$3D:                               ' Command strobes
-            io.Low(_CS)
+            pinl(_CS)
             spi.Write(reg_nr)
-            time.usleep(10)
-            io.High(_CS)
+            waitus(10)
+            pinh(_CS)
             return
 
         $3F:                                    ' FIFO
@@ -1197,12 +1193,12 @@ PRI writeReg(reg_nr, nr_bytes, buff_addr): result | tmp
                 0:
                     return
 
-            io.Low(_CS)
+            pinl(_CS)
             spi.Write(reg_nr)
             repeat tmp from 0 to nr_bytes-1
                 spi.Write(byte[buff_addr][tmp])
-            time.usleep(10)
-            io.High(_CS)
+            waitus(10)
+            pinh(_CS)
             return
 
         OTHER:                                  ' Invalid reg - ignore

@@ -5,7 +5,7 @@
     Description: Simple transmit demo of the cc1101 driver
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Jun 13, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -33,14 +33,12 @@ OBJ
 
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
-    io          : "io"
     time        : "time"
     int         : "string.integer"
-    cc1101      : "wireless.transceiver.cc1101.spi.spin2"
+    cc1101      : "wireless.transceiver.cc1101.spi"
 
 VAR
 
-    long _ser_cog, _cc1101_cog
     long _fifo[16]
     byte _pktlen
 
@@ -114,10 +112,11 @@ PUB Transmit() | count, tmp, to_node
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear()
     ser.PrintF("Serial terminal started\n")
-    if _cc1101_cog := cc1101.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
+
+    if cc1101.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
         ser.printf("CC1101 driver started\n")
     else
         ser.printf("CC1101 driver failed to start - halting\n")
