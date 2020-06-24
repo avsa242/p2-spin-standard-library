@@ -38,7 +38,6 @@ OBJ
 
 VAR
 
-    byte _ser_cog, _rgb_cog
     byte _led_enabled
 
 PUB Main() | rgbc_data[2], rdata, gdata, bdata, cdata, cmax, i, int, thr, rrow, grow, brow, crow, range
@@ -150,12 +149,12 @@ PUB Setup()
 
     pinl (WHITE_LED_PIN)
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.clear()
     ser.reset()
     ser.printf("Serial terminal started\n")
 
-    if _rgb_cog := rgb.Start(I2C_SCL, I2C_SDA, I2C_HZ)
+    if rgb.Start(I2C_SCL, I2C_SDA, I2C_HZ)
         ser.printf("TCS3X7X driver started\n")
     else
         ser.printf("TCS3X7X driver failed to start - halting\n")

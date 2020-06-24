@@ -40,14 +40,15 @@ OBJ
 PUB Null()
 ' This is not a top-level object
 
-PUB Start(SCL_PIN, SDA_PIN, I2C_HZ=100_000): okay
+PUB Start(SCL_PIN, SDA_PIN, I2C_HZ=100_000): okay | tmp
 
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
         if I2C_HZ <= core.I2C_MAX_FREQ
             if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)     ' I2C Object Started?
                 waitms (1)
                 if i2c.Present (SLAVE_WR)
-                    if lookdown(DeviceID(): core.DEVID_3472_1_5, core.DEVID_3472_3_7)
+                    tmp := DeviceID()
+                    if lookdown(tmp: core.DEVID_3472_1_5, core.DEVID_3472_3_7)
                         return okay                             ' Is it really a TCS3472x part?
     return FALSE                                                ' If we got here, something went wrong
 
