@@ -4,14 +4,14 @@
     Description: Audio output using smart pin-based DAC (2-channel)
     Author: Jesse Burt
     Started: Mar 16, 2020
-    Updated: Mar 16, 2020
+    Updated: Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
     DAC_INIT_VAL        = 128
-    SP_DAC_MODE         = sp#DAC_990OHM_3V3 | DAC_INIT_VAL << sp#DACLEVEL | sp#OUTPUT_ENABLED | sp#DAC16B_DITH_PWM
+    SP_DAC_MODE         = sp.DAC_990OHM_3V3 | DAC_INIT_VAL << sp.DACLEVEL | sp.OUTPUT_ENABLED | sp.DAC16B_DITH_PWM
 
 VAR
 
