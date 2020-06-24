@@ -5,7 +5,7 @@ i{
     Description: Driver for the TAOS TCS3x7x RGB color sensor (P2 version)
     Copyright (c) 2020
     Started: Nov 10, 2019
-    Updated: Jun 13, 2020
+    Updated: Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -36,7 +36,6 @@ OBJ
 
     core  : "core.con.tcs3x7x"
     i2c   : "com.i2c"
-    time  : "time"
 
 PUB Null()
 ' This is not a top-level object
@@ -44,11 +43,11 @@ PUB Null()
 PUB Start(SCL_PIN, SDA_PIN, I2C_HZ=100_000): okay
 
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ =< core.I2C_MAX_FREQ
+        if I2C_HZ <= core.I2C_MAX_FREQ
             if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)     ' I2C Object Started?
-                time.MSleep (1)
+                waitms (1)
                 if i2c.Present (SLAVE_WR)
-                    if lookdown(DeviceID: core.DEVID_3472_1_5, core.DEVID_3472_3_7)
+                    if lookdown(DeviceID(): core.DEVID_3472_1_5, core.DEVID_3472_3_7)
                         return okay                             ' Is it really a TCS3472x part?
     return FALSE                                                ' If we got here, something went wrong
 
@@ -163,7 +162,7 @@ PUB IntsEnabled(enabled=-2): result | tmp
     tmp := (tmp | enabled) & core.ENABLE_MASK
     writeReg (core.ENABLE, 1, tmp)
 
-PUB IntThreshold(low=-2, high=-2) | tmp
+PUB IntThreshold(low=-2, high=-2): tmp
 ' Sets low and high thresholds for triggering an interrupt
 '   Valid values: 0..65535 for both low and high thresholds
 '   Any other value polls the chip and returns the current setting
@@ -246,7 +245,7 @@ PUB Powered(enabled=-2): result | tmp
     writeReg (core.ENABLE, 1, tmp)
 
     if enabled
-        time.USleep (2400)  'Wait 2.4ms per datasheet p.15
+        waitus (2400)  'Wait 2.4ms per datasheet p.15
 
 PUB RGBCData(buff_addr)
 ' Get sensor data into buff_addr
