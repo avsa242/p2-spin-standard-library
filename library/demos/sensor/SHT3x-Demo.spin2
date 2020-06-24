@@ -47,14 +47,8 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
-    io      : "io"
-    sht3x   : "sensor.temp_rh.sht3x.i2c.spin2"
+    sht3x   : "sensor.temp_rh.sht3x.i2c"
     int     : "string.integer"
-
-VAR
-
-    byte _ser_cog, _sht3x_cog
 
 PUB Main() | temp, rh
 
@@ -77,7 +71,7 @@ PUB Main() | temp, rh
         rh := sht3x.Humidity()
         ser.printf("Relative humidity: ")
         Fractional(rh)
-        time.MSleep (100)
+        waitms (100)
 
 PUB Fractional(hundredths) | whole, part
 
@@ -87,10 +81,11 @@ PUB Fractional(hundredths) | whole, part
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear()
     ser.printf("Serial terminal started\n")
-    if _sht3x_cog := sht3x.Start(SCL_PIN, SDA_PIN, I2C_HZ, 0)
+
+    if sht3x.Start(SCL_PIN, SDA_PIN, I2C_HZ, 0)
         ser.printf("SHT3x driver (S/N %x) started\n", sht3x.SerialNum())
     else
         ser.printf("SHT3x driver failed to start - halting")

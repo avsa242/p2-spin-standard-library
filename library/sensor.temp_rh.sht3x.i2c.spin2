@@ -5,7 +5,7 @@
     Description: Driver for Sensirion SHT3x series Temperature/Relative Humidity sensors (P2 version)
     Copyright (c) 2020
     Started Nov 3, 2019
-    Updated Jun 14, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -45,7 +45,6 @@ OBJ
 
     i2c : "com.i2c"
     core: "core.con.sht3x"
-    time: "time"
     crc : "math.crc"
 
 PUB Null()
@@ -54,9 +53,9 @@ PUB Null()
 PUB Start(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BIT): okay
 
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ =< core.I2C_MAX_FREQ
+        if I2C_HZ <= core.I2C_MAX_FREQ
             if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)     'I2C Object Started?
-                time.MSleep (1)
+                waitms (1)
                 case ADDR_BIT
                     0:
                         _addr_bit := 0
@@ -78,13 +77,14 @@ PUB AlertTrigHiRH(level): result | tmp, chk
 '   Any other value polls the chip and returns the current setting, in hundredths of a percent
     tmp := 0
     readReg(core.ALERTLIM_RD_HI_SET, 3, @tmp)
-    case leve
+    case level
         0..100:
             level := RHAlertRaw7 (level)
         OTHER:
             tmp >>= 8                                           ' Chop off CRC
             result := RHAlertPct (tmp)
             return
+
     tmp >>= 8
     tmp &= core.MASK_ALERTLIM_RH
     tmp := (tmp | level)
@@ -103,6 +103,7 @@ PUB AlertClearHiRH(level): result | tmp
             tmp >>= 8                                           ' Chop off CRC
             result := RHAlertPct (tmp)
             return
+
     tmp >>= 8
     tmp &= core.MASK_ALERTLIM_RH
     tmp := (tmp | level)
@@ -121,6 +122,7 @@ PUB AlertTrigLoRH(level): result | tmp
             tmp >>= 8                                           ' Chop off CRC
             result := RHAlertPct (tmp)
             return
+
     tmp >>= 8
     tmp &= core.MASK_ALERTLIM_RH
     tmp := (tmp | level)
@@ -139,6 +141,7 @@ PUB AlertClearLoRH(level): result | tmp
             tmp >>= 8                                           ' Chop off CRC
             result := RHAlertPct (tmp)
             return
+
     tmp >>= 8
     tmp &= core.MASK_ALERTLIM_RH
     tmp := (tmp | level)
@@ -158,6 +161,7 @@ PUB AlertTrigHiTemp(level): result | tmp
             tmp &= $1FF
             result := TempAlertDeg (tmp)
             return
+
     tmp >>= 8
     tmp &= core.MASK_ALERTLIM_TEMP
     tmp := (tmp | level)
@@ -177,6 +181,7 @@ PUB AlertClearHiTemp(level): result | tmp
             tmp &= $1FF
             result := TempAlertDeg (tmp)
             return
+
     tmp >>= 8
     tmp &= core.MASK_ALERTLIM_TEMP
     tmp := (tmp | level)
@@ -196,6 +201,7 @@ PUB AlertTrigLoTemp(level): result | tmp
             tmp &= $1FF
             result := TempAlertDeg (tmp)
             return
+
     tmp >>= 8
     tmp &= core.MASK_ALERTLIM_TEMP
     tmp := (tmp | level)
@@ -215,6 +221,7 @@ PUB AlertClearLoTemp(level): result | tmp
             tmp &= $1FF
             result := TempAlertDeg (tmp)
             return
+
     tmp >>= 8
     tmp &= core.MASK_ALERTLIM_TEMP
     tmp := (tmp | level)
@@ -310,7 +317,7 @@ PUB MeasureRate(mps) | tmp
     writeReg(tmp, 0, 0)
     _measure_mode := MMODE_PERIODIC
 
-PUB Repeatability(level) | tmp
+PUB Repeatability(level): result | tmp
 ' Set measurement repeatability/stability
 '   Valid values: RPT_LOW (0), RPT_MED (1), RPT_HIGH (2)
 '   Any other value returns the current setting
@@ -356,7 +363,7 @@ PUB TempAlertRaw9(temp_c): result | scale
 
 PUB TempAlertDeg(temp_9b): result | scale
 ' Converts raw 9-bit value to temperature in
-'   Returns: hundredths of a degree C (0..511 -> -4500..12966 or -45.00C 129.66C)
+'   Returns: hundredths of a degree C (0..511 ror -4500..12966 or -45.00C 129.66C)
 '   Valid values: 0..511
 '   Any other value is ignored
     scale := 100
@@ -385,7 +392,7 @@ PUB SerialNum(): result
 PUB Reset()
 ' Perform Soft Reset
     writeReg(core.SOFTRESET, 0, 0)
-    time.MSleep (1)
+    waitms (1)
 
 PUB LastCRC(): result
 
@@ -411,7 +418,7 @@ PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp, ackbit
     writeReg(reg_nr, 0, 0)
     case reg_nr                                                 'Basic register validation
         core.READ_SERIALNUM:                                    'S/N Read Needs delay before repeated start
-            time.USleep (500)
+            waitus (500)
         core.MEAS_HIGHREP..core.MEAS_LOWREP:
         core.STATUS:
         core.FETCHDATA:
@@ -451,9 +458,9 @@ PRI writeReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp, chk
         core.CLEARSTATUS:
         core.HEATEREN, core.HEATERDIS:
         core.MEAS_HIGHREP..core.MEAS_LOWREP:
-            time.MSleep (20)
+            waitms (20)
         core.SOFTRESET:
-            time.MSleep (10)
+            waitms (10)
         core.ALERTLIM_WR_LO_SET..core.ALERTLIM_WR_HI_SET, core.ALERTLIM_RD_LO_SET..core.ALERTLIM_RD_HI_SET:
         OTHER:
             return
