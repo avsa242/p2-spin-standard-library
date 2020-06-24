@@ -4,7 +4,7 @@
     Description: Capture audio using smart pin-based ADC
     Author: Jesse Burt
     Started: May 16, 2020
-    Updated: May 16, 2020
+    Updated: Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -25,15 +25,15 @@ PUB Start(MIC_PIN, SAMPRATE_HZ, gain=1): okay | adcmode, period
         _dirl(MIC_PIN)
 
         case gain
-            1:      adcmode := sp#ADC_PINA_1X                   ' 1x ADC gain
-            3_16:   adcmode := sp#ADC_PINA_3_16X                ' 3.16x ADC gain
-            10:     adcmode := sp#ADC_PINA_10X                  ' 10x ADC gain
-            100:    adcmode := sp#ADC_PINA_100X                 ' 100x ADC gain
-            OTHER:  adcmode := sp#ADC_PINA_1X                   ' Default to 1x
+            1:      adcmode := sp.ADC_PINA_1X                   ' 1x ADC gain
+            3_16:   adcmode := sp.ADC_PINA_3_16X                ' 3.16x ADC gain
+            10:     adcmode := sp.ADC_PINA_10X                  ' 10x ADC gain
+            100:    adcmode := sp.ADC_PINA_100X                 ' 100x ADC gain
+            OTHER:  adcmode := sp.ADC_PINA_1X                   ' Default to 1x
 
         period := CLKFREQ / SAMPRATE_HZ
 
-        wrpin(MIC_PIN, adcmode | sp#INC_A_RISE_DEC_B_RISE)
+        wrpin(MIC_PIN, adcmode | sp.INC_A_RISE_DEC_B_RISE)
         wxpin(MIC_PIN, period)
         wypin(MIC_PIN, 0)
 
