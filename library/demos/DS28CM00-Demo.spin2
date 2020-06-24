@@ -5,12 +5,12 @@
     Description: Demo of the DS28CM00 64-bit ROM ID chip (P2 version)
     Copyright (c) 2020
     Started Nov 16, 2019
-    Updated Jun 13, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
-    NOTE: The driver will start successfully if a common EEPROM (e.g. AT24Cxxxx) is on
-        the chosen I2C bus and return data from the EEPROM! Make sure the EEPROM is
-        somehow disabled or test the chip using different I/O pins.
+    NOTE: If a common EEPROM (e.g. AT24Cxxxx) is on the same I2C bus as the SSN,
+        the driver may return data from it instead of the SSN. Make sure the EEPROM is
+        somehow disabled or test the SSN using different I/O pins.
 }
 
 CON
@@ -33,8 +33,6 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
-    io      : "io"
     ssn     : "identification.ssn.ds28cm00.i2c.spin2"
 
 VAR
@@ -46,7 +44,7 @@ PUB Main() | i
 
     Setup()
     ser.NewLine()
-    ser.PrintF("Device Family: $%x\n", ssn.DeviceFamily())
+    ser.PrintF("Device Family: $%x\n", ssn.DeviceID())
     ser.PrintF("Serial Number: $")
     ssn.SN (@_sn)
     repeat i from 0 to 7
@@ -70,7 +68,7 @@ PUB Setup()
     else
         ser.PrintF("DS28CM00 driver failed to start - halting\n")
         ssn.Stop()
-        time.MSleep (1)
+        waitms (1)
         FlashLED(LED, 500)
 
 #include "lib.utility.spin2"

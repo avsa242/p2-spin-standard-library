@@ -5,11 +5,9 @@
     Description: Driver for the DS28CM00 64-bit I2C Silicon Serial Number (P2 version)
     Copyright (c) 2020
     Started Nov 16, 2019
-    Updated Jun 13, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
-    NOTE: This driver will start successfully if a common EEPROM is on
-        the chosen I2C bus and will return data from the EEPROM!
 }
 
 CON
@@ -32,7 +30,6 @@ OBJ
 
     i2c : "com.i2c"
     core: "core.con.ds28cm00"
-    time: "time"
     crcs: "math.crc"
 
 PUB Null()
@@ -41,11 +38,12 @@ PUB Null()
 PUB Start(SCL_PIN, SDA_PIN, I2C_HZ=100_000): okay
 
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ =< core.I2C_MAX_FREQ
+        if I2C_HZ <= core.I2C_MAX_FREQ
             if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
-                time.MSleep (1)
+                waitms (1)
                 if i2c.Present (SLAVE_WR)                       'Response from device?
-                    return okay
+                    if DeviceID() == $70
+                        return okay
 
     return FALSE                                                'If we got here, something went wrong
 
@@ -65,20 +63,20 @@ PUB CM(mode): result
 
     writeReg(core.CTRL_REG, 1, mode)
 
-PUB CRC()
+PUB CRC(): result
 ' Read the CRC byte from the chip
 ' NOTE: The CRC is of the first 56-bits of the ROM (8 bits Device Family Code + 48 bits Serial Number)
     readReg(core.CRC, 1, @result)
 
-PUB CRCValid | tmp[2]
+PUB CRCValid(): result | tmp[2]
 ' Test CRC returned from chip for equality with calculated CRC
 '   Returns: TRUE if CRC is valid, FALSE otherwise
     tmp := 0
     readReg(core.DEV_FAMILY, 7, @tmp)
     return (CRC == crcs.DallasMaximCRC8 (@tmp, 7))
 
-PUB DeviceFamily()
-' Reads the Device Family Code
+PUB DeviceID(): result
+' Read device ID (Device Family Code)
 '   Returns: $70
     readReg(core.DEV_FAMILY, 1, @result)
 
