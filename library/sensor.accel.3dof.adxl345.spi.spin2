@@ -5,7 +5,7 @@
     Description: Driver for the Analog Devices ADXL345 3DoF Accelerometer (P2 version)
     Copyright (c) 2020
     Started Mar 14, 2020
-    Updated Jun 22, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -39,8 +39,6 @@ OBJ
 
     spi : "com.spi.bitbang-fast"
     core: "core.con.adxl345"
-    time: "time"                                                'Basic timing functions
-    io  : "io"
 
 PUB Null()
 ''This is not a top-level object
@@ -48,16 +46,15 @@ PUB Null()
 PUB Startx(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_HZ): okay
 
     if lookdown(CS_PIN: 0..63) and lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and lookdown(SDO_PIN: 0..63)
-        if SCL_HZ => 1 and SCL_HZ =< core.SCL_MAX_FREQ
+        if SCL_HZ >= 1 and SCL_HZ <= core.SCL_MAX_FREQ
             if okay := spi.start (SDA_PIN, SDO_PIN, SCL_PIN, SCL_HZ, core.CPOL)         'SPI Object Started?
-                time.MSleep (5)
+                waitms (5)
                 _CS := CS_PIN
                 _MOSI := SDA_PIN
                 _MISO := SDO_PIN
                 _SCK := SCL_PIN
 
-                io.High(_CS)
-                io.Output(_CS)
+                pinh(_CS)
                 if DeviceID() == core.DEVID_RESP
                     return okay
     return FALSE                                                'If we got here, something went wrong
@@ -76,7 +73,7 @@ PUB Defaults()
     IntMask(%00000000)
     OpMode(STANDBY)
 
-PUB AccelADCRes(bits=-2) | tmp
+PUB AccelADCRes(bits=-2): result | tmp
 ' Set accelerometer ADC resolution, in bits
 '   Valid values:
 '       10: 10bit ADC resolution (AccelScale determines maximum g range and scale factor)
@@ -97,7 +94,7 @@ PUB AccelADCRes(bits=-2) | tmp
     tmp := (tmp | bits) & core.DATA_FORMAT_MASK
     writeReg(core.DATA_FORMAT, 1, @tmp)
 
-PUB AccelClearOffsets: result
+PUB AccelClearOffsets(): result
 ' Clear calibration offsets set in the accelerometer
 '   NOTE: The offsets don't survive a power-loss. This is intended for when the microcontroller is warm-booted or the driver is restarted, where no power loss to the sensor has occurred.
     result := $0000
@@ -121,7 +118,7 @@ PUB AccelData(ptr_x, ptr_y, ptr_z) | tmp[2]
     if long[ptr_z] > 32767
         long[ptr_z] := long[ptr_z]-65536
 
-PUB AccelDataOverrun: result
+PUB AccelDataOverrun(): result
 ' Indicates previously acquired data has been overwritten
 '   Returns: TRUE (-1) if data has overflowed/been overwritten, FALSE otherwise
     result := $00
@@ -185,7 +182,7 @@ PUB AccelScale(g=-2): result | tmp
     tmp := (tmp | g)
     writeReg(core.DATA_FORMAT, 1, @tmp)
 
-PUB AccelSelfTest(enabled=-2) | tmp
+PUB AccelSelfTest(enabled=-2): result | tmp
 ' Enable self-test mode
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
@@ -258,7 +255,7 @@ PUB FIFOMode(mode=-2): result | tmp
     tmp := (tmp | mode) & core.FIFO_CTL_MASK
     writeReg(core.FIFO_CTL, 1, @tmp)
 
-PUB IntMask(mask=-2) | tmp
+PUB IntMask(mask=-2): tmp
 ' Set interrupt mask
 '   Bits:   76543210
 '       7: Data Ready (Always enabled, regardless of setting)
@@ -276,7 +273,7 @@ PUB IntMask(mask=-2) | tmp
     case mask
         %0000_0000..%1111_1111:
         OTHER:
-            return tmp
+            return
 
     writeReg(core.INT_ENABLE, 1, @mask)
 
@@ -308,22 +305,22 @@ PRI readReg(reg_nr, nr_bytes, buff_addr): result | tmp
         OTHER:
             return FALSE
 
-    io.Low(_CS)
+    pinl(_CS)
     spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr | core.R)
     repeat tmp from 0 to nr_bytes-1
         byte[buff_addr][tmp] := spi.Read(_MISO, _SCK, core.MISO_BITORDER, 8)
-    io.High(_CS)
+    pinh(_CS)
 
 PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
 ' Write nr_bytes to register 'reg_nr' stored at buff_addr
     case_fast reg_nr
         $1D..$2A, $2C..$2F, $31, $38:
-            io.Low(_CS)
+            pinl(_CS)
             spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
 
             repeat tmp from 0 to nr_bytes-1
                 spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
-            io.High(_CS)
+            pinh(_CS)
         OTHER:
             return
 

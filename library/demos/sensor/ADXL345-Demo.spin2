@@ -5,7 +5,7 @@
     Description: Demo of the ADXL345 driver (P2 version)
     Copyright (c) 2020
     Started Mar 14, 2020
-    Updated Jun 13, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -33,7 +33,6 @@ OBJ
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
-    io      : "io"
     int     : "string.integer"
     accel   : "sensor.accel.3dof.adxl345.spi.spin2"
 
@@ -71,9 +70,9 @@ PUB Main() | dispmode
         case ser.RxCheck()
             "q", "Q":
                 ser.Position(0, 12)
-                ser.str(string("Halting"))
+                ser.printf("Halting")
                 accel.Stop()
-                time.MSleep(5)
+                waitms(5)
                 quit
             "c", "C":
                 Calibrate()
@@ -98,7 +97,7 @@ PUB AccelCalc() | ax, ay, az
     accel.AccelG (@ax, @ay, @az)
     if accel.AccelDataOverrun()
         _overruns++
-    ser.Str (string("Accel micro-g: "))
+    ser.printf("Accel micro-g: ")
     ser.Str (int.DecPadded (ax, 10))
     ser.Str (int.DecPadded (ay, 10))
     ser.Str (int.DecPadded (az, 10))
@@ -111,23 +110,23 @@ PUB AccelRaw() | ax, ay, az
     accel.AccelData (@ax, @ay, @az)
     if accel.AccelDataOverrun()
         _overruns++
-    ser.Str (string("Raw Accel: "))
+    ser.printf("Raw Accel: ")
     ser.Str (int.DecPadded (ax, 7))
     ser.Str (int.DecPadded (ay, 7))
     ser.Str (int.DecPadded (az, 7))
 
     ser.Newline()
-    ser.Str (string("Overruns: "))
+    ser.printf("Overruns: ")
     ser.Dec (_overruns)
 
 PUB Calibrate()
 
     ser.Position (0, 12)
-    ser.Str(string("Calibrating..."))
+    ser.printf("Calibrating...")
     accel.Calibrate()
     time.sleep(1)
     ser.Position (0, 12)
-    ser.Str(string("              "))
+    ser.printf("              ")
 
 PUB Setup()
 
@@ -140,7 +139,7 @@ PUB Setup()
     else
         ser.printf("ADXL345 driver failed to start - halting\n")
         accel.Stop()
-        time.MSleep (5)
+        waitms (5)
         FlashLED(LED, 500)
 
 #include "lib.utility.spin2"
