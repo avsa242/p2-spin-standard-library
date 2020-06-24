@@ -5,7 +5,7 @@
     Description: Driver for the Vishay VEML6075 UVA/UVB sensor (P2 version)
     Copyright (c) 2020
     Started Nov 14, 2019
-    Updated Jun 14, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -36,7 +36,6 @@ OBJ
 
     i2c : "com.i2c"                                             'PASM I2C Driver
     core: "core.con.veml6075"
-    time: "time"                                                'Basic timing functions
 
 PUB Null()
 ''This is not a top-level object
@@ -44,9 +43,9 @@ PUB Null()
 PUB Start(SCL_PIN, SDA_PIN, I2C_HZ=100_000): okay
 
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ =< core.I2C_MAX_FREQ
+        if I2C_HZ <= core.I2C_MAX_FREQ
             if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
-                time.MSleep (100)
+                waitms (100)
                 if i2c.Present(SLAVE_WR)
                     if DeviceID() == core.DEV_ID_RESP
                         return okay
@@ -75,6 +74,7 @@ PUB Dynamic(level): result | tmp
         OTHER:
             result := (tmp >> core.FLD_HD) & %1
             return
+
     tmp &= core.MASK_HD
     tmp := (tmp | level) & core.UV_CONF_MASK
     tmp.byte[1] := $00
@@ -93,6 +93,7 @@ PUB IntegrationTime(ms): result | tmp
             tmp := (tmp >> core.FLD_UV_IT) & core.BITS_UV_IT
             result := lookupz(tmp: 50, 100, 200, 400, 800)
             return
+
     tmp &= core.MASK_UV_IT
     tmp := (tmp | ms) & core.UV_CONF_MASK
     tmp.byte[1] := $00
@@ -123,6 +124,7 @@ PUB OpMode(mode): result | tmp
         OTHER:
             result := (tmp >> core.FLD_UV_AF) & %1
             return
+
     tmp &= core.MASK_UV_AF
     tmp := (tmp | mode) & core.UV_CONF_MASK
     tmp.byte[1] := $00

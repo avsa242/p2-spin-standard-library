@@ -33,15 +33,13 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
     uv      : "sensor.uv.veml6075.i2c.spin2"
     int     : "string.integer"
-    io      : "io"
 
 VAR
 
     long _fails, _expanded
-    byte _ser_cog, _row
+    byte _row
 
 PUB Main() | uva, uvb, vis, ir, i
 
@@ -79,12 +77,12 @@ PUB Main() | uva, uvb, vis, ir, i
         ser.PrintF("IR:")
         ser.Position (DATA_COL, 8)
         ser.Str(int.DecPadded (ir, 5))
-        time.MSleep (50)
+        waitms (50)
     FlashLED (LED, 100)
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear()
     ser.PrintF("Serial terminal started\n")
 
@@ -93,7 +91,7 @@ PUB Setup()
     else
         ser.PrintF("VEML6075 driver failed to start - halting\n")
         uv.Stop()
-        time.MSleep (500)
+        waitms (500)
         FlashLED (LED, 500)
 
 #include "lib.utility.spin2"
