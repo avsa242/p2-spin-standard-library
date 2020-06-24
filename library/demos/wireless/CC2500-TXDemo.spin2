@@ -5,7 +5,7 @@ i{
     Description: Simple transmit demo of the cc2500 driver (P2 version)
     Copyright (c) 2020
     Started Dec 31, 2019
-    Updated Jun 13, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -40,7 +40,6 @@ OBJ
 
 VAR
 
-    long _ser_cog, _cc2500_cog
     long _fifo[16]
     byte _pktlen
 
@@ -122,11 +121,11 @@ PUB Transmit() | count, tmp, to_node
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear()
     ser.PrintF("Serial terminal started\n")
 
-    if _cc2500_cog := cc2500.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
+    if cc2500.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
         ser.PrintF("CC2500 driver started\n")
     else
         ser.PrintF("CC2500 driver failed to start - halting\n")

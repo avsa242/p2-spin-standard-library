@@ -5,7 +5,7 @@
     Description: Simple receive demo of the cc2500 driver (P2 version)
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Jun 13, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -33,14 +33,11 @@ OBJ
 
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
-    io          : "io"
-    time        : "time"
     int         : "string.integer"
     cc2500      : "wireless.transceiver.cc2500.spi.spin2"
 
 VAR
 
-    long _ser_cog, _cc2500_cog
     long _fifo[16]
     byte _pktlen
 
@@ -87,7 +84,7 @@ PUB Main
 
     FlashLED(LED, 100)
 
-PUB Receive | rxbytes, tmp, from_node
+PUB Receive() | rxbytes, tmp, from_node
 
     _pktlen := 10
     cc2500.NodeAddress(NODE_ADDRESS)                ' Set this node's address
@@ -117,7 +114,7 @@ PUB Receive | rxbytes, tmp, from_node
 
         repeat                                      ' Wait to proceed
             rxbytes := cc2500.FIFORXBytes()
-        until rxbytes => _pktlen                    ' until we've received at least _pktlen bytes
+        until rxbytes >= _pktlen                    ' until we've received at least _pktlen bytes
 
         cc2500.RXPayload(rxbytes, @_fifo)
         cc2500.FlushRX()
@@ -138,11 +135,11 @@ PUB Receive | rxbytes, tmp, from_node
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear()
     ser.PrintF("Serial terminal started\n")
 
-    if _cc2500_cog := cc2500.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
+    if cc2500.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
         ser.PrintF("CC2500 driver started\n")
     else
         ser.PrintF("CC2500 driver failed to start - halting\n")
