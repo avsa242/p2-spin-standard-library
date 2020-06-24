@@ -17,12 +17,12 @@ OBJ
 
   math : "tiny.math.float"
 
-PUB StringToFloat( strptr ) : f | int, sign, dmag, mag, get_exp, b
+PUB StringToFloat(strptr): f | int, sign, dmag, mag, get_exp, b
 {{
     get all the digits as if this is an integer (but track the exponent)
     int := sign := dmag := mag := get_exp := 0
 }}
-  longfill( @int, 0, 5 )
+  longfill(@int, 0, 5)
   repeat
     case b := byte[strptr++]
       "-": sign := $8000_0000
@@ -40,24 +40,24 @@ PUB StringToFloat( strptr ) : f | int, sign, dmag, mag, get_exp, b
              quit
            else
              ' convert int to a (signed) float
-             f := math.FFloat( int ) | sign
+             f := math.FFloat(int) | sign
              ' should we continue?
              if (b == "E") or (b == "e")
                ' int := sign := dmag := 0
-               longfill( @int, 0, 3 )
+               longfill(@int, 0, 3)
                get_exp := 1
              else
                quit
   ' Exp10 is the weak link...uses the Log table in P1 ROM
-  'f := FMul( f, Exp10( FFloat( mag ) ) )
+  'f := FMul(f, Exp10(FFloat(mag)))
   ' use these loops for more precision (slower for large exponents, positive or negative)
   b := 0.1
   if mag > 0
     b := 10.0
   repeat abs(mag)
-    f := math.FMul ( f, b )
+    f := math.FMul (f, b)
 
-PUB FloatToString(Single) : StringPtr
+PUB FloatToString(Single): StringPtr
 
 ''Convert floating-point number to string
 ''
@@ -113,7 +113,7 @@ PUB FloatToString(Single) : StringPtr
   byte[p]~
 
 
-PUB FloatToScientific(Single) : StringPtr
+PUB FloatToScientific(Single): StringPtr
 
 ''Convert floating-point number to scientific-notation string
 ''
@@ -140,7 +140,7 @@ PUB FloatToScientific(Single) : StringPtr
   byte[p]~
 
 
-PUB FloatToMetric(Single, SuffixChr) : StringPtr | x, y
+PUB FloatToMetric(Single, SuffixChr): StringPtr | x, y
 
 ''Convert floating-point number to metric string
 ''
@@ -278,7 +278,7 @@ PUB SetSeparatorChrs(ThousandsChr, ThousandthsChr)
   thousandths_chr := ThousandthsChr
 
 
-PRI Setup(single) : stringptr
+PRI Setup(single): stringptr
 
  'limit digits to 1..7
   if precision
@@ -354,7 +354,7 @@ PRI AddDigits(leading) | i
 
   'add leading digits
   repeat i := leading
-    AddDigit
+    AddDigit()
     'add any thousands separator between thousands
     if thousands_chr
       i--
@@ -362,7 +362,7 @@ PRI AddDigits(leading) | i
         byte[p++] := thousands_chr
   'if trailing digits, add decimal character
   if digits
-    AddDecimal
+    AddDecimal()
     'then add trailing digits
     repeat while digits
       'add any thousandths separator between thousandths
@@ -370,10 +370,10 @@ PRI AddDigits(leading) | i
         if i and not i // 3
           byte[p++] := thousandths_chr
       i++
-      AddDigit
+      AddDigit()
 
 
-PRI AddDigit
+PRI AddDigit()
 
   'if leading zeros, add "0"
   if zeros
@@ -390,7 +390,7 @@ PRI AddDigit
     byte[p++] := "0"
 
 
-PRI AddDecimal
+PRI AddDecimal()
 
   if decimal_chr
     byte[p++] := decimal_chr
