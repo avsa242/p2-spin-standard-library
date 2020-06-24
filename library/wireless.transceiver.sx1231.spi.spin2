@@ -5,7 +5,7 @@
     Description: Driver for the Semtech SX1231 UHF Transceiver IC (P2 version)
     Copyright (c) 2020
     Started Apr 21, 2020
-    Updated Jun 22, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -114,25 +114,22 @@ OBJ
 '    spi : "com.spi"
     spi : "com.spi.bitbang-fast"
     core: "core.con.sx1231"
-    time: "time"                                                    'Basic timing functions
-    io  : "io"
 
 PUB Null()
 ''This is not a top-level object
 
 PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=1_000_000): okay | tmp
 
-    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) and SCK_FREQ > 0 and SCK_FREQ =< core.SCK_MAX_FREQ
+    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) and SCK_FREQ > 0 and SCK_FREQ <= core.SCK_MAX_FREQ
         if okay := spi.start (MOSI_PIN, MISO_PIN, SCK_PIN, SCK_FREQ, 0) 'SPI Object Started?
             _CS := CS_PIN
             _MOSI := MOSI_PIN
             _MISO := MISO_PIN
             _SCK := SCK_PIN
 
-            io.High(_CS)
-            io.Output(_CS)
+            pinh(_CS)
 
-            time.MSleep (10)
+            waitms (10)
 
             tmp := DeviceID()
             if lookdown(tmp: $21, $22, $23, $24)             'Is it really an SX1231?
@@ -809,7 +806,7 @@ PUB Modulation(type=-2): result | tmp
     tmp := (tmp | type) & core.DATAMODUL_MASK
     writeReg (core.DATAMODUL, 1, @tmp)
 
-PUB NodeAddress(addr=-2): result | tmp
+PUB NodeAddress(addr=-2): tmp
 ' Set node address
 '   Valid values: $00..$FF
 '   Any other value polls the chip and returns the current setting
@@ -818,7 +815,6 @@ PUB NodeAddress(addr=-2): result | tmp
     case addr
         $00..$FF:
         OTHER:
-            result := tmp
             return
 
     writeReg (core.NODEADRS, 1, @addr)
@@ -980,8 +976,7 @@ PUB RSSI(): result | tmp
     until tmp & %10
 
     readReg(core.RSSIVALUE, 1, @result)
-    result := ~result
-    result >>= 1
+    result := (result signx 7) >> 1
 
 PUB RXBandwidth(Hz=-2): result | tmp, tmp_m, tmp_e
 ' Set receiver channel filter bandwidth, in Hz
@@ -1121,10 +1116,7 @@ PUB Temperature(): result | tmp
 
     result := $00
     readReg(core.TEMP2, 1, @result)
-    if result & $80
-        return 256-result
-    else
-        return result
+    return result signx 7
 
 PUB TXMode()
 ' Change chip state to transmit
@@ -1219,13 +1211,13 @@ PRI readReg(reg_nr, nr_bytes, buff_addr) | tmp
 ' Read nr_bytes from register 'reg_nr' to address 'buff_addr'
     case reg_nr
         $00..$13, $18..$4F, $58..$59, $5F, $6F, $71:
-            io.Low(_CS)
+            pinl(_CS)
 '            spi.Write(reg_nr)
             spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
             repeat tmp from nr_bytes-1 to 0
 '                byte[buff_addr][tmp] := spi.Read
                 byte[buff_addr][tmp] := spi.Read(_MISO, _SCK, core.MISO_BITORDER, 8)
-            io.High(_CS)
+            pinh(_CS)
 
         OTHER:
             return
@@ -1234,13 +1226,13 @@ PRI writeReg(reg_nr, nr_bytes, buff_addr) | tmp
 ' Write nr_bytes to register 'reg_nr' stored in val
     case reg_nr
         $00..$13, $18..$4F, $58..$59, $5F, $6F, $71:
-            io.Low(_CS)
+            pinl(_CS)
 '            spi.Write(reg_nr | core.W)
             spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr | core.W)
             repeat tmp from nr_bytes-1 to 0
 '                spi.Write(byte[buff_addr][tmp])
                 spi.Write(_MOSI, _SCK, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
-            io.High(_CS)
+            pinh(_CS)
 
         OTHER:
             return
