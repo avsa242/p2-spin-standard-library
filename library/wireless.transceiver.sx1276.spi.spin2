@@ -6,7 +6,7 @@
         LoRa/FSK/OOK transceiver (P2 version)
     Copyright (c) 2020
     Started Nov 3, 2019
-    Updated Jun 14, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -74,9 +74,7 @@ OBJ
 
     spi : "com.spi"
     core: "core.con.sx1276"
-    time: "time"
     u64 : "math.unsigned64"
-    io  : "io"
 
 PUB Null()
 ''This is not a top-level object
@@ -84,16 +82,15 @@ PUB Null()
 PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=5_000_000): okay | tmp
 
     if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63)
-        if SCK_FREQ => 1 and SCK_FREQ =< core.SCK_MAX_FREQ
+        if SCK_FREQ >= 1 and SCK_FREQ <= core.SCK_MAX_FREQ
             if okay := spi.start (SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
-                time.MSleep (10)
+                waitms (10)
                 _CS := CS_PIN
                 _MOSI := MOSI_PIN
                 _MISO := MISO_PIN
                 _SCK := SCK_PIN
 
-                io.High(_CS)
-                io.Output(_CS)
+                pinh(_CS)
                 tmp := DeviceID()
                 if lookdown(tmp: $11, $12)
                     return okay
@@ -353,7 +350,7 @@ PUB FreqError(): result | tmp, bw
 ' Estimated frequency error from modem
     tmp := $0_00_00
     readReg(core.FEIMSB, 3, @tmp)
-    bw := RXBandwidth (-2)
+    bw := RXBandwidth()
     result := u64.MultDiv (tmp, TWO_24, FXOSC)
     return result * (bw / 500)
 
@@ -515,8 +512,7 @@ PUB IntMask(mask=-2): result
 PUB LastHeaderCodingRate(): result
 ' Returns coding rate of last header received
     readReg(core.MODEMSTAT, 1, @result)
-    result >>= 5
-    result := lookup(result: $0405, $0406, $0407, $0408)
+    result := lookup(result >> 5: $0405, $0406, $0407, $0408)
 
 PUB LastHeaderCRC(): result
 ' Indicates if last header received with CRC on
@@ -569,7 +565,7 @@ PUB LongRangeMode(mode=-2): result | tmp
     tmp := (tmp | mode) & core.OPMODE_MASK
     writeReg(core.OPMODE, 1, @tmp)
 
-    time.MSleep(10)
+    waitms(10)
     OpMode(DEVMODE_STDBY)
 
 PUB LowDataRateOptimize(enabled=-2): result | tmp
@@ -611,7 +607,7 @@ PUB LowFreqMode(enabled=-2): result | tmp
 
 PUB ModemClear(): result
 ' Return modem clear status
-    result := ((ModemStatus >> 4) & %1) * TRUE
+    result := ((ModemStatus() >> 4) & %1) * TRUE
 
 PUB ModemStatus(): result
 ' Return modem status bitmask
@@ -813,11 +809,11 @@ PUB RXTimeout(symbols=-2): result | tmp, symbtimeout_msb, symbtimeout_lsb
 
 PUB SignalDetected(): result
 ' Return signal detected
-    result := (ModemStatus & %1) * TRUE
+    result := (ModemStatus() & %1) * TRUE
 
 PUB SignalSynchronized(): result
 ' Return signal synchronized
-    result := ((ModemStatus >> 1) & %1) * TRUE
+    result := ((ModemStatus() >> 1) & %1) * TRUE
 
 PUB Sleep()
 ' Power down chip
@@ -956,12 +952,12 @@ PRI readReg(reg_nr, nr_bytes, buff_addr) | i
         OTHER:
             return
 
-    io.Low(_CS)
+    pinl(_CS)
     spi.Write(reg_nr)
 
     repeat i from nr_bytes-1 to 0
         byte[buff_addr][i] := spi.Read
-    io.High(_CS)
+    pinh(_CS)
 
 PRI writeReg(reg_nr, nr_bytes, buff_addr) | i
 ' Write nr_bytes to reg_nrister 'reg_nr' stored at buff_addr
@@ -970,12 +966,12 @@ PRI writeReg(reg_nr, nr_bytes, buff_addr) | i
         OTHER:
             return
 
-    io.Low(_CS)
+    pinl(_CS)
     spi.Write(reg_nr | core.WRITE)
 
     repeat i from nr_bytes-1 to 0
         spi.Write(byte[buff_addr][i])
-    io.High(_CS)
+    pinh(_CS)
 
 DAT
 {
