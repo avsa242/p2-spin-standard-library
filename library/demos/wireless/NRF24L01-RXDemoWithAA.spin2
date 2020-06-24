@@ -4,10 +4,10 @@
     Author: Jesse Burt 
     Description: nRF24L01+ Receive demo that uses the radio's
         auto-acknowledge function (Enhanced ShockBurst - (TM) Nordic Semi)
-        Will display data from all 5 data pipes
+        Will display data from all 6 data pipes
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Jun 14, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -38,14 +38,11 @@ OBJ
 
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
-    io          : "io"
-    time        : "time"
     int         : "string.integer"
     nrf24       : "wireless.transceiver.nrf24l01.spi"
 
 VAR
 
-    long _ser_cog, _nrf24_cog
     long _fifo[16]
     byte _pktlen
 
@@ -138,10 +135,11 @@ PUB Receive() | tmp, from_node, addr[2], i, count, recv_pipe
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear()
     ser.PrintF("Serial terminal started\n")
-    if _nrf24_cog := nrf24.Start (CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
+
+    if nrf24.Start (CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
         ser.printf("nRF24L01+ driver started\n")
     else
         ser.printf("nRF24L01+ driver failed to start - halting\n")

@@ -5,7 +5,7 @@
     Description: nRF24L01+ Transmit demo (no ShockBurst/Auto Acknowledgement)
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Jun 14, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -27,7 +27,6 @@ CON
     MISO_PIN        = 41
     CE_PIN          = 44
     SCK_FREQ        = 5_000_000                                                                                  
-
     CHANNEL         = 2
 ' --
 
@@ -37,8 +36,6 @@ OBJ
 
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
-    io          : "io"
-    time        : "time"
     int         : "string.integer"
     nrf24       : "wireless.transceiver.nrf24l01.spi.spin2"
 
@@ -103,14 +100,15 @@ PUB Transmit() | addr[2], count, i, tmp
 
         nrf24.PayloadSent(CLEAR)                            ' Clear interrupt
         nrf24.FlushTX()                                     '   and flush FIFO. Ready for the next packet
-        time.MSleep(1000)                                   ' Don't abuse the airwaves - wait between packets
+        waitms(1000)                                   ' Don't abuse the airwaves - wait between packets
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear()
     ser.PrintF("Serial terminal started\n")
-    if _nrf24_cog := nrf24.Start (CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
+
+    if nrf24.Start (CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
         ser.printf("NRF24L01+ driver started\n")
     else
         ser.printf("NRF24L01+ driver failed to start - halting\n")

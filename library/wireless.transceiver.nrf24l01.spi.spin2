@@ -5,7 +5,7 @@
     Description: Driver for Nordic Semi. nRF24L01+ (P2 version)
     Copyright (c) 2020
     Started Nov 2, 2019
-    Updated Jun 14, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -31,8 +31,6 @@ OBJ
 
     spi     : "com.spi.bitbang-fast"
     core    : "core.con.nrf24l01"
-    time    : "time"
-    io      : "io"
 
 PUB Null()
 ''This is not a top-level object
@@ -46,13 +44,11 @@ PUB Start(CE_PIN, CSN_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ=5_000_000): okay 
             _SCK := SCK_PIN
             _MOSI := MOSI_PIN
             _MISO := MISO_PIN
-            time.USleep(core.TPOR)
-            time.USleep(core.TPD2STBY)
+            waitus(core.TPOR)
+            waitus(core.TPD2STBY)
 
-            io.Low(_CE)
-            io.Output(_CE)
-            io.High(_CSN)
-            io.Output(_CSN)
+            pinl(_CE)
+            pinh(_CSN)
 
             Defaults()                                          ' The nRF24L01+ has no RESET pin or function,
                                                                 '   so set defaults
@@ -67,8 +63,8 @@ PUB Start(CE_PIN, CSN_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ=5_000_000): okay 
 
 PUB Stop()
 
-    io.High(_CSN)
-    io.Low(_CE)
+    pinh(_CSN)
+    pinl(_CE)
     Sleep()
 
 PUB Defaults() | tmp[2]
@@ -120,8 +116,8 @@ PUB CE(state)
 '       RX mode:
 '           0: Enter Idle mode
 '           1: Active receive mode
-    io.Set(_CE, state)
-    time.USleep (core.THCE)
+    pinw(_CE, state)
+    waitus (core.THCE)
 
 PUB AddressWidth(bytes=-2): result | tmp
 ' Set width, in bytes, of RX/TX address field
@@ -362,7 +358,7 @@ PUB Idle()
 PUB IntMask(mask=-2): result | tmp
 ' Control which events will trigger an interrupt on the IRQ pin, using a 3-bit mask
 '           Bits:  210   210
-'                  |||   |||
+'                  abs(|   abs(|
 '   Valid values: %000..%111
 '       Bit:    Interrupt will be asserted on IRQ pin if:
 '       2       new data is ready in RX FIFO
@@ -527,7 +523,7 @@ PUB Powered(enabled=-2): result | tmp
     tmp := (tmp | enabled) & core.NRF24_CONFIG_MASK
     writeReg (core.NRF24_CONFIG, 1, @tmp)
 
-PUB RPD()
+PUB RPD(): result
 ' Received Power Detector
 '   Returns:
 '   FALSE/0: No Carrier
@@ -536,7 +532,7 @@ PUB RPD()
     readReg (core.NRF24_RPD, 1, @result)
     result *= TRUE
 
-PUB RSSI()
+PUB RSSI(): result
 ' RSSI (emulated)
 '   Returns:
 '       -64: Carrier detected
@@ -581,13 +577,13 @@ PUB RXAddr(buff_addr, pipe=0, rw=0): result | tmp[2]
         OTHER:                                                                  ' Invalid pipe
             return
 
-PUB RXFIFOEmpty()
+PUB RXFIFOEmpty(): result
 ' Queries the FIFO_STATUS register for RX FIFO empty flag
 '   Returns TRUE if empty, FALSE if there's data in RX FIFO
     readReg (core.NRF24_FIFO_STATUS, 1, @result)
     return (result & %1) * TRUE
 
-PUB RXFIFOFull()
+PUB RXFIFOFull(): result
 ' Queries the FIFO_STATUS register for RX FIFO full flag
 '   Returns TRUE if full, FALSE if there're available locations in the RX FIFO
     readReg (core.NRF24_FIFO_STATUS, 1, @result)
@@ -610,7 +606,7 @@ PUB RXPayload(nr_bytes, buff_addr): result | tmp
         OTHER:
             return FALSE
 
-PUB RXPipePending()
+PUB RXPipePending(): result
 ' Returns pipe number of pending data available in FIFO
 '   Returns: Pipe number 0..5, or 7 if FIFO is empty
     result := (Status >> core.FLD_RX_P_NO) & core.BITS_RX_P_NO
@@ -739,34 +735,34 @@ PRI writeReg (reg_nr, nr_bytes, buff_addr): result | tmp
     reg_nr |= core.NRF24_W_REG
     case reg_nr    'XXX clean this up a little; remove some redundancy with the lookdown table above
         core.NRF24_W_TX_PAYLOAD:
-            io.Low(_CSN)
+            pinl(_CSN)
             spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
             repeat tmp from 0 to nr_bytes-1
                 spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
-            io.High(_CSN)
+            pinh(_CSN)
 
         core.NRF24_FLUSH_TX:
-            io.Low(_CSN)
+            pinl(_CSN)
             spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
-            io.High(_CSN)
+            pinh(_CSN)
 
         core.NRF24_FLUSH_RX:
-            io.Low(_CSN)
+            pinl(_CSN)
             spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
-            io.High(_CSN)
+            pinh(_CSN)
 
         OTHER:
             case nr_bytes
                 0:
-                    io.Low(_CSN)
+                    pinl(_CSN)
                     spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr) 'Simple command
-                    io.High(_CSN)
+                    pinh(_CSN)
                 1..5:
-                    io.Low(_CSN)
+                    pinl(_CSN)
                     spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr) 'Command w/nr_bytes data bytes following
                     repeat tmp from 0 to nr_bytes-1
                         spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
-                    io.High(_CSN)
+                    pinh(_CSN)
 
                 OTHER:
                     result := FALSE
@@ -779,26 +775,26 @@ PRI readReg (reg_nr, nr_bytes, buff_addr): result | tmp
 
     case reg_nr    'XXX clean this up a little; remove some redundancy with the lookdown table above
         core.NRF24_RPD:
-            io.Low(_CSN)
+            pinl(_CSN)
             spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
             byte[buff_addr][0] := spi.Read (_MISO, _SCK, core.MISO_BITORDER, 8)
-            io.High(_CSN)
+            pinh(_CSN)
 
         core.NRF24_R_RX_PAYLOAD:
-            io.Low(_CSN)
+            pinl(_CSN)
             spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
             repeat tmp from 0 to nr_bytes-1
                 byte[buff_addr][tmp] := spi.Read (_MISO, _SCK, core.MISO_BITORDER, 8)
-            io.High(_CSN)
+            pinh(_CSN)
         OTHER:
 
             case nr_bytes
                 1..5:
-                    io.Low(_CSN)
+                    pinl(_CSN)
                     spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr) ' Which register to query
                     repeat tmp from 0 to nr_bytes-1
                         byte[buff_addr][tmp] := spi.Read (_MISO, _SCK, core.MISO_BITORDER, 8)
-                    io.High(_CSN)
+                    pinh(_CSN)
                 OTHER:
                     result := FALSE
                     buff_addr := 0

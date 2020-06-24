@@ -5,7 +5,7 @@
     Description: nRF24L01+ Receive demo (no ShockBurst/Auto Acknowledgement)
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Jun 14, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -36,14 +36,11 @@ OBJ
 
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
-    io          : "io"
-    time        : "time"
     int         : "string.integer"
     nrf24       : "wireless.transceiver.nrf24l01.spi.spin2"
 
 VAR
 
-    long _ser_cog, _nrf24_cog
     long _fifo[8]
     byte _payloadlen
 
@@ -54,7 +51,7 @@ PUB Main()
     ser.printf("Press any key to begin receiving\n")
     ser.CharIn()
 
-    Receive
+    Receive()
 
     FlashLED(LED, 100)
 
@@ -93,7 +90,7 @@ PUB Receive() | tmp, addr[2], i, count, CD
             ser.Position(0, 5)                              ' .
             CD := abs(nrf24.RSSI() == -64)                  ' . While we're waiting,
             ser.printf("Carrier: %d\n", CD)                 ' .     show the carrier detect flag
-            ser.str(string("Packets received: "))           ' .     and also the number of packets received
+            ser.printf("Packets received: ")           ' .     and also the number of packets received
             ser.dec(count)                                  ' .
         until nrf24.PayloadReady(-2)                        ' until we've received at least _payloadlen bytes
 
@@ -109,10 +106,11 @@ PUB Receive() | tmp, addr[2], i, count, CD
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear()
+
     ser.PrintF("Serial terminal started\n")
-    if _nrf24_cog := nrf24.Start (CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
+    if nrf24.Start (CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
         ser.printf("nRF24L01+ driver started\n")
     else
         ser.printf("nRF42L01+ driver failed to start - halting\n")
