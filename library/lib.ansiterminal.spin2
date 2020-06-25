@@ -105,7 +105,7 @@ PUB Clear(mode=2)
     if mode == 2
         Position (0, 0)
 
-PUB ClearLine(mode=2)
+PUB ClearLine(mode=0)
 ' Clear line
     CSI
     Dec(mode)
