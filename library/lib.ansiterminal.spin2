@@ -4,7 +4,7 @@
     Description: ANSI-compatible terminal library
     Author: Jesse Burt
     Started: Jun 28, 2019
-    Updated: May 16, 2020
+    Updated: Jun 25, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -114,9 +114,9 @@ PUB ClearLine(mode=2)
 PUB Color(fgcolor=39, bgcolor=49)
 ' Set foreground and background colors
     CSI
-    Dec(fgcolor)
+    Dec(FG+fgcolor)
     Char(";")
-    Dec(bgcolor)
+    Dec(BG+bgcolor)
     Char("m")
 
 PUB Conceal(mode=8)
