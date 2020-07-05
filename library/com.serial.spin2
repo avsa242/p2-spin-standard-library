@@ -1,3 +1,19 @@
+{
+    --------------------------------------------
+    Filename: com.serial.spin2
+    Author: Eric Smith
+    Modified by: Jesse Burt
+    Description: Low-level UART serial driver
+    Copyright (c) 2020
+    Started Jun 28, 2019
+    Updated Jul 5, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+
+    NOTE: This is a modified version of SmartSerial.spin2,
+        originally by Eric Smith. The original header is
+        preserved below.
+}
 '
 ' SmartSerial.spin2
 ' simple smart pin serial object for P2 eval board
@@ -5,64 +21,80 @@
 '
 CON
 
-    _txmode     = %0000_0000_000_0000000000000_01_11110_0 'async tx mode, output enabled for smart output
-    _rxmode     = %0000_0000_000_0000000000000_00_11111_0 'async rx mode, input  enabled for smart input
+    TXMODE = sp.ASYNCSERIAL_TX | sp.OUTPUT_ENABLED
+    RXMODE = sp.ASYNCSERIAL_RX
+
+OBJ
+
+    sp  : "core.con.smartpins"
 
 VAR
 
-    long rx_pin, tx_pin
+    long _rx_pin, _tx_pin
 
 PUB Start(baudrate): okay
 ' Start with default serial pins and mode
     return StartRxTx(63, 62, 0, baudrate)
 
-PUB StartRxTx(rxpin, txpin, mode, baudrate): okay | bitperiod, txmode, rxmode
+PUB StartRxTx(rxpin, txpin, mode, baudrate): okay | bitperiod
 
     bitperiod := 7 + ((CLKFREQ / baudrate) << 16)
-    rx_pin := rxpin
-    tx_pin := txpin
-    txmode := _txmode
-    rxmode := _rxmode
-    wrpin(txpin, txmode)
+    _rx_pin := rxpin
+    _tx_pin := txpin
+    wrpin(txpin, TXMODE)
     wxpin(txpin, bitperiod)
     dirh_(txpin)
-    wrpin(rxpin, rxmode)
+    wrpin(rxpin, RXMODE)
     wxpin(rxpin, bitperiod)
     dirh_(rxpin)
-    return 1
+    return cogid()+1
 
 PUB Char(val) | txpin
 ' Send one character
-    txpin := tx_pin
+    txpin := _tx_pin
     wypin(txpin, val)
-    _waitx(1)
-    txflush
+    waitx(1)
+    txflush()
 
-PUB TXFlush() | txpin, z
+PUB TXFlush()
 ' Flush transmit buffer
-    txpin := tx_pin
-    z := 1
-    repeat while z <> 0
-        asm
-                testp   txpin           wc
-        if_c    mov     z,  #0
-        endasm
+    repeat until pinr[_tx_pin]
 
 PUB RXCheck(): rxbyte | rxpin, z
 ' Check if byte received (never waits)
 '   Returns:
 '       -1 if no byte, otherwise byte
     rxbyte := -1
-    rxpin := rx_pin
+    rxpin := _rx_pin
     asm
                 testp   rxpin           wc  ' char ready?
         if_c    rdpin   rxbyte, rxpin
         if_c    shr     rxbyte, #24
     endasm
 
-PUB CharIn(): v
+PUB CharIn(): rxbyte
 ' Receive a byte (waits until one ready)
     repeat
-        v := rxcheck
-    while v == -1
+        rxbyte := rxcheck()
+    while rxbyte == -1
 
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
