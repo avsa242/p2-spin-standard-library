@@ -4,7 +4,7 @@
     Description: ANSI-compatible terminal library
     Author: Jesse Burt
     Started: Jun 28, 2019
-    Updated: Jun 25, 2020
+    Updated: Jul 5, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -84,7 +84,7 @@ CON
 
 PUB BGColor(color)
 ' Set background color
-    CSI
+    CSI()
     Char(";")
     Dec(BG + color)
     Char("m")
@@ -99,7 +99,7 @@ PUB Bold(mode=1)
 
 PUB Clear(mode=2)
 ' Clear screen
-    CSI
+    CSI()
     Dec(mode)
     Char("J")
     if mode == 2
@@ -107,13 +107,13 @@ PUB Clear(mode=2)
 
 PUB ClearLine(mode=0)
 ' Clear line
-    CSI
+    CSI()
     Dec(mode)
     Char("K")
 
 PUB Color(fgcolor=9, bgcolor=9)
 ' Set foreground and background colors
-    CSI
+    CSI()
     Dec(FG+fgcolor)
     Char(";")
     Dec(BG+bgcolor)
@@ -125,7 +125,7 @@ PUB Conceal(mode=8)
 
 PUB CursorPosition(enabled=TRUE)
 ' Enable/disable mouse cursor position reporting
-    CSI
+    CSI()
     case enabled
         FALSE:
             Str(string("?1000;1006;1015l"))
@@ -134,38 +134,38 @@ PUB CursorPosition(enabled=TRUE)
 
 PUB CursorNextLine(rows=1)
 ' Move cursor to beginning of next row, or 'rows' number of rows down
-    CSI
+    CSI()
     Dec(rows)
     Char("E")
 
 PUB CursorPrevLine(rows=1)
 ' Move cursor to beginning of previous row, or 'rows' number of rows up
-    CSI
+    CSI()
     Dec(rows)
     Char("F")
 
-PUB Encircle
+PUB Encircle()
 ' Set Encircle attribute
     SGR(SGR_ENCIRCLED)
 
 PUB FGColor(color)
 ' Set foreground color
-    CSI
+    CSI()
     Dec(FG + color)
     Char("m")
 
-PUB Framed
+PUB Framed()
 ' Set framed attribute
     SGR(SGR_FRAMED)
 
-PUB HideCursor
+PUB HideCursor()
 ' Hide cursor
-    CSI
+    CSI()
     Char("?")
     Dec(25)
     Char("l")
     
-PUB Home
+PUB Home()
 ' Move cursor to home/upper-left position
     Position(0, 0)
 
@@ -173,43 +173,43 @@ PUB Inverse(mode=7)
 ' Set inverse attribute
     SGR(mode)
 
-PUB Italic
+PUB Italic()
 ' Set italicized attribute
     SGR(SGR_ITALIC)
 
 PUB MoveDown(rows=1)
 ' Move cursor down 1 or more rows
-    CSI
+    CSI()
     Dec(rows)
     Char("B")
 
 PUB MoveLeft(columns=1)
 ' Move cursor back/left 1 or more columns
-    CSI
+    CSI()
     Dec(columns)
     Char("D")
 
 PUB MoveRight(columns=1)
 ' Move cursor forward/right 1 or more columns
-    CSI
+    CSI()
     Dec(columns)
     Char("C")
 
 PUB MoveUp(rows=1)
 ' Move cursor up 1 or more rows
-    CSI
+    CSI()
     Dec(rows)
     Char("A")
 
-PUB Overline
+PUB Overline()
 ' Set Overline attribute
     SGR(SGR_OVERLINED)
 
 PUB Position(x, y)
 ' Position cursor at column x, row y (from top-left)
-    y++
-    x++
-    CSI
+    y++                                                     ' Without this, (1, 1) is considered
+    x++                                                     '   upper-left/home position instead of
+    CSI()                                                   '   the more common (0, 0)
     Dec(y)
     Char(";")
     Dec(x)
@@ -218,18 +218,18 @@ PUB Position(x, y)
 PUB PositionX(column=1)
 ' Set horizontal position of cursor
 '   Default value: column 1
-    CSI
-    Dec(column+1)
+    CSI()
+    Dec(column+1)                                           '
     Char("G")
 
 PUB PositionY(y)
 ' Set vertical position of cursor
-    y++                                             ' Need to add 1 because the coords
-    CSI                                             ' are not 0-based, but 1-based
+    y++                                                     '
+    CSI()
     Dec(y)
     Char("d")
 
-PUB RCP | tmp, token, place
+PUB RCP() | tmp, token, place
 ' Report Current mouse position (press mouse button to update)
 ' Read serial
 ' If ESC, discard + proceed, otherwise, NEXT
@@ -264,26 +264,26 @@ PUB RCP | tmp, token, place
             OTHER:
     until tmp == "M"
 
-PUB Reset
+PUB Reset()
 ' Reset terminal attributes
-    CSI
+    CSI()
     Char("m")
 
 PUB ScrollDown(lines=1)
 ' Scroll display down 1 or more lines
-    CSI
+    CSI()
     Dec(lines)
     Char("T")
 
 PUB ScrollUp(lines=1)
 ' Scroll display up 1 or more lines
-    CSI
+    CSI()
     Dec(lines)
     Char("S")
 
 PUB ShowCursor
 ' Show cursor
-    CSI
+    CSI()
     Char("?")
     Dec(25)
     Char("h")
@@ -296,12 +296,12 @@ PUB Underline(mode=4)
 ' Set Underline attribute
     SGR(mode)
 
-PRI CSI
+PRI CSI()
 ' Command Sequence Introducer
     Str(string(ESC, LBRACKET))
 
 PRI SGR(mode)
 ' Select Graphic Rendition
-    CSI
+    CSI()
     Dec(mode)
     Char("m")

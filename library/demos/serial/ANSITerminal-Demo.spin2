@@ -16,9 +16,9 @@ CON
      _clkfreq   = cfg._clkfreq_def
 
 ' -- User-modifiable constants
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 ' --
 
@@ -40,7 +40,7 @@ PUB Main() | fg, bg, rx_char, mb, mx, my
     ser.bold()
     Demo_Text(string("BOLD"))
 
-    ser.bold(ser#SGR_INTENSITY_FAINT)
+    ser.bold(ser.SGR_INTENSITY_FAINT)
     Demo_Text(string("FAINT"))
 
     ser.italic()
@@ -49,13 +49,13 @@ PUB Main() | fg, bg, rx_char, mb, mx, my
     ser.underline()
     Demo_Text(string("UNDERLINED"))
  
-    ser.underline(ser#SGR_UNDERLINE_DBL)
+    ser.underline(ser.SGR_UNDERLINE_DBL)
     Demo_Text(string("DOUBLE UNDERLINED"))
 
-    ser.blink(ser#SGR_BLINKSLOW)
+    ser.blink(ser.SGR_BLINKSLOW)
     Demo_Text(string("SLOW BLINKING"))
 
-    ser.blink(ser#SGR_BLINKFAST)
+    ser.blink(ser.SGR_BLINKFAST)
     Demo_Text(string("FAST BLINKING"))
 
     ser.inverse()
