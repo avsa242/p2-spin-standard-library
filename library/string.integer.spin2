@@ -6,7 +6,7 @@
     Description: Library of simple numeric conversion methods
     Copyright (c) 2020
     Started Dec 14, 2019
-    Updated Jun 24, 2020
+    Updated Jul 5, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -39,10 +39,10 @@ PUB DecPadded(value, width): result | t_val, field
 }}
 
     ClearStr(@nstr, MAX_LEN)
-    width := 1 #> width <# constant(MAX_LEN - 1)          ' qualify field width
+    width := 1 #> width <# (MAX_LEN - 1)                  ' qualify field width
 
     t_val := abs(value)                                   ' work with absolute
-    field~                                                ' clear field
+    field := 0                                            ' clear field
 
     repeat while t_val > 0                                ' count number of digits
         field++
@@ -142,13 +142,13 @@ PRI DecToStr(value): result | div, z_pad
         nstr[idx++] := "-"                                '   and print sign indicator
 
     div := 1_000_000_000                                  ' initialize divisor
-    z_pad~                                                ' clear zero-pad flag
+    z_pad := 0                                            ' clear zero-pad flag
 
     repeat 10
         if (value >= div)                                 ' printable character?
             nstr[idx++] := (value / div + "0")            '   yes, print ASCII digit
             value //= div                                 '   update value
-            z_pad~~                                       '   set zflag
+            z_pad := -1                                   '   set zflag
         elseif z_pad || (div == 1)                        ' printing or last column?
             nstr[idx++] := "0"
         div /= 10
