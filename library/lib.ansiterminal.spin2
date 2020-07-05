@@ -111,7 +111,7 @@ PUB ClearLine(mode=0)
     Dec(mode)
     Char("K")
 
-PUB Color(fgcolor=39, bgcolor=49)
+PUB Color(fgcolor=9, bgcolor=9)
 ' Set foreground and background colors
     CSI
     Dec(FG+fgcolor)
