@@ -30,7 +30,7 @@ CON
     VSYNC_PAR   = 4
     PTR_FB_PAR  = 5
 
-    INTENSITY   = 127                                        ' 0..128
+    INTENSITY   = 80                                        ' 0..128
 
 OBJ
 
