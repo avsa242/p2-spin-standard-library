@@ -60,12 +60,12 @@ CON
     PERIOD_XPLUSCLKS_CT_TIME    = %10101 << MODE
     PERIOD_XPLUSCLKS_CT_STATES  = %10110 << MODE
     PERIOD_XPLUSCLKS_CT_PERIOD  = %10111 << MODE
-' USB Host
-    USBHOST_LS                  = %11000 << MODE
-    USBHOST_HS                  = %11001 << MODE
-' USB Device
-    USBDEV_LS                   = %11010 << MODE
-    USBDEV_HS                   = %11011 << MODE
+' ADC sample/filter/capture, internally clocked
+    ADC_SAMP_INTCLK             = %11000 << MODE
+    ADC_SAMP_EXTCLK             = %11001 << MODE
+    ADC_SCOPE                   = %11010 << MODE
+' USB Host/Device
+    USBHOST_DEV                 = %11011 << MODE
 ' Synchronous serial
     SYNCSERIAL_TX               = %11100 << MODE
     SYNCSERIAL_RX               = %11101 << MODE
