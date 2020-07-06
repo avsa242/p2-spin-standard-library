@@ -21,11 +21,11 @@ CON
     SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
-    MOSI_PIN        = 48
-    MISO_PIN        = 49
-    SCK_PIN         = 50
-    CE_PIN          = 52
-    CS_PIN          = 53
+    MOSI_PIN        = 42
+    MISO_PIN        = 40
+    SCK_PIN         = 41
+    CE_PIN          = 47
+    CS_PIN          = 46
     SCK_FREQ        = 10_000_000
 
     PKTLEN          = 32
@@ -44,7 +44,7 @@ VAR
 
     byte _ser_cog, _nrf24_cog
 
-PUB Main() | fifo[PKTLEN/4], i
+PUB Main() | fifo[PKTLEN/4], i, a[2]
 
     Setup()
 

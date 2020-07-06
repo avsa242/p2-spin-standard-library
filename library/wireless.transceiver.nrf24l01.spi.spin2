@@ -5,7 +5,7 @@
     Description: Driver for Nordic Semi. nRF24L01+ (P2 version)
     Copyright (c) 2020
     Started Nov 2, 2019
-    Updated Jun 24, 2020
+    Updated Jul 6, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -29,7 +29,7 @@ VAR
 
 OBJ
 
-    spi     : "com.spi.bitbang-fast"
+    spi     : "com.spi"
     core    : "core.con.nrf24l01"
 
 PUB Null()
@@ -38,7 +38,7 @@ PUB Null()
 PUB Start(CE_PIN, CSN_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ=5_000_000): okay | tmp[2], i
 
     if lookdown(CE_PIN: 0..63) and lookdown(CSN_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63)
-        if okay := spi.start (MOSI_PIN, MISO_PIN, SCK_PIN, SCK_HZ, core.CPOL)
+        if okay := spi.start (SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ)
             _CE := CE_PIN
             _CSN := CSN_PIN
             _SCK := SCK_PIN
@@ -732,32 +732,30 @@ PRI writeReg (reg_nr, nr_bytes, buff_addr): result | tmp
     case reg_nr
         core.NRF24_W_TX_PAYLOAD:
             pinl(_CSN)
-            spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
-            repeat tmp from 0 to nr_bytes-1
-                spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
+            spi.write(reg_nr)
+            spi.writebytes(nr_bytes, buff_addr)
             pinh(_CSN)
 
         core.NRF24_FLUSH_TX:
             pinl(_CSN)
-            spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
+            spi.write(reg_nr)
             pinh(_CSN)
 
         core.NRF24_FLUSH_RX:
             pinl(_CSN)
-            spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
+            spi.write(reg_nr)
             pinh(_CSN)
 
         $00..$17, $1C..$1D:
             case nr_bytes
                 0:
                     pinl(_CSN)
-                    spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr) 'Simple command
+                    spi.write(reg_nr)
                     pinh(_CSN)
                 1..5:
                     pinl(_CSN)
-                    spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr) 'Command w/nr_bytes data bytes following
-                    repeat tmp from 0 to nr_bytes-1
-                        spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
+                    spi.write(reg_nr)
+                    spi.writebytes(nr_bytes, buff_addr)
                     pinh(_CSN)
 
                 OTHER:
@@ -771,24 +769,24 @@ PRI readReg (reg_nr, nr_bytes, buff_addr): result | tmp
     case reg_nr
         core.NRF24_R_RX_PAYLOAD:
             pinl(_CSN)
-            spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
+            spi.write(reg_nr)
             repeat tmp from 0 to nr_bytes-1
-                byte[buff_addr][tmp] := spi.Read (_MISO, _SCK, core.MISO_BITORDER, 8)
+                byte[buff_addr][tmp] := spi.read()
             pinh(_CSN)
 
         core.NRF24_RPD:
             pinl(_CSN)
-            spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
-            byte[buff_addr][0] := spi.Read (_MISO, _SCK, core.MISO_BITORDER, 8)
+            spi.write(reg_nr)
+            byte[buff_addr][0] := spi.read()
             pinh(_CSN)
 
         $00..$08, $0A..$17, $1C..$1D:
             case nr_bytes
                 1..5:
                     pinl(_CSN)
-                    spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr) ' Which register to query
+                    spi.write(reg_nr)
                     repeat tmp from 0 to nr_bytes-1
-                        byte[buff_addr][tmp] := spi.Read (_MISO, _SCK, core.MISO_BITORDER, 8)
+                        byte[buff_addr][tmp] := spi.read()
                     pinh(_CSN)
                 OTHER:
                     result := FALSE

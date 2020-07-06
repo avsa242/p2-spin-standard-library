@@ -7,7 +7,7 @@
         Will display data from all 6 data pipes
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Jun 24, 2020
+    Updated Jul 6, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -23,12 +23,12 @@ CON
     SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
-    CS_PIN          = 45
-    SCK_PIN         = 42
-    MOSI_PIN        = 40
-    MISO_PIN        = 41
-    CE_PIN          = 44
-    SCK_FREQ        = 5_000_000
+    MOSI_PIN        = 42
+    MISO_PIN        = 40
+    SCK_PIN         = 41
+    CE_PIN          = 47
+    CS_PIN          = 46
+    SCK_FREQ        = 10_000_000
 ' --
 
     CLEAR           = 1
