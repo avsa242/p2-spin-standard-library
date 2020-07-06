@@ -729,11 +729,7 @@ PRI Status(): result
 
 PRI writeReg (reg_nr, nr_bytes, buff_addr): result | tmp
 ' Write reg to MOSI
-    ifnot lookdown(reg_nr: $00..$17, $1C..$1D, $A0, $E1..$E3)              'Validate reg - there are a few the datasheet says are for testing
-        return FALSE                                                    ' only and will cause the chip to malfunction if written to.
-
-    reg_nr |= core.NRF24_W_REG
-    case reg_nr    'XXX clean this up a little; remove some redundancy with the lookdown table above
+    case reg_nr
         core.NRF24_W_TX_PAYLOAD:
             pinl(_CSN)
             spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
@@ -751,7 +747,7 @@ PRI writeReg (reg_nr, nr_bytes, buff_addr): result | tmp
             spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
             pinh(_CSN)
 
-        OTHER:
+        $00..$17, $1C..$1D:
             case nr_bytes
                 0:
                     pinl(_CSN)
@@ -767,27 +763,26 @@ PRI writeReg (reg_nr, nr_bytes, buff_addr): result | tmp
                 OTHER:
                     result := FALSE
                     buff_addr := 0
+        OTHER:
+            return FALSE
 
 PRI readReg (reg_nr, nr_bytes, buff_addr): result | tmp
 ' Read reg from MISO
-    ifnot lookdown(reg_nr: $00..$17, $1C..$1D, $61)                        'Validate reg - there are a few the datasheet says are for testing
-        return FALSE                                                    ' only and will cause the chip to malfunction if written to.
-
-    case reg_nr    'XXX clean this up a little; remove some redundancy with the lookdown table above
-        core.NRF24_RPD:
-            pinl(_CSN)
-            spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
-            byte[buff_addr][0] := spi.Read (_MISO, _SCK, core.MISO_BITORDER, 8)
-            pinh(_CSN)
-
+    case reg_nr
         core.NRF24_R_RX_PAYLOAD:
             pinl(_CSN)
             spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
             repeat tmp from 0 to nr_bytes-1
                 byte[buff_addr][tmp] := spi.Read (_MISO, _SCK, core.MISO_BITORDER, 8)
             pinh(_CSN)
-        OTHER:
 
+        core.NRF24_RPD:
+            pinl(_CSN)
+            spi.Write (_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
+            byte[buff_addr][0] := spi.Read (_MISO, _SCK, core.MISO_BITORDER, 8)
+            pinh(_CSN)
+
+        $00..$08, $0A..$17, $1C..$1D:
             case nr_bytes
                 1..5:
                     pinl(_CSN)
@@ -798,6 +793,9 @@ PRI readReg (reg_nr, nr_bytes, buff_addr): result | tmp
                 OTHER:
                     result := FALSE
                     buff_addr := 0
+
+        OTHER:
+            return FALSE
 
 DAT
 {
