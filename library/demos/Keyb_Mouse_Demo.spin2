@@ -115,7 +115,7 @@ CON
 OBJ
 
   ser: "com.serial.terminal"
-  usb1: "input.usb.kbd_mouse"
+  usb1: "input.kbd_mouse.usb"
 
 VAR
   long usbA
