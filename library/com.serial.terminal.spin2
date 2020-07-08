@@ -6,7 +6,7 @@
      for low-level async serial.
     Author: Jesse Burt
     Created: Jun 15, 2019
-    Updated: Jun 23, 2020
+    Updated: Jul 8, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -58,7 +58,7 @@ PUB Char(ch)
 PUB CharIn(): result
 ' Read a character
 '   Returns: Byte
-    return ser.CharIn
+    return ser.CharIn()
 
 PUB Chars(ch, nr_chars)
 ' Send character repeatedly, nr_chars
@@ -101,18 +101,19 @@ PUB MoveUp(y)
     repeat y
         ser.Char(MU)
 
-PUB ReadLine(line, maxline): size | c
+PUB ReadLine(ptr_line, maxline): size | c
 ' Read a string, terminated by a carriage return or line-feed, up to maxline length
+'   Returns: Size of line read, in bytes
     repeat
         case c := CharIn()
             BS:     if size
                         size--
                         ser.Char(c)
-            CR, LF: byte[line][size] := 0
+            CR, LF: byte[ptr_line][size] := 0
                     ser.Char(c)
                     quit
             other:  if size < maxline
-                        byte[line][size++] := c
+                        byte[ptr_line][size++] := c
                         ser.Char(c)
 
 PUB RXCheck(): rxbyte
@@ -130,5 +131,5 @@ PUB StrInMax(stringptr, maxcount)
     repeat while (maxcount--)                               ' While maxcount not reached
         if (byte[stringptr++] := ser.CharIn()) == CR        ' Get chars until CR
             quit
-    byte[stringptr+(byte[stringptr-1] == CR)]~              ' Zero terminate string; overwrite CR or append 0 char
+    byte[stringptr+(byte[stringptr-1] == CR)] := 0          ' Zero terminate string; overwrite CR or append 0 char
 
