@@ -2,12 +2,11 @@
     --------------------------------------------
     Filename: font.5x8.spin
     Description: 5x8 bitmap font
-    Author: Jesse Burt
-    Bitmap font author unknown, reference Thomas P. Sullivan's
+    Author: Unknown, reference Thomas P. Sullivan's
         SSD1331 OLED driver
-    Copyright (c) 2018
+    Modified by: Jesse Burt
     Created: Apr 26, 2018
-    Updated: May 19, 2019
+    Updated: Jul 8, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,10 +19,10 @@ CON
     FIRSTCHAR   = 0
     LASTCHAR    = 127
 
-PUB Null
+PUB Null()
 ' This is not a top-level object
 
-PUB BaseAddr
+PUB BaseAddr()
 ' Return base address of font table
     return @table
 
