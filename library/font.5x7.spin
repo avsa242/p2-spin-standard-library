@@ -21,7 +21,7 @@ CON
 PUB Null()
 ' This is not a top-level object
 
-PUB BaseAddr()
+PUB BaseAddr(): result
 ' Return base address of font table
     return @fontaddr
 
