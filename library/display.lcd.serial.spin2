@@ -6,7 +6,7 @@
     Description: Driver for serial LCDs
         Parallax PNs (#27976, #27977, #27979)
     Started Apr 29, 2006
-    Updated Jun 23, 2020
+    Updated Jul 8, 2020
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is a derivative of Serial_Lcd.spin,
@@ -66,7 +66,7 @@ OBJ
 
 PUB Start(LCD_PIN, LCD_BAUD, LCD_LINES): okay
 
-    if lookdown(LCD_PIN: 0..31)
+    if lookdown(LCD_PIN: 0..63)
         if lookdown(LCD_BAUD: 2400, 9600, 19200)
             if lookdown(LCD_LINES: 2, 4)
                 if okay := serial.StartRxTx(-1, LCD_PIN, 0, LCD_BAUD)   ' tx pin only, true mode
