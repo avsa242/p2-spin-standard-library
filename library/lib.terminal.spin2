@@ -30,7 +30,7 @@ VAR
 PUB Bin(val, digits = 32) | mask
 ' Print a number in binary form
     if digits > 0 and digits < 32
-        mask := (|< digits) - 1
+        mask := (decod digits) - 1
         val &= mask
     Num(val, 2, 0, digits)
 
@@ -48,11 +48,11 @@ PUB Hex(val, digits = 8) | mask
 '   of digits; 0 means just use as many as we need
 
     if digits > 0 and digits < 8
-        mask := (|< (4*digits)) - 1
+        mask := (decod (4*digits)) - 1
         val &= mask
     Num(val, 16, 0, digits)
 
-PUB NewLine
+PUB NewLine()
 ' Print a carriage return and line-feed
     Char(CR)
     Char(LF)
@@ -98,14 +98,14 @@ PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
             q1 := val>>1 ' Divide val by 2
             digit := r1 + 2*(q1 // base)
             val := 2*(q1 / base)
-            if (digit => base)
+            if (digit >= base)
                 val++
                 digit -= base
         else
             digit := val // base
             val := val / base
 
-        if (digit => 0 and digit =< 9)
+        if (digit >= 0 and digit <= 9)
             digit += "0"
         else
             digit := (digit - 10) + "A"
