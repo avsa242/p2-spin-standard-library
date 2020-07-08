@@ -47,9 +47,9 @@ pub seed(intA, intB)
 pub random()
 ''returns a random, uniformly distrubuted float within the range of -1 to 1
   repeat (((spud <<13) >> 30)+1)                        'run the LFSR 1-4 times bassed on center bits of spud.
-    ?sprout
+    sprout := getrnd()
   repeat (((sprout <<23) >> 30)+1)                      'run the LFSR 1-4 times bassed on center bits of sprout.  
-    ?spud
+    spud := getrnd()
   result := Fmul( Ffloat(spud), lfsr_scale)
 
 
@@ -275,8 +275,11 @@ pub sin(singleA): result | a, x, y
   'convert back to a float
   singleA := FFloat( y{get_y})
   'scale output to -1.0 to 1.0 range
-  result := Fmul(singleA, constant(1.0/trig_vector_float))
+  result := Fmul(singleA, TRIG_VEC_FL_RNG)
 
+CON
+
+    TRIG_VEC_FL_RNG = (1.0 / TRIG_VECTOR_FLOAT)
 
 pub cos(singleA): result | a, x, y
 ''use cordic to calculate cos(singleA) where singleA is the angle in radians
@@ -298,7 +301,7 @@ pub cos(singleA): result | a, x, y
   'convert back to a float
   singleA := FFloat(x {get_x})
   'scale output to -1.0 to 1.0 range
-  result := Fmul(singleA, constant(1.0/trig_vector_float))'}
+  result := Fmul(singleA, TRIG_VEC_FLT_RNG)
 
 
 pub tan(singleA): result | a, x, y
