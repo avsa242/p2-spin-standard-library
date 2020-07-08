@@ -58,10 +58,10 @@ VAR
     byte saved_cursor_data
     byte cursor_mask
 
-PRI init_terminal
+PRI init_terminal()
 
-    reset_graphics_state
-    cls
+    reset_graphics_state()
+    cls()
     cursor_visible := 0
     cursor_enabled := 1
     if _cell_size => 4
@@ -75,7 +75,7 @@ PRI init_terminal
     scroll_first := 0
     scroll_last:= _rows-1
 
-PRI reset_graphics_state
+PRI reset_graphics_state()
 
     text_bgcolor := 0
     text_fgcolor := (_cell_size == 8) ? $FFFFFF00 : 7
@@ -88,7 +88,7 @@ PRI copy_line(dest, src) | linelen
     src := _ptr_dispbuffer + src*linelen
     bytemove(dest, src, linelen)
   
-PRI scroll_up | last, i
+PRI scroll_up() | last, i
 
     i := scroll_first
     last := scroll_last
@@ -97,7 +97,7 @@ PRI scroll_up | last, i
         i := i+1
     clear(_cols*last, _cols*(last+1) - 1)
   
-PRI scroll_down | first, i
+PRI scroll_down() | first, i
 
     i := scroll_last
     first := scroll_first
@@ -117,7 +117,7 @@ PUB set_position(x, y)
   
 PUB Char(c) | fg, bg
 
-    concealCursor
+    concealCursor()
     if (state == STATE_NORMAL)
         if (c == 8) ' backspace
             set_position(curx-1, cury)
@@ -142,7 +142,7 @@ PUB Char(c) | fg, bg
             if curx == _cols
                 curx := 0
                 if cury == scroll_last
-                    scroll_up
+                    scroll_up()
                 else
                     cury++
     elseif (state == STATE_ESCAPE)
@@ -153,7 +153,7 @@ PUB Char(c) | fg, bg
         handle_csi(c)
     elseif (state == STATE_IN_PRIV)
         handle_priv(c)
-    revealCursor
+    revealCursor()
     return 1
 
 PRI handle_esc(c) | i
@@ -165,16 +165,16 @@ PRI handle_esc(c) | i
         state := STATE_START_CSI
     elseif (c == "D")
         if cury == scroll_last
-            scroll_up
+            scroll_up()
         else
             cury++
     elseif (c == "M")
         if cury == scroll_first
-            scroll_down
+            scroll_down()
         else
             --cury
     elseif (c == "c")
-        init_terminal
+        init_terminal()
     else
         state := STATE_NORMAL
 
@@ -290,7 +290,7 @@ PUB glyphat(x, y, ch, fgcol, bgcol, effect=0) | bufptr
     else
         byte[bufptr] := ch & $ff
 
-PRI setCursorVisible(yesno) | bufptr, x, y
+PRI setCursorVisible(yesno): result | bufptr, x, y
 
     if cursor_visible == yesno
         return yesno
@@ -329,25 +329,25 @@ PRI setCursorVisible(yesno) | bufptr, x, y
 ' return old cursor state
     return (yesno) ? 0 : 1
 
-PRI concealCursor
+PRI concealCursor()
 
     setCursorVisible(0)
 
-PRI revealCursor
+PRI revealCursor()
 
     setCursorVisible(cursor_enabled)
   
-PUB showCursor
+PUB showCursor()
 '' globals: force cursor on or off
     cursor_enabled := 1
     setCursorVisible(cursor_enabled)
   
-PUB hideCursor
+PUB hideCursor()
 
     cursor_enabled := 0
     setCursorVisible(0)
 
-PUB cls
+PUB cls()
 
     clear(0, _cols*_rows-1)
 
@@ -408,13 +408,13 @@ PRI clear_in_line(n) | startpix, endpix
         endpix := _cols*(cury+1) - 1
     clear(startpix, endpix)
 
-PRI fetcharg(i)
+PRI fetcharg(i): result
 ' get an argument that's already been set up, return -1 if not valid
     if i => argidx
         return -1
     return args[i]
 
-PRI hexdig(i)
+PRI hexdig(i): result
 ' debug routine
     if i =< 10
         return i + "0"
@@ -482,7 +482,7 @@ DAT
         long $7F7F7F00, $FF000000, $00FF0000, $FFFF0000
         long $0000FF00, $FF00FF00, $00FFFF00, $FFFFFF00
 
-PRI AnsiColor(n) | ptr
+PRI AnsiColor(n): result | ptr
 ' look up an ANSI color from the color table
     if char_effects & CHAR_BOLD
         n |= 8
@@ -491,7 +491,7 @@ PRI AnsiColor(n) | ptr
     ptr := @colortab
     return long[ptr + 4*n]
 
-PRI SixColor(x) | r, g, b
+PRI SixColor(x): result | r, g, b
 ' calculate an RGB color from a 6,6,6 encoded 8 bit color
     b := x // 6
     x := x / 6
@@ -502,7 +502,7 @@ PRI SixColor(x) | r, g, b
     b := (255 * b)/6
     return (r<<24) | (g<<16) | b
 
-PUB getrgbcolor(r, g, b)
+PUB getrgbcolor(r, g, b): result
 ' calculate a color value from an r,g,b triple
     if _cell_size =< 4
         r := 16 + 36*(r/51) + 6*(g/51) + (b/51)
@@ -510,7 +510,7 @@ PUB getrgbcolor(r, g, b)
         r := (r<<24 | g<<16 | b<<8)
     return r
 
-PRI GetArgColor(i) : col, newi | r, g, b, code
+PRI GetArgColor(i): col, newi | r, g, b, code
 ' get a color out of arguments
     code := fetcharg(i++)
     if code == 0
