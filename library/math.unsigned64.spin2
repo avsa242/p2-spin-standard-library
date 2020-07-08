@@ -5,7 +5,7 @@
     Author: Philip C. Pilgrim
     Copyright (c) 2008
     Created 2008
-    Updated Jun 24, 2020
+    Updated Jul 8, 2020
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is a derivative of umath.spin by Philip C. Pilgrim.
@@ -31,6 +31,9 @@ CON
     UGT = %100
     EQ  = %010
     ULT = %001
+
+    UGE = UGT | EQ
+    ULE = ULT | EQ
 
 VAR
 
@@ -65,11 +68,11 @@ PUB GT(x,y): result
 
 PUB GE(x,y): result
 '' Return true if x => y unsigned.
-    return CPR(x,y) & constant(UGT | EQ) <> 0
+    return CPR(x,y) & UGE <> 0
 
 PUB LE(x,y): result
 '' Return true if x =< y unsigned.
-    return CPR(x,y) & constant(ULT | EQ) <> 0
+    return CPR(x,y) & ULE <> 0
 
 PUB LT(x,y): result
 '' Return true if x < y unsigned.
