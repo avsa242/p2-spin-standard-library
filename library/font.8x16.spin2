@@ -1,9 +1,11 @@
 {{ font.spin2 }}
 
-PUB get_base
+PUB get_base(): result
+
     result := @fontbase
 
-PUB reverse_font | i, j, k
+PUB reverse_font() | i, j, k
+
   repeat i from 0 to 95 * 16 - 1
     k := word[@fontbase][i]
     k := k >< 16
