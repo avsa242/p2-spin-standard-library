@@ -4,7 +4,7 @@
     Description: SPI engine (smart-pin driven) for the Propeller 2
     Author: Jesse Burt
     Created: Apr 15, 2020
-    Updated: Jun 22, 2020
+    Updated: Jul 8, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -22,8 +22,8 @@
 }}
 CON
 
-    clks        = numBits * 2                               ' XXX hardcoded as original, for now
-    numBits     = 8                                         '
+    CLKS        = NUMBITS * 2                               ' XXX hardcoded as original, for now
+    NUMBITS     = 8                                         '
 
 VAR
 
@@ -46,19 +46,19 @@ PUB Start(SCK, MOSI, MISO, SCK_FREQ)
     if lookdown(MISO: 0..63)
         _dirl(MISO)                                         ' Configure smart pin for MISO
         wrpin(MISO, sp#SYNCSERIAL_RX | sp#SMART_OUT_DRIVE | sp#OUTPUT_DISABLED | sp#BINP_RELPLS1_READ | sp#BINP_TRUE)
-        wxpin(MISO, sp#SAMPLE_A_BEFORE_B + (numBits - 1))
+        wxpin(MISO, sp#SAMPLE_A_BEFORE_B + (NUMBITS - 1))
         _dirh(MISO)
 
     _dirl(MOSI)                                             ' Configure smart pin for MOSI
     wrpin(MOSI, sp#SYNCSERIAL_TX | sp#SMART_OUT_DRIVE | sp#OUTPUT_ENABLED | sp#BINP_RELMIN1_READ | sp#BINP_INVERTED)
-    wxpin(MOSI, sp#START_STOP + (numBits - 1))
+    wxpin(MOSI, sp#START_STOP + (NUMBITS - 1))
 '    wypin(MOSI, $FF)                                       ' XXX Copy from original code - verify function
     _dirh(MOSI)
 
     rdpin(MISO)
     return cogid+1                                          ' Should be the same as parent cog; just need to return nonzero
 
-PUB Stop | SCK, MOSI, MISO
+PUB Stop() | SCK, MOSI, MISO
 ' Reset smart pins - restore I/O pin control to "classic" digital DIR/IN/OUT mode
     longmove(@SCK, @_SCK, 3)
 
@@ -70,14 +70,14 @@ PUB Stop | SCK, MOSI, MISO
     _dirl(MISO)
     _dirl(MOSI)
 
-PUB Read | SCK, MOSI, MISO, tmp
+PUB Read(): result | SCK, MOSI, MISO, tmp
 ' Read a byte from SPI slave
     longmove(@SCK, @_SCK, 3)
     result := tmp := 0
 
     tmp := rdpin(MISO)                                      ' Clear RX buffer (XXX verify)
     tmp := rdpin(SCK)                                       ' XXX Copy from original code - verify function
-    wypin (SCK, clks)                                       ' Clock in data
+    wypin (SCK, CLKS)                                       ' Clock in data
 
     repeat until pinr(SCK)                                  ' Wait until SCK isn't busy
     result := rdpin(MISO)                                   ' Read the clocked in data
@@ -95,7 +95,7 @@ PUB Write(val) | SCK, MOSI, MISO, tmp
 
     wypin(MOSI, val)                                        ' Load the byte to shift out
     tmp := rdpin(SCK)                                       ' XXX Copy from original code - verify function
-    wypin(SCK, clks)                                        ' Start clocking out
+    wypin(SCK, CLKS)                                        ' Start clocking out
     repeat until pinr(SCK)                                  ' Wait until SCK isn't busy
 
 PUB WriteBytes(nr_bytes, buff_addr) | SCK, MOSI, MISO, tmp
@@ -106,10 +106,10 @@ PUB WriteBytes(nr_bytes, buff_addr) | SCK, MOSI, MISO, tmp
     repeat tmp from 0 to nr_bytes-1
         wypin(MOSI, (byte[buff_addr][tmp] << 24) rev 31)
         rdpin(SCK)
-        wypin(SCK, clks)
+        wypin(SCK, CLKS)
         repeat until pinr(SCK)
 
-PRI SPIClockPeriod(SCK_FREQ) : bt
+PRI SPIClockPeriod(SCK_FREQ): bt
 ' Calculate SPI clock period
     bt := ((clkfreq / SCK_FREQ) / 2 ) + 1                   ' SPI bit time
     bt := bt #> 2                                           ' Clamp to a minimum of syclock/2
