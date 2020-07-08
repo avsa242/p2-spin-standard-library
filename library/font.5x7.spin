@@ -2,27 +2,26 @@
     --------------------------------------------
     Filename: font.5x7.spin
     Description: 5x7 bitmap font
-    Author: Jesse Burt
-    Bitmap font author unknown, reference localroger's
-    Conway's Game of Life demo for the P2 8x7 LED Matrix.
-    Copyright (c) 2019
+    Author: Unknown, reference localroger's
+        Conway's Game of Life demo for the P2 8x7 LED Matrix.
+    Modified by: Jesse Burt
     Created: Jun 17, 2019
-    Updated: Jun 17, 2019
+    Updated: Jul 8, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
-' Font definition: width, height in pixels, ASCII code of lowest and highest charactersi
+' Font definition: width, height in pixels, ASCII code of lowest and highest characters
     WIDTH       = 5
     HEIGHT      = 7
     FIRSTCHAR   = 32
     LASTCHAR    = 126
 
-PUB Null
+PUB Null()
 ' This is not a top-level object
 
-PUB BaseAddr
+PUB BaseAddr()
 ' Return base address of font table
     return @fontaddr
 
