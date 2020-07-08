@@ -1,22 +1,25 @@
-' Author: Beau Schwabe
+{
+    --------------------------------------------
+    Filename: RealTimeClockEmulator.spin2
+    Description: Simple demo that sets time of day
+        using the emulated RTC driver and
+        continuously displays the date and time
+    Author: Beau Schwabe
+    Modified by: Jesse Burt
+    Started: Jun 28, 2019
+    Updated: Jul 8, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
 CON
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
 
-    I2C_SCL     = 27
-    I2C_SDA     = 28
-    I2C_HZ      = 100_000
+     _xtlfreq   = cfg._xtlfreq
+     _clkfreq   = cfg._clkfreq_def
 
+' -- User-modifiable constants
     LED         = cfg#LED1
     SER_BAUD    = 2_000_000
+' --
 
     ESC         = 27
 
@@ -24,61 +27,61 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     clock   : "time.rtc.emulated"
-    term    : "com.serial.terminal"
+    ser     : "com.serial.terminal.ansi"
 
 VAR
 
-    long  TimeString
-    byte  SS,MM,HH,AP,DD,MO,YY,LY
-    byte  DateStamp[11], TimeStamp[11]
+    long  _timestring
+    byte  _datestamp[11], _timestamp[11]
 
-PUB Main
+PUB Main()
 
-    clkset(ENAFREQ, CLOCKFREQ)
-    term.Start(SER_BAUD)                            ' Initialize termial communication to the PC
+    ser.start(SER_BAUD)                                     ' Initialize serial communication to the PC
 
-    Clock.Start(@TimeString)                        ' Initiate Prop Clock
+    clock.start(@_timestring)                               ' Initiate Prop clock
 
-    Clock.Suspend                                   ' Suspend Clock while being set
+    clock.suspend()                                         ' Suspend clock while being set
 
-    Clock.SetYear(19)                               ' 00 - 31 ... Valid from 2000 to 2031
-    Clock.SetMonth(06)                              ' 01 - 12 ... Month
-    Clock.SetDate(27)                               ' 01 - 31 ... Date
+    clock.setyear(20)                                       ' 00 - 31 ... Valid from 2000 to 2031
+    clock.setmonth(07)                                      ' 01 - 12 ... Month
+    clock.setdate(08)                                       ' 01 - 31 ... Date
 
-    Clock.SetHour(06)                               ' 01 - 12 ... Hour
-    Clock.SetMin(29)                                ' 00 - 59 ... Minute
-    Clock.SetSec(00)                                ' 00 - 59 ... Second
+    clock.sethour(06)                                       ' 01 - 12 ... Hour
+    clock.setmin(50)                                        ' 00 - 59 ... Minute
+    clock.setsec(00)                                        ' 00 - 59 ... Second
 
-    Clock.SetAMPM(1)                                ' 0 = AM ; 1 = PM
+    clock.setampm(1)                                        ' 0 = AM ; 1 = PM
 
-    Clock.Restart                                   ' Start Clock after being set
+    clock.restart()                                         ' Start clock after being set
 
-    Clear
+    ser.clear()
     repeat
-        Clock.ParseDateStamp(@DateStamp)
-        Clock.ParseTimeStamp(@TimeStamp)
+        clock.parsedatestamp(@_datestamp)
+        clock.parsetimestamp(@_timestamp)
 
-        Position(0, 0)
-        term.Str(@DateStamp)
-        term.Str(string("  "))
-        term.Str(@TimeStamp)
+        ser.position(0, 0)
+        ser.str(@_datestamp)
+        ser.str(string("  "))
+        ser.str(@_timestamp)
 
-PUB Clear
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
 
-    CSI
-    term.Char ("2")
-    term.Char ("J")
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
 
-PUB CSI
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
 
-    term.Char (27)
-    term.Char ("[")
-
-PUB Position(x, y)
-' Position cursor at column x, row y (from top-left).
-    CSI
-    term.Dec (y)
-    term.Char (";")
-    term.Dec (x)
-    term.Char ("f")
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
 
