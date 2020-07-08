@@ -5,7 +5,7 @@
     Description: Methods for setting the state of IO pins
     Copyright (c) 2020
     Started Jun 16, 2019
-    Updated Jun 22, 2020
+    Updated Jul 8, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -17,10 +17,6 @@ CON
     IO_HIGH     = 1
     IO_LOW      = 0
 
-OBJ
-
-    time        : "time"
-
 PUB Direction(pin, direction)
 ' Set IO pin to input (0) or output (1)
     _dirw(pin, direction)
@@ -29,10 +25,10 @@ PUB High(pin)
 ' Sets IO pin high
     _out(pin, 1)
 
-PUB Input(pin)
+PUB Input(pin): result
 ' Sets IO pin to an input and returns the current state
     _dirw(pin, 0)
-    return _pinr(pin)
+    return pinr(pin)
 
 PUB Low(pin)
 ' Sets IO pin low
@@ -48,5 +44,5 @@ PUB Set(pin, state)
 
 PUB Toggle(pin)
 ' Toggles IO pin high/low
-    drvnot_(pin)
+    pint(pin)
 
