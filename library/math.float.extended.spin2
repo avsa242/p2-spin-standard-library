@@ -151,12 +151,12 @@ pub log2(singleA): result | s, x, m, temp, work, idx
   if singleA == 0               'trap error with zero input.
     return nan_con              'should output -inf instead
   
-  m ~>= 1                       'divide mantissa by 2 so it ranges from 0.5 to .99999999999
+  m sar= 1                      'divide mantissa by 2 so it ranges from 0.5 to .99999999999
   x += 1                        'adjust integer portion of result for the mantissa division
 
   work := 0                     'start with a fractional portion of zero
   repeat idx from 1 to 24'29
-    temp := m + m ~> idx        'multiply 'm' by a "nice" number and temperarialy store the result
+    temp := m + m sar idx        'multiply 'm' by a "nice" number and temperarialy store the result
     if temp < mantissa_one           'if temp is less than a mantissa of 1
       m := temp                 'keep the updated value of 'm'
       work -= exp_lut[idx-1]    'adjust work to match
@@ -169,9 +169,9 @@ pub log2(singleA): result | s, x, m, temp, work, idx
   if x < 0
     s := 1
   x := abs(x)                   'take the absolute value of the integer portion
-  temp := 0 #> ((>|x) -1)              'what's the msb of "x"
+  temp := 0 #> ((encod x) -1)              'what's the msb of "x"
   m := x << (29-temp)           'justify x to bit_29  
-  work ~>= temp                 'allign fractional part with x
+  work sar= temp                 'allign fractional part with x
   if s                          'if 'x' was negative, subtract fractional part
     m -= work
   else                          'if 'x' was posative add fractional part
@@ -193,7 +193,7 @@ pub exp2(singleA): result | s, x, m, temp, work, idx
   s := singleA >> 31             'unpack sign
   singleA := singleA & $7FFF_FFFF 'clear the sign bit.  aka abs()
   x := Ftrunc(singleA)          'get the integer portion of the input which is the exponent of the result
-  if x => 127                   'if result would excede the size of a float
+  if x >= 127                   'if result would excede the size of a float
     return nan_con              'return NaN for now, should return +infinity?
   m := frac_int(singleA)        'get the fractional part of the input
   'start core calculation      
@@ -205,7 +205,7 @@ pub exp2(singleA): result | s, x, m, temp, work, idx
       work += work >> idx       'multiply work by the corresponding "nice" number
   'use small value approximation to correct residual error (only gives 1-2 bits extra so not worth the effort)
   {m := 1<<29 + m                'relative error is exp(m) which for small values is approximately 1+m.
-  work := (work ** m) << 3      'multiply by error correction  }
+  work := (work scas m) << 3      'multiply by error correction  }
   
   'move result into mantissa
   m := work
@@ -343,16 +343,16 @@ pub atan2(singleA, singleB): result | sa, xa, ma, sb, xb, mb, a, x, y
 
   result := abs(xa - xb) <# 31  'get exponent difference
   if xa > xb                    'shift lower-exponent mantissa down
-    mb ~>= result
+    mb sar= result
   else
-    ma ~>= result
+    ma sar= result
     xa := xb
 
   'feed to cordic code
   ma += 1                       'round instead of truncate
   mb += 1                       'round instead of truncate
-  ma ~>= 1                      'avoid overflows in the CORDIC code
-  mb ~>= 1
+  ma sar= 1                      'avoid overflows in the CORDIC code
+  mb sar= 1
   
   'cor(0, ma, mb, 1)           'feed the inputs to the CORDIC code in Atan2 mode
   a := 0
@@ -363,7 +363,7 @@ pub atan2(singleA, singleB): result | sa, xa, ma, sb, xb, mb, a, x, y
 
   're-scale and output the angle
   result += 1                   'round instead of truncate
-  result ~>= 1                  'keep the resulting angles in the valid range for FFloat
+  result sar= 1                  'keep the resulting angles in the valid range for FFloat
   result := Fmul(FFloat(result), cordic_to_rad)  'convert back to radians.
 
 
@@ -435,7 +435,7 @@ pub cordic(ptr, mode) | negate, i, da, dx, dy, a, x, y
 '' CORDIC algorithm
 ''
 '' if mode = 0: x,y are rotated by angle in a
-'' if mode = 1: x,y are converted from cartesian to polar with angle->a, length->x
+'' if mode = 1: x,y are converted from cartesian to polar with anglerora, lengthrorx
 ''
 ''   - angle range: $00000000-$FFFFFFFF = 0-359.9999999 degrees
 ''   - hypotenuse of x,y must be within ±1_300_000_000 to avoid overflow
@@ -459,13 +459,13 @@ pub cordic(ptr, mode) | negate, i, da, dx, dy, a, x, y
 
   repeat i from 0 to 26         'do CORDIC iterations (27 is optimal for 32-bit values)
     da := corlut[i]
-    dx := y ~> i
-    dy := x ~> i
+    dx := y sar i
+    dy := x sar i
 
     if mode
       negate := y < 0           'if atan2 mode, drive y towards 0
     else
-      negate := a => 0          'if rotate mode, drive a towards 0
+      negate := a >= 0          'if rotate mode, drive a towards 0
 
     if negate
       -da
@@ -478,8 +478,8 @@ pub cordic(ptr, mode) | negate, i, da, dx, dy, a, x, y
 
   'remove CORDIC gain by multiplying by ~0.60725293500888        
   i := $4DBA76D4  
-  x := (x ** i) << 1 + (x * i) >> 31                           
-  y := (y ** i) << 1 + (y * i) >> 31
+  x := (x scas i) << 1 + (x * i) >> 31
+  y := (y scas i) << 1 + (y * i) >> 31
 
   'copy out data
   longmove(ptr, @a, 3)          'move local a,x,y structure into calling a,x,y structure 
@@ -519,7 +519,7 @@ PUB FFloat(integer): single | s, x, m
 ''Convert integer to float
   if m := abs(integer)          'absolutize mantissa, if 0, result 0
     s := integer >> 31          'get sign
-    x := >|m - 1                'get exponent
+    x :=  encod m - 1                'get exponent
     m <<= 31 - x                'msb-justify mantissa
     m >>= 2                     'bit29-justify mantissa
 
@@ -575,7 +575,7 @@ pri frac_int(singleA): int | s, x, m
   unpack(@s, singleA)           'unpack the float
   'if x < 0                      'if NaN do nothing, if exponent < 0 there is no whole part so input is already a fraction, return singleA
   '  return singleA'pack(@s)
-  if x => 0                     'input is greater than 1.
+  if x >= 0                     'input is greater than 1.
     x := x <# 23                  'if exponent is larger than 23, we have no fractional significant figures
     m <<= x                       'shift mantissa left by exponent
     m &= Mask29                   'mask off extra bits
@@ -604,17 +604,17 @@ PUB FAbsNeg(singleA): single
 
 PUB FSqr(singleA): single | s, x, m, root
 ''Compute square root of singleA
-  if singleA > 0                'if a =< 0, result 0
+  if singleA > 0                'if a <= 0, result 0
 
     Unpack(@s, singleA)         'unpack input
 
     m >>= !x & 1                'if exponent even, shift mantissa down
-    x ~>= 1                     'get root exponent
+    x sar= 1                     'get root exponent
 
     root := $4000_0000          'compute square root of mantissa
     repeat 31
       result |= root
-      if result ** result > m
+      if result scas result > m
         result ^= root
       root >>= 1
     m := result >> 1
@@ -636,9 +636,9 @@ PUB FAdd(singleA, singleB): single | sa, xa, ma, sb, xb, mb
 
   result := abs(xa - xb) <# 31  'get exponent difference
   if xa > xb                    'shift lower-exponent mantissa down
-    mb ~>= result
+    mb sar= result
   else
-    ma ~>= result
+    ma sar= result
     xa := xb
 
   ma += mb                      'add mantissas
@@ -660,7 +660,7 @@ PUB FMul(singleA, singleB): single | sa, xa, ma, sb, xb, mb
 
   sa ^= sb                      'xor signs
   xa += xb                      'add exponents
-  ma := (ma ** mb) << 3         'multiply mantissas and justify
+  ma := (ma scas mb) << 3         'multiply mantissas and justify
 
   return Pack(@sa)              'pack result
 
@@ -675,7 +675,7 @@ PUB FDiv(singleA, singleB): single | sa, xa, ma, sb, xb, mb
 
   repeat 30                     'divide mantissas
     result <<= 1
-    if ma => mb
+    if ma >= mb
       ma -= mb
       result++        
     ma <<= 1
@@ -704,7 +704,7 @@ PRI FInteger(singleA, r): integer | s, x, m
 
   Unpack(@s, singleA)                 'unpack input
 
-  if x => -1 and x =< 30        'if exponent not -1..30, result 0
+  if x >= -1 and x <= 30        'if exponent not -1..30, result 0
     m <<= 2                     'msb-justify mantissa
     m >>= 30 - x                'shift down to 1/2-lsb
     m += r                      'round (1) or truncate (0)
@@ -725,7 +725,7 @@ Pri Unpack(pointer, single): result | s, x, m
   if x                          'if exponent > 0,
     m := m << 6 | $2000_0000    '..bit29-justify mantissa with leading 1
   else
-    result := >|m - 23          'else, determine first 1 in mantissa
+    result :=  encod m - 23          'else, determine first 1 in mantissa
     x := result                 '..adjust exponent
     m <<= 7 - result            '..bit29-justify mantissa
 
@@ -742,7 +742,7 @@ pri Pack(pointer): single | s, x, m
 
   if m                          'if mantissa 0, result 0
   
-    result := 33 - >|m          'determine magnitude of mantissa
+    result := 33 - encod m          'determine magnitude of mantissa
     m <<= result                'msb-justify mantissa without leading 1
     x += 3 - result             'adjust exponent
 
@@ -755,7 +755,7 @@ pri Pack(pointer): single | s, x, m
     if x < 1                    'if exponent < 1,
       m := $8000_0000 +  m >> 1 '..replace leading 1
       m >>= -x                  '..shift mantissa down by exponent
-      x~                        '..exponent is now 0
+      x := 0                    '..exponent is now 0
 
     return s << 31 | x << 23 | m >> 9 'pack result
 
