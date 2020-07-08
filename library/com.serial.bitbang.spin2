@@ -6,7 +6,7 @@
     Description: Bitbanged UART serial driver
     Copyright (c) 2020
     Started Mar 22, 2020
-    Updated Mar 22, 2020
+    Updated Jul 8, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -47,34 +47,34 @@ PUB StartRXTX(rx_pin, tx_pin, mode, baudrate)
 
 PUB Char(c) | val, waitcycles
 
-    OUTB |= txmask
-    DIRB |= txmask
+    outb |= txmask
+    dirb |= txmask
     val := (c | 256) << 1
-    waitcycles := CNT + bitcycles
+    waitcycles := getct() + bitcycles
     repeat 10
         waitcycles += bitcycles
         waitcnt(waitcycles)
         if (val & 1)
-            OUTB |= txmask
+            outb |= txmask
         else
-            OUTB &= !txmask
+            outb &= !txmask
         val >>= 1
 
-PUB CharIn | waitcycles, cycles, mask, val, x
+PUB CharIn() | waitcycles, cycles, mask, val, x
 
     mask := rxmask
     cycles := bitcycles
-    DIRB &= !mask  ' set for input
+    dirb &= !mask  ' set for input
     '' wait for start bit
     repeat
-        x := INB
+        x := inb
     while ( (x & mask) <> 0 )
     val := $0
-    waitcycles := CNT + (cycles >> 1)  '' sync for one half bit
+    waitcycles := getct() + (cycles >> 1)  '' sync for one half bit
     repeat 8
         val := val >> 1
         waitcnt(waitcycles += cycles)
-        x := INB
+        x := inb
         if ( (x & mask) <> 0 )
             val |= $80
     '' wait for stop bit?
