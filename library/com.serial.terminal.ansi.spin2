@@ -67,7 +67,7 @@ PUB HexIn(): result
 PUB ReadLine(line, maxline): size | c
 ' Read a string, terminated by a carriage return or line-feed, up to maxline length
     repeat
-        case c := CharIn
+        case c := CharIn()
             BS:     if size
                         size--
                         ser.Char(c)
