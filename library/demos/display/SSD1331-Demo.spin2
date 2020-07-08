@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started: Nov 3, 2019
-    Updated: Jun 23, 2020
+    Updated: Jul 8, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -426,7 +426,7 @@ PUB Demo_Wander(testtime) | iteration, x, y, d, c
                 y -= 2
                 if y < 0
                     y := YMAX
-        c := (?_rndseed >> 26) << 11 | (?_rndseed >> 25) << 5 | (?_rndseed >> 26)
+        c := (rnd(31) << 11) | (rnd(63) << 5) | (rnd(31))
         oled.Plot (x, y, c)
         oled.Update()
         iteration++
