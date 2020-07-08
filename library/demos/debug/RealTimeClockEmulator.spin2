@@ -23,7 +23,7 @@ CON
 OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
-    clock   : "debug.emulator.rtc"
+    clock   : "time.rtc.emulated"
     term    : "com.serial.terminal"
 
 VAR
