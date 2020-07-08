@@ -245,7 +245,7 @@ PUB Process | i
 
     repeat while argv[argc]
 
-        if argc => MAX_ARGUMENTS
+        if argc >= MAX_ARGUMENTS
             return ERROR_MAX_ARGS
 
         if (i := MatchOption(argv[argc])) > -1
@@ -257,7 +257,7 @@ PUB Process | i
                     return ERROR_MISSING_PARAMETER
                     next
 
-                if argc => MAX_ARGUMENTS
+                if argc >= MAX_ARGUMENTS
                     return ERROR_MAX_ARGS
 
                 if IsOption(argc)
@@ -338,7 +338,7 @@ PUB AddPositionalArgument(cmd, name, description)
     argument per command.
 }}
 
-    if cmd => 0 and cmd < MAX_COMMANDS
+    if cmd >= 0 and cmd < MAX_COMMANDS
         command_positional_argument_name[cmd] := name
         command_positional_argument_description[cmd] := description
 
