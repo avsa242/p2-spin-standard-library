@@ -1,18 +1,12 @@
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
+     _xtlfreq   = cfg._xtlfreq
+     _clkfreq   = cfg._clkfreq_def
 
+' -- User-modifiable constants
     LED         = cfg#LED1
     SER_BAUD    = 2_000_000
+' --
 
 OBJ
 
@@ -20,44 +14,43 @@ OBJ
     term  : "com.serial.terminal"
     ss    : "string.type"
 
-PUB Main
+PUB Main()
 
-    clkset(ENAFREQ, CLOCKFREQ)
-    term.Start(SER_BAUD)
+    term.start(SER_BAUD)
 
-    TestString(string("BACON"))
-    TestString(string("bacon"))
-    TestString(string("34545"))
-    TestString(string("345aaaa"))
-    TestString(string("       "))
+    teststring(string("BACON"))
+    teststring(string("bacon"))
+    teststring(string("34545"))
+    teststring(string("345aaaa"))
+    teststring(string("       "))
     repeat
 
-PUB TestString(stringptr)
+PUB Teststring(stringptr)
 
-    term.Str    (string("        String: "))
-    term.Str    (stringptr)
-    term.Str    (string(10, 13))
+    term.str    (string("        string: "))
+    term.str    (stringptr)
+    term.newline()
 
-    term.Str    (string("----------------------", 10, 13))
-    PrintOutcome(string("  Alphanumeric"),ss.IsAlphaNumeric   (stringptr))
-    PrintOutcome(string("         Alpha"),ss.IsAlpha          (stringptr))
-    PrintOutcome(string("         Digit"),ss.IsDigit          (stringptr))
-    PrintOutcome(string("         Lower"),ss.IsLower          (stringptr))
-    PrintOutcome(string("         Upper"),ss.IsUpper          (stringptr))
-    PrintOutcome(string("         Space"),ss.IsSpace          (stringptr))
-    term.Str    (string("----------------------"))
-
-    term.Str    (string(10, 13, 10, 13))
+    term.str    (string("----------------------", term#CR, term#LF))
+    printoutcome(string("  Alphanumeric"), ss.IsAlphaNumeric(stringptr))
+    printoutcome(string("         Alpha"), ss.IsAlpha(stringptr))
+    printoutcome(string("         Digit"), ss.IsDigit(stringptr))
+    printoutcome(string("         Lower"), ss.IsLower(stringptr))
+    printoutcome(string("         Upper"), ss.IsUpper(stringptr))
+    printoutcome(string("         Space"), ss.IsSpace(stringptr))
+    term.str    (string("----------------------"))
+    term.newline()
+    term.newline()
 
 PUB PrintOutcome(stringptr, outcome)
 
-    term.Str (stringptr)
-    term.Str (string(": "))
+    term.str (stringptr)
+    term.str (string(": "))
 
     if outcome
-        term.Str (string("true"))
+        term.str (string("true"))
     else
-        term.Str (string("false"))
+        term.str (string("false"))
 
-    term.Str(string(10, 13))
+    term.newline()
 
