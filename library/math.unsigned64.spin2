@@ -5,7 +5,7 @@
     Author: Philip C. Pilgrim
     Copyright (c) 2008
     Created 2008
-    Updated Jul 8, 2020
+    Updated Jul 9, 2020
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is a derivative of umath.spin by Philip C. Pilgrim.
@@ -49,7 +49,7 @@ PUB MultDiv(x, num, denom): result
 PUB Div(dvndh, dvndl, dvsr): result | carry, quotient
 '' Divide the 64-bit dividend, dvdnh:dvndl by the 32-bit divisor, dvsr,
 '' returning a 32-bit quotient. Returns 0 on overflow.
-    quotient~
+    quotient := 0
     if (GE(dvndh, dvsr))
         return 0
     repeat 32
@@ -80,7 +80,7 @@ PUB LT(x,y): result
   
 PRI Mult(mplr, mpld) | umplr, umpld
 
-    _producth := (mplr & $7fff_ffff) ** (mpld & $7fff_ffff)
+    _producth := (mplr & $7fff_ffff) scas (mpld & $7fff_ffff)
     _productl := (mplr & $7fff_ffff) * (mpld & $7fff_ffff)
     if (mplr < 0)
         DAdd(_producth, _productl, mpld >> 1, mpld << 31)
