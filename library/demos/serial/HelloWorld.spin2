@@ -1,44 +1,37 @@
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
+     _xtlfreq   = cfg._xtlfreq
+     _clkfreq   = cfg._clkfreq_def
 
-    LED         = cfg#LED1
+' -- User-definable constants
+    LED         = cfg.LED1
     SER_BAUD    = 2_000_000
+' --
 
 OBJ
 
     cfg : "core.con.boardcfg.p2eval"
     ser : "com.serial.terminal"
 
-PUB Main
+PUB Main()
 
-    clkset(ENAFREQ, CLOCKFREQ)
-    ser.Start(SER_BAUD)
+    ser.start(SER_BAUD)
 
-    ser.Char("H")
-    ser.Char("e")
-    ser.Char("l")
-    ser.Char("l")
-    ser.Char("o")
-    ser.Char(" ")
-    ser.Char("w")
-    ser.Char("o")
-    ser.Char("r")
-    ser.Char("l")
-    ser.Char("d")
-    ser.Char("!")
-    ser.Char(10)
-    ser.Char(13)
+    ser.char("H")
+    ser.char("e")
+    ser.char("l")
+    ser.char("l")
+    ser.char("o")
+    ser.char(" ")
+    ser.char("w")
+    ser.char("o")
+    ser.char("r")
+    ser.char("l")
+    ser.char("d")
+    ser.char("!")
+    ser.newline
 
-    ser.Str(string("Hello world!", 10, 13))
+    ser.str(string("Hello world!", ser.CR, ser.LF))
 
+    ser.printf("Hello world!\n")
     repeat
