@@ -4,7 +4,7 @@ CON
      _clkfreq   = cfg._clkfreq_def
 
 ' -- User-modifiable constants
-    LED         = cfg#LED1
+    LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 ' --
 
@@ -31,7 +31,7 @@ PUB Teststring(stringptr)
     term.str    (stringptr)
     term.newline()
 
-    term.str    (string("----------------------", term#CR, term#LF))
+    term.str    (string("----------------------", term.CR, term.LF))
     printoutcome(string("  Alphanumeric"), ss.IsAlphaNumeric(stringptr))
     printoutcome(string("         Alpha"), ss.IsAlpha(stringptr))
     printoutcome(string("         Digit"), ss.IsDigit(stringptr))
