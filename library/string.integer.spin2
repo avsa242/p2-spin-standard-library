@@ -6,7 +6,7 @@
     Description: Library of simple numeric conversion methods
     Copyright (c) 2020
     Started Dec 14, 2019
-    Updated Jul 5, 2020
+    Updated Jul 9, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -149,7 +149,7 @@ PRI DecToStr(value): result | div, z_pad
             nstr[idx++] := (value / div + "0")            '   yes, print ASCII digit
             value //= div                                 '   update value
             z_pad := -1                                   '   set zflag
-        elseif z_pad || (div == 1)                        ' printing or last column?
+        elseif z_pad or (div == 1)                        ' printing or last column?
             nstr[idx++] := "0"
         div /= 10
 
@@ -193,8 +193,8 @@ PUB StrToBase(stringptr, base): value | chr, index
     value := index := 0
     repeat until ((chr := byte[stringptr][index++]) == 0)
         chr := -15 + --chr & %11011111 + 39*(chr > 56)    ' Make "0"-"9","A"-"F","a"-"f" be 0 - 15, others out of range
-        if (chr > -1) && (chr < base)                    ' Accumulate valid values into result; ignore others
+        if (chr > -1) and (chr < base)                    ' Accumulate valid values into result; ignore others
             value := value * base + chr
-    if (base == 10) && (byte[stringptr] == "-")          ' If decimal, address negative sign; ignore otherwise
+    if (base == 10) and (byte[stringptr] == "-")          ' If decimal, address negative sign; ignore otherwise
         value := - value
 
