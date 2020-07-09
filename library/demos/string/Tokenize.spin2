@@ -1,19 +1,14 @@
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
+     _xtlfreq   = cfg._xtlfreq
+     _clkfreq   = cfg._clkfreq_def
+
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
+' --
 
 OBJ
 
@@ -23,20 +18,19 @@ OBJ
 
 VAR
 
-    word    tokenptr
+    word    _tokenptr
 
-PUB Main
+PUB Main()
 
-    clkset(ENAFREQ, CLOCKFREQ)
-    term.Start (SER_BAUD)
+    term.start (SER_BAUD)
 
-    tokenptr := str.Tokenize (@magicstring)
+    _tokenptr := str.tokenize (@magicstring)
 
-    repeat while tokenptr
-        term.Str (tokenptr)
-        term.Str(string(10, 13))
-        tokenptr := str.Tokenize (0)
+    repeat while _tokenptr
+        term.str (_tokenptr)
+        term.newline()
+        _tokenptr := str.tokenize (0)
 
 DAT
 
-magicstring     byte    "this string needs to be tokenized!",0
+    magicstring     byte    "this string needs to be tokenized!",0
