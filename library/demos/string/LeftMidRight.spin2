@@ -25,13 +25,13 @@ PUB Main()
 
     term.start (SER_BAUD)
 
-    term.str ( str.left (@str1, @dinosaur, 4))
+    term.str (str.left (@str1, @dinosaur, 4))
     term.newline()
 
-    term.str ( str.mid (@str1, @dinosaur, 5, 9))
+    term.str (str.mid (@str1, @dinosaur, 5, 9))
     term.newline()
 
-    term.str ( str.right (@str1, @dinosaur, 6))
+    term.str (str.right (@str1, @dinosaur, 6))
     term.newline()
 
     str.copy (@str1, str.left (@strtemp, @dinosaur, 2))
