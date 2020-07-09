@@ -1,20 +1,14 @@
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
+     _xtlfreq   = cfg._xtlfreq
+     _clkfreq   = cfg._clkfreq_def
 
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
+' --
 
 OBJ
 
@@ -22,32 +16,28 @@ OBJ
     term : "com.serial.terminal"
     str  : "string"
 
-VAR
+PUB Main()
 
-    byte    str1[32]
-
-PUB Main
-
-    clkset(ENAFREQ, CLOCKFREQ)
-    term.Start (SER_BAUD)
+    term.start (SER_BAUD)
 
     ' Create a string with the string() command
 
-    term.Str (string("String!"))
-    term.Str (string(10, 13))
+    term.str (string("String!"))
+    term.newline()
 
     ' Create a string in a DAT block and use the address.
 
-    term.Str (@magicstring)
-    term.Str (string(10, 13))
+    term.str (@magicstring)
+    term.newline()
 
     ' Get the size of a string with strsize()
 
-    term.Dec (strsize(@magicstring))
-    term.Str (string(10, 13))
+    term.dec (strsize(@magicstring))
+    term.newline()
 
     repeat
 
 DAT
 
-    magicstring     byte    "another string!",0
+    magicstring     byte    "another string!", 0
+
