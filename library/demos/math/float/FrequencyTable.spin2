@@ -5,19 +5,13 @@
 }}
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
+     _xtlfreq   = cfg._xtlfreq
+     _clkfreq   = cfg._clkfreq_def
 
+' -- User-modifiable constants
     LED         = cfg#LED1
     SER_BAUD    = 2_000_000
+' --
 
 OBJ
 
@@ -27,29 +21,22 @@ OBJ
     fs    : "string.float"
     num   : "string.integer"
 
-PUB Main | idx, f0, fn, a, n
+PUB Main() | idx, f0, fn, a, n
 
-    clkset(ENAFREQ, CLOCKFREQ)
-    term.Start(SER_BAUD)
+    term.start(SER_BAUD)
 
-    f0 := fp.FFloat (440)
-    a  := fp.Pow (fp.FFloat(2), fp.FDiv (fp.FFloat(1), fp.FFloat (12)))
+    f0 := fp.ffloat (440)
+    a  := fp.pow (fp.ffloat(2), fp.fdiv (fp.ffloat(1), fp.ffloat (12)))
 
-    term.Str(string("f(x) = f0*(2^(1/12))^n, x = (0, 60)"))
-    term.Char(10)
-    term.Char(13)
-    term.Str(string("     x   f(x)"))
-    term.Char(10)
-    term.Char(13)
+    term.printf("f(x) = f0*(2^(1/12))^n, x = (0, 60)\n")
+    term.printf("     x   f(x)\n")
  
     repeat idx from 0 to 60
+        n := fp.ffloat (idx)
+        fn := fp.fmul (f0, fp.pow (a, n))
 
-        n := fp.FFloat (idx)
-        fn := fp.FMul (f0, fp.Pow (a, n))
-
-        term.Str(string("   "))
-        term.Str(num.DecPadded(idx, 3))
-        term.Str(string("   "))
-        term.Str(fs.FloatToString(fn))
-        term.Char(10)
-        term.Char(13)
+        term.printf("   ")
+        term.str(num.decpadded(idx, 3))
+        term.printf("   ")
+        term.str(fs.floattostring(fn))
+        term.newline()
