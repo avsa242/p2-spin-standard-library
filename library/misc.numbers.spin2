@@ -118,7 +118,7 @@ PRI BCXToText(IChar, Group, ShowPlus, SPad, Field, Digits): Size | Idx, GCnt, SC
 PRI InBaseRange(Char, Base): Value
 'Compare Char against valid characters for Base (1..16) (adjusting for lower-case automatically).
 'Returns 0 if Char outside valid Base chars or, if valid, returns corresponding Value+1.
-   Value := ( Value -= (Char - $2F) * (Char => "0" and Char =< "9") + ((Char &= $DF) - $36) * (Char => "A" and Char =< "F") ) * -(Value < ++Base)
+   Value := ( Value -= (Char - $2F) * (Char >= "0" and Char <= "9") + ((Char &= $DF) - $36) * (Char >= "A" and Char <= "F") ) * -(Value < ++Base)
 
 
 DAT
