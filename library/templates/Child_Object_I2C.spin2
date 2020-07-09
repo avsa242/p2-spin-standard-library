@@ -25,7 +25,6 @@ OBJ
 
     i2c : "com.i2c"                                                 ' PASM I2C Driver
     core: "core.con.your_i2c_device_here"                           ' File containing your device's reg_nrister set
-    time: "time"                                                    ' Basic timing functions
 
 PUB Null()
 ''This is not a top-level object
@@ -33,10 +32,10 @@ PUB Null()
 PUB Start(SCL_PIN, SDA_PIN, I2C_HZ=100_000): okay
 
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ =< core.I2C_MAX_FREQ
-            if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)         ' I2C Object Started?
-                time.MSleep (1)
-                if i2c.Present (SLAVE_WR)                           ' Response from device?
+        if I2C_HZ <= core.I2C_MAX_FREQ
+            if okay := i2c.setup (SCL_PIN, SDA_PIN, I2C_HZ)         ' I2C Object Started?
+                waitms (1)
+                if i2c.present (SLAVE_WR)                           ' Response from device?
                     return okay
 
     return FALSE                                                    ' If we got here, something went wrong
@@ -45,36 +44,36 @@ PUB Stop()
 ' Put any other housekeeping code here required/recommended by your device before shutting down
 
 PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp
-'' Read num_bytes from the slave device into the address stored in buff_addr
+'' read num_bytes from the slave device into the address stored in buff_addr
     case reg_nr                                                     ' Basic reg_nrister validation
         $00..$FF:                                                   ' Consult your device's datasheet!
             cmd_packet.byte[0] := SLAVE_WR
             cmd_packet.byte[1] := reg_nr
-            i2c.Start()                                             ' S
+            i2c.start()                                             ' S
             repeat tmp from 0 to 1
-                i2c.Write (cmd_packet.byte[tmp])                    ' SL|W, reg_nr
+                i2c.write (cmd_packet.byte[tmp])                    ' SL|W, reg_nr
 
-            i2c.Start()                                             ' Rs
-            i2c.Write (SLAVE_RD)                                    ' SL|R
+            i2c.start()                                             ' Rs
+            i2c.write (SLAVE_RD)                                    ' SL|R
             repeat tmp from 0 to nr_bytes-1
-                byte[buff_addr][tmp] := i2c.Read(tmp == nr_bytes-1) ' R 0..n, NAK last byte to signal complete
-            i2c.Stop()                                              ' P
+                byte[buff_addr][tmp] := i2c.read(tmp == nr_bytes-1) ' R 0..n, NAK last byte to signal complete
+            i2c.stop()                                              ' P
         OTHER:
             return
 
 PRI writeReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp
-'' Write num_bytes to the slave device from the address stored in buff_addr
+'' write num_bytes to the slave device from the address stored in buff_addr
     case reg_nr                                                     ' Basic reg_nrister validation
         $00..$FF:                                                   ' Consult your device's datasheet!
             cmd_packet.byte[0] := SLAVE_WR
             cmd_packet.byte[1] := reg_nr
-            i2c.Start()                                             ' S
+            i2c.start()                                             ' S
             repeat tmp from 0 to 1
-                i2c.Write(cmd_packet.byte[tmp])                     ' SL|W, reg_nr
+                i2c.write(cmd_packet.byte[tmp])                     ' SL|W, reg_nr
 
             repeat tmp from 0 to nr_bytes-1
-                i2c.Write (byte[buff_addr][tmp])                    ' W 0..n
-            i2c.Stop()                                              ' P
+                i2c.write (byte[buff_addr][tmp])                    ' W 0..n
+            i2c.stop()                                              ' P
         OTHER:
             return
 

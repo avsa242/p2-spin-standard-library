@@ -21,54 +21,52 @@ OBJ
 
     spi : "com.spi.bitbang-fast"                            ' PASM SPI Driver
     core: "core.con.your_spi_device_here"                   ' File containing your device's reg_nrister set
-    time: "time"                                            ' Basic timing functions
-    io  : "io"
 
 PUB Null()
 ''This is not a top-level object
 
 PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ): okay
 
-    if SCK_DELAY => 1
+    if SCK_DELAY >= 1
         if okay := spi.Start (MOSI_PIN, MISO_PIN, SCK_HZ, core.SCK_CPOL)    ' SPI Object Started?
-            time.MSleep (1)                                 ' Add startup delay appropriate to your device (consult its datasheet)
+            waitms (1)                                      ' Add startup delay appropriate to your device (consult its datasheet)
             _CS := CS_PIN
             _MOSI := MOSI_PIN
             _MISO := MISO_PIN
             _SCK := SCK_PIN
 
-            io.High(_CS)
+            pinh(_CS)
 
             return okay
 
     return FALSE                                            ' If we got here, something went wrong
 
-PRI readReg(reg_nr, nr_bytes, buf_addr) | i
+PRI readReg(reg_nr, nr_bytes, buff_addr) | i
 ' Read nr_bytes from reg_nrister 'reg_nr' to address 'buf_addr'
 
 ' Handle quirky reg_nristers on a case-by-case basis
     case reg_nr
-        core#REG_NAME:
+        core.REG_NAME:
             'Special handling for reg_nrister REG_NAME
         OTHER:
 
-    io.Low(_CS)
-    spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr)
+    pinl(_CS)
+    spi.write(_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
 
     repeat i from 0 to nr_bytes-1
-        byte[buf_addr][i] := spi.Read(_MISO, _SCK, core#MISO_BITORDER, 8)
-    io.High(_CS)
+        byte[buff_addr][i] := spi.read(_MISO, _SCK, core.MISO_BITORDER, 8)
+    pinh(_CS)
 
-PRI writeReg(reg_nr, nr_bytes, buf_addr) | i
+PRI writeReg(reg_nr, nr_bytes, buff_addr) | i
 ' Write nr_bytes to reg_nrister 'reg_nr' stored at buf_addr
 
-    io.Low(_CS)
-    spi.Write(_MOSI, _SCK, core#MOSI_BITORDER, 8, reg_nr)
+    pinl(_CS)
+    spi.write(_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
 
     repeat i from 0 to nr_bytes-1
-        spi.Write(_MOSI, _SCK, core#MISO_BITORDER, 8, byte[buf_addr][i])
+        spi.write(_MOSI, _SCK, core.MISO_BITORDER, 8, byte[buff_addr][i])
 
-    io.High(_CS)
+    pinh(_CS)
 
 DAT
 {
