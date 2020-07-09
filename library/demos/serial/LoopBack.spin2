@@ -1,28 +1,21 @@
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
+     _xtlfreq   = cfg._xtlfreq
+     _clkfreq   = cfg._clkfreq_def
 
-    LED         = cfg#LED1
+' -- User-modifiable constants
+    LED         = cfg.LED1
     SER_BAUD    = 2_000_000
+' --
 
 OBJ
 
     cfg : "core.con.boardcfg.p2eval"
     ser : "com.serial.terminal"
 
-PUB Main
+PUB Main()
 
-    clkset(ENAFREQ, CLOCKFREQ)
-    ser.Start(SER_BAUD)
+    ser.start(SER_BAUD)
 
     repeat
-        ser.Char(ser.CharIn)
+        ser.char(ser.charin())
