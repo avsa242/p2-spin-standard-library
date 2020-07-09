@@ -39,19 +39,19 @@ PUB Start(SCK, MOSI, MISO, SCK_FREQ)
     longmove(@_SCK, @SCK, 3)
 
     _dirl(SCK)                                              ' Configure smart pin for SCK
-    wrpin(SCK, sp#TRANSITION_OUT | sp#SMART_OUT_DRIVE | sp#OUTPUT_ENABLED)
+    wrpin(SCK, sp.TRANSITION_OUT | sp.SMART_OUT_DRIVE | sp.OUTPUT_ENABLED)
     wxpin(SCK, SPIClockPeriod(SCK_FREQ))
     _dirh(SCK)
 
     if lookdown(MISO: 0..63)
         _dirl(MISO)                                         ' Configure smart pin for MISO
-        wrpin(MISO, sp#SYNCSERIAL_RX | sp#SMART_OUT_DRIVE | sp#OUTPUT_DISABLED | sp#BINP_RELPLS1_READ | sp#BINP_TRUE)
-        wxpin(MISO, sp#SAMPLE_A_BEFORE_B + (NUMBITS - 1))
+        wrpin(MISO, sp.SYNCSERIAL_RX | sp.SMART_OUT_DRIVE | sp.OUTPUT_DISABLED | sp.BINP_RELPLS1_READ | sp.BINP_TRUE)
+        wxpin(MISO, sp.SAMPLE_A_BEFORE_B + (NUMBITS - 1))
         _dirh(MISO)
 
     _dirl(MOSI)                                             ' Configure smart pin for MOSI
-    wrpin(MOSI, sp#SYNCSERIAL_TX | sp#SMART_OUT_DRIVE | sp#OUTPUT_ENABLED | sp#BINP_RELMIN1_READ | sp#BINP_INVERTED)
-    wxpin(MOSI, sp#START_STOP + (NUMBITS - 1))
+    wrpin(MOSI, sp.SYNCSERIAL_TX | sp.SMART_OUT_DRIVE | sp.OUTPUT_ENABLED | sp.BINP_RELMIN1_READ | sp.BINP_INVERTED)
+    wxpin(MOSI, sp.START_STOP + (NUMBITS - 1))
 '    wypin(MOSI, $FF)                                       ' XXX Copy from original code - verify function
     _dirh(MOSI)
 
