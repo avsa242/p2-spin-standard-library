@@ -56,7 +56,7 @@ PUB Start(SCK, MOSI, MISO, SCK_FREQ)
     _dirh(MOSI)
 
     rdpin(MISO)
-    return cogid+1                                          ' Should be the same as parent cog; just need to return nonzero
+    return cogid()+1                                          ' Should be the same as parent cog; just need to return nonzero
 
 PUB Stop() | SCK, MOSI, MISO
 ' Reset smart pins - restore I/O pin control to "classic" digital DIR/IN/OUT mode
