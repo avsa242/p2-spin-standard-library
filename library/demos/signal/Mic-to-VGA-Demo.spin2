@@ -6,30 +6,28 @@
         showing a scope output of the audio on an attached VGA display
     Author: Jesse Burt
     Started: May 16, 2020
-    Updated: May 16, 2020
+    Updated: Jul 9, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
-    XTALFREQ        = 20_000_000
-    XDIV            = 2
-    XMUL            = 25
-    XDIVP           = 1
-    XOSC            = %10
-    XSEL            = %11
-    XPPPP           = ((XDIVP>>1) + 15) & $F
-    CLOCKFREQ       = XTALFREQ / XDIV * XMUL / XDIVP
-    SETFREQ         = 1<<24 + (XDIV-1)<<18 + (XMUL-1)<<8 + XPPPP<<4 + XOSC<<2
-    ENAFREQ         = SETFREQ + XSEL
+     _xtlfreq       = cfg._xtlfreq
+     _clkfreq       = 250_000_000                           ' Must match constant set in VGA driver (default 250MHz)
 
-'---
+' -- User-modifiable constants
     LED             = cfg.LED1
     SER_RX          = cfg.SER_RX
     SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
     VGA_BASEPIN     = 0
+    ADC_PIN         = 48
+    AUD_L           = 6
+    AUD_R           = 7
+    SAMPLE_RATE     = 16000
+' --
+
     WIDTH           = 320
     HEIGHT          = 240
     XMAX            = WIDTH-1
@@ -38,14 +36,8 @@ CON
     BPP             = 1
     BPL             = WIDTH * BPP
 
-    ADC_PIN         = 48
-    AUD_L           = 6
-    AUD_R           = 7
-    SAMPLE_RATE     = 16000
-'---
-
-    ADC_PERIOD      = CLOCKFREQ / SAMPLE_RATE               ' XXX something isn't right here
-    AUDIO_PERIOD    = CLOCKFREQ / SAMPLE_RATE               ' Perceived quality doesn't
+    ADC_PERIOD      = _clkfreq / SAMPLE_RATE               ' XXX something isn't right here
+    AUDIO_PERIOD    = _clkfreq / SAMPLE_RATE               ' Perceived quality doesn't
     SCOPE_FACT      = ADC_PERIOD / HEIGHT                   ' correlate with SAMPLE_RATE
 
 OBJ
@@ -63,14 +55,14 @@ OBJ
 VAR
 
     long _palette[256]
-    long _audio_stack[50], _gfx_stack[50]
+    long _audio_stack[100], _gfx_stack[100]
     long _ser_cog, _audio_cog, _vga_cog, _adc_sample
     byte _framebuffer[BUFFSZ], _offscreen[BUFFSZ]
 
 PUB Main() | adc_min, adc_max
 
-    Setup()
-    ser.HideCursor()
+    setup()
+    ser.hidecursor()
 
     adc_max := 0
     repeat 500                                              ' Gather some samples to get a
@@ -84,55 +76,55 @@ PUB Main() | adc_min, adc_max
 
 PUB DrawWave() | x, y, y_offset                             ' XXX Rolls - no triggering
 ' Draw scope of audio input
-    vga.Clear()
+    vga.clear()
     repeat x from 0 to XMAX
         y := YMAX-(_adc_sample / SCOPE_FACT)                ' XXX This Y-offset calc needs
-        vga.Plot(x, y, 191)                                 '   improvement
+        vga.plot(x, y, 191)                                 '   improvement
         waitx(ADC_PERIOD)
 
 PUB cog_Audio()
 ' Sample audio and output it directly to headphones/speakers
-    mic.Start(ADC_PIN, ADC_PERIOD, 1)
-    audio.Start(AUD_L, AUD_R, AUDIO_PERIOD)
+    mic.start(ADC_PIN, ADC_PERIOD, 1)
+    audio.start(AUD_L, AUD_R, AUDIO_PERIOD)
     repeat
-        _adc_sample := mic.ADCSample16()
-        audio.Output16(_adc_sample)
+        _adc_sample := mic.adcsample16()
+        audio.output16(_adc_sample)
 
 PUB cog_Graphics()
 ' Run VGA driver and waveform/scope drawing loop
-    SetupPalette()
+    vga.settimings(10, 33, 16, 96, 48, 640)
+    setuppalette()
     if vga.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
-        vga.DrawTo(@_offscreen)
-        vga.FontAddress(fnt.BaseAddr)
-        vga.FontSize(6, 8)
-        vga.Clear()
-        vga.fgcolor($FF)
-        vga.position(0, 0)
+        vga.drawto(@_offscreen)
+        vga.fontaddress(fnt.baseaddr())
+        vga.fontsize(6, 8)
+        vga.clear()
+        vga.fgcolor(vga.MAX_COLOR)
+        vga.position(5, 5)
         vga.printf("Ready.")
-        vga.update
+        vga.update()
         time.sleep(5)
     else
-        cogstop(cogid)
+        cogstop(cogid())
 
-    _vga_cog := cogid
+    _vga_cog := cogid()
 
     repeat
-        DrawWave()
-        vga.WaitVSync()
-        vga.Update()
+        drawwave()
+        vga.waitvsync()
+        vga.update()
 
 PUB Setup()
 
-    clkset(ENAFREQ, CLOCKFREQ)
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear()
-    ser.PrintF("Serial terminal started\n")
+    repeat until _ser_cog := ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.clear()
+    ser.printf("Serial terminal started\n")
 
-    cognew(cog_Graphics(), @_gfx_stack)
+    cognew(cog_graphics(), @_gfx_stack)
     repeat until _vga_cog
     ser.printf("VGA 8bpp driver started\n")
 
-    cognew(cog_Audio(), @_audio_stack)
+    cognew(cog_audio(), @_audio_stack)
     repeat until _audio_cog
     ser.printf("Audio cog started (%dHz sample rate)\n", SAMPLE_RATE)
 
