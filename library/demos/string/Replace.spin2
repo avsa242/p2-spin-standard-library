@@ -1,19 +1,14 @@
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
+     _xtlfreq   = cfg._xtlfreq
+     _clkfreq   = cfg._clkfreq_def
+
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
+' --
 
 OBJ
 
@@ -25,14 +20,13 @@ VAR
 
     byte    str1[64]
 
-PUB Main
+PUB Main()
 
-    clkset(ENAFREQ, CLOCKFREQ)
-    term.Start (SER_BAUD)
+    term.start (SER_BAUD)
 
-    str.Copy (@str1, @magicstring)
-    str.ReplaceAll (@str1, string("______"), string("donkey"))
-    term.Str (@str1)
+    str.copy (@str1, @magicstring)
+    str.replaceall (@str1, string("______"), string("donkey"))
+    term.str (@str1)
     repeat
 
 DAT
