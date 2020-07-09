@@ -1,19 +1,14 @@
 CON
 
-    XTAL        = cfg#XTAL
-    XDIV        = cfg#XDIV
-    XMUL        = cfg#XMUL
-    XDIVP       = cfg#XDIVP
-    XOSC        = cfg#XOSC
-    XSEL        = cfg#XSEL
-    XPPPP       = cfg#XPPPP
-    CLOCKFREQ   = cfg#CLOCKFREQ
-    SETFREQ     = cfg#SETFREQ
-    ENAFREQ     = cfg#ENAFREQ
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
+     _xtlfreq   = cfg._xtlfreq
+     _clkfreq   = cfg._clkfreq_def
+
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
+' --
 
 OBJ
 
@@ -26,24 +21,23 @@ VAR
     byte    str1[20]
     byte    strtemp[20]
 
-PUB Main
+PUB Main()
 
-    clkset(ENAFREQ, CLOCKFREQ)
-    term.Start (SER_BAUD)
+    term.start (SER_BAUD)
 
-    term.Str ( str.Left (@str1, @dinosaur, 4))
-    term.Str(string(10, 13))
+    term.str ( str.left (@str1, @dinosaur, 4))
+    term.newline()
 
-    term.Str ( str.Mid (@str1, @dinosaur, 5, 9))
-    term.Str(string(10, 13))
+    term.str ( str.mid (@str1, @dinosaur, 5, 9))
+    term.newline()
 
-    term.Str ( str.Right (@str1, @dinosaur, 6))
-    term.Str(string(10, 13))
+    term.str ( str.right (@str1, @dinosaur, 6))
+    term.newline()
 
-    str.Copy (@str1, str.Left (@strtemp, @dinosaur, 2))
-    str.Append (@str1, str.Right (@strtemp, @dinosaur, 6))
-    term.Str (@str1)
-    term.Str(string(10, 13))
+    str.copy (@str1, str.left (@strtemp, @dinosaur, 2))
+    str.append (@str1, str.right (@strtemp, @dinosaur, 6))
+    term.str (@str1)
+    term.newline()
 
     repeat
 
