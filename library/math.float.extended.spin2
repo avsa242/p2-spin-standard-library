@@ -447,7 +447,7 @@ pub cordic(ptr, mode) | negate, i, da, dx, dy, a, x, y
 
 
   if mode                      'if atan2 mode, reset a
-    a~    
+    a := 0
     negate := x < 0             'check quadrant 2 | 3 for either atan2 or rotate mode                        
   else
     negate := (a ^ a << 1) & $80000000
