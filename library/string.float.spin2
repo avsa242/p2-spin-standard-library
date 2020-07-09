@@ -94,7 +94,7 @@ PUB FloatToString(Single): StringPtr
       tens /= 10
       digits--
   else
-    digits~
+    digits := 0
 
   'express number according to exponent
   case exponent
@@ -110,7 +110,7 @@ PUB FloatToString(Single): StringPtr
       DoScientific
 
   'terminate z-string
-  byte[p]~
+  byte[p] := 0
 
 
 PUB FloatToScientific(Single): StringPtr
@@ -137,7 +137,7 @@ PUB FloatToScientific(Single): StringPtr
   DoScientific
 
   'terminate z-string
-  byte[p]~
+  byte[p] := 0
 
 
 PUB FloatToMetric(Single, SuffixChr): StringPtr | x, y
@@ -189,7 +189,7 @@ PUB FloatToMetric(Single, SuffixChr): StringPtr | x, y
   y := (exponent + 45) // 3
 
   'if in metric range, do metric
-  if abs(x) =< 8
+  if abs(x) <= 8
     'add digits with possible decimal
     AddDigits(y + 1)
     'add space
@@ -206,7 +206,7 @@ PUB FloatToMetric(Single, SuffixChr): StringPtr | x, y
     byte[p++] := SuffixChr
 
   'terminate z-string
-  byte[p]~
+  byte[p] := 0
 
 
 PUB SetPrecision(NumberOfDigits)
@@ -300,7 +300,7 @@ PRI Setup(single): stringptr
   if single &= $7FFFFFFF
 
     'not 0, estimate exponent
-    exponent := ((single << 1 >> 24 - 127) * 77) ~> 8
+    exponent := ((single << 1 >> 24 - 127) * 77) sar 8
 
     'if very small, bias up
     if exponent < -32
@@ -312,7 +312,7 @@ PRI Setup(single): stringptr
       integer := math.FRound(math.FMul(single, tenf[exponent - digits + 1]))
       if integer < teni[digits - 1]
         exponent--
-      elseif integer => teni[digits]
+      elseif integer >= teni[digits]
         exponent++
       else
         exponent -= result
@@ -320,12 +320,12 @@ PRI Setup(single): stringptr
 
   'if 0, reset exponent and integer
   else
-    exponent~
-    integer~
+    exponent := 0
+    integer := 0
 
   'set initial tens and clear zeros
   tens := teni[digits - 1]
-  zeros~
+  zeros := 0
 
   'return pointer to string
   stringptr := @float_string
@@ -338,13 +338,13 @@ PRI DoScientific
   'add exponent indicator
   byte[p++] := "e"
   'add exponent sign
-  if exponent => 0
+  if exponent >= 0
     byte[p++] := "+"
   else
     byte[p++] := "-"
     exponent := abs(exponent)
   'add exponent digits
-  if exponent => 10
+  if exponent >= 10
     byte[p++] := exponent / 10 + "0"
     exponent //= 10
   byte[p++] := exponent + "0"
