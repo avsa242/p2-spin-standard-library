@@ -4,7 +4,7 @@
     Description: ANSI-compatible terminal library
     Author: Jesse Burt
     Started: Jun 28, 2019
-    Updated: Jul 5, 2020
+    Updated: Jul 10, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -239,7 +239,7 @@ PUB RCP() | tmp, token, place
 '                               if ";", echo to term, NEXT
 '                                       if "M", quit
     repeat
-        tmp := CharIn
+        tmp := CharIn()
         case tmp
             ESC:
                 token := 1
@@ -281,7 +281,7 @@ PUB ScrollUp(lines=1)
     Dec(lines)
     Char("S")
 
-PUB ShowCursor
+PUB ShowCursor()
 ' Show cursor
     CSI()
     Char("?")

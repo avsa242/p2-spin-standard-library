@@ -180,5 +180,5 @@ CON
     LPF_5FF                     = 2 << LPF_LENGTH           ' 5 flip-flops
     LPF_8FF                     = 3 << LPF_LENGTH           ' 8 flip-flops
 
-PUB Null
+PUB Null()
 ' This is not a top-level object

@@ -147,7 +147,7 @@ PUB PrintF(fmt = string(""), an=0, bn=0, cn=0, dn=0, en=0, fn=0) | c, valptr, va
                 if c == 0
                     quit
                 case c
-                    "n": NewLine
+                    "n": NewLine()
                     "r": Char(CR)
                     "t": Char(BS)
                     other: Char(c)

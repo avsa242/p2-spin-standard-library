@@ -17,8 +17,8 @@ do
     if [ $? != 0 ]
     then 
         echo
-        echo "${SPINC} -q -2 -L ./library $line"
-        ${SPINC} -q -2 -L ./library "$line"
+        echo "${SPINC} -Wall -q -2 -L ./library $line"
+        ${SPINC} -Wall -q -2 -L ./library "$line"
         echo
     fi
 done < <(cat MANIFEST|grep spin2)

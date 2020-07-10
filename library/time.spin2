@@ -34,7 +34,7 @@ PUB USleep(usecs)
 }}
     waitus(usecs)
 
-PUB SetSync
+PUB SetSync()
 {{
     Set starting point for synchronized time delays.
     Wait for the start of the next window with `WaitForSync`.
