@@ -49,16 +49,16 @@ PUB StartRxTx(rxpin, txpin, mode, baudrate): okay | bitperiod
     dirh_(rxpin)
     return cogid()+1
 
-PUB Char(val) | txpin
+PUB Char(val)
 ' Send one character
-    txpin := _tx_pin
-    wypin(txpin, val)
-    waitx(1)
+    wypin(_tx_pin, val)
     txflush()
 
-PUB TXFlush()
+PUB TXFlush() | z
 ' Flush transmit buffer
-    repeat until pinr[_tx_pin]
+    repeat
+        z := pinr(_tx_pin)
+    while z == 0
 
 PUB RXCheck(): rxbyte | rxpin, z
 ' Check if byte received (never waits)
@@ -66,17 +66,16 @@ PUB RXCheck(): rxbyte | rxpin, z
 '       -1 if no byte, otherwise byte
     rxbyte := -1
     rxpin := _rx_pin
-    asm
-                testp   rxpin           wc  ' char ready?
-        if_c    rdpin   rxbyte, rxpin
-        if_c    shr     rxbyte, #24
-    endasm
+    z := pinr(rxpin)
+    if z
+        rxbyte := rdpin(rxpin) >> 24
 
 PUB CharIn(): rxbyte
 ' Receive a byte (waits until one ready)
     repeat
         rxbyte := rxcheck()
     while rxbyte == -1
+
 
 {
     --------------------------------------------------------------------------------------------------------
