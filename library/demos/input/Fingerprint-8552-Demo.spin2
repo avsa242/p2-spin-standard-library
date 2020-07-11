@@ -1,0 +1,222 @@
+{
+    --------------------------------------------
+    Filename: FINGERPRINT-8552-Demo.spin2
+    Author: Jesse Burt
+    Description: Demo of the Fingerprint reader SKU.8552 driver (P2 version)
+    Copyright (c) 2020
+    Started Jul 11, 2020
+    Updated Jul 11, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = cfg._clkfreq_def
+
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
+    SER_BAUD    = 2_000_000
+
+    FPRINT_RX   = 8
+    FPRINT_TX   = 9
+    FPRINT_BL   = 10
+    FPRINT_RST  = 11
+    FPRINT_BPS  = 19_200
+' --
+
+    PROMPT_X    = 0
+    PROMPT_Y    = 20
+
+OBJ
+
+    cfg     : "core.con.boardcfg.p2eval"
+    ser     : "com.serial.terminal.ansi"
+    fng     : "input.biometric.fingerprint-8552.uart"
+
+PUB Main() | uid, tmp, priv, usercnt, cmplevel, addpolicy, finished, stmp, priv_lvl
+
+    setup()
+
+    cmplevel := 5                                           ' (most lenient) 0..9 (most strict)
+    addpolicy := fng.PROHIBIT                               ' ALLOW (0), PROHIBIT (1)
+
+    repeat
+        ser.clear()
+        ser.position(0, 3)
+        ser.printf("Total user count: ")
+        ser.dec(usercnt := fng.totalusercount())
+
+        ser.position(50, 3)
+        fng.comparisonlevel(cmplevel)
+        ser.printf("Comparison level: ")
+        ser.dec(fng.comparisonlevel())
+
+        ser.position(50, 4)
+        fng.addpolicy(addpolicy)
+        ser.printf("Duplicate print add policy: ")
+        addpolicy := fng.addpolicy()
+        ser.str(lookupz(addpolicy: string("Allow"), string("Prohibit")))
+
+        ser.position(0, 6)
+        ser.printf("Help:\n")
+        ser.printf("a, A: Add a fingerprint to the database\n")
+        ser.printf("l, L: Change comparison level\n")
+        ser.printf("p, P: Change fingerprint add policy\n")
+        if usercnt                                          ' Display the below help items only if at least one user exists
+            ser.printf("d: Delete a specific user from the database\n")
+            ser.printf("D: Delete all users from the database\n")
+            ser.printf("u, U: List users with their privilege levels\n")
+            ser.printf("m: Check fingerprint for match against specific user\n")
+            ser.printf("M: Check fingerprint for match against any user\n")
+        ser.printf("q, Q: Quit\n")
+
+        case ser.charin()
+            "a", "A":
+                repeat
+                    ser.position(PROMPT_X, PROMPT_Y)
+                    ser.printf("Privilege level for user %d? (1..3) > ", uid := usercnt+1) ' Get next available user ID
+                    priv_lvl := ser.decin()
+                    ifnot lookdown(priv_lvl: 1..3)
+                        quit
+                    ser.printf(" (3 scans will be required)\n")
+                    stmp := fng.addprint(uid, priv_lvl)     ' Scanner requires 3 scans of a fingerprint
+                    ser.newline()
+                    if stmp <> 0                            ' Scan failed for some reason:
+                        ser.printf("Scan was unsuccessful: ")
+                        case stmp
+                            $01:
+                                ser.printf("Non-specific failure")
+                            $06:
+                                ser.printf("User already exists")
+                            $07:
+                                ser.printf("Fingerprint already exists")
+                            $08:
+                                ser.printf("Timeout")
+                            OTHER:
+                                ser.printf("Exception error (BUG): ")
+                                ser.dec(stmp)
+                        ser.newline()
+                        ser.printf("Retry? (y/n)> ")
+                        case ser.charin()
+                            "y", "Y": finished := FALSE
+                            OTHER: finished := TRUE
+                    else
+                        finished := TRUE
+                until finished
+
+            "d":
+                if usercnt                                  ' Try to delete _only_ if there's
+                    ser.position(PROMPT_X, PROMPT_Y)
+                    ser.printf("Delete user# > ")      '   at least one user stored in the
+                    uid := ser.decin()                        '   database
+                    fng.deleteuser(uid)
+                else
+                    next
+
+            "D":
+                if usercnt
+                    ser.position(PROMPT_X, PROMPT_Y)
+                    ser.printf("Delete all users\n")
+                    fng.deleteallusers()
+                else
+                    next
+
+            "l", "L":
+                ser.position(PROMPT_X, PROMPT_Y)
+                ser.printf("Comparison level? (0..9)> ")
+                tmp := ser.decin()
+                if lookdown(tmp: 0..9)
+                    fng.comparisonlevel(cmplevel := tmp)
+
+            "m":
+                if usercnt
+                    ser.position(PROMPT_X, PROMPT_Y)
+                    ser.printf("Check fingerprint against stored uid. (1..")
+                    ser.dec(usercnt)
+                    ser.printf(") > ")
+                    uid := ser.decin()
+                    if uid < 1 || uid > usercnt             ' User ID entered invalid? Skip below code
+                        next
+                    ser.dec(uid)
+                    ser.newline()
+                    tmp := fng.printmatchesuser(uid)
+                    ser.str(lookupz(abs(tmp): string("Not a match"), string("Match")))
+                    ser.clearline(ser.CLR_CUR_TO_END)
+                    ser.newline()
+                    pressanykey()
+
+            "M":
+                if usercnt
+                    ser.position(PROMPT_X, PROMPT_Y)
+                    ser.printf("Ready to match print to a user: ")
+                    if tmp := fng.printmatch()
+                        ser.dec(tmp)
+                    else
+                        ser.printf("Unrecognized")
+                    ser.newline()
+                    pressanykey()
+
+            "p", "P":
+                addpolicy ^= 1
+                fng.addpolicy(addpolicy)
+
+            "q", "Q":
+                ser.printf("Halting")
+                quit
+
+            "u", "U":
+                if usercnt
+                    repeat tmp from 1 to usercnt
+                        ser.printf("Privilege for uid ")
+                        ser.dec(tmp)
+                        ser.printf(": ")
+                        priv := fng.userpriv(tmp)
+                        ser.dec(priv)
+                        ser.newline()
+                    pressanykey()
+
+            OTHER:
+
+    flashled(led, 100)
+
+PRI PressAnyKey()
+
+    ser.printf("Press any key to return")
+    repeat until ser.charin()
+
+PUB Setup()
+
+    repeat until ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.printf("Serial terminal started\n")
+    fng.start(FPRINT_RX, FPRINT_TX, FPRINT_BPS, FPRINT_BL, FPRINT_RST)
+    ser.printf("Fingerprint reader started\n")
+
+#include "lib.utility.spin2"
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
