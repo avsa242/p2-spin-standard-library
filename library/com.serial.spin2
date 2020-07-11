@@ -6,11 +6,11 @@
     Description: Low-level UART serial driver
     Copyright (c) 2020
     Started Jun 28, 2019
-    Updated Jul 5, 2020
+    Updated Jul 11, 2020
     See end of file for terms of use.
     --------------------------------------------
 
-    NOTE: This is a modified version of SmartSerial.spin2,
+    NOTE: This is a modified version of SmartSerial.spin,
         originally by Eric Smith. The original header is
         preserved below.
 }
@@ -32,21 +32,31 @@ VAR
 
     long _rx_pin, _tx_pin
 
-PUB Start(baudrate): okay
+PUB Start(baudrate=-1): okay
 ' Start with default serial pins and mode
-    return StartRxTx(63, 62, 0, baudrate)
+    return startrxtx(63, 62, 0, baudrate)
 
-PUB StartRxTx(rxpin, txpin, mode, baudrate): okay | bitperiod
+PUB StartRxTx(rxpin, txpin, mode, baudrate=-1): okay | bitperiod, bit_mode
 
-    bitperiod := 7 + ((CLKFREQ / baudrate) << 16)
+    if baudrate == -1
+        bitperiod := autobaud(rxpin)
+    else
+        bitperiod := (clkfreq / baudrate)
+
     _rx_pin := rxpin
     _tx_pin := txpin
+
+    bit_mode := 7 + (bitperiod << 16)
+
+    pinf(txpin)
     wrpin(txpin, TXMODE)
-    wxpin(txpin, bitperiod)
-    dirh_(txpin)
+    wxpin(txpin, bit_mode)
+    pinl(txpin)
+
+    pinf(rxpin)
     wrpin(rxpin, RXMODE)
-    wxpin(rxpin, bitperiod)
-    dirh_(rxpin)
+    wxpin(rxpin, bit_mode)
+    pinl(rxpin)
     return cogid()+1
 
 PUB Char(val)
@@ -76,6 +86,48 @@ PUB CharIn(): rxbyte
         rxbyte := rxcheck()
     while rxbyte == -1
 
+PRI autobaud(pin): bitperiod | a, b, c, port, mask
+
+    pinf(pin)                                               ' set pin as input
+    waitx(1000)                                             ' wait to settle
+    if pin >= 32
+        port := 1
+        mask := 1 << (pin-32)
+    else
+        port := 0
+        mask := 1 << pin
+
+' Code for detecting HI->LO->HI->LO transition
+' We time the length of the first 1 bit sequence in the character,
+'   then the next 0 bit sequence
+' We assume one of these is the correct length
+' This works if the character sent is space ($20), which has 1 bit high
+'   or CR ($0d) which has 1 bit low after the high bit
+'
+    org
+        test port, #1 wc                                    ' Set C to distinguish INA/OUTA
+        test port, #2 wz                                    ' set Z (match on =)
+
+        setpat mask, #0                                     ' Wait for pin lo (start bit)
+        waitpat
+        setpat mask, mask                                   ' Wait for pin hi (first 1)
+        waitpat
+        getct a
+        setpat mask, #0                                     ' Wait for pin lo again (following 0)
+        waitpat
+        getct b
+        setpat mask,mask                                    ' Wait for pin hi again (end of 0 sequence)
+        waitpat
+        getct c
+    end
+    bitperiod := b - a                                      ' Length of first 1 bit sequence
+    c := c - b                                              ' Length of following 0
+    if c < bitperiod
+        bitperiod := c
+
+' Now want to wait for idle
+    waitx(16 * bitperiod)
+    return bitperiod
 
 {
     --------------------------------------------------------------------------------------------------------
