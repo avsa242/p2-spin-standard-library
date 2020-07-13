@@ -106,7 +106,7 @@ PRI scroll_down() | first, i
         i := i-1
     clear(_cols*first, _cols*(first+1)-1)
 
-PRI BOUND(low, x, high)
+PRI BOUND(low, x, high): limit
 
     return (low #> x) <# high
   
@@ -115,7 +115,7 @@ PUB set_position(x, y)
     curx := BOUND(0, x, _cols-1)
     cury := BOUND(0, y, _rows-1)
   
-PUB Char(c) | fg, bg
+PUB Char(c): result | fg, bg
 
     concealCursor()
     if (state == STATE_NORMAL)
@@ -123,7 +123,7 @@ PUB Char(c) | fg, bg
             set_position(curx-1, cury)
         elseif (c == 10) ' line feed
             if cury == scroll_last
-                scroll_up
+                scroll_up()
             else
                 cury++
         elseif (c == 13) ' carriage return
@@ -178,7 +178,7 @@ PRI handle_esc(c) | i
     else
         state := STATE_NORMAL
 
-PRI defaultval(arg, v)
+PRI defaultval(arg, v): result
 
   return (arg) ? arg : v
 
@@ -435,7 +435,7 @@ PRI set_graphic_rendition(i) | code
 }}
     case code
         0:
-            reset_graphics_state
+            reset_graphics_state()
         1:
             char_effects |= CHAR_BOLD
         4:

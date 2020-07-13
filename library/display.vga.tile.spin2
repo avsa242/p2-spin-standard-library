@@ -5,7 +5,7 @@
     Modified by: Jesse Burt
     Description: Tiling VGA text driver
     Started Nov 13, 2019
-    Updated Mar 21, 2020
+    Updated Jul 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -55,7 +55,7 @@ VAR
     long hw_rev
     long _cell_size, _cols, _rows
 
-PUB Start(pinbase, ptr_params, ptr_dispbuffer) | ptr, tmp
+PUB Start(pinbase, ptr_params, ptr_dispbuffer): okay | ptr, tmp
 
     _cols := long[ptr_params][2]
     _rows := long[ptr_params][3]
@@ -64,7 +64,7 @@ PUB Start(pinbase, ptr_params, ptr_dispbuffer) | ptr, tmp
 
 ' check what kind of hardware we are using
     if hw_rev == 0
-        hw_rev := check_hw_rev
+        hw_rev := check_hw_rev()
 
     if hw_rev == 1
         ' RevA (old) silicon
@@ -90,23 +90,23 @@ PUB Start(pinbase, ptr_params, ptr_dispbuffer) | ptr, tmp
         long[ptr][0] := $0f000000 ' even characters
         long[ptr][1] := $0f010000 ' odd characters
 
-    init_terminal
-    mycog := cognew(@entry, ptr_params) + 1
+    init_terminal()
+    mycog := cogspin(16, @entry, ptr_params) + 1
     return mycog
 
-PUB Stop
+PUB Stop()
 
     if mycog
         cogstop(mycog-1)
         mycog := 0
 
-PRI check_hw_rev | tmp
+PRI check_hw_rev(): tmp
 ' check the hardware revision
 ' return 1 for original silicon, 2 for new silicon
 ' the difference is in how setq+rdlong works for ptra offsets;
 ' ptra++ is applied the appropriate number of times in rev 2 silicon
     tmp := 0
-    cognew(@hwcheck, @tmp)
+    cogspin(16, @hwcheck, @tmp)
     repeat while tmp == 0
     return tmp
   

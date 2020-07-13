@@ -5,7 +5,7 @@
     Modified by: Jesse Burt
     Description: Demo of the tiling VGA text driver
     Started Nov 13, 2019
-    Updated Mar 21, 2020
+    Updated Jul 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -79,14 +79,14 @@ DAT
     fontdata
         file "font.8x16.unscii.bin"
 
-PUB Main
+PUB Main()
 
-    Setup
+    setup()
 
-    Demo_FillText
-    Demo_RunText
+    demo_filltext()
+    demo_runtext()
 
-PUB Demo_FillText | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
+PUB Demo_FillText() | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
 
     ch := 0
 
@@ -103,14 +103,14 @@ PUB Demo_FillText | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
 
     time.MSleep(10000)
 
-PUB Demo_RunText | n
+PUB Demo_RunText() | n
 
     vga.str(string(27, "[1;1H"))
     vga.str(string(27, "[0J"))
 
     n := 0
     repeat
-        vga.newline
+        vga.newline()
         vga.str(string("Hello! ", 27, "[BCursor down"))
         vga.str(string(27, "[31mRed text "))
         vga.str(string(27, "[1;31mBright Red text"))
@@ -123,7 +123,7 @@ PUB Demo_RunText | n
         n++
         time.MSleep(100)
 
-PUB Setup | i, pclkscale, pclk, sysclk, x
+PUB Setup() | i, pclkscale, pclk, sysclk, x
 
     clkset(sys_clock_mode, sys_clock_freq)  ' 20 MHz crystal * 8
     ser.startrxtx(SER_RX, SER_TX, 0, SER_BAUD)
@@ -157,16 +157,16 @@ PUB Setup | i, pclkscale, pclk, sysclk, x
     vga.start(VGA_PINBASE, @_params, @_screen_buffer)
     ser.printf("VGA driver started\n")
 
-PUB colorblend(a, b, mix)
+PUB colorblend(a, b, mix): blended
 
-    asm
+    org
         setpiv mix
         blnpix a, b
-    endasm
+    end
 
     return a
 
-PUB fixupcol(a) | r, g, b, x
+PUB fixupcol(a): x | r, g, b
 
     b := (a>>8) & $FF
     g := (a>>16) & $FF
@@ -175,7 +175,7 @@ PUB fixupcol(a) | r, g, b, x
     'ser.printf("fixupcol(%x, %x, %x) -> %x\n", r, g, b, x)
     return x
 
-PRI calcscale(a, b) | shiftcnt
+PRI calcscale(a, b): scale | shiftcnt
 
     shiftcnt := PIXSHIFT
 ' remove factors of 5 (will be pretty common)
