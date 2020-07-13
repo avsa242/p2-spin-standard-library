@@ -222,7 +222,7 @@ PUB Start(s, size)
 
     AddCommand (string("help"), string("show help"))
 
-PUB Process | i
+PUB Process() | i
 {{
     Process all command line tokens inside of the string.
 
@@ -342,7 +342,7 @@ PUB AddPositionalArgument(cmd, name, description)
         command_positional_argument_name[cmd] := name
         command_positional_argument_description[cmd] := description
 
-PUB PositionalArgument
+PUB PositionalArgument(): ptr_string
 {{
     Return a pointer to the string containing the positional
     argument.
@@ -350,7 +350,7 @@ PUB PositionalArgument
 
     return positional_argument
 
-PUB IsCommand(cmd)
+PUB IsCommand(cmd): bool
 {{
     Return true if the command passed to the parser is equal
     to `cmd`, otherwise false.
@@ -358,7 +358,7 @@ PUB IsCommand(cmd)
 
     return str.Match(argv[0], cmd)
 
-PUB IsOption(n)
+PUB IsOption(n): bool
 {{
     Return true if the argument at position `n` in the string
     is an option, otherwise false.
@@ -398,7 +398,7 @@ PUB SetDescription(s)
 
     ptr_description := s
 
-PUB ErrorString(err)
+PUB ErrorString(err): ptr_string
 {{
     Return a string describing the error that was thrown when
     `Process` was called.
@@ -406,7 +406,7 @@ PUB ErrorString(err)
 
     return error_string[err]
 
-PUB Usage | i
+PUB Usage(): ptr_usage | i
 {{
     Print a formatted help of the current command line parser.
 
@@ -427,13 +427,13 @@ PUB Usage | i
     str.Clear (@data_usage)
 
     if (currentcommand == 255)
-        BuildHelp
+        BuildHelp()
     elseif IsCommand(string("help"))
-        i := MatchCommand(PositionalArgument)
+        i := MatchCommand(PositionalArgument())
         if i > -1
             BuildCommandHelp(i)
         else
-            BuildHelp
+            BuildHelp()
     else
         BuildCommandHelp(currentcommand)
 
@@ -441,7 +441,7 @@ PUB Usage | i
 
     return @data_usage
 
-PRI BuildHelp | i
+PRI BuildHelp() | i
 
     str.Append(@data_usage, ptr_description)
     str.Append(@data_usage, string(10,"commands:",10,10))
@@ -496,7 +496,7 @@ PRI AddLine(name, description, hasvalue)
     str.Append(@data_usage, description)
     str.Append(@data_usage, string(10))
 
-PRI MatchCommand(s) | j
+PRI MatchCommand(s): j
 
     j := 0
     repeat while j < cmdc
@@ -507,7 +507,7 @@ PRI MatchCommand(s) | j
 
     return -1
 
-PRI MatchOption(s) | j
+PRI MatchOption(s): j
 
     j := 0
     repeat while j < optc
