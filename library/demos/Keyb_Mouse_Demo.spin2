@@ -142,11 +142,11 @@ PUB KbMObjTest() | event, data, eventa
 
 '' Main loop
   repeat
-    asm
+    org
       testp eventa wc
       if_c rdpin event, eventa
       if_nc mov event, #NO_EVENT
-    endasm
+    end
 
     if event
       USBEvent(@usbA, 1, event)
