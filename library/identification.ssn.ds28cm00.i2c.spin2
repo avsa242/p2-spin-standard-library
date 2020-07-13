@@ -5,7 +5,7 @@
     Description: Driver for the DS28CM00 64-bit I2C Silicon Serial Number (P2 version)
     Copyright (c) 2020
     Started Nov 16, 2019
-    Updated Jun 24, 2020
+    Updated Jul 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -73,7 +73,7 @@ PUB CRCValid(): result | tmp[2]
 '   Returns: TRUE if CRC is valid, FALSE otherwise
     tmp := 0
     readReg(core.DEV_FAMILY, 7, @tmp)
-    return (CRC == crcs.DallasMaximCRC8 (@tmp, 7))
+    return (CRC() == crcs.DallasMaximCRC8 (@tmp, 7))
 
 PUB DeviceID(): result
 ' Read device ID (Device Family Code)
