@@ -13,7 +13,7 @@ fi
 
 while read line
 do
-    ${SPINC} -q -2 -L "./library" "$line" >/dev/null
+    ${SPINC} -Wall -q -2 -L "./library" "$line" >/dev/null
     if [ $? != 0 ]
     then 
         echo
