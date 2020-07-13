@@ -5,7 +5,7 @@
     Description: Driver for Solomon Systech 96x64 RGB OLED
     Copyright (c) 2020
     Started: Nov 8, 2019
-    Updated: Jun 23, 2020
+    Updated: Jul 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -417,7 +417,7 @@ PUB DisplayInverted(enabled)
         1:
             DisplayVisibility(INVERTED)
         OTHER:
-            return FALSE
+            return
 
 PUB DisplayLines(lines): tmp
 ' Set maximum number of display lines
@@ -667,7 +667,7 @@ PUB PrechargeLevel(mV): result | tmp
     tmp.byte[1] := mV
     writeReg (TRANS_CMD, 2, @tmp)
 
-PUB PrechargeSpeed(seg_a, seg_b, seg_c) | tmp[2]
+PUB PrechargeSpeed(seg_a, seg_b, seg_c): result | tmp[2]
 
     case seg_a
         $00..$FF:

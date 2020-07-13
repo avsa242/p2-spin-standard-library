@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started: Nov 3, 2019
-    Updated: Jul 8, 2020
+    Updated: Jul 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -56,69 +56,69 @@ VAR
 
 PUB Main() | time_ms, r
 
-    Setup()
-    oled.ClearAll()
+    setup()
+    oled.clearall()
 
-    oled.MirrorH(TRUE)
-    oled.MirrorV(TRUE)
+    oled.mirrorh(TRUE)
+    oled.mirrorv(TRUE)
 
-    Demo_Greet()
-    time.Sleep (5)
-    oled.ClearAll()
+    demo_greet()
+    waitms(5000)
+    oled.clearall()
 
     time_ms := 10_000
 
     ser.position (0, 3)
 
-    Demo_SineWave (time_ms)
-    oled.ClearAll()
+    demo_sinewave (time_ms)
+    oled.clearall()
 
-    Demo_TriWave (time_ms)
-    oled.ClearAll()
+    demo_triwave (time_ms)
+    oled.clearall()
 
-    Demo_MEMScroller(time_ms, $0000, $FFFF-BUFFSZ)
-    oled.ClearAll()
+    demo_memscroller(time_ms, $0000, $FFFF-BUFFSZ)
+    oled.clearall()
 
-    Demo_Bitmap (time_ms, @Beanie)
-    oled.ClearAll()
+    demo_bitmap (time_ms, @Beanie)
+    oled.clearall()
 
-    Demo_Box (time_ms)
-    oled.ClearAll()
+    demo_box (time_ms)
+    oled.clearall()
 
-    Demo_BoxFilled (time_ms)
-    oled.ClearAll()
+    demo_boxfilled (time_ms)
+    oled.clearall()
 
-    Demo_LineSweepX(time_ms)
-    oled.ClearAll()
+    demo_linesweepx(time_ms)
+    oled.clearall()
 
-    Demo_LineSweepY(time_ms)
-    oled.ClearAll()
+    demo_linesweepy(time_ms)
+    oled.clearall()
 
-    Demo_Line (time_ms)
-    oled.ClearAll()
+    demo_line (time_ms)
+    oled.clearall()
 
-    Demo_Plot (time_ms)
-    oled.ClearAll()
+    demo_plot (time_ms)
+    oled.clearall()
 
-    Demo_BouncingBall (time_ms, 5)
-    oled.ClearAll()
+    demo_bouncingball (time_ms, 5)
+    oled.clearall()
 
-    Demo_Circle(time_ms)
-    oled.ClearAll()
+    demo_circle(time_ms)
+    oled.clearall()
 
-    Demo_Wander (time_ms)
-    oled.ClearAll()
+    demo_wander (time_ms)
+    oled.clearall()
 
-    Demo_SeqText (time_ms)
-    oled.ClearAll()
+    demo_seqtext (time_ms)
+    oled.clearall()
 
-    Demo_RndText (time_ms)
+    demo_rndtext (time_ms)
 
-    Demo_Contrast(2, 1)
-    oled.ClearAll()
+    demo_contrast(2, 1)
+    oled.clearall()
 
-    Stop()
-    FlashLED(LED, 100)
+    stop()
+    flashled(LED, 100)
 
 PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
 ' Continuously redraws bitmap at address bitmap_addr
@@ -127,11 +127,11 @@ PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
     iteration := 0
 
     repeat while _timer_set
-        oled.Bitmap (bitmap_addr, BUFFSZ, 0)
-        oled.Update()
+        oled.bitmap (bitmap_addr, BUFFSZ, 0)
+        oled.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_BouncingBall(testtime, radius) | iteration, bx, by, dx, dy
 ' Draws a simple ball bouncing off screen edges
@@ -152,12 +152,12 @@ PUB Demo_BouncingBall(testtime, radius) | iteration, bx, by, dx, dy
         if (bx <= radius OR bx >= YMAX-radius)           'Ditto with the left or right sides
             dx *= -1
 
-        oled.Circle (bx, by, radius, oled.MAX_COLOR)
-        oled.Update()
+        oled.circle (bx, by, radius, oled.MAX_COLOR)
+        oled.update()
         iteration++
-        oled.Clear()
+        oled.clear()
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_Box (testtime) | iteration, c
 ' Draws random boxes
@@ -167,10 +167,10 @@ PUB Demo_Box (testtime) | iteration, c
 
     repeat while _timer_set
         c := rnd(oled.MAX_COLOR)
-        oled.Box (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c, FALSE)
+        oled.box (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c, FALSE)
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_BoxFilled (testtime) | iteration, c, x1, y1, x2, y2
 ' Draws random lines
@@ -180,10 +180,10 @@ PUB Demo_BoxFilled (testtime) | iteration, c, x1, y1, x2, y2
 
     repeat while _timer_set
         c := rnd(oled.MAX_COLOR)
-        oled.Box (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c, TRUE)
+        oled.box (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c, TRUE)
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_Circle(testtime) | iteration, x, y, r, c
 ' Draws circles at random locations
@@ -196,10 +196,10 @@ PUB Demo_Circle(testtime) | iteration, x, y, r, c
         y := rnd(YMAX)
         r := rnd(YMAX/2)
         c := rnd(oled.MAX_COLOR)
-        oled.Circle (x, y, r, c)
+        oled.circle (x, y, r, c)
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_Contrast(reps, delay_ms) | contrast_level
 ' Fades out and in display contrast
@@ -207,26 +207,26 @@ PUB Demo_Contrast(reps, delay_ms) | contrast_level
 
     repeat reps
         repeat contrast_level from 255 to 1
-            oled.Contrast (contrast_level)
+            oled.contrast (contrast_level)
             waitms (delay_ms)
         repeat contrast_level from 0 to 254
-            oled.Contrast (contrast_level)
+            oled.contrast (contrast_level)
             waitms (delay_ms)
 
     ser.newline()
 
-PUB Demo_Greet
+PUB Demo_Greet()
 ' Display the banner/greeting on the OLED
-    oled.FGColor(oled.MAX_COLOR)
-    oled.BGColor(0)
-    oled.Position (0, 0)
+    oled.fgcolor(oled.MAX_COLOR)
+    oled.bgcolor(0)
+    oled.position (0, 0)
     oled.printf("SSD1331 on the\n")
     oled.printf("Parallax\n")
     oled.printf("P2X8C4M64P @\n")
-    oled.Str (int.Dec(clkfreq/1_000_000))
+    oled.str (int.dec(clkfreq/1_000_000))
     oled.printf("MHz\n")
     oled.printf("%dx%d", WIDTH, HEIGHT)
-    oled.Update()
+    oled.update()
 
 PUB Demo_Line (testtime) | iteration, c
 ' Draws random lines
@@ -236,10 +236,10 @@ PUB Demo_Line (testtime) | iteration, c
 
     repeat while _timer_set
         c := rnd(oled.MAX_COLOR)
-        oled.Line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c)
+        oled.line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c)
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_LineSweepX (testtime) | iteration, x
 ' Draws lines top left to lower-right, sweeping across the screen, then
@@ -254,11 +254,11 @@ PUB Demo_LineSweepX (testtime) | iteration, x
         x++
         if x > XMAX
             x := 0
-        oled.Line (x, 0, XMAX-x, YMAX, x)
-        oled.Update()
+        oled.line (x, 0, XMAX-x, YMAX, x)
+        oled.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_LineSweepY (testtime) | iteration, y
 ' Draws lines top left to lower-right, sweeping across the screen, then
@@ -273,11 +273,11 @@ PUB Demo_LineSweepY (testtime) | iteration, y
         y++
         if y > YMAX
             y := 0
-        oled.Line (XMAX, y, 0, YMAX-y, y)
-        oled.Update()
+        oled.line (XMAX, y, 0, YMAX-y, y)
+        oled.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
 ' Dumps Propeller Hub RAM (and/or ROM) to the display buffer
@@ -291,11 +291,11 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
         pos += BPL
         if pos >end_addr
             pos := start_addr
-        oled.Bitmap (pos, BUFFSZ, 0)
-        oled.Update()
+        oled.bitmap (pos, BUFFSZ, 0)
+        oled.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_Plot(testtime) | iteration, x, y, c
 ' Draws random pixels to the screen
@@ -305,10 +305,10 @@ PUB Demo_Plot(testtime) | iteration, x, y, c
 
     repeat while _timer_set
         c := rnd(oled.MAX_COLOR)
-        oled.Plot (rnd(XMAX), rnd(YMAX), c)
+        oled.plot (rnd(XMAX), rnd(YMAX), c)
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 ' Draws a sine wave the length of the screen, influenced by the system counter
@@ -322,15 +322,15 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 
     repeat while _timer_set
         repeat x from 0 to XMAX
-            modifier := (abs(cnt) / 1_000_000)           ' Use system counter as modifier
+            modifier := (abs(getct()) / 1_000_000)           ' Use system counter as modifier
             y := offset + sin(x * modifier) / div
-            oled.Plot(x, y, oled.MAX_COLOR)
+            oled.plot(x, y, oled.MAX_COLOR)
 
-        oled.Update()
+        oled.update()
         iteration++
-        oled.Clear()
+        oled.clear()
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_SeqText(testtime) | iteration, col, row, ch, fg, bg
 ' Sequentially draws the whole font table to the screen
@@ -349,12 +349,12 @@ PUB Demo_SeqText(testtime) | iteration, col, row, ch, fg, bg
         bg--
         if bg < 0
             bg := 255
-        oled.FGColor(fg)
-        oled.BGColor(bg)
-        oled.Char (ch)
+        oled.fgcolor(fg)
+        oled.bgcolor(bg)
+        oled.char (ch)
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_RndText(testtime) | iteration, col, row, fg, bg
 ' Draws random characters to the screen
@@ -369,12 +369,12 @@ PUB Demo_RndText(testtime) | iteration, col, row, fg, bg
         bg--
         if bg < 0
             bg := oled.MAX_COLOR
-        oled.FGColor(fg)
-        oled.BGColor(bg)
-        oled.Char (32 #> rnd(127))
+        oled.fgcolor(fg)
+        oled.bgcolor(bg)
+        oled.char (32 #> rnd(127))
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_TriWave(testtime) | iteration, x, y, ydir
 ' Draws a simple triangular wave
@@ -392,12 +392,12 @@ PUB Demo_TriWave(testtime) | iteration, x, y, ydir
             if y == 0
                 ydir := 1
             y := y + ydir
-            oled.Plot (x, y, oled.MAX_COLOR)
-        oled.Update()
+            oled.plot (x, y, oled.MAX_COLOR)
+        oled.update()
         iteration++
-        oled.Clear()
+        oled.clear()
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_Wander(testtime) | iteration, x, y, d, c
 ' Draws randomly wandering pixels
@@ -427,11 +427,11 @@ PUB Demo_Wander(testtime) | iteration, x, y, d, c
                 if y < 0
                     y := YMAX
         c := (rnd(31) << 11) | (rnd(63) << 5) | (rnd(31))
-        oled.Plot (x, y, c)
-        oled.Update()
+        oled.plot (x, y, c)
+        oled.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB RND(maxval): r
 ' Return a random number up to maximum 'maxval'
@@ -439,11 +439,11 @@ PUB RND(maxval): r
 
 PUB Sin(angle): sine | tmp
 ' Return the sine of angle
-    asm
+    org
         shl     angle, #20
         qrotate ##100000, angle
         getqy   sine
-    endasm
+    end
 
 PRI Report(testtime, iterations)
 
@@ -454,7 +454,7 @@ PRI Report(testtime, iterations)
     ser.dec(iterations / (testtime/1000))
 
     ser.printf(", ms/Iteration: ")
-    Decimal( (testtime * 1_000) / iterations, 1_000)
+    decimal( (testtime * 1_000) / iterations, 1_000)
     ser.newline()
 
 PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
@@ -470,11 +470,11 @@ PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
         tmp /= 10
         places++
     until tmp == 1
-    part := int.DecZeroed(abs(scaled // divisor), places)
+    part := int.deczeroed(abs(scaled // divisor), places)
 
-    ser.Dec (whole)
-    ser.Char (".")
-    ser.Str (part)
+    ser.dec (whole)
+    ser.char (".")
+    ser.str (part)
 
 PRI cog_Timer() | time_left
 
@@ -491,25 +491,25 @@ PRI cog_Timer() | time_left
 PUB Setup()
 
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear()
+    ser.clear()
     ser.printf("Serial terminal started\n")
     if _oled_cog := oled.Start (CS_PIN, DC_PIN, DIN_PIN, CLK_PIN, RES_PIN, CLK_HZ, @_framebuff)
         ser.printf("SSD1331 driver started\n", _oled_cog)
-        oled.FontAddress(fnt.BaseAddr())
-        oled.FontSize(6, 8)
-        oled.DefaultsCommon()
-        oled.ClearAll()
+        oled.fontaddress(fnt.baseaddr())
+        oled.fontsize(6, 8)
+        oled.defaultscommon()
+        oled.clearall()
     else
         ser.printf("SSD1331 driver failed to start - halting\n")
-        Stop()
-    SwapBMBytes()
+        stop()
+    swapbmbytes()
 
-    _timer_cog := cogspin(16, cog_Timer, @_stack_timer)
+    _timer_cog := cogspin(16, cog_timer(), @_stack_timer)
 
 PUB Stop()
 
-    oled.Powered (FALSE)
-    oled.Stop()
+    oled.powered (FALSE)
+    oled.stop()
     cogstop(_timer_cog)
 
 PRI SwapBMBytes() | i, tmp
