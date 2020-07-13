@@ -16,40 +16,44 @@ we will eventually break loose
 }}
 CON
 
-    oscmode = $010c3f04
-    freq    = 160_000_000
+     _xtlfreq   = cfg._xtlfreq
+     _clkfreq   = cfg._clkfreq_def
 
-    basepin  = 32'24
-    statusLED   = 57
-    snapLED = 58
-    oscLED = 59
+    BASEPIN     = 32
+    STATUSLED   = 57
+    SNAPLED     = 58
+    OSCLED      = 59
 
-var
+VAR
+
     byte bitmap[7]
     byte nextmap[7]
     byte endsnap[7]
 
-pub main
+OBJ
+
+    cfg : "core.con.boardcfg.p2eval"
+
+PUB Main()
 
     repeat
-        dolife
+        dolife()
 
-pub dolife | i, j, s, r, b, rnd, endcnt, snaplife, snapint
+PUB DoLife() | i, j, s, r, b, rnd, endcnt, snaplife, snapint
 
     'announce what we're about
-    clkset(oscmode, freq)
-    outb[oscled..statusled]~~
-    dirb[oscled..statusled]~~
+    outb[OSCLED..STATUSLED]~~
+    dirb[OSCLED..STATUSLED]~~
     repeat i from 0 to strsize(@demo_string) - 2
-        !outb[statusled]
+        !outb[STATUSLED]
         repeat s from 0 to 5
             repeat j from 0 to 6
                 r := charset[7 * (demo_string[i] - 32) + j] << 6 + charset[7 * (demo_string[i + 1] - 32) + j]
                 r := r -> 4 <- s
                 bitmap[6-j] := r
             repeat 3
-                charlieplex
-    outb[statusled]~
+                charlieplex()
+    outb[STATUSLED]~
 
     'initialize the life board
     endcnt := 0
@@ -61,15 +65,15 @@ pub dolife | i, j, s, r, b, rnd, endcnt, snaplife, snapint
     repeat i from 0 to 6
         j := 1
         repeat 8
-            asm
+            org
                 getrnd rnd 'use the P2 PRNG
-            endasm
+            end
             if rnd & 3 == 0
                 bitmap[i] += j
             j <<= 1
 
     repeat 20
-        charlieplex
+        charlieplex()
     repeat
         'advance and redraw life board
         repeat i from 0 to 6
@@ -115,7 +119,7 @@ pub dolife | i, j, s, r, b, rnd, endcnt, snaplife, snapint
         repeat i from 0 to 6
             bitmap[i] := nextmap[i] 'transfer new map to bitmap
         repeat 20
-            charlieplex 'show result
+            charlieplex() 'show result
         'see if we're done.  Note we do the upper long compares with bitmap+3
         'because there are only 7 bytes in the array, not 8.
         if long[@bitmap] | long[@bitmap+3] == 0
@@ -123,13 +127,13 @@ pub dolife | i, j, s, r, b, rnd, endcnt, snaplife, snapint
             return
         elseif endcnt > 0
             'we've detected oscillation, just show it a bit
-            outb[snapled]~~
-            outb[oscled]~
+            outb[SNAPLED]~~
+            outb[OSCLED]~
             endcnt++
             if endcnt > 10
                 return
         else
-            outb[snapled]~~
+            outb[SNAPLED]~~
             snaplife++
             if snaplife > snapint
                 'get new snap
@@ -137,13 +141,13 @@ pub dolife | i, j, s, r, b, rnd, endcnt, snaplife, snapint
                 long[@endsnap+3] := long[@bitmap+3]
                 snaplife~
                 snapint += 2
-                outb[snapled]~
+                outb[SNAPLED]~
             elseif long[@endsnap] == long[@bitmap] and long[@endsnap+3] == long[@bitmap+3]
                 'oscillation detected, show it for a bit
                 endcnt := 1
-                outb[oscled]~
+                outb[OSCLED]~
 
-pri charlieplex | row, outmask, dirmask
+PRI Charlieplex() | row, outmask, dirmask
     'charlieplex the regularized bitmap to the LED matrix
     repeat row from 0 to 7 'charlieplex row, not bitmap row
         'outx byte gets only the positive drive bit on, all others off
@@ -152,14 +156,14 @@ pri charlieplex | row, outmask, dirmask
         'each charlieplex row consists of left and right parts of two bitmap rows
         'at the top and bottom nonexistent bitmap rows are loaded, but then are masked out
         dirmask := outmask + byte[@bitmap + row - 1] >> (8 - row) + (byte[@bitmap + row] & (127 >> row)) << (row + 1)
-        if basepin < 32
-            outa[basepin..basepin+7] := outmask
-            dira[basepin..basepin+7] := dirmask
+        if BASEPIN < 32
+            outa[BASEPIN..BASEPIN+7] := outmask
+            dira[BASEPIN..BASEPIN+7] := dirmask
         else
-            outb[basepin..basepin+7] := outmask
-            dirb[basepin..basepin+7] := dirmask
-        waitcnt(clkfreq /500 + cnt)
-        dira[basepin..basepin+7] := 0
+            outb[BASEPIN..BASEPIN+7] := outmask
+            dirb[BASEPIN..BASEPIN+7] := dirmask
+        waitcnt(clkfreq /500 + cnt())
+        dira[BASEPIN..BASEPIN+7] := 0
 
 
 DAT
