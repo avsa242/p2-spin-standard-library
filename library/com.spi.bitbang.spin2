@@ -50,7 +50,7 @@ PUB Start(MOSI, MISO, SCK, spi_clock, CPOL=0): okay
         _dirw(MISO, 0)
     _dirw(SCK, 1)
     _clock_delay := ((clkfreq / spi_clock) / 7) #> 2 ' xxx minimum??
-    okay := cogid + 1
+    okay := cogid() + 1
 
 PUB Read(MISO, SCK, mode, nr_bits)
 
@@ -111,23 +111,23 @@ PRI postClock(SCK) | clkd
 
     clkd := _clock_delay
 
-    asm
+    org
         waitx   clkd
         outnot  SCK
         waitx   clkd
         outnot  SCK
-    endasm
+    end
 
 PRI preClock(SCK) | clkd
 
     clkd := _clock_delay
 
-    asm
+    org
         outnot  SCK
         waitx   clkd
         outnot  SCK
         waitx   clkd
-    endasm
+    end
 
 
 DAT
