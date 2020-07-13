@@ -5,7 +5,7 @@
     Description: Test app for the W25Qxxx driver
     Copyright (c) 2020
     Started Nov 09, 2019
-    Updated Jun 14, 2020
+    Updated Jul 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -34,6 +34,8 @@ OBJ
 
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
+    io          : "io"
+    time        : "time"
     flash       : "memory.flash.w25qxxx.spi"
 
 VAR

@@ -70,7 +70,7 @@ CON
     CHIP_ERASE2                 = $C7
     BLOCK64_ERASE               = $D8
 
-PUB Null
+PUB Null()
 ' This is not a top-level object
 
 DAT
