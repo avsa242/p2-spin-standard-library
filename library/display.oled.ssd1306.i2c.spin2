@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Created: Apr 26, 2018
-    Updated: Jun 23, 2020
+    Updated: Jul 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -61,40 +61,40 @@ PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, dispbuffer_address, SLAVE_LSB
                 _disp_xmax := _disp_width-1
                 _disp_ymax := _disp_height-1
                 _buff_sz := (_disp_width * _disp_height) / 8
-                Address(dispbuffer_address)
+                address(dispbuffer_address)
                 return TRUE
     return FALSE                                                'If we got here, something went wrong
 
 PUB Stop()
 
-    Powered(FALSE)
+    powered(FALSE)
 
 PUB Defaults()
 ' Apply power-on-reset default settings
-    Powered(FALSE)
-    ClockFreq (372)
-    DisplayLines(_disp_height)
-    DisplayOffset(0)
-    DisplayStartLine(0)
-    ChargePumpReg(TRUE)
-    AddrMode (0)
-    MirrorH(FALSE)
-    MirrorV(FALSE)
+    powered(FALSE)
+    clockfreq (372)
+    displaylines(_disp_height)
+    displayoffset(0)
+    displaystartline(0)
+    chargepumpreg(TRUE)
+    addrMode (0)
+    mirrorh(FALSE)
+    mirrorv(FALSE)
     case _disp_height
         32:
-            COMPinCfg(0, 0)
+            compincfg(0, 0)
         64:
-            COMPinCfg(1, 0)
+            compincfg(1, 0)
         OTHER:
-            COMPinCfg(0, 0)
-    Contrast(127)
-    PrechargePeriod (1, 15)
-    COMLogicHighLevel (0_77)
-    DisplayVisibility(NORMAL)
-    DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
-    Powered(TRUE)
+            compincfg(0, 0)
+    contrast(127)
+    prechargePeriod (1, 15)
+    comlogichighlevel (0_77)
+    displayvisibility(NORMAL)
+    displaybounds(0, 0, _disp_xmax, _disp_ymax)
+    powered(TRUE)
 
-PUB Address(addr=-2)
+PUB Address(addr=-2): draw_addr
 ' Set framebuffer address
     case addr
         $0004..$7FFFF-_buff_sz:
@@ -203,7 +203,7 @@ PUB DisplayBounds(sx, sy, ex, ey)
     writeReg(core.CMD_SET_COLADDR, 2, (ex << 8) | sx)
     writeReg(core.CMD_SET_PAGEADDR, 2, (ey << 8) | sy)
 
-PUB DisplayInverted(enabled) | tmp
+PUB DisplayInverted(enabled)
 ' Invert display colors
     case abs(enabled)
         0:
@@ -211,7 +211,7 @@ PUB DisplayInverted(enabled) | tmp
         1:
             DisplayVisibility(INVERTED)
         OTHER:
-            return FALSE
+            return
 
 PUB DisplayLines(lines)
 ' Set total number of display lines
