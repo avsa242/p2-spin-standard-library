@@ -444,7 +444,7 @@ VAR
 
 ''
 PUB start(status)
-  usbcog := cognew(@usb_host_start, @itemAddr) + 1
+  usbcog := cogspin(16, @usb_host_start, @itemAddr) + 1
 
   if usbcog
     dirl_(USB_EVENT_REPO)                               ' DIR bit low puts smart pin in reset mode
