@@ -6,7 +6,7 @@
     Description: Bitbanged UART serial driver
     Copyright (c) 2020
     Started Mar 22, 2020
-    Updated Jul 8, 2020
+    Updated Jul 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -35,7 +35,7 @@ VAR
 '' code: largely taken from FullDuplexSerial.spin
 ''
 
-PUB StartRXTX(rx_pin, tx_pin, mode, baudrate)
+PUB StartRXTX(rx_pin, tx_pin, mode, baudrate): okay
 
     baud := baudrate
     bitcycles := clkfreq / baudrate
@@ -60,7 +60,7 @@ PUB Char(c) | val, waitcycles
             outb &= !txmask
         val >>= 1
 
-PUB CharIn() | waitcycles, cycles, mask, val, x
+PUB CharIn(): val | waitcycles, cycles, mask, x
 
     mask := rxmask
     cycles := bitcycles
