@@ -4,7 +4,7 @@
     Author: Jesse Burt
     Description: Driver to write a buffer to an 8x7 charlieplexed LED matrix
     Started Jun 16, 2019
-    Updated Jun 14, 2020
+    Updated Jul 13, 2020
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This was written specifically for the Parallax P2-EVAL add-on board #64006-ES(c),
@@ -48,7 +48,7 @@ PUB Start(basepin, dispbuffer_address)
         OTHER:
             return 0
 
-PUB Address(addr=-2)
+PUB Address(addr=-2): fb_addr
 ' Set framebuffer address
     case addr
         $0004..$7FFFF-_buff_sz:
