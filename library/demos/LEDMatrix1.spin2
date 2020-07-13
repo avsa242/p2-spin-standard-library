@@ -5,30 +5,23 @@
     Description: Demo of the charlieplexed LED driver
     Copyright (c) 2020
     Started Jun 26, 2019
-    Updated Mar 20, 2020
+    Updated Jul 13, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
  
-    XTAL                = cfg#XTAL
-    XDIV                = cfg#XDIV
-    XMUL                = cfg#XMUL
-    XDIVP               = cfg#XDIVP
-    XOSC                = cfg#XOSC
-    XSEL                = cfg#XSEL
-    XPPPP               = cfg#XPPPP
-    CLOCKFREQ           = cfg#CLOCKFREQ
-    SETFREQ             = cfg#SETFREQ
-    ENAFREQ             = cfg#ENAFREQ
+     _xtlfreq           = cfg._xtlfreq
+     _clkfreq           = cfg._clkfreq_def
 
-' User-modifiable constants
+' -- User-modifiable constants
     LED                 = cfg#LED1
     SER_RX              = cfg#SER_RX
     SER_TX              = cfg#SER_TX
     SER_BAUD            = 2_000_000
     LEDMATRIX_BASEPIN   = 0
+' --
 
 ' Below aren't currently used by the driver - only for display buffer size
     WIDTH               = 8
@@ -40,8 +33,6 @@ OBJ
 
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
-    io          : "io"
-    time        : "time"
     matrix      : "display.ledmatrix.charlieplexed"
     fnt         : "font.5x8"
 
@@ -50,65 +41,64 @@ VAR
     long _ser_cog
     byte _disp_buff[BUFF_SZ]
 
-PUB Main | x, y, c, r
+PUB Main() | x, y, c, r
 
-    Setup
+    setup()
 
     matrix.bgcolor(0)
     matrix.fgcolor(1)
     repeat c from 0 to 127
-        matrix.Position(0, 0)
-        matrix.Char(c)
+        matrix.position(0, 0)
+        matrix.char(c)
         ser.position(0, 6)
-        matrix.Update
-        time.MSleep(100)
+        matrix.update()
+        waitms(100)
 
     repeat y from 0 to 6
         matrix.circle(0, 0, 5, 1)
         ser.position(0, 6)
-        matrix.update
-        matrix.clear
-        time.msleep(50)
+        matrix.update()
+        matrix.clear()
+        waitms(50)
 
     repeat 5
         repeat y from 0 to 6
             repeat x from 0 to 7
                 matrix.plot(x, y, 1)
-            matrix.update
-            matrix.clear
+            matrix.update()
+            matrix.clear()
 
         repeat x from 0 to 7
             repeat y from 0 to 6
                 matrix.plot(x, y, 1)
-            matrix.update
-            matrix.clear
+            matrix.update()
+            matrix.clear()
 
         repeat y from 6 to 0
             repeat x from 7 to 0
                 matrix.plot(x, y, 1)
-            matrix.update
-            matrix.clear
+            matrix.update()
+            matrix.clear()
 
         repeat x from 7 to 0
             repeat y from 6 to 0
                 matrix.plot(x, y, 1)
-            matrix.update
-            matrix.clear
+            matrix.update()
+            matrix.clear()
 
-    FlashLED(led, 100)     ' signal execution finished
+    flashled(led, 100)     ' signal execution finished
 
-PUB Setup
+PUB Setup()
 
-    clkset(enafreq, clockfreq)
-    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.clear
+    repeat until ser.startrxtx(SER_RX, SER_TX, 0, SER_BAUD)
+    ser.clear()
     ser.printf("Serial terminal started\n")
-    if matrix.Start(LEDMATRIX_BASEPIN, @_disp_buff)
+    if matrix.start(LEDMATRIX_BASEPIN, @_disp_buff)
         ser.printf("Charlieplexed LED matrix driver started\n")
-        matrix.FontAddress(fnt.BaseAddr)
-        matrix.FontSize(5, 8)
+        matrix.fontaddress(fnt.baseaddr())
+        matrix.fontsize(5, 8)
     else
         ser.printf("Charlieplexed LED matrix driver failed to start - halting\n")
-        FlashLED(LED, 500)
+        flashled(LED, 500)
 
 #include "lib.utility.spin2"
