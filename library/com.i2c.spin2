@@ -42,7 +42,7 @@ VAR
     long _sda
     long _delay, _hdelay, _qdelay
 
-PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000)
+PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000): okay
 ' Define I2C SCL (clock) and SDA (data) pins
     _delay := (clkfreq/I2C_HZ)                                 ' Calculate delays based on clock freq
     _hdelay := _delay >> 1
@@ -52,119 +52,119 @@ PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000)
     _sda := I2C_SDA
     _dirw(_scl, 0)                                              ' Float pins
     _dirw(_sda, 0)
-    Reset
-    result := cogid + 1
+    reset()
+    okay := cogid() + 1
     return
 
-PUB Present(slave_addr)
+PUB Present(slave_addr): result
 ' Pings device, returns true if ACK
-    Start
-    result := (Write(slave_addr) == ACK)
-    Stop
+    start()
+    result := (write(slave_addr) == ACK)
+    stop()
 
-PUB Read(ackbit) | i2cbyte
+PUB Read(ackbit): i2cbyte
 ' Read byte from I2C bus
 '      Send ackbit to slave: ACK (0) or NAK (1)
     _dirw(_sda, 0)                                             ' Make SDA input
 
     repeat 8
-        qd
+        qd()
         _dirw(_scl, 0)                                         ' Float SCL
-        hd
+        hd()
         i2cbyte := (i2cbyte << 1) | _pinr(_sda)               ' Read the bit
         _dirw(_scl, 1)                                         ' SCL low
-        qd
+        qd()
 
     _dirw(_sda, !ackbit)                                       ' Output ack bit
-    qd
+    qd()
     _dirw(_scl, 0)                                             ' Float SCL
-    hd
+    hd()
     _dirw(_scl, 1)                                             ' SCL low
-    qd
+    qd()
 
     return (i2cbyte & $FF)
 
-PUB Reset
+PUB Reset()
 ' Reset device
     repeat 9
         _dirw(_scl, 1)
-        hd
+        hd()
         _dirw(_scl, 0)
-        hd
+        hd()
         if (_pinr(_sda))
             quit
 
-PUB Start
+PUB Start()
 ' I2C Start condition (S, Sr)
 ' -- will wait if I2C bus SDA pin is held low
     _dirw(_sda, 0)                                               ' Float pins
     _dirw(_scl, 0)
     repeat
     while (_pinr(_scl) == 0)                                    ' Allow "clock stretching"
-    hd
+    hd()
     _dirw(_sda, 1)                                               ' SDA low
-    hd
+    hd()
     _dirw(_scl, 1)                                               ' SCL low
-    hd
+    hd()
 
-PUB Stop
+PUB Stop()
 ' I2C Stop condition (P)
     _dirw(_sda, 1)                                               ' SDA low
-    hd
+    hd()
     _dirw(_scl, 0)                                               ' Float SCL
-    hd
+    hd()
     repeat
     until (_pinr(_scl) == 1)                                    ' Hold for clock stretch
     _dirw(_sda, 0)                                               ' Float SDA
-    hd
+    hd()
 
 PUB Wait(slave_addr) | ackbit
 ' Waits for I2C device to be ready for new command
 
     repeat
-        Start
+        Start()
         ackbit := write(slave_addr)
     until (ackbit == ACK)
 
-PUB WaitTimeout(slave_addr, us) | ackbit, tmp, timeout
+PUB WaitTimeout(slave_addr, us): ackbit, timeout | tmp
 ' Wait for I2C device to be ready for new command, up to a maximum timeout of 'us' microseconds
 '   Returns:
 '       1st return value: TRUE if slave acknowledged, FALSE otherwise
 '       2nd return value: Duration waited, in microseconds
     timeout := us
     repeat
-        Start
+        start()
         ackbit := write(slave_addr)
-        time.USleep(1)
+        waitus(1)
         timeout--
     until (ackbit == ACK) OR (timeout == 0)
     return (ackbit == ACK), us-timeout
 
-PUB Write(i2cbyte) | ackbit
+PUB Write(i2cbyte): ackbit
 ' Write byte to I2C bus
 ' -- leaves SCL low
     i2cbyte := (i2cbyte ^ $FF) << 24                             ' Move msb (bit7) to bit31
     repeat 8                                                     ' Output eight bits
         _dirw(_sda, i2cbyte <-= 1)                                ' Send msb first
-        hd
+        hd()
         _dirw(_scl, 0)                                            ' Float SCL
-        hd
+        hd()
         _dirw(_scl, 1)                                            ' SCL low
     _dirw(_sda, 0)                                                ' Release SDA to read ack bit
-    hd
+    hd()
     _dirw(_scl, 0)                                                ' Float SCL
-    hd
+    hd()
     ackbit := _pinr(_sda)                                        ' Read ack bit
     _dirw(_scl, 1)                                                ' SCL low
     return ackbit
 
-PRI hd
+PRI hd()
 
-    _waitx (_hdelay)
+    waitx (_hdelay)
 
-PRI qd
+PRI qd()
 
-    _waitx (_qdelay)
+    waitx (_qdelay)
 
 DAT
 {{
