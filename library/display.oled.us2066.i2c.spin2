@@ -6,7 +6,7 @@
         alphanumeric displays (P2 version)
     Copyright (c) 2020
     Created Dec 30, 2017
-    Updated Jun 23, 2020
+    Updated Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -211,10 +211,10 @@ PUB Busy(): result | flag
 ' Flag indicating display is busy
 '   Returns: TRUE (-1) if busy, FALSE (0) otherwise
     writeReg (TRANSTYPE_CMD, 0, CMDSET_FUND, $00, 0)
-    i2c.start
+    i2c.start()
     i2c.write (SLAVE_RD | _sa0_addr)
     flag := i2c.read (TRUE)
-    i2c.stop
+    i2c.stop()
 
     if (flag >> 7) & %1
         return TRUE
