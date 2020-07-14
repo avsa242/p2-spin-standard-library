@@ -127,7 +127,7 @@ PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
 
 PUB Setup()
 
-    cogspin(16, cog_counter, @_ctr_stack)
+    cogspin(16, cog_counter(), @_ctr_stack)
 
     _nrf24_cog := nrf24.start (CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
 
