@@ -6,7 +6,7 @@
         LoRa/FSK/OOK transceiver (P2 version)
     Copyright (c) 2020
     Started Nov 3, 2019
-    Updated Jun 24, 2020
+    Updated Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -132,7 +132,7 @@ PUB CarrierFreq(freq=-2): result | tmp, opmode_tmp
             result := u64.MultDiv (FSTEP, tmp, FPSCALE)
             return
 
-    opmode_tmp := OpMode
+    opmode_tmp := OpMode()
     OpMode (DEVMODE_STDBY)
     writeReg(core.FRFMSB, 3, @freq)
     OpMode (opmode_tmp)
@@ -147,7 +147,7 @@ PUB Channel(number=-2): result | tmp
             tmp := 902_300_000 + (200_000 * number)
             CarrierFreq(tmp)
         OTHER:
-            tmp := CarrierFreq
+            tmp := CarrierFreq()
             result := (tmp - 902_300_000) / 200_000
             return
 
@@ -420,7 +420,7 @@ PUB FSKRampTime(uSec=-2): result | tmp
 
 PUB HeaderInfoValid(): result
 
-    result := ((ModemStatus >> 3) & %1) * TRUE
+    result := ((ModemStatus() >> 3) & %1) * TRUE
 
 PUB HopChannel(): result
 ' Returns current frequency hopping channel
@@ -775,7 +775,7 @@ PUB RXMode()
 
 PUB RXOngoing(): result
 ' Return receive on-going status
-    result := ((ModemStatus >> 2) & %1) * TRUE
+    result := ((ModemStatus() >> 2) & %1) * TRUE
 
 PUB RXPayload(nr_bytes, buff_addr)
 ' Receive data from RX FIFO into buffer at buff_addr
@@ -956,7 +956,7 @@ PRI readReg(reg_nr, nr_bytes, buff_addr) | i
     spi.Write(reg_nr)
 
     repeat i from nr_bytes-1 to 0
-        byte[buff_addr][i] := spi.Read
+        byte[buff_addr][i] := spi.Read()
     pinh(_CS)
 
 PRI writeReg(reg_nr, nr_bytes, buff_addr) | i

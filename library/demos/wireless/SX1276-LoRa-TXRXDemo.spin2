@@ -5,7 +5,7 @@
     Description: Demo of the SX1276 driver (P2 version)
     Copyright (c) 2020
     Started Nov 3, 2019
-    Updated Jun 24, 2020
+    Updated Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -97,30 +97,30 @@ VAR
 
 PUB Main() | tmp
 
-    Setup()
-    ser.HideCursor()
-    lora.LongRangeMode (lora.LRMODE_LORA)
+    setup()
+    ser.hidecursor()
+    lora.longrangemode (lora.LRMODE_LORA)
 
 '    _rf_outpin := lora.PAOUT_RFO        '       -1..14 with PAOUT_RFO
-'    lora.TXPower (-1, _rf_outpin)
+'    lora.txpower (-1, _rf_outpin)
 
     _rf_outpin := lora.PAOUT_PABOOST   '       5..20, 21..23 with PAOUT_PABOOST
-    lora.TXPower (5, _rf_outpin)
+    lora.txpower (5, _rf_outpin)
 
-    lora.Channel (0)
-    lora.LowFreqMode (FALSE)
-    lora.RXBandwidth (125000)
-    lora.SpreadingFactor (128)
-    lora.PreambleLen (8)
-    lora.CodeRate ($04_05)
-    lora.ImplicitHeaderMode (FALSE)
-    lora.PayloadLength (8)
-    lora.PayloadMaxLength (8)
-    lora.SyncWord ($12)
-    lora.RXTimeout (100)
+    lora.channel (0)
+    lora.lowfreqmode (FALSE)
+    lora.rxbandwidth (125000)
+    lora.spreadingfactor (128)
+    lora.preamblelen (8)
+    lora.coderate ($04_05)
+    lora.implicitheadermode (FALSE)
+    lora.payloadlength (8)
+    lora.payloadmaxlength (8)
+    lora.syncword ($12)
+    lora.rxtimeout (100)
 
-    ser.Position (0, TERM_START_Y+3)    'Rule   'xxx y-pos temp hack until ansi terminal fixed
-    ser.Chars ("-", TERM_MAX_X)
+    ser.position (0, TERM_START_Y+3)    'Rule   'xxx y-pos temp hack until ansi terminal fixed
+    ser.chars ("-", TERM_MAX_X)
 
     repeat
         case _curr_state
@@ -142,41 +142,41 @@ PUB Main() | tmp
 
 PUB ChangeSyncWord() | tmp
 
-    ser.ShowCursor()
-    ser.Position (SYNCW_X+11, SYNCW_Y)
-    tmp := ser.HexIn()
+    ser.showcursor()
+    ser.position (SYNCW_X+11, SYNCW_Y)
+    tmp := ser.hexin()
     if tmp >= $00 and tmp <= $FF
-        lora.SyncWord (tmp)
+        lora.syncword (tmp)
     _curr_state := _prev_state
-    ser.HideCursor()
+    ser.hidecursor()
     return
 
 PUB CycleBandwidth() | tmp
 
-    tmp := lora.RXBandwidth ()
+    tmp := lora.rxbandwidth ()
     case tmp
         7800:
-            lora.RXBandwidth (10_400)
+            lora.rxbandwidth (10_400)
         10_400:
-            lora.RXBandwidth (15_600)
+            lora.rxbandwidth (15_600)
         15_600:
-            lora.RXBandwidth (20_800)
+            lora.rxbandwidth (20_800)
         20_800:
-            lora.RXBandwidth (31_250)
+            lora.rxbandwidth (31_250)
         31_250:
-            lora.RXBandwidth (41_700)
+            lora.rxbandwidth (41_700)
         41_700:
-            lora.RXBandwidth (62_500)
+            lora.rxbandwidth (62_500)
         62_500:
-            lora.RXBandwidth (125_000)
+            lora.rxbandwidth (125_000)
         125_000:
-            lora.RXBandwidth (250_000)
+            lora.rxbandwidth (250_000)
         250_000:
-            lora.RXBandwidth (500_000)
+            lora.rxbandwidth (500_000)
         500_000:
-            lora.RXBandwidth (7_800)
+            lora.rxbandwidth (7_800)
         OTHER:
-            lora.RXBandwidth (125_000)
+            lora.rxbandwidth (125_000)
 
     _curr_state := _prev_state
     return
@@ -190,30 +190,30 @@ PUB CycleRFOut() | tmp
             _rf_outpin := lora.PAOUT_RFO
         OTHER:
             _rf_outpin := lora.PAOUT_RFO
-    lora.TXPower (5, _rf_outpin)
+    lora.txpower (5, _rf_outpin)
     _curr_state := _prev_state
     return
 
 PUB CycleSpreadFactor() | tmp
 
-    tmp := lora.SpreadingFactor ()
+    tmp := lora.spreadingfactor ()
     case tmp
         64:
-            lora.SpreadingFactor (128)
+            lora.spreadingfactor (128)
         128:
-            lora.SpreadingFactor (256)
+            lora.spreadingfactor (256)
         256:
-            lora.SpreadingFactor (512)
+            lora.spreadingfactor (512)
         512:
-            lora.SpreadingFactor (1024)
+            lora.spreadingfactor (1024)
         1024:
-            lora.SpreadingFactor (2048)
+            lora.spreadingfactor (2048)
         2048:
-            lora.SpreadingFactor (4096)
+            lora.spreadingfactor (4096)
         4096:
-            lora.SpreadingFactor (64)
+            lora.spreadingfactor (64)
         OTHER:
-            lora.SpreadingFactor (128)
+            lora.spreadingfactor (128)
 
     _curr_state := _prev_state
     return
@@ -221,77 +221,77 @@ PUB CycleSpreadFactor() | tmp
 PUB DecreaseTXPwr() | tmp
 
     tmp := $00
-    tmp := lora.TXPower (QUERY, _rf_outpin)
+    tmp := lora.txpower (QUERY, _rf_outpin)
     case _rf_outpin
         lora.PAOUT_RFO:
             if tmp > -1
                 tmp--
-                lora.TXPower (tmp, _rf_outpin)
+                lora.txpower (tmp, _rf_outpin)
             else
-                lora.TXPower (14, _rf_outpin)
+                lora.txpower (14, _rf_outpin)
 
         lora.PAOUT_PABOOST:
             if tmp > 5
                 tmp--
-                lora.TXPower (tmp, _rf_outpin)
+                lora.txpower (tmp, _rf_outpin)
             else
-                lora.TXPower (23, _rf_outpin)
+                lora.txpower (23, _rf_outpin)
     _curr_state := _prev_state
     return
 
 PUB IncreaseTXPwr() | tmp
 
     tmp := $00
-    tmp := lora.TXPower (QUERY, _rf_outpin)
+    tmp := lora.txpower (QUERY, _rf_outpin)
     case _rf_outpin
         lora.PAOUT_RFO:
             if tmp < 14
                 tmp++
-                lora.TXPower (tmp, _rf_outpin)
+                lora.txpower (tmp, _rf_outpin)
             else
-                lora.TXPower (-1, _rf_outpin)
+                lora.txpower (-1, _rf_outpin)
 
         lora.PAOUT_PABOOST:
             if tmp < 23
                 tmp++
-                lora.TXPower (tmp, _rf_outpin)
+                lora.txpower (tmp, _rf_outpin)
             else
-                lora.TXPower (5, _rf_outpin)
+                lora.txpower (5, _rf_outpin)
     _curr_state := _prev_state
     return
 
 PUB DisplayFIFO() | i, col
 
-    ser.Position (FIFO_X, FIFO_Y)
+    ser.position (FIFO_X, FIFO_Y)
     ser.printf("FIFO:[\n")
 
     col := FIFO_X
     i := 0
     repeat
         repeat col from FIFO_X to FIFO_WIDTH
-            ser.PositionX (col+1)
+            ser.positionx (col+1)
             if _fifo.byte[i] >= 32 AND _fifo.byte[i] <= 127
-                ser.Char (_fifo.byte[i])
+                ser.char (_fifo.byte[i])
             else
-                ser.Char (".")
+                ser.char (".")
             i++
             if i > 255
                 quit
-        ser.NewLine()
+        ser.newline()
     until i > 255
-    ser.Char ("]")
+    ser.char ("]")
 
 PUB DisplayIRQFlags() | i
 
-    ser.Position (IRQFLAGS_X, IRQFLAGS_Y+1)
+    ser.position (IRQFLAGS_X, IRQFLAGS_Y+1)
 '    _irq_flags := %1111_0011    'TESTING
     ser.printf("IRQFLAGS: ")
 '    ser.Bin (_irq_flags, 8)
 '    ser.printf("  IRQMASK: ")
 '    ser.Bin (_irq_flags_mask, 8)
     repeat i from 7 to 0
-        ser.Position ((IRQFLAGS_X + 9 + 1) + ((7-i) * 9), IRQFLAGS_Y+1)
-        ser.Char ("|")
+        ser.position ((IRQFLAGS_X + 9 + 1) + ((7-i) * 9), IRQFLAGS_Y+1)
+        ser.char ("|")
         if _irq_flags & (1 << i)
             case i
                 0: ser.printf("CADDET  ")
@@ -307,12 +307,12 @@ PUB DisplayIRQFlags() | i
 
 PUB DisplayModemFlags() | mdm_stat, i
 
-    ser.Position (MDMSTAT_X, MDMSTAT_Y+1)
-    mdm_stat := lora.ModemStatus()
+    ser.position (MDMSTAT_X, MDMSTAT_Y+1)
+    mdm_stat := lora.modemstatus()
     ser.printf("MDMSTATUS: ")
     repeat i from 4 to 0
-        ser.Position ((MDMSTAT_X + 9 + 1) + ((7-i) * 9), MDMSTAT_Y+1)
-        ser.Char ("|")
+        ser.position ((MDMSTAT_X + 9 + 1) + ((7-i) * 9), MDMSTAT_Y+1)
+        ser.char ("|")
         if mdm_stat & (1 << i)
             case i
                 0: ser.printf("SIGNDET ")
@@ -325,15 +325,15 @@ PUB DisplayModemFlags() | mdm_stat, i
 
 PUB DisplayRXStats() | last_pkt_rssi, last_pkt_snr, last_pkt_crc, last_pkt_bytes, last_coderate, cnt_valid_hdr, cnt_valid_pkt
 
-    last_pkt_rssi := lora.PacketRSSI()
-    last_pkt_snr := lora.PacketSNR()
-    last_pkt_crc := lora.LastHeaderCRC()
-    last_coderate := lora.LastHeaderCodingRate()
-    cnt_valid_hdr := lora.ValidHeadersReceived()
-    cnt_valid_pkt := lora.ValidPacketsReceived()
-    last_pkt_bytes := lora.LastPacketBytes()
+    last_pkt_rssi := lora.packetrssi()
+    last_pkt_snr := lora.packetsnr()
+    last_pkt_crc := lora.lastheadercrc()
+    last_coderate := lora.lastheadercodingrate()
+    cnt_valid_hdr := lora.validheadersreceived()
+    cnt_valid_pkt := lora.validpacketsreceived()
+    last_pkt_bytes := lora.lastpacketbytes()
 
-    ser.Position (RXSTATS_X, RXSTATS_Y)
+    ser.position (RXSTATS_X, RXSTATS_Y)
     ser.printf("Last packet RSSI: %d  SNR: %d  Code Rate: $%x  CRC Enabled: %d\n", last_pkt_rssi, last_pkt_snr, last_coderate, last_pkt_crc)
     ser.printf("Valid headers received: %d\n", cnt_valid_hdr)
     ser.printf("Valid packets received: %d\n", cnt_valid_pkt)
@@ -342,8 +342,8 @@ PUB DisplayRXStats() | last_pkt_rssi, last_pkt_snr, last_pkt_crc, last_pkt_bytes
 
 PUB DisplaySettings() | i, mdm_stat
 
-    ser.Position (DEVMODE_X, DEVMODE_Y)
-    case lora.OpMode ()
+    ser.position (DEVMODE_X, DEVMODE_Y)
+    case lora.opmode()
         0: ser.printf("SLEEP       ")
         1: ser.printf("STANDBY     ")
         2: ser.printf("FSTX        ")
@@ -353,27 +353,27 @@ PUB DisplaySettings() | i, mdm_stat
         6: ser.printf("RXSINGLE    ")
         7: ser.printf("CAD         ")
 
-    ser.Position (LORAMODE_X, LORAMODE_Y)
-    case lora.LongRangeMode ()
+    ser.position (LORAMODE_X, LORAMODE_Y)
+    case lora.longrangemode ()
         0: ser.printf("FSK/OOK     ")
         1: ser.printf("LoRa        ")
 
-    ser.Position (FREQ_X, FREQ_Y)
-    ser.printf("Freq: %d ", lora.CarrierFreq ())
+    ser.position (FREQ_X, FREQ_Y)
+    ser.printf("Freq: %d ", lora.carrierfreq())
 
-    ser.Position (SYNCW_X, SYNCW_Y)
-    ser.printf("Syncword: $%x", lora.SyncWord ())
+    ser.position (SYNCW_X, SYNCW_Y)
+    ser.printf("Syncword: $%x", lora.syncword())
 
-    ser.Position (BANDW_X, BANDW_Y+1)
-    ser.printf("Bandwidth: %d  ", lora.RXBandwidth ())
+    ser.position (BANDW_X, BANDW_Y+1)
+    ser.printf("Bandwidth: %d  ", lora.rxbandwidth())
 
-    ser.Position (SPREAD_X, SPREAD_Y+1) 'temp hack until ansi terminal fixed
-    ser.printf("SF: %d  ", lora.SpreadingFactor ())
+    ser.position (SPREAD_X, SPREAD_Y+1) 'temp hack until ansi terminal fixed
+    ser.printf("SF: %d  ", lora.spreadingfactor())
 
     if _curr_state == DO_TX
-        ser.Position (TXPOWER_X, TXPOWER_Y)
-        ser.printf("TXPower: %ddBm", lora.TXPower (QUERY, _rf_outpin))
-        ser.Position (RFOUTPIN_X, RFOUTPIN_Y)
+        ser.position (TXPOWER_X, TXPOWER_Y)
+        ser.printf("txpower: %ddBm", lora.txpower (QUERY, _rf_outpin))
+        ser.position (RFOUTPIN_X, RFOUTPIN_Y)
         ser.printf("RFOutpin: ")
         case _rf_outpin
             lora.PAOUT_RFO:
@@ -384,48 +384,48 @@ PUB DisplaySettings() | i, mdm_stat
 PUB Receive() | curr_rssi, min_rssi, max_rssi, len, tmp
 
     ser.clear()
-    ser.Position (MSG_X, MSG_Y)
+    ser.position (MSG_X, MSG_Y)
     ser.printf("Receive mode")
-    lora.IntMask (%1011_1111)
-    lora.LNAGain (0)
-    lora.AGCMode (FALSE)
-    lora.OpMode (lora.DEVMODE_RXCONTINUOUS)
-    min_rssi := lora.RSSI()
+    lora.intmask (%1011_1111)
+    lora.lnagain (0)
+    lora.agcmode (FALSE)
+    lora.opmode (lora.DEVMODE_RXCONTINUOUS)
+    min_rssi := lora.rssi()
     max_rssi := min_rssi
-    _irq_flags_mask := lora.IntMask ()
-    lora.FIFORXBasePtr ($00)
+    _irq_flags_mask := lora.intmask ()
+    lora.fiforxbaseptr ($00)
     repeat until _curr_state <> DO_RX
-        _irq_flags := lora.Interrupt (0)
-        curr_rssi := lora.RSSI()
-        DisplayIRQFlags()
-        DisplayModemFlags()
-        ser.Position (0, MDMSTAT_Y+2)
+        _irq_flags := lora.interrupt (0)
+        curr_rssi := lora.rssi()
+        displayirqflags()
+        displaymodemflags()
+        ser.position (0, MDMSTAT_Y+2)
         min_rssi := curr_rssi <# min_rssi
         max_rssi := curr_rssi #> max_rssi
         ser.printf("Live RSSI (curr/min/max): %d / %d / %d ", curr_rssi, min_rssi, max_rssi)
 
-        DisplaySettings()
+        displaysettings()
         if _irq_flags & %0100_0000
-            len := lora.LastPacketBytes()
-            lora.FIFOAddrPointer (lora.FIFORXCurrentAddr())
-            lora.RXPayload (len, @_fifo)
-            lora.Interrupt (%0100_0000)
-            DisplayRXStats()
-            DisplayFIFO()
+            len := lora.lastpacketbytes()
+            lora.fifoaddrpointer (lora.fiforxcurrentaddr())
+            lora.rxpayload (len, @_fifo)
+            lora.interrupt (%0100_0000)
+            displayrxstats()
+            displayfifo()
 
         if _irq_flags & %0010_0000      ' Payload CRC error
-            lora.Interrupt (%0010_0000)
+            lora.interrupt (%0010_0000)
 
 PUB SetDefaults()
 
-    ser.Position (MSG_X, MSG_Y)
+    ser.position (MSG_X, MSG_Y)
     ser.printf("Set defaults")
     repeat until _curr_state <> SET_DEFAULTS
     'not implemented yet
 
 PUB SetFrequency()
 
-    ser.Position (MSG_X, MSG_Y)
+    ser.position (MSG_X, MSG_Y)
     ser.printf("Set frequency")
     repeat until _curr_state <> SET_FREQ
     'not implemented yet
@@ -438,36 +438,36 @@ PUB Transmit() | count, tmp
     _fifo.byte[2] := "S"
     _fifo.byte[3] := "T"
 
-    lora.CRCCheckEnabled (TRUE)
-    lora.GPIO0 (lora.DIO0_TXDONE)
-    lora.IntMask (%1111_0111)       ' Disable all interrupts except TXDONE
-    lora.FIFOTXBasePtr ($00)        ' Set the TX FIFO base address to 0
+    lora.crccheckenabled (TRUE)
+    lora.gpio0 (lora.DIO0_TXDONE)
+    lora.intmask (%1111_0111)       ' Disable all interrupts except TXDONE
+    lora.fifotxbaseptr ($00)        ' Set the TX FIFO base address to 0
 
     count := 0
-    ser.Position (MSG_X, MSG_Y)
+    ser.position (MSG_X, MSG_Y)
     ser.printf("Transmit mode")
     repeat until _curr_state <> DO_TX
-        tmp := int.Dec(count)'int.Hex (count, 4)   'XXX hangs in the hex method
+        tmp := int.dec(count)'int.Hex (count, 4)   'XXX hangs in the hex method
         longmove(@_fifo[1], tmp, 1)
-        DisplaySettings()
-        DisplayModemFlags()
-        DisplayFIFO()
-        DisplayIRQFlags()
-        lora.OpMode (lora.DEVMODE_STDBY)
-        lora.FIFOAddrPointer ($00)  ' Seek to location $00 in the FIFO for subsequent FIFO op
-        lora.TXPayload (8, @_fifo)
-        lora.OpMode (lora.DEVMODE_TX)
-        repeat until lora.Interrupt (0) & %0000_1000        ' Wait until TXDONE asserted
-        lora.Interrupt (%0000_1000)                         ' Clear TXDONE
-        ser.NewLine()
+        displaysettings()
+        displaymodemflags()
+        displayfifo()
+        displayirqflags()
+        lora.opmode(lora.DEVMODE_STDBY)
+        lora.fifoaddrpointer($00)  ' Seek to location $00 in the FIFO for subsequent FIFO op
+        lora.txpayload (8, @_fifo)
+        lora.opmode (lora.DEVMODE_TX)
+        repeat until lora.interrupt(0) & %0000_1000        ' Wait until TXDONE asserted
+        lora.interrupt (%0000_1000)                         ' Clear TXDONE
+        ser.newline()
         count++
-        ser.Position (0, MDMSTAT_Y+2)
+        ser.position (0, MDMSTAT_Y+2)
         ser.printf("Packets transmitted: %d", count)
         waitms(5000)
 
 PUB Help()
 
-    ser.Position (HELP_X, HELP_Y)
+    ser.position (HELP_X, HELP_Y)
     ser.printf("Help:\n")
     ser.printf("b  - Change bandwidth\n")
 '    ser.printf("d  - Set LoRa radio defaults\n")
@@ -485,7 +485,7 @@ PUB Help()
 PRI keyDaemon() | key_cmd
 
     repeat
-        repeat until key_cmd := ser.CharIn()
+        repeat until key_cmd := ser.charin()
         case key_cmd
             "b", "B":
                 _prev_state := _curr_state
@@ -545,19 +545,19 @@ PRI WaitKey()
     
 PUB Setup()
 
-    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
     waitms(500)
-    ser.Clear()
+    ser.clear()
     ser.printf("Serial terminal started\n")
 
-    if lora.Start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
+    if lora.start (CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
         ser.printf("sx1276 driver started\n")
     else
         ser.printf("sx1276 driver failed to start - halting\n")
         waitms (500)
-        FlashLED (LED, 500)
+        flashled (LED, 500)
 
-    _keydaemon_cog := cogspin(16, keyDaemon, @_keydaemon_stack)+1
+    _keydaemon_cog := cogspin(16, keydaemon(), @_keydaemon_stack)+1
     ser.printf("key daemon started on cog %d\n", _keydaemon_cog)
 
 #include "lib.utility.spin2"
