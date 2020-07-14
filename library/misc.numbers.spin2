@@ -16,7 +16,7 @@ VAR
   byte  Symbols[7]              'Special symbols (7 characters)
   byte  StrBuf[49]              'Internal String Buffer
 
-PUB Init 
+PUB Init()
 ''Initialize to default settings.  Init MUST be called before first object use.
 ''  ┌──────────────────────────────────────────────────┐
 ''  │             DEFAULT SPECIAL SYMBOLS              │
