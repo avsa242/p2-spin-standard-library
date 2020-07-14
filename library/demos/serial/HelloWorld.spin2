@@ -29,7 +29,7 @@ PUB Main()
     ser.char("l")
     ser.char("d")
     ser.char("!")
-    ser.newline
+    ser.newline()
 
     ser.str(string("Hello world!", ser.CR, ser.LF))
 
