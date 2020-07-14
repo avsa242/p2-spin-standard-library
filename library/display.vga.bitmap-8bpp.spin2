@@ -5,7 +5,7 @@
     Author: Ray Allen
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Jun 22, 2020
+    Updated: Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is a derivative of raycast5b_SpinDisplay2a.spin2,
@@ -30,7 +30,7 @@ CON
     VSYNC_PAR   = 4
     PTR_FB_PAR  = 5
 
-    INTENSITY   = 80                                        ' 0..128
+    INTENSITY   = 127                                        ' 0..128
 
 OBJ
 
@@ -60,7 +60,7 @@ PUB Start(pinbase, ptr_framebuffer, ptr_palette, WIDTH, HEIGHT): okay
     _disp_ymax := _disp_height-1
     _buff_sz := (WIDTH * HEIGHT)
     Address(ptr_framebuffer)
-    _cog := okay := cognew(@DisplayEntry, @_params) + 1
+    _cog := okay := coginit(16, @DisplayEntry, @_params) + 1
     return
 
 PUB Stop()
