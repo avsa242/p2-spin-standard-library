@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started: Mar 10, 2020
-    Updated: Jun 23, 2020
+    Updated: Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -58,63 +58,63 @@ VAR
 
 PUB Main() | time_ms
 
-    Setup()
-    lcd.ClearAll()
+    setup()
+    lcd.clearall()
 
-    lcd.MirrorH(TRUE)                                       ' Change these to suit the orientation
-    lcd.MirrorV(TRUE)                                       '   of your display
+    lcd.mirrorh(TRUE)                                       ' Change these to suit the orientation
+    lcd.mirrorv(TRUE)                                       '   of your display
 
-    Demo_Greet()
-    time.Sleep (5)
-    lcd.ClearAll()
+    demo_greet()
+    time.sleep (5)
+    lcd.clearall()
 
     time_ms := 5_000
 
     ser.position (0, 3)
 
-    Demo_SineWave (time_ms)
-    lcd.ClearAll()
+    demo_sinewave (time_ms)
+    lcd.clearall()
 
-    Demo_TriWave (time_ms)
-    lcd.ClearAll()
+    demo_triwave (time_ms)
+    lcd.clearall()
 
-    Demo_MEMScroller(time_ms, $0000, $FFFF-BUFFSZ)
-    lcd.ClearAll()
+    demo_memscroller(time_ms, $0000, $FFFF-BUFFSZ)
+    lcd.clearall()
 
-    Demo_Bitmap (time_ms, $8000)
-    lcd.ClearAll()
+    demo_bitmap (time_ms, $8000)
+    lcd.clearall()
 
-    Demo_LineSweepX(time_ms)
-    lcd.ClearAll()
+    demo_linesweepx(time_ms)
+    lcd.clearall()
 
-    Demo_LineSweepY(time_ms)
-    lcd.ClearAll()
+    demo_linesweepy(time_ms)
+    lcd.clearall()
 
-    Demo_Line (time_ms)
-    lcd.ClearAll()
+    demo_line (time_ms)
+    lcd.clearall()
 
-    Demo_Plot (time_ms)
-    lcd.ClearAll()
+    demo_plot (time_ms)
+    lcd.clearall()
 
-    Demo_BouncingBall (time_ms, 5)
-    lcd.ClearAll()
+    demo_bouncingball (time_ms, 5)
+    lcd.clearall()
 
-    Demo_Circle(time_ms)
-    lcd.ClearAll()
+    demo_circle(time_ms)
+    lcd.clearall()
 
-    Demo_Wander (time_ms)
-    lcd.ClearAll()
+    demo_wander (time_ms)
+    lcd.clearall()
 
-    Demo_SeqText (time_ms)
-    lcd.ClearAll()
+    demo_seqtext (time_ms)
+    lcd.clearall()
 
-    Demo_RndText (time_ms)
+    demo_rndtext (time_ms)
 
-    Demo_Contrast(2, 1)
-    lcd.ClearAll()
+    demo_contrast(2, 1)
+    lcd.clearall()
 
-    Stop()
-    FlashLED(LED, 100)
+    stop()
+    flashled(LED, 100)
 
 PUB Demo_BouncingBall(testtime, radius) | iteration, bx, by, dx, dy
 ' Draws a simple ball bouncing off screen edges
@@ -135,12 +135,12 @@ PUB Demo_BouncingBall(testtime, radius) | iteration, bx, by, dx, dy
         if (bx <= radius OR bx >= YMAX - radius)           'Ditto with the left or right sides
             dx *= -1
 
-        lcd.Circle (bx, by, radius, $FFFF)
-        lcd.Update()
+        lcd.circle (bx, by, radius, $FFFF)
+        lcd.update()
         iteration++
-        lcd.Clear()
+        lcd.clear()
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
 ' Continuously redraws bitmap at address bitmap_addr
@@ -149,11 +149,11 @@ PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
     iteration := 0
 
     repeat while _timer_set
-        lcd.Bitmap (bitmap_addr, BUFFSZ, 0)
-        lcd.Update()
+        lcd.bitmap (bitmap_addr, BUFFSZ, 0)
+        lcd.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_Circle(testtime) | iteration, x, y, r
 ' Draws circles at random locations
@@ -165,11 +165,11 @@ PUB Demo_Circle(testtime) | iteration, x, y, r
         x := rnd(XMAX)
         y := rnd(YMAX)
         r := rnd(YMAX/2)
-        lcd.Circle (x, y, r, RND565)
-        lcd.Update()
+        lcd.circle (x, y, r, RND565())
+        lcd.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_Contrast(reps, delay_ms) | contrast_level
 ' Fades out and in display contrast
@@ -177,24 +177,24 @@ PUB Demo_Contrast(reps, delay_ms) | contrast_level
 
     repeat reps
         repeat contrast_level from 255 to 1
-            lcd.Contrast (contrast_level)
+            lcd.contrast (contrast_level)
             waitms (delay_ms)
         repeat contrast_level from 0 to 254
-            lcd.Contrast (contrast_level)
+            lcd.contrast (contrast_level)
             waitms (delay_ms)
 
     ser.newline()
 
 PUB Demo_Greet()
 ' Display the banner/greeting on the OLED
-    lcd.FGColor($FFFF)
-    lcd.BGColor(0)
-    lcd.Position (0, 0)
+    lcd.fgcolor($FFFF)
+    lcd.bgcolor(0)
+    lcd.position (0, 0)
     lcd.printf("ST7735 on the\n")
     lcd.printf("Parallax P2X8C4M64P @\n")
     lcd.printf("%dMHz\n", clkfreq/1_000_000)
     lcd.printf("%dx%d", WIDTH, HEIGHT)
-    lcd.Update()
+    lcd.update()
 
 PUB Demo_Line (testtime) | iteration
 ' Draws random lines with color -1 (invert)
@@ -203,11 +203,11 @@ PUB Demo_Line (testtime) | iteration
     iteration := 0
 
     repeat while _timer_set
-        lcd.Line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), RND565)
-        lcd.Update()
+        lcd.line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), RND565())
+        lcd.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_LineSweepX (testtime) | iteration, x
 ' Draws lines top left to lower-right, sweeping across the screen, then
@@ -222,11 +222,11 @@ PUB Demo_LineSweepX (testtime) | iteration, x
         x++
         if x > XMAX
             x := 0
-        lcd.Line (x, 0, XMAX-x, YMAX, x)
-        lcd.Update()
+        lcd.line (x, 0, XMAX-x, YMAX, x)
+        lcd.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_LineSweepY (testtime) | iteration, y
 ' Draws lines top left to lower-right, sweeping across the screen, then
@@ -241,11 +241,11 @@ PUB Demo_LineSweepY (testtime) | iteration, y
         y++
         if y > YMAX
             y := 0
-        lcd.Line (XMAX, y, 0, YMAX-y, y)
-        lcd.Update()
+        lcd.line (XMAX, y, 0, YMAX-y, y)
+        lcd.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
 ' Dumps Propeller Hub RAM (and/or ROM) to the display buffer
@@ -259,11 +259,11 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
         pos += BPL
         if pos >end_addr
             pos := start_addr
-        lcd.Bitmap (pos, BUFFSZ, 0)
-        lcd.Update()
+        lcd.bitmap (pos, BUFFSZ, 0)
+        lcd.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_Plot(testtime) | iteration, x, y
 ' Draws random pixels to the screen, with color -1 (invert)
@@ -272,11 +272,11 @@ PUB Demo_Plot(testtime) | iteration, x, y
     iteration := 0
 
     repeat while _timer_set
-        lcd.Plot (rnd(XMAX), rnd(YMAX), RND565)
-        lcd.Update()
+        lcd.plot (rnd(XMAX), rnd(YMAX), RND565())
+        lcd.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 ' Draws a sine wave the length of the screen, influenced by the system counter
@@ -290,55 +290,55 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 
     repeat while _timer_set
         repeat x from 0 to XMAX
-            modifier := (abs(cnt) / 1_000_000)           ' Use system counter as modifier
+            modifier := (abs(getct()) / 1_000_000)           ' Use system counter as modifier
             y := offset + sin(x * modifier) / div
-            lcd.Plot(x, y, $FFFF)
+            lcd.plot(x, y, $FFFF)
 
-        lcd.Update()
+        lcd.update()
         iteration++
-        lcd.Clear()
+        lcd.clear()
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_SeqText(testtime) | iteration, ch, chars
 ' Sequentially draws the whole font table to the screen
-    chars := lcd.TextCols() * lcd.TextRows()
+    chars := lcd.textcols() * lcd.textrows()
     ch := 32
 
     ser.printf("Demo_SeqText - ")
     _timer_set := testtime
     iteration := 0
 
-    lcd.Position(0, 0)
+    lcd.position(0, 0)
     repeat while _timer_set
         repeat chars
-            lcd.FGColor(RND565)
-            lcd.BGColor(RND565)
-            lcd.Char (ch++)
+            lcd.fgcolor(RND565())
+            lcd.bgcolor(RND565())
+            lcd.char (ch++)
             if ch > 127
                 ch := 32
 
-        lcd.Update()
+        lcd.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_RndText(testtime) | iteration, chars
 ' Draw random text characters
-    chars := lcd.TextCols() * lcd.TextRows()
+    chars := lcd.textcols() * lcd.textrows()
     ser.printf("Demo_RndText - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
         repeat chars
-            lcd.FGColor(RND565)
-            lcd.BGColor(RND565)
-            lcd.Char (32 #> rnd(127))
-        lcd.Update()
+            lcd.fgcolor(RND565())
+            lcd.bgcolor(RND565())
+            lcd.char (32 #> rnd(127))
+        lcd.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_TriWave(testtime) | iteration, x, y, ydir
 ' Draws a simple triangular wave
@@ -356,16 +356,16 @@ PUB Demo_TriWave(testtime) | iteration, x, y, ydir
             if y == 0
                 ydir := 1
             y := y + ydir
-            lcd.Plot (x, y, $FFFF)
-        lcd.Update()
+            lcd.plot (x, y, $FFFF)
+        lcd.update()
         iteration++
-        lcd.Clear()
+        lcd.clear()
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
 PUB Demo_Wander(testtime) | iteration, x, y, d
 ' Draws randomly wandering pixels
-    _rndSeed := cnt
+    _rndseed := getct()
     x := XMAX/2
     y := YMAX/2
 
@@ -391,13 +391,13 @@ PUB Demo_Wander(testtime) | iteration, x, y, d
                 y -= 2
                 if y < 0
                     y := YMAX
-        lcd.Plot (x, y, RND565)
-        lcd.Update()
+        lcd.plot (x, y, RND565())
+        lcd.update()
         iteration++
 
-    Report(testtime, iteration)
+    report(testtime, iteration)
 
-PUB RND565: rgb565
+PUB RND565(): rgb565
 ' Return random 16bit/5-6-5 color
     rgb565 := (rnd(31) << 11) | (rnd(63) << 5) | rnd(31)
 
@@ -407,11 +407,11 @@ PUB RND(maxval): r
 
 PUB Sin(angle): sine | tmp
 ' Return the sine of angle
-    asm
+    org
         shl     angle, #20
         qrotate ##100000, angle
         getqy   sine
-    endasm
+    end
 
 PRI Report(testtime, iterations)
 
@@ -422,7 +422,7 @@ PRI Report(testtime, iterations)
     ser.dec(iterations / (testtime/1000))
 
     ser.printf(", ms/Iteration: ")
-    Decimal( (testtime * 1_000) / iterations, 1_000)
+    decimal((testtime * 1_000) / iterations, 1_000)
     ser.newline()
 
 PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
@@ -438,7 +438,7 @@ PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
         tmp /= 10
         places++
     until tmp == 1
-    part := int.DecZeroed(abs(scaled // divisor), places)
+    part := int.deczeroed(abs(scaled // divisor), places)
 
     ser.printf("%d.%s", whole, part)
 
@@ -456,28 +456,28 @@ PRI cog_Timer() | time_left
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until _ser_cog := ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
     waitms(30)
-    ser.Clear()
+    ser.clear()
     ser.printf("Serial terminal started\n")
 
     if _lcd_cog := lcd.Start (CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RESET_PIN, SCK_HZ, WIDTH, HEIGHT, @_framebuff)
         ser.printf("ST7735 driver started\n")
-        lcd.FontAddress(fnt.BaseAddr())
-        lcd.FontSize(6, 8)
-        lcd.DefaultsCommon()
-        lcd.ClearAll()
+        lcd.fontaddress(fnt.baseaddr())
+        lcd.fontsize(6, 8)
+        lcd.defaultscommon()
+        lcd.clearall()
     else
         ser.printf("ST7735 driver failed to start - halting\n")
-        Stop()
+        stop()
 
-    _timer_cog := cogspin(16, cog_Timer, @_stack_timer)
+    _timer_cog := cogspin(16, cog_timer(), @_stack_timer)
 
 PUB Stop()
 
-    lcd.DisplayVisibility(lcd.ALL_OFF)
-    lcd.Powered (FALSE)
-    lcd.Stop()
+    lcd.displayvisibility(lcd.ALL_OFF)
+    lcd.powered (FALSE)
+    lcd.stop()
     cogstop(_timer_cog)
 
 #include "lib.utility.spin2"

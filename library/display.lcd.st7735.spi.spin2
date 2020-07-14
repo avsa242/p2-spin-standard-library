@@ -5,7 +5,7 @@
     Description: Driver for Sitronix ST7735-based displays (4W SPI, P2 version)
     Copyright (c) 2020
     Started Mar 10, 2020
-    Updated Jun 23, 2020
+    Updated Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -104,7 +104,7 @@ PUB Stop()
 
 PUB Defaults() | tmp
 ' Apply power-on-reset default settings
-    Reset
+    Reset()
     Powered(TRUE)
 
     FramerateCtrl(1, 44, 45, 0, 0, 0)
