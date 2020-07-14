@@ -5,7 +5,7 @@
     Description: Driver for TI's CC1101 ISM-band transceiver (P2 version)
     Copyright (c) 2020
     Started Mar 25, 2019
-    Updated Jun 24, 2020
+    Updated Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -1051,7 +1051,7 @@ PUB TXPower(dBm=-255): result | tmp
     readReg(core.PATABLE, 1, @tmp)
     case dBm
         -30, -20, -15, -10, 0, 5, 7, 10:
-            case CarrierFreq            ' Value written to radio depends on current frequency band
+            case CarrierFreq()          ' Value written to radio depends on current frequency band
                 285_000_000..322_000_000:
                     dBm := lookdown(dBm: -30, -20, -15, -10, 0, 5, 7, 10)
                     dBm := lookup(dBm: $12, $0D, $1C, $34, $51, $85, $CB, $C2)
@@ -1065,7 +1065,7 @@ PUB TXPower(dBm=-255): result | tmp
                     dBm := lookdown(dBm: -30, -20, -15, -10, 0, 5, 7, 10)
                     dBm := lookup(dBm: $03, $0E, $1E, $27, $8E, $CD, $C7, $C0)
         OTHER:
-            case CarrierFreq
+            case CarrierFreq()
                 285_000_000..322_000_000:
                     tmp := lookdown(tmp: $12, $0D, $1C, $34, $51, $85, $CB, $C2)
                     result := lookup(tmp: -30, -20, -15, -10, 0, 5, 7, 10)
@@ -1140,14 +1140,14 @@ PUB readReg(reg_nr, nr_bytes, buff_addr): result | i
             pinl(_CS)
             spi.Write(reg_nr | core.R)
             repeat i from 0 to nr_bytes-1
-                byte[buff_addr][i] := spi.Read
+                byte[buff_addr][i] := spi.Read()
             pinh(_CS)
             return
 
     pinl(_CS)
     spi.Write(reg_nr | core.R)
     repeat i from 0 to nr_bytes-1
-        byte[buff_addr][i] := spi.Read & $FF
+        byte[buff_addr][i] := spi.Read() & $FF
     pinh(_CS)
     return
 
