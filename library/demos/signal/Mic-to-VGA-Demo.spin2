@@ -6,7 +6,7 @@
         showing a scope output of the audio on an attached VGA display
     Author: Jesse Burt
     Started: May 16, 2020
-    Updated: Jul 9, 2020
+    Updated: Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -120,11 +120,11 @@ PUB Setup()
     ser.clear()
     ser.printf("Serial terminal started\n")
 
-    cognew(cog_graphics(), @_gfx_stack)
+    cogspin(16, cog_graphics(), @_gfx_stack)
     repeat until _vga_cog
     ser.printf("VGA 8bpp driver started\n")
 
-    cognew(cog_audio(), @_audio_stack)
+    cogspin(16, cog_audio(), @_audio_stack)
     repeat until _audio_cog
     ser.printf("Audio cog started (%dHz sample rate)\n", SAMPLE_RATE)
 
