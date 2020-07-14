@@ -5,7 +5,7 @@
     Description: Driver for the ST LSM9DS1 9DoF/3-axis IMU (P2 version)
     Copyright (c) 2020
     Started Aug 12, 2017
-    Updated Jun 24, 2020
+    Updated Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -284,7 +284,7 @@ PUB CalibrateMag(samples) | magMin[3], magMax[3], magtmp[3], axis, mx, my, mz, m
     magMax[0] := magMax[1] := magMax[2] := 0
     axis := mx := my := mz := msb := lsb := 0
     repeat samples
-        repeat until MagDataReady
+        repeat until MagDataReady()
         MagData(@mx, @my, @mz)
         magtmp[X_AXIS] := mx
         magtmp[Y_AXIS] := my
@@ -308,7 +308,7 @@ PUB CalibrateXLG() | aBiasRawtmp[3], gBiasRawtmp[3], axis, ax, ay, az, gx, gy, g
     FIFOMode(FIFO_THS)
     FIFOThreshold (31)
     samples := FIFOThreshold (-2)
-    repeat until FIFOFull
+    repeat until FIFOFull()
     _autoCalc := FALSE
     repeat axis from 0 to 2
         gBiasRawtmp[axis] := 0
@@ -844,7 +844,7 @@ PUB MagIntsLatched(enabled=-2): result
 '   NOTE: If enabled, interrupts must be explicitly cleared using MagClearInt XXX verify
     result := booleanChoice (MAG, core.INT_CFG_M, core.FLD_IEL, core.MASK_IEL, core.INT_CFG_M, enabled, -1)
 
-PUB MagIntThresh(level=-2) | tmp   'XXX rewrite to take gauss as a param
+PUB MagIntThresh(level=-2): tmp   'XXX rewrite to take gauss as a param
 ' Set magnetometer interrupt threshold
 '   Valid values: 0..32767
 '   Any other value polls the chip and returns the current setting
@@ -888,7 +888,7 @@ PUB MagOpMode(mode=-2): result | tmp
 PUB MagOverflow(): result
 ' Magnetometer measurement range overflow
 '   Returns: TRUE (-1) if measurement overflows sensor's internal range, FALSE otherwise
-    result := ((MagInt >> core.FLD_MROI) & %1) * TRUE
+    result := ((MagInt() >> core.FLD_MROI) & %1) * TRUE
 
 PUB MagPerf(mode=-2): result | tmpxy, tmpz
 ' Set magnetometer performance mode
@@ -949,7 +949,7 @@ PUB MagSoftReset() | tmp
 
     tmp := $00                                  'Mag doesn't seem to come out of reset unless
     writeReg(MAG, core.CTRL_REG2_M, 1, @tmp)  ' clearing the reset bit manually - Why would this behave
-    setSPI3WireMode                             ' differently than the XL/G reset?
+    setSPI3WireMode()                           ' differently than the XL/G reset?
 
 PUB Temperature(): result
 ' Get temperature from chip
@@ -1222,7 +1222,7 @@ PRI readReg(device, reg_nr, nr_bytes, buff_addr) | tmp
                         byte[buff_addr][tmp] := spi.Read(_SDIO, _SCL, core.MISO_BITORDER, 8)
                     pinh(_CS_AG)
                 OTHER:
-                    return FALSE
+                    return
         MAG:
             case reg_nr
                 $05..$0A, $0F, $20..$24, $27..$2D, $30..$33:
@@ -1234,10 +1234,10 @@ PRI readReg(device, reg_nr, nr_bytes, buff_addr) | tmp
                         byte[buff_addr][tmp] := spi.Read(_SDIO, _SCL, core.MISO_BITORDER, 8)
                     pinh(_CS_M)
                 OTHER:
-                    return FALSE
+                    return
 
         OTHER:
-            return FALSE
+            return
 
 PRI writeReg(device, reg_nr, nr_bytes, buff_addr) | tmp
 ' Write byte to device
@@ -1262,7 +1262,7 @@ PRI writeReg(device, reg_nr, nr_bytes, buff_addr) | tmp
                     pinh (_CS_AG)
 
                 OTHER:
-                    return FALSE
+                    return
 
         MAG:
             case reg_nr
@@ -1283,9 +1283,9 @@ PRI writeReg(device, reg_nr, nr_bytes, buff_addr) | tmp
                         spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
                     pinh (_CS_M)
                 OTHER:
-                    return FALSE
+                    return
         OTHER:
-            return FALSE
+            return
 
 DAT
 {
