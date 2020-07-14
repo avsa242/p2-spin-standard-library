@@ -5,7 +5,7 @@
     Description: Driver for TI's CC2500 ISM-band (2.4GHz) transceiver (P2 version)
     Copyright (c) 2020
     Started Dec 31, 2019
-    Updated Jun 24, 2020
+    Updated Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -1118,14 +1118,14 @@ PRI readReg(reg_nr, nr_bytes, buff_addr): result | i
             pinl(_CS)
             spi.Write(reg_nr | core.R)
             repeat i from 0 to nr_bytes-1
-                byte[buff_addr][i] := spi.Read
+                byte[buff_addr][i] := spi.Read()
             pinh(_CS)
             return
 
     pinl(_CS)
     spi.Write(reg_nr | core.R)
     repeat i from 0 to nr_bytes-1
-        byte[buff_addr][i] := spi.Read & $FF
+        byte[buff_addr][i] := spi.Read() & $FF
     pinh(_CS)
     return
 
