@@ -4,7 +4,7 @@
     Description: Audio output using smart pin-based DAC (2-channel)
     Author: Jesse Burt
     Started: Mar 16, 2020
-    Updated: Jun 24, 2020
+    Updated: Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -28,7 +28,7 @@ PUB Start(L_PIN, R_PIN, SAMPRATE_HZ) | tmp, period
     tmp := (1 << 6) | L_PIN                                 ' XXX Expand on significance/meaning/function. This and the setse1 line below may look like 'magic' to the uninitiated
     period := clkfreq / SAMPRATE_HZ
 
-    asm
+    org
         wrpin   ##SP_DAC_MODE, L_PIN                        ' Config smartpin DAC mode on "left" pin
         wrpin   ##SP_DAC_MODE, R_PIN                        ' Config smartpin DAC mode on "right" pin
         wxpin   period, L_PIN                               ' Set sample period for left audio channel
@@ -36,7 +36,7 @@ PUB Start(L_PIN, R_PIN, SAMPRATE_HZ) | tmp, period
         dirh    L_PIN                                       ' Enable smartpin DAC mode on left pin
         dirh    R_PIN                                       ' Enable smartpin DAC mode on right pin
         setse1  tmp                                         ' Event triggered every new sample period (when "left in pin rises")
-    endasm
+    end
 
 PUB Stop()
 
@@ -48,30 +48,30 @@ PUB Stop()
 PUB SampleRate(Hz)
 ' Restart with new sample rate, in Hertz
 '   NOTE: This re-starts the DAC smart pins
-    Stop
-    Start(_L_PIN, _R_PIN, Hz)
+    stop()
+    start(_L_PIN, _R_PIN, Hz)
 
 PUB Output16(sample) | L_PIN, R_PIN
 ' Output an 16-bit audio sample
     L_PIN := _L_PIN
     R_PIN := _R_PIN
 
-    asm
+    org
         xor     sample, ##$8000
         wypin   sample, L_PIN                               ' Output sample on left channel
         wypin   sample, R_PIN                               ' Output sample on right channel
         waitse1
-    endasm
+    end
 
 PUB Output8(sample) | L_PIN, R_PIN
 ' Output an 8-bit audio sample
     L_PIN := _L_PIN
     R_PIN := _R_PIN
 
-    asm
+    org
         xor     sample, ##$8000
         and     sample, #$FF
         wypin   sample, L_PIN                               ' Output sample on left channel
         wypin   sample, R_PIN                               ' Output sample on right channel
         waitse1
-    endasm
+    end
