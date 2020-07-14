@@ -107,7 +107,7 @@ PUB FloatToString(Single): StringPtr
       AddDigits(1)
     'out of range, do scientific notation
     other:
-      DoScientific
+      DoScientific()
 
   'terminate z-string
   byte[p] := 0
@@ -134,7 +134,7 @@ PUB FloatToScientific(Single): StringPtr
   StringPtr := Setup(Single)
 
   'do scientific notation
-  DoScientific
+  DoScientific()
 
   'terminate z-string
   byte[p] := 0
@@ -199,7 +199,7 @@ PUB FloatToMetric(Single, SuffixChr): StringPtr | x, y
       byte[p++] := metric[x]
   'if out of metric range, do scientific notation
   else
-    DoScientific
+    DoScientific()
 
   'if SuffixChr not 0, add SuffixChr
   if SuffixChr
@@ -331,7 +331,7 @@ PRI Setup(single): stringptr
   stringptr := @float_string
 
 
-PRI DoScientific
+PRI DoScientific()
 
   'add digits with possible decimal
   AddDigits(1)
