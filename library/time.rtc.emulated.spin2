@@ -16,7 +16,7 @@ VAR
 PUB Start(ptr_time)
 
     _time_address := ptr_time
-    cognew(Run(ptr_time), @_stack)
+    cogspin(16, run(ptr_time), @_stack)
 
 PUB ParseDateStamp(data_address)
 
@@ -70,7 +70,7 @@ PUB ParseTimeStamp(data_address)
     _datetimestamp[10] := 0                                 ' String Terminator ALWAYS Zero
     bytemove(data_address, @_datetimestamp, 11)
 
-PUB Restart
+PUB Restart()
 
     UnParseTime(_time_address)                              ' Pack current time variable values into 'long'
     _clockflag := 0                                         ' Restart Clock
@@ -82,14 +82,14 @@ PUB Run(time_address)
 '   0____00000____0000___00000____0____0000____000000____000000
 
     _apswitch := 1
-    _timer := cnt
+    _timer := getct()
     repeat
         waitcnt(_timer += clkfreq)                          ' 1 Second Synchronized Delay
 
         if _clockflag <> 0                                  ' Check for request to suspend clock?
             _clockflag := 2                                 ' respond by acknowledging request
             repeat while _clockflag <> 0                    ' Wait for the OK to resume clock
-            _timer := cnt
+            _timer := getct()
 
         ParseTime(time_address)
 
@@ -171,7 +171,7 @@ PUB SetYear(YY)
 
     _yy := YY
 
-PUB Suspend
+PUB Suspend()
 
     _clockflag := 1                                         ' Suspend Clock
     repeat while _clockflag == 1                            ' Clock responds with a 2 when suspend received
