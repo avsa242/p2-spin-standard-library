@@ -5,7 +5,7 @@
     Description: Driver of the TI INA219 current/power monitor IC (P2 version)
     Copyright (c) 2020
     Started Nov 4, 2019
-    Updated Jun 24, 2020
+    Updated Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -91,7 +91,7 @@ PUB BusVoltageRange(volts): result | tmp
     tmp := (tmp | volts) & core.CONFIG_MASK
     writeReg(core.CONFIG, 2, @tmp)
 
-PUB Calibration(val) | tmp
+PUB Calibration(val): tmp
 ' Set calibration value, used in current calculation
 '   Valid values: *0..65535
 '   Any other value polls the chip and returns the current setting
@@ -123,7 +123,7 @@ PUB DeviceID(): result
 '   NOTE: This method performs a soft-reset of the chip and reads the value of the configuration register,
 '       thus it isn't an ID, per se
     result := $0000
-    Reset
+    Reset()
     readReg(core.CONFIG, 2, @result)
     return result
 
