@@ -6,7 +6,7 @@
         RX Mode
     Copyright (c) 2020
     Started Apr 30, 2020
-    Updated Jun 28, 2020
+    Updated Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -49,37 +49,37 @@ VAR
 
 PUB Main() | i, fifo[PKTLEN/4], iteration, testtime
 
-    Setup()
+    setup()
     testtime := 1_000
     repeat
         _timer_set := testtime
         iteration := 0
 
         repeat while _timer_set
-            repeat until nrf24.PayloadReady()
-            nrf24.PayloadReady(CLEAR)
-            nrf24.RXPayload(PKTLEN, @fifo)
+            repeat until nrf24.payloadready()
+            nrf24.payloadready(CLEAR)
+            nrf24.rxpayload(PKTLEN, @fifo)
             iteration++
 
         ser.position(0, 3)
-        Report(testtime, iteration)
+        report(testtime, iteration)
 
 PUB RXSetup() | addr[2]
 
-    nrf24.AddressWidth(5)
+    nrf24.addresswidth(5)
     addr := string($E7, $E7, $E7, $E7, $E7)
-    nrf24.RXAddr (addr, 0, nrf24.WRITE)
+    nrf24.rxaddr (addr, 0, nrf24.WRITE)
 
-    nrf24.Channel(CHANNEL)
-    nrf24.RXMode()
-    nrf24.FlushRX()
-    nrf24.CRCCheckEnabled(TRUE)
-    nrf24.DataRate(2000)
-    nrf24.TXPower(-18)
-    nrf24.PipesEnabled(%000001)
-    nrf24.AutoAckEnabledPipes(%000000)
-    nrf24.Powered (TRUE)
-    nrf24.PayloadLen (PKTLEN, 0)
+    nrf24.channel(CHANNEL)
+    nrf24.rxmode()
+    nrf24.flushrx()
+    nrf24.crccheckenabled(TRUE)
+    nrf24.datarate(2000)
+    nrf24.txpower(-18)
+    nrf24.pipesenabled(%000001)
+    nrf24.autoackenabledpipes(%000000)
+    nrf24.powered (TRUE)
+    nrf24.payloadlen (PKTLEN, 0)
 
 PUB cog_Counter() | time_left
 
@@ -119,18 +119,18 @@ PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
         tmp /= 10
         places++
     until tmp == 1
-    part := int.DecZeroed(abs(scaled // divisor), places)
+    part := int.deczeroed(abs(scaled // divisor), places)
 
-    ser.Dec (whole)
-    ser.Char (".")
-    ser.Str (part)
+    ser.dec (whole)
+    ser.char (".")
+    ser.str (part)
 
 PUB Setup()
 
-    cognew(cog_Counter, @_ctr_stack)
+    cogspin(16, cog_counter, @_ctr_stack)
 
-    _nrf24_cog := nrf24.Start (CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
+    _nrf24_cog := nrf24.start (CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
 
-    RXSetup()
+    rxsetup()
 
 #include "lib.utility.spin2"

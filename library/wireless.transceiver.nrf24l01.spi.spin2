@@ -5,7 +5,7 @@
     Description: Driver for Nordic Semi. nRF24L01+ (P2 version)
     Copyright (c) 2020
     Started Nov 2, 2019
-    Updated Jul 6, 2020
+    Updated Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -141,7 +141,7 @@ PUB AfterRX (next_state)
 '   Any other value: Change to RX state, but immediately enter a lower-power Idle/Standby state
     RXTX(ROLE_RX)
     if next_state
-        Idle
+        Idle()
     else
         CE(1)
 
@@ -204,7 +204,7 @@ PUB CarrierFreq(MHz=-2): result
         2400..2527:
             Channel(MHz-2400)
         OTHER:
-            result := 2400 + Channel
+            result := 2400 + Channel()
 
 PUB Channel(number=-2): result
 ' Set RF channel
@@ -537,7 +537,7 @@ PUB RSSI(): result
 '   Returns:
 '       -64: Carrier detected
 '       -255 No carrier
-    case RPD
+    case RPD()
         TRUE:
             return -64
         FALSE:
@@ -609,7 +609,7 @@ PUB RXPayload(nr_bytes, buff_addr): result | tmp
 PUB RXPipePending(): result
 ' Returns pipe number of pending data available in FIFO
 '   Returns: Pipe number 0..5, or 7 if FIFO is empty
-    result := (Status >> core.FLD_RX_P_NO) & core.BITS_RX_P_NO
+    result := (Status() >> core.FLD_RX_P_NO) & core.BITS_RX_P_NO
 
 PUB RXTX(role=-2): result | tmp
 ' Set to Primary RX or TX
@@ -677,7 +677,7 @@ PUB TXFIFOEmpty(): result
 PUB TXFIFOFull(): result
 ' Returns TX FIFO full flag
 '   Returns: TRUE if full, FALSE if locations available in TX FIFO
-    result := (Status & core.FLD_TX_FULL) * TRUE
+    result := (Status() & core.FLD_TX_FULL) * TRUE
 
 PUB TXMode()
 ' Change chip state to TX (transmit)
