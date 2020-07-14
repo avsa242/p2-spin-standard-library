@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started: Jun 21, 2020
-    Updated: Jun 22, 2020
+    Updated: Jul 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -71,9 +71,9 @@ PUB Main() | ch, vf, vb, bs, sn, bv, vi
     bv := BV_DEF
     vi := VI_DEF
 
-    vga.SetTimings(vf, vb, bs, sn, bv, vi)
+    vga.settimings(vf, vb, bs, sn, bv, vi)
 
-    Setup()
+    setup()
     vga.clear()
 
     ser.position(0, 20)
@@ -88,7 +88,7 @@ PUB Main() | ch, vf, vb, bs, sn, bv, vi
         ser.printf("vf: %d, vb: %d, bs: %d, sn: %d, bv: %d, vi: %d\n\n", vf, vb, bs, sn, bv, vi)
         ser.printf("vga.SetTimings(%d, %d, %d, %d, %d, %d)", vf, vb, bs, sn, bv, vi)
 
-        if ch := ser.CharIn
+        if ch := ser.charin()
             case ch
                 "q":    vf++
                 "a":    vf--
@@ -112,24 +112,24 @@ PUB Main() | ch, vf, vb, bs, sn, bv, vi
                 OTHER:
                     next
 
-            vga.Stop
+            vga.stop()
             vga.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
-            vga.SetTimings(vf, vb, bs, sn, bv, vi)
-            vga.WaitVSync
-            vga.Update
+            vga.settimings(vf, vb, bs, sn, bv, vi)
+            vga.waitvsync()
+            vga.update()
     repeat
 
 PUB Setup()
 
-    repeat until ser.StartRXTX(SER_RX, SER_TX, 0, SER_BAUD)
+    repeat until ser.startrxtx(SER_RX, SER_TX, 0, SER_BAUD)
     ser.clear()
     ser.printf("Serial terminal started - p2 @ %dMHz\n", clkfreq/1000000)
 
-    SetupPalette()
+    setuppalette()
     if vga.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
         ser.printf("VGA 8bpp driver started\n")
-        vga.FontAddress(fnt.BaseAddr())
-        vga.FontSize(6, 8)
+        vga.fontaddress(fnt.baseaddr())
+        vga.fontsize(6, 8)
         vga.clear()
     else
         ser.printf("VGA 8bpp driver failed to start\n")
