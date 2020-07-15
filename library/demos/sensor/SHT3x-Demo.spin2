@@ -5,7 +5,7 @@
     Description: Demo of the SHT3x driver (P2 version)
     Copyright (c) 2020
     Started Nov 3, 2019
-    Updated Jun 14, 2020
+    Updated Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,12 +20,14 @@ CON
     COL_READ        = 24
     COL_PF          = 40
 
-    F               = 0
-    C               = 1
+' Temperature scale
+    C               = 0
+    F               = 1
 
-    LOW             = sht3x.RPT_LOW
-    MED             = sht3x.RPT_MED
-    HIGH            = sht3x.RPT_HIGH
+' Measurement repeatbility (on-sensor averaging)
+    LOW             = sht3x.LOW                             ' Least averaging / no filtering
+    MED             = sht3x.MED
+    HIGH            = sht3x.HIGH                            ' Most averaging, more stable readings
 
 ' -- User-modifiable constants
     LED             = cfg.LED1
@@ -33,14 +35,11 @@ CON
     SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
-    SCL_PIN         = 27            ' Change these to match your I2C pin configuration
-    SDA_PIN         = 28
-    SLAVE_BIT       = 0             ' Can be 0, or 1 for a second device on the bus
-    I2C_HZ          = 1_000_000     ' SHT3x supports I2C bus speeds up to FM+ (1MHz)
-
-    TEMP_SCALE      = F             ' Change this to one of F (0), or C (1)
-
-    REPEATABILITY   = HIGH          ' Change this to one of LOW (0), MED (1), or HIGH (2)
+' I2C
+    SCL_PIN         = 8
+    SDA_PIN         = 9
+    ADDR_BIT        = 0                                     ' Can be 0, or 1 for a second device on the bus
+    I2C_HZ          = 1_000_000                             ' Max: 1_000_000
 ' --
 
 OBJ
@@ -53,31 +52,47 @@ OBJ
 PUB Main() | temp, rh
 
     Setup()
-    sht3x.Repeatability (REPEATABILITY)
+
+    sht3x.Heater(FALSE)                                     ' Enable/Disable built-in heater
+    sht3x.Repeatability (LOW)                               ' Measurement repeatability (on-chip averaging)
+    sht3x.TempScale(C)                                      ' Temperature scale
+
     repeat
-        sht3x.Measure()
-        ser.Position (0, 3)
-        case TEMP_SCALE
-            F:
-                temp := sht3x.TemperatureF()
-                ser.printf("Temperature: ")
-                Fractional(temp)
-            OTHER:
-                temp := sht3x.TemperatureC()
-                ser.printf("Temperature: ")
-                Fractional(temp)
-        ser.NewLine()
+        ser.position(0, 3)
 
-        rh := sht3x.Humidity()
-        ser.printf("Relative humidity: ")
-        Fractional(rh)
-        waitms (100)
+        ser.printf("Previous temperature: ")
+        DecimalDot(sht3x.LastTemperature(), 100)
 
-PUB Fractional(hundredths) | whole, part
+        ser.printf("\nCurrent Temperature: ")
+        DecimalDot(sht3x.Temperature(), 100)
 
-    whole := hundredths / 100
-    part := int.DecZeroed(hundredths // 100, 2)
-    ser.printf("%d.%s ", whole, part)
+        ser.printf("\n\nPrevious humidity: ")
+        DecimalDot(sht3x.LastHumidity(), 100)
+
+        ser.printf("\nRelative humidity: ")
+        DecimalDot(sht3x.Humidity(), 100)
+
+        waitms (1000)
+
+PRI DecimalDot(scaled, divisor) | whole[4], part[4], places, tmp
+' Display a fixed-point scaled up number in decimal-dot notation - scale it back down by divisor
+'   e.g., Decimal (314159, 100000) would display 3.14159 on the termainl
+'   scaled: Fixed-point scaled up number
+'   divisor: Divide scaled-up number by this amount
+    whole := scaled / divisor
+    tmp := divisor
+    places := 0
+
+    repeat
+        tmp /= 10
+        places++
+    until tmp == 1
+    part := int.DecZeroed(abs(scaled // divisor), places)
+
+    ser.Dec (whole)
+    ser.Char (".")
+    ser.Str (part)
+    ser.clearline()
 
 PUB Setup()
 
@@ -85,14 +100,12 @@ PUB Setup()
     ser.Clear()
     ser.printf("Serial terminal started\n")
 
-    if sht3x.Start(SCL_PIN, SDA_PIN, I2C_HZ, 0)
+    if sht3x.Start(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BIT)
         ser.printf("SHT3x driver (S/N %x) started\n", sht3x.SerialNum())
+        sht3x.ClearStatus()
     else
         ser.printf("SHT3x driver failed to start - halting")
         FlashLED(LED, 500)
-
-    sht3x.ClearStatus()
-    sht3x.Heater (FALSE)
 
 #include "lib.utility.spin2"
 
