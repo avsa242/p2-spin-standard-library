@@ -205,8 +205,8 @@ PUB FontSize(width, height)
 '       This will affect the number of text columns
     _font_width := width
     _font_height := height
-    if _disp_width // _font_width
-        _col_max := (_disp_width/_font_width) - 1
+    if _disp_width // _font_width                           ' Ended up with a remainder of a column,
+        _col_max := (_disp_width/_font_width) - 1           '   so subtract it out
     else
         _col_max := _disp_height/_font_width
 
