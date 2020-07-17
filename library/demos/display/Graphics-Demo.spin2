@@ -1,0 +1,752 @@
+{
+    --------------------------------------------
+    Filename: Graphics-Demo.spin2
+    Description: Demo of the bitmap graphics library
+        (multi disp type capable)
+    Author: Jesse Burt
+    Copyright (c) 2020
+    Started: Jun 14, 2020
+    updated: Jul 17, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+' Uncomment one of the below display types, and change the relevant I/O pin constants below
+'#define VGABITMAP8BPP
+'#define ST7735
+'#define SSD1331
+#define SSD1351
+'#define SSD1309
+'#define SSD1306_I2C
+
+CON
+
+    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = 250_000_000                           ' For VGA, must match the constant in the VGA driver (default 250MHz)
+
+' -- User-modifiable constants
+#ifdef VGABITMAP8BPP
+    WIDTH           = 320                                   ' Only 320x240 supported, for now
+    HEIGHT          = 240
+    VGA_BASEPIN     = 0                                     ' 0, 8, 16, 24, 32, 40, 48
+'                                                           Works with all basepins on the P2ES except 56
+#elseifdef ST7735
+    WIDTH           = 128                                   ' 128x128, 160x128 common
+    HEIGHT          = 128                                   '   Many variants of the display also exist
+    CS_PIN          = 29
+    SCK_PIN         = 24
+    MOSI_PIN        = 25
+    DC_PIN          = 27
+    RESET_PIN       = 33
+    SCK_HZ          = 20_000_000
+#elseifdef SSD1331
+    WIDTH           = 96                                    ' 96x64 most common size
+    HEIGHT          = 64
+    CS_PIN          = 31
+    SCK_PIN         = 24
+    MOSI_PIN        = 25
+    DC_PIN          = 27
+    RESET_PIN       = 35
+    SCK_HZ          = 20_000_000
+#elseifdef SSD1351
+    WIDTH           = 128                                   ' 128x128 most common
+    HEIGHT          = 128
+    CS_PIN          = 28
+    SCK_PIN         = 24
+    MOSI_PIN        = 25
+    DC_PIN          = 27
+    RESET_PIN       = 32
+    SCK_HZ          = 20_000_000
+#elseifdef SSD1309                                          ' 128x64, 128x32 common
+    WIDTH           = 128
+    HEIGHT          = 64
+    CS_PIN          = 26
+    SCK_PIN         = 24
+    MOSI_PIN        = 25
+    DC_PIN          = 27
+    RESET_PIN       = 30
+    SCK_HZ          = 10_000_000
+#elseifdef SSD1306_I2C                                      ' 128x64, 128x32 common
+    WIDTH           = 128
+    HEIGHT          = 64
+    SCL_PIN         = 24
+    SDA_PIN         = 25
+    I2C_HZ          = 1_000_000
+#endif
+
+    SER_RX          = cfg.SER_RX
+    SER_TX          = cfg.SER_TX
+    SER_BAUD        = 2_000_000
+    LED             = cfg.LED1
+' --
+
+    BYTESPERPX      = disp.BYTESPERPX
+    XMAX            = WIDTH-1
+    YMAX            = HEIGHT-1
+
+#ifdef SSD1309
+    BUFFSZ          = WIDTH * HEIGHT / 8
+#elseifdef SSD1306_I2C
+    BUFFSZ          = WIDTH * HEIGHT / 8
+#else
+    BUFFSZ          = WIDTH * HEIGHT * BYTESPERPX
+#endif
+    BYTESPERLN      = WIDTH * BYTESPERPX
+
+VAR
+
+    long _stack_timer[100]
+    long _timer_set
+
+#ifdef VGABITMAP8BPP
+    long _palette[256]
+#endif
+    byte _framebuffer[BUFFSZ]
+    byte _timer_cog
+
+OBJ
+
+    cfg         : "core.con.boardcfg.p2eval"
+    ser         : "com.serial.terminal.ansi"
+#ifdef VGABITMAP8BPP
+    disp        : "display.vga.bitmap-8bpp"
+#elseifdef ST7735
+    disp        : "display.lcd.st7735.spi"
+#elseifdef SSD1331
+    disp        : "display.oled.ssd1331.spi"
+#elseifdef SSD1351
+    disp        : "display.oled.ssd1351.spi"
+#elseifdef SSD1309
+    disp        : "display.oled.ssd1309.spi"
+#elseifdef SSD1306_I2C
+    disp        : "display.oled.ssd1306.i2c"
+#endif
+    int         : "string.integer"
+    fnt         : "font.5x8"
+
+PUB Main() | time_ms, i
+
+#ifdef VGABITMAP8BPP
+    disp.settimings(10, 33, 16, 96, 48, 640)
+#endif
+    setup()
+    disp.clear()
+
+    demo_greet()
+    waitms(5000)
+    disp.clearall()
+
+    time_ms := 5_000
+
+    ser.position (0, 3)
+    if disp.MAX_COLOR > 1                                   ' Don't bother with this demo on
+        demo_shadebobs (time_ms)                            '   monochrome displays - looks like a mess
+
+    demo_sinewave (time_ms)
+    disp.clearall()
+
+    demo_triwave (time_ms)
+    disp.clearall()
+
+    demo_memscroller(time_ms, $0000, $7_FFFF)
+    disp.clearall()
+
+    demo_bitmap (time_ms, $1_0000)
+    disp.clearall()
+
+    demo_box (time_ms)
+    disp.clearall()
+
+    demo_boxfilled (time_ms)
+    disp.clearall()
+
+    demo_linesweepx(time_ms)
+    disp.clearall()
+
+    demo_linesweepy(time_ms)
+    disp.clearall()
+
+    demo_line (time_ms)
+    disp.clearall()
+
+    demo_plot (time_ms)
+    disp.clearall()
+
+    demo_bouncingball (time_ms, 5)
+    disp.clearall()
+
+    demo_circle(time_ms)
+    disp.clearall()
+
+    demo_wander (time_ms)
+    disp.clearall()
+
+    demo_seqtext (time_ms)
+    disp.clearall()
+
+    demo_rndtext (time_ms)
+
+    waitms(2000)
+    disp.bgcolor(0)
+    disp.clearall()
+
+    FlashLED(LED, 100)
+
+PUB Demo_BouncingBall(testtime, radius) | iteration, bx, by, dx, dy
+' Draws a simple ball bouncing off screen edges
+    bx := (rnd(XMAX) // (WIDTH - radius * 4)) + radius * 2  'Pick a random screen location to
+    by := (rnd(YMAX) // (HEIGHT - radius * 4)) + radius * 2 ' start from
+    dx := rnd(4) // 2 * 2 - 1                               'Pick a random direction to
+    dy := rnd(4) // 2 * 2 - 1                               ' start moving
+
+    ser.str("Demo_BouncingBall - ")
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        bx += dx
+        by += dy
+        if (by <= radius OR by >= YMAX - radius)          'If we reach the top or bottom of the screen,
+            dy *= -1                                        ' change direction
+        if (bx <= radius OR bx >= XMAX - radius)           'Ditto with the left or right sides
+            dx *= -1
+
+        disp.circle (bx, by, radius, disp.MAX_COLOR)
+#ifdef VGABITMAP8BPP
+		disp.waitvsync()
+#endif
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+        disp.clear()
+
+    report(testtime, iteration)
+
+PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
+' Continuously redraws bitmap at address bitmap_addr
+    ser.str("Demo_Bitmap - ")
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        disp.bitmap (bitmap_addr, BUFFSZ, 0)
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+
+    report(testtime, iteration)
+
+PUB Demo_Box (testtime) | iteration, c
+' Draws random lines
+    ser.str("Demo_Box - ")
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        disp.box (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), rnd(disp.MAX_COLOR+1), FALSE)
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+
+    report(testtime, iteration)
+
+PUB Demo_BoxFilled (testtime) | iteration, c, x1, y1, x2, y2
+' Draws random lines
+    ser.str("Demo_BoxFilled - ")
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        disp.box (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), rnd(disp.MAX_COLOR+1), TRUE)
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+
+    report(testtime, iteration)
+
+PUB Demo_Circle(testtime) | iteration, x, y, r, c
+' Draws circles at random locations
+    ser.str("Demo_Circle - ")
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        x := rnd(XMAX)
+        y := rnd(YMAX)
+        r := rnd(YMAX/2)
+        c := rnd(disp.MAX_COLOR+1)
+        disp.circle (x, y, r, c)
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+
+    report(testtime, iteration)
+
+PUB Demo_Greet()
+' Display the banner/greeting
+    disp.fgcolor(disp.MAX_COLOR)
+    disp.bgcolor(0)
+    disp.position (0, 0)
+#ifdef VGABITMAP8BPP
+    disp.printf("VGA 8bpp on the Parallax P2X8C4M64P @ %dMHz\n", clkfreq/1_000_000)
+#elseifdef ST7735
+    disp.printf("ST7735 on the\nParallax P2X8C4M64P\n@ %dMHz\n", clkfreq/1_000_000)
+#elseifdef SSD1331
+    disp.printf("SSD1331 on the\nParallax\nP2X8C4M64P\n@ %dMHz\n", clkfreq/1_000_000)
+#elseifdef SSD1309
+    disp.printf("SSD1309 on the\nParallax P2X8C4M64P\n@ %dMHz\n", clkfreq/1_000_000)
+#elseifdef SSD1306_I2C
+    disp.printf("SSD1306 on the\nParallax P2X8C4M64P\n@ %dMHz\n", clkfreq/1_000_000)
+#endif
+    disp.printf("%dx%d", WIDTH, HEIGHT)
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+
+PUB Demo_Line (testtime) | iteration, c
+' Draws random lines
+    ser.str("Demo_Line - ")
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        c := rnd(disp.MAX_COLOR+1)
+        disp.line (rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), c)
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+
+    report(testtime, iteration)
+
+PUB Demo_LineSweepX (testtime) | iteration, x, c
+' Draws lines sweeping from left-right to the opposite diagonal direction
+    x := 0
+
+    ser.str("Demo_LineSweepX - ")
+    _timer_set := testtime
+    iteration := 0
+    c := 0
+    repeat while _timer_set
+        x++
+        if x > XMAX
+            x := 0
+        c++
+        if c > disp.MAX_COLOR
+            c := 0
+        disp.line (x, 0, XMAX-x, YMAX, c)
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+
+    report(testtime, iteration)
+
+PUB Demo_LineSweepY (testtime) | iteration, y, c
+' Draws lines sweeping from top-down to the opposite diagonal direction
+    y := 0
+
+    ser.str("Demo_LineSweepY - ")
+    _timer_set := testtime
+    iteration := 0
+    c := 0
+    repeat while _timer_set
+        y++
+        if y > YMAX
+            y := 0
+        c++
+        if c > disp.MAX_COLOR
+            c := 0
+        disp.line (XMAX, y, 0, YMAX-y, c)
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+
+    report(testtime, iteration)
+
+PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
+' Dumps Propeller Hub RAM (and/or ROM) to the disp buffer
+    pos := start_addr
+
+    ser.str("Demo_MEMScroller - ")
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        pos += BYTESPERLN
+        if pos > end_addr
+            pos := start_addr
+        disp.bitmap (pos, BUFFSZ, 0)
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+
+    report(testtime, iteration)
+
+PUB Demo_Plot(testtime) | iteration, x, y, c
+' Draws random pixels to the screen
+    ser.str("Demo_Plot - ")
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        disp.plot (rnd(XMAX), rnd(YMAX), rnd(disp.MAX_COLOR+1))
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+
+    report(testtime, iteration)
+
+PUB Demo_Shadebobs(testtime) | iteration, x, y, xs, ys, p, offset, div, modifier
+' Draws Shadebobs along a sine-wave
+    ser.str("Demo_Shadebobs - ")
+
+#ifdef VGABITMAP8BPP
+    div := 1024
+#elseifdef ST7735
+    div := 2048
+#elseifdef SSD1331
+    div := 3072
+#elseifdef SSD1309
+    div := 3072
+#elseifdef SSD1306_I2C
+    div := 3072
+#endif
+    offset := YMAX/2
+
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        repeat x from 0 to XMAX
+            modifier := (abs(getct()) / 1_000_000)
+            y := offset + sin(x * modifier) / div
+            repeat ys from y to y+10
+                repeat xs from x to x+10
+                    p := disp.point(xs, ys) + 1
+                    if p > disp.MAX_COLOR
+                        p := 0
+                    disp.plot(xs, ys, p)
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+
+    report(testtime, iteration)
+
+PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
+' Draws a sine wave the length of the screen, influenced by the system counter
+    ser.str("Demo_Sinewave - ")
+
+#ifdef VGABITMAP8BPP
+    div := 1024
+#elseifdef ST7735
+    div := 2048
+#elseifdef SSD1331
+    div := 3072
+#elseifdef SSD1309
+    div := 3072
+#elseifdef SSD1306_I2C
+    div := 3072
+#endif
+    offset := YMAX/2                                    ' Offset for Y axis
+
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        repeat x from 0 to XMAX
+            modifier := (abs(getct()) / 1_000_000)           ' Use system counter as modifier
+            y := offset + sin(x * modifier) / div
+            disp.plot(x, y, disp.MAX_COLOR)
+#ifdef VGABITMAP8BPP
+        disp.waitvsync()
+#endif
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+        disp.clear()
+
+    report(testtime, iteration)
+
+PUB Demo_SeqText(testtime) | iteration, col, row, ch, fg, bg
+' Sequentially draws the whole font table to the screen
+    ch := $20
+
+    ser.str("Demo_SeqText - ")
+    _timer_set := testtime
+    iteration := 0
+    disp.position(0, 0)
+    fg := 0
+    bg := 1
+    repeat while _timer_set
+        ch++
+        if ch > $7F
+            ch := $20
+        fg++
+        if fg > disp.MAX_COLOR
+            fg := 0
+        bg--
+        if bg < 0
+            bg := disp.MAX_COLOR
+        disp.fgcolor(fg)
+        disp.bgcolor(bg)
+        disp.char (ch)
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+
+    report(testtime, iteration)
+
+PUB Demo_RndText(testtime) | iteration, col, row, fg, bg
+' Draws random characters to the screen
+    ser.str("Demo_RndText - ")
+    _timer_set := testtime
+    iteration := 0
+    fg := 0
+    bg := 1
+    repeat while _timer_set
+        fg++
+        if fg > disp.MAX_COLOR
+            fg := 0
+        bg--
+        if bg < 0
+            bg := disp.MAX_COLOR
+        disp.fgcolor(fg)
+        disp.bgcolor(bg)
+        disp.char (32 #> rnd(127))
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+
+    report(testtime, iteration)
+
+PUB Demo_TriWave(testtime) | iteration, x, y, ydir
+' Draws a simple triangular wave
+    ydir := 1
+    y := 0
+
+    ser.str("Demo_TriWave - ")
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        repeat x from 0 to XMAX
+            if y == YMAX
+                ydir := -1
+            if y == 0
+                ydir := 1
+            y := y + ydir
+            disp.plot (x, y, disp.MAX_COLOR)
+#ifdef VGABITMAP8BPP
+        disp.waitvsync()
+#endif
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        disp.clear()
+        iteration++
+
+    report(testtime, iteration)
+
+PUB Demo_Wander(testtime) | iteration, x, y, d, c, movestep
+' Draws randomly wandering pixels
+    x := XMAX/2
+    y := YMAX/2
+    movestep := 2
+
+    ser.str("Demo_Wander - ")
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        case d := rnd(5)
+            1:
+                x += movestep
+                if x > XMAX
+                    x := 0
+            2:
+                x -= movestep
+                if x < 0
+                    x := XMAX
+            3:
+                y += movestep
+                if y > YMAX
+                    y := 0
+            4:
+                y -= movestep
+                if y < 0
+                    y := YMAX
+        c := rnd(disp.MAX_COLOR+1)
+        disp.plot (x, y, c)
+#ifdef VGABITMAP8BPP
+		disp.waitvsync()
+#endif
+#ifndef VGABITMAP8BPP
+        disp.update()
+#endif
+        iteration++
+
+    report(testtime, iteration)
+
+PUB RND(maxval): r
+' Return a random number up to maximum 'maxval'
+    r := getrnd() +// maxval
+
+PUB Sin(angle): sine
+' Return the sine of angle
+    org
+        shl     angle, #20
+        qrotate ##100000, angle
+        getqy   sine
+    end
+
+PRI Report(testtime, iterations)
+' Display performance results
+    ser.str("Total iterations: ")
+    ser.dec(iterations)
+
+    ser.str(", Iterations/sec: ")
+    ser.dec(iterations / (testtime/1000))
+
+    ser.str(", ms/Iteration: ")
+    decimal( (testtime * 1_000) / iterations, 1_000)
+    ser.newline()
+
+PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
+' Display a fixed-point scaled up number in decimal-dot notation - scale it back down by divisor
+'   e.g., Decimal (314159, 100000) would disp 3.14159 on the terminal
+'   scaled: Fixed-point scaled up number
+'   divisor: Divide scaled-up number by this amount
+    whole := scaled / divisor
+    tmp := divisor
+    places := 0
+
+    repeat
+        tmp /= 10
+        places++
+    until tmp == 1
+    part := int.deczeroed(abs(scaled // divisor), places)
+
+    ser.dec (whole)
+    ser.char (".")
+    ser.str (part)
+
+PRI cog_Timer() | time_left
+
+    repeat
+        repeat until _timer_set
+        time_left := _timer_set
+
+        repeat
+            time_left--
+            waitms(1)
+        while time_left > 0
+        _timer_set := 0
+
+PUB Setup()
+
+    repeat until ser.startrxtx(SER_RX, SER_TX, 0, SER_BAUD)
+    ser.clear()
+    ser.printf("Serial terminal started - P2 @ %dMHz\n", clkfreq/1_000_000)
+#ifdef VGABITMAP8BPP
+    setuppalette()
+    if disp.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
+        ser.printf("VGA 8bpp driver started\n")
+#elseifdef ST7735
+    if disp.start (CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RESET_PIN, SCK_HZ, WIDTH, HEIGHT, @_framebuffer)
+        ser.printf("ST7735 driver started\n")
+        disp.defaultscommon()
+#elseifdef SSD1331
+    if disp.start (CS_PIN, DC_PIN, MOSI_PIN, SCK_PIN, RESET_PIN, SCK_HZ, @_framebuffer)
+        ser.printf("SSD1331 driver started\n")
+        disp.defaultscommon()
+#elseifdef SSD1351
+    if disp.start (CS_PIN, DC_PIN, MOSI_PIN, SCK_PIN, RESET_PIN, SCK_HZ, WIDTH, HEIGHT, @_framebuffer)
+        ser.printf("SSD1351 driver started\n")
+        disp.defaultscommon()
+#elseifdef SSD1309
+    if disp.start (WIDTH, HEIGHT, CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RESET_PIN, SCK_HZ, @_framebuffer)
+        ser.printf("SSD1309 driver started\n")
+        disp.defaults()
+#elseifdef SSD1306_I2C
+    if disp.start (WIDTH, HEIGHT, SCL_PIN, SDA_PIN, I2C_HZ, @_framebuffer)
+        ser.printf("SSD1306 driver started\n")
+        disp.defaults()
+        disp.mirrorv(true)
+        disp.mirrorh(true)
+    else
+        ser.printf("SSD1306 driver failed to start - halting\n")
+#endif
+        disp.fontaddress(fnt.baseaddr())
+        disp.fontsize(6, 8)
+        disp.clear()
+
+    _timer_cog := cogspin(16, cog_timer(), @_stack_timer)
+
+#ifdef VGABITMAP8BPP
+PUB SetupPalette() | i, r, g, b, c
+' Set up palette
+    r := 0
+    g := 0
+    b := 0
+
+    repeat i from 0 to 255
+        c := 0 | (r << 16) | (g << 8) | b
+        _palette[i] := c
+
+        case i
+            0..63:
+                r += 4
+                g := 0
+                b := 0
+            64..127:
+                r := 0
+                g += 4
+                b := 0
+            128..191:
+                r := 0
+                g := 0
+                b += 4
+            192..253:
+                r += 4
+                g += 4
+                b := 0
+            254..255:
+                r := 255
+                g := 255
+                b := 255
+#endif
+#include "lib.utility.spin2"
+
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
+
