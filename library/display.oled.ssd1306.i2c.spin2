@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Created: Apr 26, 2018
-    Updated: Jul 13, 2020
+    Updated: Jul 17, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,6 +19,7 @@ CON
 
     DEF_HZ          = 400_000
     MAX_COLOR       = 1
+    BYTESPERPX      = 1
 
 ' Display visibility modes
     NORMAL          = 0
@@ -35,6 +36,7 @@ VAR
 
     long _ptr_drawbuffer
     word _buff_sz
+    word BYTESPERLN
     byte _disp_width, _disp_height, _disp_xmax, _disp_ymax
     byte _sa0
 
@@ -61,6 +63,7 @@ PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, dispbuffer_address, SLAVE_LSB
                 _disp_xmax := _disp_width-1
                 _disp_ymax := _disp_height-1
                 _buff_sz := (_disp_width * _disp_height) / 8
+                BYTESPERLN := _disp_width * BYTESPERPX
                 address(dispbuffer_address)
                 return TRUE
     return FALSE                                                'If we got here, something went wrong
