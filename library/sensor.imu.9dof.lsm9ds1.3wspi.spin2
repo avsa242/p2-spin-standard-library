@@ -12,6 +12,14 @@
 
 CON
 
+' Indicate to user apps how many Degrees of Freedom each sub-sensor has
+'   (also imply whether or not it has a particular sensor)
+    ACCEL_DOF               = 3
+    GYRO_DOF                = 3
+    MAG_DOF                 = 3
+    BARO_DOF                = 0
+    DOF                     = ACCEL_DOF + GYRO_DOF + MAG_DOF + BARO_DOF
+
 ' Constants used in low-level SPI read/write
     READ                    = 1 << 7
     WRITE                   = 0
