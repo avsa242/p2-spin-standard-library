@@ -5,7 +5,7 @@
     Description: Demo of the LSM9DS1 driver
     Copyright (c) 2020
     Started Nov 3, 2019
-    Updated Jun 24, 2020
+    Updated Jul 18, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -52,7 +52,7 @@ PUB Main() | dispmode, axo, ayo, azo, gxo, gyo, gzo
 
     imu.GyroScale(250)                                      ' 245, 500, 2000
     imu.GyroAxisEnabled(%111)                               ' 0 or 1 for each bit (%xyz)
-    imu.GyroBias(0, 0, 0, 1)                                ' x, y, z: 0..65535, rw = 1 (write)
+    imu.GyroBias(0, 0, 0, imu#W)                            ' x, y, z: 0..65535, rw = 1 (write)
 
     imu.MagScale(4)                                         ' 4, 8, 12, 16
     imu.MagDataRate(80_000)

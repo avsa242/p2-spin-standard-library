@@ -5,7 +5,7 @@
     Description: Driver for the ST LSM9DS1 9DoF/3-axis IMU (P2 version)
     Copyright (c) 2020
     Started Aug 12, 2017
-    Updated Jul 14, 2020
+    Updated Jul 18, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,6 +16,10 @@ CON
     READ                    = 1 << 7
     WRITE                   = 0
     MS                      = 1 << 6
+
+' Bias adjustment (AccelBias(), GyroBias(), MagBias()) read or write
+    R                       = 0
+    W                       = 1
 
 ' Axis-specific constants
     X_AXIS                  = 0
@@ -183,18 +187,18 @@ PUB AccelBias(axBias, ayBias, azBias, rw=0)
 ' Read or write/manually set accelerometer calibration offset values
 '   Valid values:
 '       rw:
-'           READ (0), WRITE (1)
+'           R (0), W (1)
 '       axBias, ayBias, azBias:
 '           -32768..32767
 '   NOTE: When rw is set to READ, axBias, ayBias and azBias must be addresses of respective variables to hold the returned
 '       calibration offset values.
     case rw
-        READ:
+        R:
             long[axBias] := _aBiasRaw[X_AXIS]
             long[ayBias] := _aBiasRaw[Y_AXIS]
             long[azBias] := _aBiasRaw[Z_AXIS]
 
-        WRITE:
+        W:
             case axBias
                 -32768..32767:
                     _aBiasRaw[X_AXIS] := axBias
@@ -447,17 +451,17 @@ PUB GyroBias(gxBias, gyBias, gzBias, rw=0)
 ' Read or write/manually set Gyroscope calibration offset values
 '   Valid values:
 '       rw:
-'           READ (0), WRITE (1)
+'           R (0), W (1)
 '       gxBias, gyBias, gzBias:
 '           -32768..32767
 '   NOTE: When rw is set to READ, gxBias, gyBias and gzBias must be addresses of respective variables to hold the returned calibration offset values.
     case rw
-        READ:
+        R:
             long[gxBias] := _gBiasRaw[X_AXIS]
             long[gyBias] := _gBiasRaw[Y_AXIS]
             long[gzBias] := _gBiasRaw[Z_AXIS]
 
-        WRITE:
+        W:
             case gxBias
                 -32768..32767:
                     _gBiasRaw[X_AXIS] := gxBias
@@ -655,19 +659,19 @@ PUB MagBias(mxBias, myBias, mzBias, rw=0) | axis, msb, lsb
 ' Read or write/manually set Magnetometer calibration offset values
 '   Valid values:
 '       rw:
-'           READ (0), WRITE (1)
+'           R (0), W (1)
 '       mxBias, myBias, mzBias:
 '           -32768..32767
 '   NOTE: When rw is set to READ, mxBias, myBias and mzBias must be addresses of respective variables to hold the returned
 '       calibration offset values.
 
     case rw
-        READ:
+        R:
             long[mxBias] := _mBiasRaw[X_AXIS]
             long[myBias] := _mBiasRaw[Y_AXIS]
             long[mzBias] := _mBiasRaw[Z_AXIS]
 
-        WRITE:
+        W:
             case mxBias
                 -32768..32767:
                     _mBiasRaw[X_AXIS] := mxBias
