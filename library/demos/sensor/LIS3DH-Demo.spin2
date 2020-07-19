@@ -28,7 +28,7 @@ CON
     SCL_PIN         = 25                                        ' SPI, I2C
     SDA_PIN         = 26                                        ' SPI, I2C
     SDO_PIN         = 27                                        ' SPI
-    SCL_HZ          = 5_000_000                                 ' SPI
+    SCL_HZ          = 10_000_000                                 ' SPI
     I2C_HZ          = 400_000                                   ' I2C
     SLAVE_OPT       = 0                                         ' I2C
 ' --
