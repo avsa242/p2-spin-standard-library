@@ -307,9 +307,9 @@ PUB Calibrate() | tmpx, tmpy, tmpz, tmpbiasraw[3], axis, samples
         tmpbiasraw[Z_AXIS] += tmpz - (1_000_000 / _ares) ' Assumes sensor facing up!
 
     repeat axis from X_AXIS to Z_AXIS
-        _abias[axis] := _abiasraw[axis] / _ares
+        _abias[axis] := tmpbiasraw[axis] / _ares
 
-    accelbias(_abiasraw[X_AXIS]/samples, _abiasraw[Y_AXIS]/samples, _abiasraw[Z_AXIS]/samples, W)
+    accelbias(tmpbiasraw[X_AXIS]/samples, tmpbiasraw[Y_AXIS]/samples, tmpbiasraw[Z_AXIS]/samples, W)
 
     FIFOEnabled(FALSE)
     FIFOMode (BYPASS)
