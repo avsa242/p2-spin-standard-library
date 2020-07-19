@@ -24,10 +24,10 @@ CON
     SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
-    CS_PIN          = 38                                        ' SPI
-    SCL_PIN         = 32                                        ' SPI, I2C
-    SDA_PIN         = 34                                        ' SPI, I2C
-    SDO_PIN         = 36                                        ' SPI
+    CS_PIN          = 24                                        ' SPI
+    SCL_PIN         = 25                                        ' SPI, I2C
+    SDA_PIN         = 26                                        ' SPI, I2C
+    SDO_PIN         = 27                                        ' SPI
     SCL_HZ          = 5_000_000                                 ' SPI
     I2C_HZ          = 400_000                                   ' I2C
     SLAVE_OPT       = 0                                         ' I2C

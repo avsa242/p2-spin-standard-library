@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2020
     Started Mar 15, 2020
-    Updated Mar 30, 2020
+    Updated Jul 12, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -57,7 +57,23 @@ CON
         MASK_XYZEN              = CTRL_REG1_MASK ^ (BITS_XYZEN << FLD_XYZEN)
 
     CTRL_REG2                   = $21
+
     CTRL_REG3                   = $22
+    CTRL_REG3_MASK              = $FE
+        FLD_I1_CLICK            = 7
+        FLD_I1_IA1              = 6
+        FLD_I1_IA2              = 5
+        FLD_I1_ZYXDA            = 4
+        FLD_I1_321DA            = 3
+        FLD_I1_WTM              = 2
+        FLD_I1_OVERRUN          = 1
+        MASK_I1_CLICK           = CTRL_REG3_MASK ^ (1 << FLD_I1_CLICK)
+        MASK_I1_IA1             = CTRL_REG3_MASK ^ (1 << FLD_I1_IA1)
+        MASK_I1_IA2             = CTRL_REG3_MASK ^ (1 << FLD_I1_IA2)
+        MASK_I1_ZYXDA           = CTRL_REG3_MASK ^ (1 << FLD_I1_ZYXDA)
+        MASK_I1_321DA           = CTRL_REG3_MASK ^ (1 << FLD_I1_321DA)
+        MASK_I1_WTM             = CTRL_REG3_MASK ^ (1 << FLD_I1_WTM)
+        MASK_I1_OVERRUN         = CTRL_REG3_MASK ^ (1 << FLD_I1_OVERRUN)
 
     CTRL_REG4                   = $23
     CTRL_REG4_MASK              = $FF
@@ -153,8 +169,19 @@ CON
     INT2_SRC                    = $35
     INT2_THS                    = $36
     INT2_DURATION               = $37
+
     CLICK_CFG                   = $38
+
     CLICK_SRC                   = $39
+    CLICK_SRC_MASK              = $7F
+        FLD_CLICK_IA            = 6
+        FLD_DCLICK              = 5
+        FLD_SCLICK              = 4
+        FLD_SIGN                = 3
+        FLD_Z                   = 2
+        FLD_Y                   = 1
+        FLD_X                   = 0
+
     CLICK_THS                   = $3A
     TIME_LIMIT                  = $3B
     TIME_LATENCY                = $3C
