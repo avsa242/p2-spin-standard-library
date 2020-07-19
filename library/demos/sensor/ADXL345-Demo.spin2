@@ -5,7 +5,7 @@
     Description: Demo of the ADXL345 driver (P2 version)
     Copyright (c) 2020
     Started Mar 14, 2020
-    Updated Jun 24, 2020
+    Updated Jul 19, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -133,7 +133,7 @@ PUB Setup()
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
     ser.Clear()
     ser.printf("Serial terminal started\n")
-    if _accel_cog := accel.Startx(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_HZ)
+    if _accel_cog := accel.Start(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_HZ)
         ser.printf("ADXL345 driver started\n")
         accel.Defaults()
     else
