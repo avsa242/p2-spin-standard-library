@@ -45,7 +45,7 @@ PUB Main() | dispmode
 
     Setup()
 
-    accel.OpMode(accel.STANDBY)
+    accel.AccelOpMode(accel.STANDBY)
     accel.AccelADCRes(accel.FULL)                           ' 10, accel.FULL (dynamic, based on AccelScale)
     accel.AccelScale(2)                                     ' 2, 4, 8, 16 (g's)
     accel.AccelDataRate(100)                                ' 0_10, 0_20, 0_39, 0_78, 1_56, 3_13, 6_25, 12_5,
@@ -53,7 +53,7 @@ PUB Main() | dispmode
     accel.FIFOMode(accel.BYPASS)                            ' accel.BYPASS, accel.FIFO, accel.STREAM, accel.TRIGGER
     accel.IntMask(%0000_0000)                               ' 0, 1 each bit
     accel.AccelSelfTest(FALSE)                              ' FALSE, TRUE
-    accel.OpMode(accel.MEASURE)                             ' accel.STANDBY, accel.MEASURE
+    accel.AccelOpMode(accel.MEASURE)                        ' accel.STANDBY, accel.MEASURE
     ser.HideCursor()
 
     dispmode := 0
