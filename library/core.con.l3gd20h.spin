@@ -144,10 +144,11 @@ CON
         MASK_FTH        = FIFO_CTRL_MASK ^ (BITS_FTH << FLD_FTH)
 
     FIFO_SRC            = $2F
-        FTH             = 1 << 7
-        OVRN            = 1 << 6
-        EMPTY           = 1 << 5
-        FSS             = %11111
+        FLD_FTHS        = 7
+        FLD_OVRN        = 6
+        FLD_EMPTY       = 5
+        FLD_FSS         = 0
+        BITS_FSS        = %11111
 
     IG_CFG              = $30
     IG_CFG_MASK         = $FF
