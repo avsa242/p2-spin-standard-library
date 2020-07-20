@@ -5,11 +5,10 @@
     Description: Driver for the ST LSM9DS1 9DoF/3-axis IMU (P2 version)
     Copyright (c) 2020
     Started Aug 12, 2017
-    Updated Jul 18, 2020
+    Updated Jul 20, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
-
 CON
 
 ' Indicate to user apps how many Degrees of Freedom each sub-sensor has
@@ -71,6 +70,13 @@ CON
     MAG_PERF_HIGH           = %10
     MAG_PERF_ULTRA          = %11
 
+' Operating modes (dummy)
+    STANDBY                 = 0
+    MEASURE                 = 1
+
+' Gyroscope operating modes (dummy)
+    #0, POWERDOWN, SLEEP, NORMAL
+
 OBJ
 
     spi     : "com.spi.bitbang"
@@ -78,16 +84,15 @@ OBJ
 
 VAR
 
-    long _autoCalc
-    long _gRes, _gBias[3], _gBiasRaw[3]
-    long _aRes, _aBias[3], _aBiasRaw[3]
-    long _mRes, _mBias[3], _mBiasRaw[3]
+    long _gres, _gbiasraw[3]
+    long _ares, _abiasraw[3]
+    long _mres, _mbiasraw[3]
     long _SCL, _SDIO, _CS_AG, _CS_M, _INT_AG, _INT_M
 
 PUB Null()
 'This is not a top-level object  
 
-PUB Start(SCL_PIN, SDIO_PIN, CS_AG_PIN, CS_M_PIN, INT_AG_PIN, INT_M_PIN, SCK_FREQ=1_000_000): okay | tmp
+PUB Start(SCL_PIN, SDIO_PIN, CS_AG_PIN, CS_M_PIN, INT_AG_PIN, INT_M_PIN, SCK_FREQ=1_000_000): okay
 
     if lookdown(SCL_PIN: 0..63) and lookdown(SDIO_PIN: 0..63) and lookdown(CS_AG_PIN: 0..63) and lookdown(CS_M_PIN: 0..63) and lookdown(INT_AG_PIN: 0..63) and lookdown(INT_M_PIN: 0..63)
     if SCK_FREQ >= 0 and SCK_FREQ <= core.SCK_MAX_FREQ
@@ -99,10 +104,10 @@ PUB Start(SCL_PIN, SDIO_PIN, CS_AG_PIN, CS_M_PIN, INT_AG_PIN, INT_M_PIN, SCK_FRE
         _INT_AG := INT_AG_PIN
         _INT_M := INT_M_PIN
 
-        pinh (_CS_AG)
-        pinh (_CS_M)
-        tmp := pinr (_INT_AG)
-        tmp := pinr (_INT_M)
+        pinh(_CS_AG)
+        pinh(_CS_M)
+        pinf(_INT_AG)
+        pinf(_INT_M)
 
         waitms (110)
 ' Initialize the IMU
@@ -191,35 +196,35 @@ PUB AccelAxisEnabled(xyz_mask=-2): result | tmp
     tmp := (tmp | xyz_mask) & core.CTRL_REG5_XL_MASK
     writeReg(XLG, core.CTRL_REG5_XL, 1, @tmp)
 
-PUB AccelBias(axBias, ayBias, azBias, rw=0)
+PUB Accelbias(axbias, aybias, azbias, rw=0)
 ' Read or write/manually set accelerometer calibration offset values
 '   Valid values:
 '       rw:
 '           R (0), W (1)
-'       axBias, ayBias, azBias:
+'       axbias, aybias, azbias:
 '           -32768..32767
-'   NOTE: When rw is set to READ, axBias, ayBias and azBias must be addresses of respective variables to hold the returned
+'   NOTE: When rw is set to READ, axbias, aybias and azbias must be addresses of respective variables to hold the returned
 '       calibration offset values.
     case rw
         R:
-            long[axBias] := _aBiasRaw[X_AXIS]
-            long[ayBias] := _aBiasRaw[Y_AXIS]
-            long[azBias] := _aBiasRaw[Z_AXIS]
+            long[axbias] := _abiasraw[X_AXIS]
+            long[aybias] := _abiasraw[Y_AXIS]
+            long[azbias] := _abiasraw[Z_AXIS]
 
         W:
-            case axBias
+            case axbias
                 -32768..32767:
-                    _aBiasRaw[X_AXIS] := axBias
+                    _abiasraw[X_AXIS] := axbias
                 OTHER:
 
-            case ayBias
+            case aybias
                 -32768..32767:
-                    _aBiasRaw[Y_AXIS] := ayBias
+                    _abiasraw[Y_AXIS] := aybias
                 OTHER:
 
-            case azBias
+            case azbias
                 -32768..32767:
-                    _aBiasRaw[Z_AXIS] := azBias
+                    _abiasraw[Z_AXIS] := azbias
                 OTHER:
 
 PUB AccelClearInt() | tmp, reg_nr
@@ -236,14 +241,16 @@ PUB AccelData(ax, ay, az) | tmp[2]
 ' Reads the Accelerometer output registers
     readReg(XLG, core.OUT_X_L_XL, 6, @tmp)
 
-    long[ax] := tmp.word[0] signx 15
-    long[ay] := tmp.word[1] signx 15
-    long[az] := tmp.word[2] signx 15
+    long[ax] := (tmp.word[X_AXIS] signx 15) - _abiasraw[X_AXIS]
+    long[ay] := (tmp.word[Y_AXIS] signx 15) - _abiasraw[Y_AXIS]
+    long[az] := (tmp.word[Z_AXIS] signx 15) - _abiasraw[Z_AXIS]
 
-    if (_autoCalc)
-        long[ax] -= _aBiasRaw[X_AXIS]
-        long[ay] -= _aBiasRaw[Y_AXIS]
-        long[az] -= _aBiasRaw[Z_AXIS]
+PUB AccelDataOverrun(): flag
+' Dummy method
+
+PUB AccelDataRate(Hz=-2): curr_hz
+
+    return XLGDataRate(hz)
 
 PUB AccelDataReady(): result | tmp
 ' Accelerometer sensor new data available
@@ -251,12 +258,12 @@ PUB AccelDataReady(): result | tmp
     readReg(XLG, core.STATUS_REG, 1, @tmp)
     result := ((tmp >> core.FLD_XLDA) & %1) * TRUE
 
-PUB AccelG(ax, ay, az) | tmpX, tmpY, tmpZ
+PUB AccelG(ax, ay, az) | tmpx, tmpy, tmpz
 ' Reads the Accelerometer output registers and scales the outputs to micro-g's (1_000_000 = 1.000000 g = 9.8 m/s/s)
-    AccelData(@tmpX, @tmpY, @tmpZ)
-    long[ax] := tmpX * _aRes
-    long[ay] := tmpY * _aRes
-    long[az] := tmpZ * _aRes
+    AccelData(@tmpx, @tmpy, @tmpz)
+    long[ax] := tmpx * _ares
+    long[ay] := tmpy * _ares
+    long[az] := tmpz * _ares
 
 PUB AccelHighRes(enabled): result | tmp
 ' Enable high resolution mode for accelerometer
@@ -270,6 +277,9 @@ PUB AccelInt(): result | tmp
     readReg(XLG, core.STATUS_REG, 1, @tmp)
     result := ((tmp >> core.FLD_IG_XL) & %1) * TRUE
 
+PUB AccelOpMode(mode)
+' Dummy method
+
 PUB AccelScale(g=-2): result | tmp
 ' Sets the full-scale range of the Accelerometer, in g's
 '   Valid values: 2, 4, 8, 16
@@ -278,7 +288,7 @@ PUB AccelScale(g=-2): result | tmp
     case g
         2, 4, 8, 16:
             g := lookdownz(g: 2, 16, 4, 8)
-            _aRes := lookupz(g: 0_000061, 0_000732, 0_000122, 0_000244)
+            _ares := lookupz(g: 0_000061, 0_000732, 0_000122, 0_000244)
             g <<= core.FLD_FS_XL
         OTHER:
             tmp := ((tmp >> core.FLD_FS_XL) & core.BITS_FS_XL) + 1
@@ -289,12 +299,18 @@ PUB AccelScale(g=-2): result | tmp
     tmp := (tmp | g) & core.CTRL_REG6_XL_MASK
     writeReg(XLG, core.CTRL_REG6_XL, 1, @tmp)
 
-PUB CalibrateMag(samples) | magMin[3], magMax[3], magtmp[3], axis, mx, my, mz, msb, lsb
+PUB CalibrateGyro()
+
+    CalibrateXLG()
+
+PUB CalibrateMag(samples) | magmin[3], magmax[3], magtmp[3], axis, mx, my, mz, msb, lsb
 ' Calibrates the Magnetometer on the LSM9DS1 IMU module
     magtmp[0] := magtmp[1] := magtmp[2] := 0    'Initialize all variables to 0
-    magMin[0] := magMin[1] := magMin[2] := 0
-    magMax[0] := magMax[1] := magMax[2] := 0
+    magmin[0] := magmin[1] := magmin[2] := 0
+    magmax[0] := magmax[1] := magmax[2] := 0
     axis := mx := my := mz := msb := lsb := 0
+    magbias(0, 0, 0, W)
+
     repeat samples
         repeat until MagDataReady()
         MagData(@mx, @my, @mz)
@@ -302,49 +318,46 @@ PUB CalibrateMag(samples) | magMin[3], magMax[3], magtmp[3], axis, mx, my, mz, m
         magtmp[Y_AXIS] := my
         magtmp[Z_AXIS] := mz
         repeat axis from X_AXIS to Z_AXIS
-            if (magtmp[axis] > magMax[axis])
-                magMax[axis] := magtmp[axis]
-            if (magtmp[axis] < magMin[axis])
-                magMin[axis] := magtmp[axis]
+            if (magtmp[axis] > magmax[axis])
+                magmax[axis] := magtmp[axis]
+            if (magtmp[axis] < magmin[axis])
+                magmin[axis] := magtmp[axis]
     repeat axis from X_AXIS to Z_AXIS
-        _mBiasRaw[axis] := (magMax[axis] + magMin[axis]) / 2
-        msb := (_mBiasRaw[axis] & $FF00) >> 8
-        lsb := _mBiasRaw[axis] & $00FF
+        _mbiasraw[axis] := (magmax[axis] + magmin[axis]) / 2
+        msb := (_mbiasraw[axis] & $FF00) >> 8
+        lsb := _mbiasraw[axis] & $00FF
         writeReg(MAG, core.OFFSET_X_REG_L_M + (2 * axis), 1, @lsb)
         writeReg(MAG, core.OFFSET_X_REG_H_M + (2 * axis), 1, @msb)
 
-PUB CalibrateXLG() | aBiasRawtmp[3], gBiasRawtmp[3], axis, ax, ay, az, gx, gy, gz, samples
+PUB CalibrateXLG() | abiasrawtmp[3], gbiasrawtmp[3], axis, ax, ay, az, gx, gy, gz, samples
 ' Calibrates the Accelerometer and Gyroscope
 ' Turn on FIFO and set threshold to 32 samples
     FIFOEnabled(TRUE)
     FIFOMode(FIFO_THS)
     FIFOThreshold (31)
-    samples := FIFOThreshold (-2)
+    samples := FIFOThreshold()
     repeat until FIFOFull()
-    _autoCalc := FALSE
     repeat axis from 0 to 2
-        gBiasRawtmp[axis] := 0
-        aBiasRawtmp[axis] := 0
+        gbiasrawtmp[axis] := 0
+        abiasrawtmp[axis] := 0
 
+    gyrobias(0, 0, 0, W)                                    ' Clear out existing bias offsets
+    accelbias(0, 0, 0, W)                                   '
     repeat samples
 ' Read the gyro and accel data stored in the FIFO
         GyroData(@gx, @gy, @gz)
-        gBiasRawtmp[X_AXIS] += gx
-        gBiasRawtmp[Y_AXIS] += gy
-        gBiasRawtmp[Z_AXIS] += gz
+        gbiasrawtmp[X_AXIS] += gx
+        gbiasrawtmp[Y_AXIS] += gy
+        gbiasrawtmp[Z_AXIS] += gz
 
         AccelData(@ax, @ay, @az)
-        aBiasRawtmp[X_AXIS] += ax
-        aBiasRawtmp[Y_AXIS] += ay
-        aBiasRawtmp[Z_AXIS] += az - (1_000_000 / _aRes) ' Assumes sensor facing up!
+        abiasrawtmp[X_AXIS] += ax
+        abiasrawtmp[Y_AXIS] += ay
+        abiasrawtmp[Z_AXIS] += az - (1_000_000 / _ares)     ' Assumes sensor facing up!
 
-    repeat axis from X_AXIS to Z_AXIS
-        _gBiasRaw[axis] := gBiasRawtmp[axis] / samples
-        _gBias[axis] := (_gBiasRaw[axis]) / _gRes
-        _aBiasRaw[axis] := aBiasRawtmp[axis] / samples
-        _aBias[axis] := _aBiasRaw[axis] / _aRes
+    gyrobias(gbiasrawtmp[X_AXIS]/samples, gbiasrawtmp[Y_AXIS]/samples, gbiasrawtmp[Z_AXIS]/samples, W)
+    accelbias(abiasrawtmp[X_AXIS]/samples, abiasrawtmp[Y_AXIS]/samples, abiasrawtmp[Z_AXIS]/samples, W)
 
-    _autoCalc := TRUE
     FIFOEnabled(FALSE)
     FIFOMode (FIFO_OFF)
 
@@ -455,34 +468,34 @@ PUB GyroAxisEnabled(xyz_mask=-2): result | tmp
     tmp := (tmp | xyz_mask) & core.CTRL_REG4_MASK
     writeReg(XLG, core.CTRL_REG4, 1, @tmp)
 
-PUB GyroBias(gxBias, gyBias, gzBias, rw=0)
+PUB Gyrobias(gxbias, gybias, gzbias, rw=0)
 ' Read or write/manually set Gyroscope calibration offset values
 '   Valid values:
 '       rw:
 '           R (0), W (1)
-'       gxBias, gyBias, gzBias:
+'       gxbias, gybias, gzbias:
 '           -32768..32767
-'   NOTE: When rw is set to READ, gxBias, gyBias and gzBias must be addresses of respective variables to hold the returned calibration offset values.
+'   NOTE: When rw is set to READ, gxbias, gybias and gzbias must be addresses of respective variables to hold the returned calibration offset values.
     case rw
         R:
-            long[gxBias] := _gBiasRaw[X_AXIS]
-            long[gyBias] := _gBiasRaw[Y_AXIS]
-            long[gzBias] := _gBiasRaw[Z_AXIS]
+            long[gxbias] := _gbiasraw[X_AXIS]
+            long[gybias] := _gbiasraw[Y_AXIS]
+            long[gzbias] := _gbiasraw[Z_AXIS]
 
         W:
-            case gxBias
+            case gxbias
                 -32768..32767:
-                    _gBiasRaw[X_AXIS] := gxBias
+                    _gbiasraw[X_AXIS] := gxbias
                 OTHER:
 
-            case gyBias
+            case gybias
                 -32768..32767:
-                    _gBiasRaw[Y_AXIS] := gyBias
+                    _gbiasraw[Y_AXIS] := gybias
                 OTHER:
 
-            case gzBias
+            case gzbias
                 -32768..32767:
-                    _gBiasRaw[Z_AXIS] := gzBias
+                    _gbiasraw[Z_AXIS] := gzbias
                 OTHER:
 
 PUB GyroClearInt() | tmp, reg_nr
@@ -497,14 +510,9 @@ PUB GyroClearInt() | tmp, reg_nr
 PUB GyroData(gx, gy, gz) | tmp[2]
 ' Reads the Gyroscope output registers
     readReg(XLG, core.OUT_X_G_L, 6, @tmp)
-    long[gx] := tmp.word[0] signx 15
-    long[gy] := tmp.word[1] signx 15
-    long[gz] := tmp.word[2] signx 15
-
-    if (_autoCalc)
-        long[gx] -= _gBiasRaw[X_AXIS]
-        long[gy] -= _gBiasRaw[Y_AXIS]
-        long[gz] -= _gBiasRaw[Z_AXIS]
+    long[gx] := (tmp.word[X_AXIS] signx 15) - _gbiasraw[X_AXIS]
+    long[gy] := (tmp.word[Y_AXIS] signx 15) - _gbiasraw[Y_AXIS]
+    long[gz] := (tmp.word[Z_AXIS] signx 15) - _gbiasraw[Z_AXIS]
 
 PUB GyroDataRate(Hz=-2): result | tmp
 ' Set Gyroscope Output Data Rate, in Hz
@@ -531,12 +539,12 @@ PUB GyroDataReady(): result | tmp
     readReg(XLG, core.STATUS_REG, 1, @tmp)
     result := ((tmp >> core.FLD_GDA) & %1) * TRUE
 
-PUB GyroDPS(gx, gy, gz) | tmpX, tmpY, tmpZ
+PUB GyroDPS(gx, gy, gz) | tmpx, tmpy, tmpz
 ' Read the Gyroscope output registers and scale the outputs to micro-degrees of rotation per second (1_000_000 = 1.000000 deg/sec)
-    GyroData(@tmpX, @tmpY, @tmpZ)
-    long[gx] := tmpX * _gRes
-    long[gy] := tmpY * _gRes
-    long[gz] := tmpZ * _gRes
+    GyroData(@tmpx, @tmpy, @tmpz)
+    long[gx] := tmpx * _gres
+    long[gy] := tmpy * _gres
+    long[gz] := tmpz * _gres
 
 PUB GyroHighPass(cutoff=-2): result | tmp
 ' Set Gyroscope high-pass filter cutoff frequency
@@ -617,6 +625,9 @@ PUB GyroLowPower(enabled=-2): result | tmp
 '   Any other value polls the chip and returns the current setting
     result := booleanChoice(XLG, core.CTRL_REG3_G, core.FLD_LP_MODE, core.MASK_LP_MODE, core.CTRL_REG3_G_MASK, enabled, 1)
 
+PUB GyroOpMode(mode)
+' Dummy method
+
 PUB GyroScale(scale=-2): result | tmp
 ' Set full scale of gyroscope output, in degrees per second (dps)
 '   Valid values: 245, 500, 2000
@@ -625,7 +636,7 @@ PUB GyroScale(scale=-2): result | tmp
     case scale
         245, 500, 2000:
             scale := lookdownz(scale: 245, 500, 0, 2000)
-            _gRes := lookupz(scale: 0_008750, 0_017500, 0, 0_070000)
+            _gres := lookupz(scale: 0_008750, 0_017500, 0, 0_070000)
             scale <<= core.FLD_FS
         OTHER:
             tmp := ((tmp >> core.FLD_FS) & core.BITS_FS) + 1
@@ -655,6 +666,9 @@ PUB IntInactivity(): result | tmp
     readReg(XLG, core.STATUS_REG, 1, @tmp)
     result := ((tmp >> core.FLD_INACT) & %1) * TRUE
 
+PUB IntMask(mask)
+' Dummy method
+
 PUB MagBlockUpdate(enabled=-2): result
 ' Enable block update for magnetometer data
 '   Valid values:
@@ -663,41 +677,41 @@ PUB MagBlockUpdate(enabled=-2): result
 '   Any other value polls the chip and returns the current setting
     result := booleanChoice (MAG, core.CTRL_REG5_M, core.FLD_BDU_M, core.MASK_BDU_M, core.CTRL_REG5_M_MASK, enabled, 1)
 
-PUB MagBias(mxBias, myBias, mzBias, rw=0) | axis, msb, lsb
+PUB Magbias(mxbias, mybias, mzbias, rw=0) | axis, msb, lsb
 ' Read or write/manually set Magnetometer calibration offset values
 '   Valid values:
 '       rw:
 '           R (0), W (1)
-'       mxBias, myBias, mzBias:
+'       mxbias, mybias, mzbias:
 '           -32768..32767
-'   NOTE: When rw is set to READ, mxBias, myBias and mzBias must be addresses of respective variables to hold the returned
+'   NOTE: When rw is set to READ, mxbias, mybias and mzbias must be addresses of respective variables to hold the returned
 '       calibration offset values.
 
     case rw
         R:
-            long[mxBias] := _mBiasRaw[X_AXIS]
-            long[myBias] := _mBiasRaw[Y_AXIS]
-            long[mzBias] := _mBiasRaw[Z_AXIS]
+            long[mxbias] := _mbiasraw[X_AXIS]
+            long[mybias] := _mbiasraw[Y_AXIS]
+            long[mzbias] := _mbiasraw[Z_AXIS]
 
         W:
-            case mxBias
+            case mxbias
                 -32768..32767:
-                    _mBiasRaw[X_AXIS] := mxBias
+                    _mbiasraw[X_AXIS] := mxbias
                 OTHER:
 
-            case myBias
+            case mybias
                 -32768..32767:
-                    _mBiasRaw[Y_AXIS] := myBias
+                    _mbiasraw[Y_AXIS] := mybias
                 OTHER:
 
-            case mzBias
+            case mzbias
                 -32768..32767:
-                    _mBiasRaw[Z_AXIS] := mzBias
+                    _mbiasraw[Z_AXIS] := mzbias
                 OTHER:
 
             repeat axis from X_AXIS to Z_AXIS
-                msb := (_mBiasRaw[axis] & $FF00) >> 8
-                lsb := _mBiasRaw[axis] & $00FF
+                msb := (_mbiasraw[axis] & $FF00) >> 8
+                lsb := _mbiasraw[axis] & $00FF
 
                 writeReg(MAG, core.OFFSET_X_REG_L_M + (2 * axis), 1, @lsb)
                 writeReg(MAG, core.OFFSET_X_REG_H_M + (2 * axis), 1, @msb)
@@ -781,12 +795,12 @@ PUB MagFastRead(enabled=-2): result
 '   Any other value polls the chip and returns the current setting
     result := booleanChoice (MAG, core.CTRL_REG5_M, core.FLD_FAST_READ, core.MASK_FAST_READ, core.CTRL_REG5_M_MASK, enabled, 1)
 
-PUB MagGauss(mx, my, mz) | tmpX, tmpY, tmpZ
+PUB MagGauss(mx, my, mz) | tmpx, tmpy, tmpz
 ' Read the Magnetometer output registers and scale the outputs to micro-Gauss (1_000_000 = 1.000000 Gs)
-    MagData(@tmpX, @tmpY, @tmpZ)
-    long[mx] := tmpX * _mRes
-    long[my] := tmpY * _mRes
-    long[mz] := tmpZ * _mRes
+    MagData(@tmpx, @tmpy, @tmpz)
+    long[mx] := tmpx * _mres
+    long[my] := tmpy * _mres
+    long[mz] := tmpz * _mres
 
 PUB MagInt(): result
 ' Magnetometer interrupt source(s)
@@ -936,7 +950,7 @@ PUB MagScale(scale=-2): result | tmp
     case(scale)
         4, 8, 12, 16:
             scale := lookdownz(scale: 4, 8, 12, 16)
-            _mRes := lookupz(scale: 0_000140, 0_000290, 0_000430, 0_000580)
+            _mres := lookupz(scale: 0_000140, 0_000290, 0_000430, 0_000580)
             scale <<= core.FLD_FS_M
         OTHER:
             result := (tmp >> core.FLD_FS_M) & core.BITS_FS_M
@@ -1044,7 +1058,7 @@ PUB setAccelInterrupt(axis, threshold, duration, overUnder, andOr) | tmpRegValue
         threshold := -1 * threshold
     accelThs := 0
     tmpThs := 0
-    tmpThs := (_aRes * threshold) >> 7
+    tmpThs := (_ares * threshold) >> 7
     accelThs := tmpThs & $FF
 
     case(axis)
@@ -1089,7 +1103,7 @@ PUB setGyroInterrupt(axis, threshold, duration, overUnder, andOr) | tmpRegValue,
     gyroThs := 0
     gyroThsH := 0
     gyroThsL := 0
-    gyroThs := _gRes * threshold 'TODO: REVIEW (use limit min/max operators and eliminate conditionals below?)
+    gyroThs := _gres * threshold 'TODO: REVIEW (use limit min/max operators and eliminate conditionals below?)
 
     if gyroThs > 16383
         gyroThs := 16383
@@ -1139,7 +1153,7 @@ PUB setMagInterrupt(axis, threshold, lowHigh) | tmpCfgValue, tmpSrcValue, magThs
     magThs := 0
     magThsL := 0
     magThsH := 0
-    magThs := _mRes * threshold
+    magThs := _mres * threshold
 
     if (magThs < 0)
         magThs := -1 * magThs
@@ -1227,23 +1241,24 @@ PRI readReg(device, reg_nr, nr_bytes, buff_addr) | tmp
         XLG:
             case reg_nr
                 $04..$0D, $0F..$24, $26..$37:
-                    reg_nr |= READ
                     pinl(_CS_AG)
-                    spi.Write(_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
+                    spi.write(_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr | READ)
                     repeat tmp from 0 to nr_bytes-1
-                        byte[buff_addr][tmp] := spi.Read(_SDIO, _SCL, core.MISO_BITORDER, 8)
+                        byte[buff_addr][tmp] := spi.read(_SDIO, _SCL, core.MISO_BITORDER, 8)
                     pinh(_CS_AG)
+
                 OTHER:
                     return
+
         MAG:
             case reg_nr
                 $05..$0A, $0F, $20..$24, $27..$2D, $30..$33:
                     reg_nr |= READ
                     reg_nr |= MS
                     pinl(_CS_M)
-                    spi.Write(_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
+                    spi.write(_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
                     repeat tmp from 0 to nr_bytes-1
-                        byte[buff_addr][tmp] := spi.Read(_SDIO, _SCL, core.MISO_BITORDER, 8)
+                        byte[buff_addr][tmp] := spi.read(_SDIO, _SCL, core.MISO_BITORDER, 8)
                     pinh(_CS_M)
                 OTHER:
                     return
@@ -1260,18 +1275,18 @@ PRI writeReg(device, reg_nr, nr_bytes, buff_addr) | tmp
         XLG:
             case reg_nr
                 $04..$0D, $10..$13, $1E..$21, $23, $24, $2E, $30..$37:
-                    pinl (_CS_AG)
-                    spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
+                    pinl(_CS_AG)
+                    spi.write (_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
                     repeat tmp from 0 to nr_bytes-1
-                        spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
-                    pinh (_CS_AG)
+                        spi.write (_SDIO, _SCL, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
+                    pinh(_CS_AG)
                 core.CTRL_REG8:
-                    pinl (_CS_AG)
-                    spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
+                    pinl(_CS_AG)
+                    spi.write (_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
                     byte[buff_addr][0] := byte[buff_addr][0] | (1 << core.FLD_SIM)   'Enforce 3-wire SPI mode
-                     repeat tmp from 0 to nr_bytes-1
-                        spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
-                    pinh (_CS_AG)
+                    repeat tmp from 0 to nr_bytes-1
+                        spi.write (_SDIO, _SCL, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
+                    pinh(_CS_AG)
 
                 OTHER:
                     return
@@ -1281,19 +1296,19 @@ PRI writeReg(device, reg_nr, nr_bytes, buff_addr) | tmp
                 $05..$0A, $0F, $20, $21, $23, $24, $27..$2D, $30..$33:
                     reg_nr |= WRITE
                     reg_nr |= MS
-                    pinl (_CS_M)
-                    spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
+                    pinl(_CS_M)
+                    spi.write (_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
                     repeat tmp from 0 to nr_bytes-1
-                        spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
-                    pinh (_CS_M)
+                        spi.write (_SDIO, _SCL, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
+                    pinh(_CS_M)
                 core.CTRL_REG3_M:   'Ensure any writes to this register also keep the 3-wire SPI mode bit set
                     reg_nr |= WRITE
-                    pinl (_CS_M)
-                    spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
+                    pinl(_CS_M)
+                    spi.write (_SDIO, _SCL, core.MOSI_BITORDER, 8, reg_nr)
                     byte[buff_addr][0] := byte[buff_addr][0] | (1 << core.FLD_M_SIM)    'Enforce 3-wire SPI mode
                     repeat tmp from 0 to nr_bytes-1
-                        spi.Write (_SDIO, _SCL, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
-                    pinh (_CS_M)
+                        spi.write (_SDIO, _SCL, core.MOSI_BITORDER, 8, byte[buff_addr][tmp])
+                    pinh(_CS_M)
                 OTHER:
                     return
         OTHER:
