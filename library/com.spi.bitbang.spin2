@@ -4,7 +4,7 @@
     Description: SPI engine (bit-banged) for the Propeller 2
     Author: Jesse Burt
     Created: Nov 2, 2019
-    Updated: Jul 8, 2020
+    Updated: Jul 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -85,8 +85,6 @@ PUB Read(MISO, SCK, mode, nr_bits)
                 result >>= (32 - nr_bits)
 
     return result
-
-PUB ShiftIn = Read
 
 PUB Write(MOSI, SCK, mode, nr_bits, val)
 ' ~ 600kHz max
