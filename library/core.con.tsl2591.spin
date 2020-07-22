@@ -3,9 +3,9 @@
     Filename: core.con.tsl2591.spin
     Description: TSL2591 low-level constants
     Author: Jesse Burt
-    Copyright (c) 2018
+    Copyright (c) 2020
     Started Feb 17, 2018
-    Updated Feb 24, 2019
+    Updated Jul 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -86,8 +86,10 @@ CON
     SF_CLEARALS_NOPERSIST_INT       =     %00111' fields
     SF_CLEAR_NOPERSIST_INT          =     %01010'  - use if TRANS_TYPE_SPECIAL bits above are set
 
+#ifndef __propeller2__
 PUB Null
-' This is not a top-level object
+'' This is not a top-level object
+#endif
 
 DAT
 {

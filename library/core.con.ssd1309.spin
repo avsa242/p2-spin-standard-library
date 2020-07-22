@@ -5,7 +5,7 @@
     Description: SSD1309 OLED/PLED Display driver registers/command set
     Copyright (c) 2020
     Created: Apr 26, 2019
-    Updated: Jun 14, 2020
+    Updated: Jul 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -74,12 +74,10 @@ CON
 
     CMD_NOOP        = $E3
 
-#ifdef _P2_
-PUB Null()
-#else
+#ifndef __propeller2__
 PUB Null
+'' This is not a top-level object
 #endif
-''This is not a top-level object
 
 DAT
 {

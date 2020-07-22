@@ -4,7 +4,7 @@
     Author: Jesse Burt
     Description: US2066 OLED Display driver registers/command set
     Created Dec 30, 2017
-    Updated Mar 3, 2020
+    Updated Jul 22, 2020
     Copyright (c) 2020
     See end of file for terms of use.
     --------------------------------------------
@@ -153,8 +153,10 @@ CON
         FADE_OUT_ENA    = %10 << 4
         BLINK_ENA       = %11 << 4
 
+#ifndef __propeller2__
 PUB Null
-''This is not a top-level object
+'' This is not a top-level object
+#endif
 
 DAT
 {

@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: core.con.ina260.spin2
+    Filename: core.con.ina260.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started Nov 13, 2019
-    Updated Nov 13, 2019
+    Updated Jul 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -17,6 +17,8 @@ CON
     I2C_MAX_FREQ        = HI_MAX
 
     SLAVE_ADDR          = $40 << 1
+
+    DEVID_RESP          = $22705449 ' DieID << 16 | MfrID
 
 ' Register definitions
 
@@ -78,8 +80,10 @@ CON
 
     DIE_ID              = $FF
 
+#ifndef __propeller2__
 PUB Null
 '' This is not a top-level object
+#endif
 
 DAT
 {

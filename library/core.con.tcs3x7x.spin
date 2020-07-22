@@ -3,9 +3,9 @@
     Filename: core.con.tcs347x.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2018
+    Copyright (c) 2020
     Started: Jun 24, 2018
-    Updated: Nov 13, 2019
+    Updated: Jul 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -80,8 +80,10 @@ CON
     BDATAL              = $1A       'BLUE DATA
     BDATAH              = $1B
 
+#ifndef __propeller2__
 PUB Null
-' This is not a top-level object
+'' This is not a top-level object
+#endif
 
 DAT
 {
