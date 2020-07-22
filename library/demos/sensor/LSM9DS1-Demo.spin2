@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: LSM9DS1-Demo.spin2
     Author: Jesse Burt
-    Description: Demo of the LSM9DS1 driver
+    Description: Demo of the LSM9DS1 driver (P2 version)
     Copyright (c) 2020
     Started Nov 3, 2019
-    Updated Jul 18, 2020
+    Updated Jul 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -23,12 +23,10 @@ CON
     SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
-    SCL_PIN     = 32
-    SDIO_PIN    = 33
-    CS_AG_PIN   = 34
-    CS_M_PIN    = 35
-    INT_AG_PIN  = 24
-    INT_M_PIN   = 25
+    SCL_PIN     = 26
+    SDIO_PIN    = 27
+    CS_AG_PIN   = 25
+    CS_M_PIN    = 24
     SCK_FREQ    = 5_000_000
 ' --
 
@@ -42,7 +40,6 @@ OBJ
 VAR
 
     long _overruns
-    byte _imu_cog
 
 PUB Main() | dispmode, axo, ayo, azo, gxo, gyo, gzo
 
@@ -193,7 +190,7 @@ PUB Setup()
     ser.Clear()
     ser.printf("Serial terminal started\n")
 
-    if _imu_cog := imu.Start (SCL_PIN, SDIO_PIN, CS_AG_PIN, CS_M_PIN, INT_AG_PIN, INT_M_PIN, SCK_FREQ)
+    if imu.Start (SCL_PIN, SDIO_PIN, CS_AG_PIN, CS_M_PIN, SCK_FREQ)
         ser.printf("LSM9DS1 driver started\n")
     else
         ser.printf("LSM9DS1 driver failed to start- halting\n")
