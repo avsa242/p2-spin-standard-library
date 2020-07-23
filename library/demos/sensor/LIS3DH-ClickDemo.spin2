@@ -1,0 +1,184 @@
+{
+    --------------------------------------------
+    Filename: LIS3DH-ClickDemo.spin2
+    Author: Jesse Burt
+    Description: Demo of the LIS3DH driver
+        click-detection functionality (P2 version)
+    Copyright (c) 2020
+    Started Jul 18, 2020
+    Updated Jul 18, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+' Uncomment one of the following to choose which interface the LIS3DH is connected to
+'#define LIS3DH_I2C
+#define LIS3DH_SPI
+CON
+
+     _xtlfreq   = cfg._xtlfreq
+     _clkfreq   = cfg._clkfreq_def
+
+' -- User-modifiable constants
+    LED         = cfg#LED1
+    SER_RX      = cfg#SER_RX
+    SER_TX      = cfg#SER_TX
+    SER_BAUD    = 2_000_000
+
+    CS_PIN      = 24                                        ' SPI
+    SCL_PIN     = 25                                        ' SPI, I2C
+    SDA_PIN     = 26                                        ' SPI, I2C
+    SDO_PIN     = 27                                        ' SPI
+    I2C_HZ      = 400_000                                   ' I2C
+    SCK_HZ      = 10_000_000                                 ' SPI
+    SLAVE_OPT   = 1
+' --
+
+    TEXT_COL    = 0
+    DAT_COL     = 20
+    DEC         = 0
+    BIN         = 1
+    HEX         = 2
+    STR         = 3
+    NUL         = 0
+
+OBJ
+
+    cfg     : "core.con.boardcfg.p2eval"
+    ser     : "com.serial.terminal.ansi"
+    int     : "string.integer"
+#ifdef LIS3DH_I2C
+    accel   : "sensor.accel.3dof.lis3dh.i2c"
+#elseifdef LIS3DH_SPI
+    accel   : "sensor.accel.3dof.lis3dh.spi"
+#endif
+
+VAR
+
+    long _overruns
+    long _total, _doubles, _singles
+
+PUB Main() | dispmode, click_src, int_act, dclicked, sclicked, sign, z_clicked, y_clicked, x_clicked, row
+
+    setup()
+
+    accel.acceladcres(12)                                   ' 8, 10, 12 (low-power, normal, high-res, resp.)
+    accel.accelscale(4)                                     ' 2, 4, 8, 16 (g's)
+    accel.acceldatarate(400)                                ' 0, 1, 10, 25, 50, 100, 200, 400, 1344, 1600
+    accel.accelaxisenabled(%111)                            ' 0 or 1 for each bit (%xyz)
+    accel.clickthresh(1_187500)                             ' Micro-g's (range depends on scale)
+    accel.clickaxisenabled(%10_00_00)                       ' Assert interrupts bitmask: (1 to enable)
+'                                                             [5..4]: Z-axis double-click..single-click
+'                                                             [3..2]: Y-axis double-click..single-click
+'                                                             [1..0]: X-axis double-click..single-click
+'    accel.clickaxisenabled(%01_00_00)                       ' rol for detecting z-axis single-clicks only
+    accel.clicktime(127_000)                                ' Microseconds (range depends on data rate)
+    accel.doubleclickwindow(637_500)                        ' Microseconds (range depends on data rate)
+    accel.clicklatency(150_000)                             ' Microseconds (range depends on data rate)
+'    accel.clicklatency(637_500)                             ' more suitable for single-clicks
+    accel.clickintenabled(TRUE)
+
+    ser.newline()
+    ser.hidecursor()
+
+    row := 4
+    showdatum(string("AccelADCRes: "), DEC, accel.acceladcres(), 2, string("bits"), row)
+    showdatum(string("AccelScale: "), DEC, accel.accelscale(), 2, string("g"), ++row)
+    showdatum(string("AccelDataRate: "), DEC, accel.acceldatarate(), 4, string("Hz"), ++row)
+    showdatum(string("AccelAxisEnabled: "), BIN, accel.accelaxisenabled(), 3, NUL, ++row)
+    showdatum(string("FIFOMode: "), STR, lookupz(accel.fifomode(): string("Bypass"), string("FIFO"), string("stream")), NUL, NUL, ++row)
+    showdatum(string("IntThresh: "), DEC, accel.intthresh(), 12, string("u-g"), ++row)
+    showdatum(string("IntMask: "), BIN, accel.intmask(), 6, NUL, ++row)
+    showdatum(string("ClickThresh: "), DEC, accel.clickthresh(), 12, string("u-g"), ++row)
+    showdatum(string("ClickAxisEnabled: "), BIN, accel.clickaxisenabled(), 3, NUL, ++row)
+    showdatum(string("ClickTime: "), DEC, accel.clicktime(), 12, string("uS"), ++row)
+    showdatum(string("DoubleClickWindow: "), DEC, accel.doubleclickwindow(), 12, string("uS"), ++row)
+    showdatum(string("ClickLatency: "), DEC, accel.clicklatency(), 12, string("uS"), ++row)
+
+    repeat
+        click_src := accel.clickedint()
+        int_act := ((click_src >> 6) & 1)
+        dclicked := ((click_src >> 5) & 1)
+        sclicked := ((click_src >> 4) & 1)
+        sign := ((click_src >> 3) & 1)
+        z_clicked := ((click_src >> 2) & 1)
+        y_clicked := ((click_src >> 1) & 1)
+        x_clicked := (click_src & 1)
+        row := 20
+        showdatum(string("Click interrupt:"), STR, lookupz(int_act: string("No "), string("Yes")), NUL, NUL, row)
+
+        showdatum(string("Double-clicked:"), STR, lookupz(dclicked: string("No "), string("Yes")), NUL, NUL, ++row)
+        showdatum(string("Single-clicked:"), STR, lookupz(sclicked: string("No "), string("Yes")), NUL, NUL, ++row)
+        showdatum(string("Click sign:"), STR, lookupz(sign: string("Pos"), string("Neg")), NUL, NUL, ++row)
+        showdatum(string("Z-axis clicked:"), STR, lookupz(z_clicked: string("No "), string("Yes")), NUL, NUL, ++row)
+        showdatum(string("Y-axis clicked:"), STR, lookupz(y_clicked: string("No "), string("Yes")), NUL, NUL, ++row)
+        showdatum(string("X-axis clicked:"), STR, lookupz(x_clicked: string("No "), string("Yes")), NUL, NUL, ++row)
+
+    ser.showcursor()
+    flashled(LED, 100)
+
+PUB ShowDatum(ptr_msg, val_type, val, digits, ptr_suffix, text_row)
+
+    ser.position(TEXT_COL, text_row)
+    ser.str(ptr_msg)
+
+    ser.position(DAT_COL, text_row)
+    case val_type                                           ' Type of value
+        DEC:
+            ser.dec(val)
+        BIN:
+            ser.bin(val, digits)
+        HEX:
+            ser.hex(val, digits)
+        STR:
+            ser.str(val)
+
+    case ptr_suffix                                         ' Text to display as a suffix
+        NUL:                                                ' NUL (0) for nothing
+            return
+        OTHER:
+            ser.str(ptr_suffix)
+
+PUB Setup()
+
+    repeat until ser.startrxtx(SER_RX, SER_TX, 0, SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.printf("Serial terminal started\n")
+#ifdef LIS3DH_SPI
+    if accel.start(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCK_HZ)
+        accel.defaults()
+        ser.printf("LIS3DH driver started (SPI)\n")
+#elseifdef LIS3DH_I2C
+    if accel.start(SCL_PIN, SDA_PIN, I2C_HZ, SLAVE_OPT)
+        accel.defaults()
+        ser.printf("LIS3DH driver started (I2C)\n")
+#endif
+    else
+        ser.printf("LIS3DH driver failed to start - halting\n")
+        accel.stop()
+        waitms(5)
+        flashled(LED, 500)
+
+#include "lib.utility.spin2"
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
