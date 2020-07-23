@@ -6,7 +6,7 @@
     Description: Low-level UART serial driver
     Copyright (c) 2020
     Started Jun 28, 2019
-    Updated Jul 11, 2020
+    Updated Jul 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -53,10 +53,12 @@ PUB StartRxTx(rxpin, txpin, mode, baudrate=-1): okay | bitperiod, bit_mode
     wxpin(txpin, bit_mode)
     pinl(txpin)
 
-    pinf(rxpin)
-    wrpin(rxpin, RXMODE)
-    wxpin(rxpin, bit_mode)
-    pinl(rxpin)
+    if lookdown(rxpin: 0..63)
+        pinf(rxpin)
+        wrpin(rxpin, RXMODE)
+        wxpin(rxpin, bit_mode)
+        pinl(rxpin)
+
     return cogid()+1
 
 PUB Char(val)
