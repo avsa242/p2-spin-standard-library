@@ -1,6 +1,6 @@
 {
     --------------------------------------------
-    Filename: LEDMatrix1.spin2
+    Filename: Charlieplexed-LEDMatrix-Demo.spin2
     Author: Jesse Burt
     Description: Demo of the charlieplexed LED driver
     Copyright (c) 2020
