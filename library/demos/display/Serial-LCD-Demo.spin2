@@ -1,0 +1,87 @@
+{
+    --------------------------------------------
+    Filename: Serial-LCD-Demo.spin2
+    Modified by: Jesse Burt
+    Description: Demo of the serial LCD driver (P2 version)
+    Started Apr 29, 2006
+    Updated Jul 23, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+    NOTE: This is a derivative of Serial_Lcd.spin,
+        originally by Jon Williams, Jeff Martin.
+    The existing header is preserved within the display
+        driver, display.lcd.serial.spin.
+}
+
+' Authors: Jon Williams, Jeff Martin
+CON
+
+     _xtlfreq   = cfg._xtlfreq
+     _clkfreq   = cfg._clkfreq_def
+
+' -- User-modifiable constants
+    LED         = cfg#LED1
+    SER_RX      = cfg#SER_RX
+    SER_TX      = cfg#SER_TX
+    SER_BAUD    = 2_000_000
+
+    LCD_PIN     = 32
+    LCD_BAUD    = 19_200                                    ' 2400, 9600, 19200 (must match DIP switches)
+    LCD_LINES   = 4                                         ' 2, 4
+' --
+
+OBJ
+
+    cfg     : "core.con.boardcfg.p2eval"
+    lcd     : "display.lcd.serial"
+    num     : "string.integer"
+    time    : "time"
+
+PUB Main() | idx
+
+    lcd.start(LCD_PIN, LCD_BAUD, LCD_LINES)                 ' start lcd
+    waitms(1_000)
+    lcd.cursormode(0)                                       ' cursor off
+    lcd.enablebacklight(true)                               ' backlight on (if available)
+    lcd.definechars(0, @bullet)                             ' create custom character 0
+    lcd.clear()
+    lcd.printf("LCD DEBUG\r")
+    lcd.char(0)                                             ' display custom bullet character
+    lcd.printf(" Dec\r")
+    lcd.char(0)
+    lcd.printf(" Hex\r")
+    lcd.char(0)
+    lcd.printf(" Bin\r")
+
+    repeat
+        repeat idx from 0 to 255
+            updatelcd(idx)
+            waitms(200)                                     ' pad with 1/5 sec
+
+        lcd.displayvisibility(false)                        ' turn off the LCD for 2secs
+        waitms(2000)
+        lcd.displayvisibility(true)                         ' then back on - contents should still be there
+
+        repeat idx from -255 to 0
+            updatelcd(idx)
+            waitms(200)
+
+PRI UpdateLCD(value)
+
+    lcd.position(12, 1)
+    lcd.str(num.decpadded(value, 8))
+    lcd.position(11, 2)
+    lcd.str(num.hexindicated(value, 8))
+    lcd.position(7, 3)
+    lcd.str(num.binindicated(value, 12))
+
+DAT
+
+    bullet  byte    %00000000
+            byte    %00000100
+            byte    %00001110
+            byte    %00011111
+            byte    %00001110
+            byte    %00000100
+            byte    %00000000
+            byte    %00000000
