@@ -4,7 +4,7 @@
     Description: Bitbanged I2C driver for the P2X8C4M64P
     Author: Jesse Burt
     Created: Jun 15, 2019
-    Updated: Jun 22, 2020
+    Updated: Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -32,54 +32,54 @@ CON
 
     #0, ACK, NAK
 
-OBJ
-
-    time    : "time"
-
 VAR
 
-    long _scl                                                   ' Bus pins
-    long _sda
+    long _SCL                                               ' Bus pins
+    long _SDA
     long _delay, _hdelay, _qdelay
 
 PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000): okay
 ' Define I2C SCL (clock) and SDA (data) pins
-    _delay := (clkfreq/I2C_HZ)                                 ' Calculate delays based on clock freq
+    _delay := (clkfreq/I2C_HZ)                              ' Calculate delays based on clock freq
     _hdelay := _delay >> 1
     _qdelay := _delay >> 2
 
-    _scl := I2C_SCL
-    _sda := I2C_SDA
-    _dirw(_scl, 0)                                              ' Float pins
-    _dirw(_sda, 0)
+    _SCL := I2C_SCL
+    _SDA := I2C_SDA
+    pinf(_SCL)                                              ' Float pins
+    pinf(_SDA)
     reset()
     okay := cogid() + 1
     return
 
-PUB Present(slave_addr): result
+PUB Present(slave_addr): ackbit
 ' Pings device, returns true if ACK
     start()
-    result := (write(slave_addr) == ACK)
+    ackbit := (write(slave_addr) == ACK)
     stop()
 
 PUB Read(ackbit): i2cbyte
 ' Read byte from I2C bus
-'      Send ackbit to slave: ACK (0) or NAK (1)
-    _dirw(_sda, 0)                                             ' Make SDA input
+'   Valid values:
+'       ackbit:
+'           ACK (0): Send ACK to slave device
+'           NAK (non-zero): Send NAK to slave device
+    ackbit := (ackbit <> 0)
+    pinf(_SDA)                                              ' Make SDA input
 
     repeat 8
         qd()
-        _dirw(_scl, 0)                                         ' Float SCL
+        pinf(_SCL)                                          ' Float SCL
         hd()
-        i2cbyte := (i2cbyte << 1) | _pinr(_sda)               ' Read the bit
-        _dirw(_scl, 1)                                         ' SCL low
+        i2cbyte := (i2cbyte << 1) | pinr(_SDA)              ' Read the bit
+        pinl(_SCL)                                          ' SCL low
         qd()
 
-    _dirw(_sda, !ackbit)                                       ' Output ack bit
+    (ackbit) ? pinf(_SDA) : pinl(_SDA)                      ' Output ACK bit
     qd()
-    _dirw(_scl, 0)                                             ' Float SCL
+    pinf(_SCL)                                              ' Float SCL
     hd()
-    _dirw(_scl, 1)                                             ' SCL low
+    pinl(_SCL)                                              ' SCL low
     qd()
 
     return (i2cbyte & $FF)
@@ -87,75 +87,73 @@ PUB Read(ackbit): i2cbyte
 PUB Reset()
 ' Reset device
     repeat 9
-        _dirw(_scl, 1)
+        pinl(_SCL)
         hd()
-        _dirw(_scl, 0)
+        pinf(_SCL)
         hd()
-        if (_pinr(_sda))
+        if (pinr(_SDA))
             quit
 
 PUB Start()
 ' I2C Start condition (S, Sr)
-' -- will wait if I2C bus SDA pin is held low
-    _dirw(_sda, 0)                                               ' Float pins
-    _dirw(_scl, 0)
-    repeat
-    while (_pinr(_scl) == 0)                                    ' Allow "clock stretching"
+'   NOTE: Blocks while SCL held low (clock stretching)
+    pinf(_SDA)                                               ' Float pins
+    pinf(_SCL)
+    repeat while (pinr(_SCL) == 0)                           ' Allow "clock stretching"
     hd()
-    _dirw(_sda, 1)                                               ' SDA low
+    pinl(_SDA)                                               ' SDA low
     hd()
-    _dirw(_scl, 1)                                               ' SCL low
+    pinl(_SCL)                                               ' SCL low
     hd()
 
 PUB Stop()
 ' I2C Stop condition (P)
-    _dirw(_sda, 1)                                               ' SDA low
+'   NOTE: Blocks while SCL held low (clock stretching)
+    pinl(_SDA)                                               ' SDA low
     hd()
-    _dirw(_scl, 0)                                               ' Float SCL
+    pinf(_SCL)                                               ' Float SCL
     hd()
-    repeat
-    until (_pinr(_scl) == 1)                                    ' Hold for clock stretch
-    _dirw(_sda, 0)                                               ' Float SDA
+    repeat until (pinr(_SCL) == 1)                           ' Hold for clock stretch
+    pinf(_SDA)                                               ' Float SDA
     hd()
 
 PUB Wait(slave_addr) | ackbit
 ' Waits for I2C device to be ready for new command
-
     repeat
-        Start()
+        start()
         ackbit := write(slave_addr)
     until (ackbit == ACK)
 
-PUB WaitTimeout(slave_addr, us): ackbit, timeout | tmp
+PUB WaitTimeout(slave_addr, usec): ackbit, timeout | tmp
 ' Wait for I2C device to be ready for new command, up to a maximum timeout of 'us' microseconds
 '   Returns:
 '       1st return value: TRUE if slave acknowledged, FALSE otherwise
 '       2nd return value: Duration waited, in microseconds
-    timeout := us
+    timeout := usec
     repeat
         start()
         ackbit := write(slave_addr)
         waitus(1)
         timeout--
     until (ackbit == ACK) OR (timeout == 0)
-    return (ackbit == ACK), us-timeout
+    return (ackbit == ACK), usec-timeout
 
 PUB Write(i2cbyte): ackbit
 ' Write byte to I2C bus
 ' -- leaves SCL low
-    i2cbyte := (i2cbyte ^ $FF) << 24                             ' Move msb (bit7) to bit31
-    repeat 8                                                     ' Output eight bits
-        _dirw(_sda, i2cbyte <-= 1)                                ' Send msb first
+    i2cbyte := (i2cbyte ^ $FF) << 24                        ' Move msb (bit7) to bit31
+    repeat 8                                                ' Output eight bits
+        ((i2cbyte rol= 1) & %1) ? pinl(_SDA) : pinf(_SDA)   ' Send MSB first
         hd()
-        _dirw(_scl, 0)                                            ' Float SCL
+        pinf(_SCL)                                          ' Float SCL
         hd()
-        _dirw(_scl, 1)                                            ' SCL low
-    _dirw(_sda, 0)                                                ' Release SDA to read ack bit
+        pinl(_SCL)                                          ' SCL low
+    pinf(_SDA)                                              ' Release SDA to read ack bit
     hd()
-    _dirw(_scl, 0)                                                ' Float SCL
+    pinf(_SCL)                                              ' Float SCL
     hd()
-    ackbit := _pinr(_sda)                                        ' Read ack bit
-    _dirw(_scl, 1)                                                ' SCL low
+    ackbit := pinr(_SDA)                                    ' Read ack bit
+    pinl(_SCL)                                              ' SCL low
     return ackbit
 
 PRI hd()
@@ -167,25 +165,23 @@ PRI qd()
     waitx (_qdelay)
 
 DAT
-{{
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
 
-  Terms of Use: MIT License
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
 
-  Permission is hereby granted, free of charge, to any person obtaining a copy of this
-  software and associated documentation files (the "Software"), to deal in the Software
-  without restriction, including without limitation the rights to use, copy, modify,
-  merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
-  permit persons to whom the Software is furnished to do so, subject to the following
-  conditions:
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
 
-  The above copyright notice and this permission notice shall be included in all copies
-  or substantial portions of the Software.
-
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-  INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-  PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-  CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
-  OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-}}
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
