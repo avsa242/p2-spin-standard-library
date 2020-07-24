@@ -6,15 +6,15 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started: Jun 14, 2020
-    updated: Jul 17, 2020
+    updated: Jul 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 ' Uncomment one of the below display types, and change the relevant I/O pin constants below
-'#define VGABITMAP8BPP
+#define VGABITMAP8BPP
 '#define ST7735
 '#define SSD1331
-#define SSD1351
+'#define SSD1351
 '#define SSD1309
 '#define SSD1306_I2C
 
@@ -688,9 +688,9 @@ PUB Setup()
     else
         ser.printf("SSD1306 driver failed to start - halting\n")
 #endif
-        disp.fontaddress(fnt.baseaddr())
-        disp.fontsize(6, 8)
-        disp.clear()
+    disp.fontaddress(fnt.baseaddr())
+    disp.fontsize(6, 8)
+    disp.clear()
 
     _timer_cog := cogspin(16, cog_timer(), @_stack_timer)
 
