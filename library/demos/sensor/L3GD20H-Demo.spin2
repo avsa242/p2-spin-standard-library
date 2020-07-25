@@ -114,7 +114,7 @@ PUB GyroCalc() | gx, gy, gz
 
 PUB GyroRaw() | gx, gy, gz
 
-    repeat until l3gd20h.gyrodataReady()
+    repeat until l3gd20h.gyrodataready()
     l3gd20h.gyrodata (@gx, @gy, @gz)
     if l3gd20h.gyrodataoverrun()
         _overruns++

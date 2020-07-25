@@ -5,7 +5,7 @@
     Description: Driver for the Analog Devices ADXL345 3DoF Accelerometer (P2 version)
     Copyright (c) 2020
     Started Mar 14, 2020
-    Updated Jul 19, 2020
+    Updated Jul 25, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -26,6 +26,7 @@ CON
 ' Operating modes
     STANDBY             = 0
     MEASURE             = 1
+    NORMAL              = 1
 
 ' FIFO modes
     BYPASS              = %00
@@ -285,6 +286,12 @@ PUB Calibrate() | axis, orig_state, tmp[3], samples, scale
     AccelScale(orig_state.byte[1])
     AccelDataRate(orig_state.word[1])
 
+PUB CalibrateAccel()
+' Dummy method
+
+PUB CalibrateGyro()
+' Dummy method
+
 PUB CalibrateMag(samples)
 ' Dummy method
 
@@ -329,10 +336,16 @@ PUB GyroBias(x, y, z, rw=0)
 PUB GyroData(x, y, z)
 ' Dummy method
 
+PUB GyroDataRate(Hz)
+' Dummy method
+
 PUB GyroDataReady()
 ' Dummy method
 
 PUB GyroDPS(x, y, z)
+' Dummy method
+
+PUB GyroOpMode(mode)
 ' Dummy method
 
 PUB GyroScale(scale=-2)

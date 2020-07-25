@@ -5,7 +5,7 @@
     Description: Driver for the ST LSM9DS1 9DoF/3-axis IMU (P2 version)
     Copyright (c) 2020
     Started Aug 12, 2017
-    Updated Jul 21, 2020
+    Updated Jul 25, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -293,6 +293,10 @@ PUB AccelScale(g=-2): curr_scale
     curr_scale &= core.MASK_FS_XL
     curr_scale := (curr_scale | g) & core.CTRL_REG6_XL_MASK
     writeReg(XLG, core.CTRL_REG6_XL, 1, @curr_scale)
+
+PUB CalibrateAccel()
+
+    CalibrateXLG()
 
 PUB CalibrateGyro()
 

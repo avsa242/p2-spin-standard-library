@@ -147,6 +147,9 @@ PUB AccelDataOverrun()
 PUB AccelG(x, y, z)
 ' Dummy method
 
+PUB AccelOpMode(mode)
+' Dummy method
+
 PUB AccelScale(scale=-2)
 ' Dummy method
 
@@ -169,6 +172,9 @@ PUB BlockUpdateEnabled(enabled): tmp
     writeReg(core.CTRL4, 1, @tmp)
 
 PUB Calibrate()
+' Dummy method
+
+PUB CalibrateAccel()
 ' Dummy method
 
 PUB CalibrateGyro() | gbiasrawtmp[3], axis, gx, gy, gz, nr_samples
