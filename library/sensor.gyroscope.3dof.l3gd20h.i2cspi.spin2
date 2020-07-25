@@ -615,6 +615,9 @@ PUB MagBias(x, y, z, rw=0)
 PUB MagData(x, y, z)
 ' Dummy method
 
+PUB MagDataOverrun()
+' Dummy method
+
 PUB MagDataRate(hz=-2)
 ' Dummy method
 

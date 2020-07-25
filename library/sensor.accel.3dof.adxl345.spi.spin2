@@ -288,6 +288,7 @@ PUB Calibrate() | axis, orig_state, tmp[3], samples, scale
 
 PUB CalibrateAccel()
 ' Dummy method
+    calibrate()
 
 PUB CalibrateGyro()
 ' Dummy method
@@ -336,6 +337,9 @@ PUB GyroBias(x, y, z, rw=0)
 PUB GyroData(x, y, z)
 ' Dummy method
 
+PUB GyroDataOverrun()
+' Dummy method
+
 PUB GyroDataRate(Hz=-2)
 ' Dummy method
 
@@ -380,6 +384,9 @@ PUB MagBias(x, y, z, rw=0)
 ' Dummy method
 
 PUB MagData(x, y, z)
+' Dummy method
+
+PUB MagDataOverrun()
 ' Dummy method
 
 PUB MagDataRate(hz=-2)
