@@ -336,7 +336,7 @@ PUB GyroBias(x, y, z, rw=0)
 PUB GyroData(x, y, z)
 ' Dummy method
 
-PUB GyroDataRate(Hz)
+PUB GyroDataRate(Hz=-2)
 ' Dummy method
 
 PUB GyroDataReady()
@@ -382,7 +382,7 @@ PUB MagBias(x, y, z, rw=0)
 PUB MagData(x, y, z)
 ' Dummy method
 
-PUB MagDataRate(hz)
+PUB MagDataRate(hz=-2)
 ' Dummy method
 
 PUB MagDataReady()

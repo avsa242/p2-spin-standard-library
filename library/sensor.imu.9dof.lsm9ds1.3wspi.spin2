@@ -923,7 +923,8 @@ PUB MagScale(scale=-2): curr_scl
             _mres := lookupz(scale: 0_000140, 0_000290, 0_000430, 0_000580)
             scale <<= core.FLD_FS_M
         OTHER:
-            return (curr_scl >> core.FLD_FS_M) & core.BITS_FS_M
+            curr_scl := (curr_scl >> core.FLD_FS_M) & core.BITS_FS_M
+            return lookupz(curr_scl: 4, 8, 12, 16)
 
     curr_scl := scale & (core.BITS_FS_M << core.FLD_FS_M)   'Mask off ALL other bits, because the only other
     writeReg(MAG, core.CTRL_REG2_M, 1, @curr_scl)           'fields in this reg are for performing soft-reset/reboot

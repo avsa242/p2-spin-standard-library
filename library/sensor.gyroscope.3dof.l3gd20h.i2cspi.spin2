@@ -135,7 +135,7 @@ PUB AccelBias(x, y, z, rw=0)
 PUB AccelData(x, y, z)
 ' Dummy method
 
-PUB AccelDataRate(Hz)
+PUB AccelDataRate(Hz=-2)
 ' Dummy method
 
 PUB AccelDataReady()
@@ -147,7 +147,7 @@ PUB AccelDataOverrun()
 PUB AccelG(x, y, z)
 ' Dummy method
 
-PUB AccelOpMode(mode)
+PUB AccelOpMode(mode=-2)
 ' Dummy method
 
 PUB AccelScale(scale=-2)
@@ -205,7 +205,7 @@ PUB CalibrateXLG()
 
     calibrategyro()
 
-PUB DataByteOrder(lsb_msb_first): tmp
+PUB DataByteOrder(lsb_msb_first=-2): tmp
 ' Set byte order of gyro data
 '   Valid values:
 '      *LSBFIRST (0), MSBFIRST (1)
@@ -300,7 +300,7 @@ PUB FIFOUnreadSamples(): nr_samples
     readReg(core.FIFO_SRC, 1, @nr_samples)
     return nr_samples & core.BITS_FSS
 
-PUB GyroAxisEnabled(mask): tmp
+PUB GyroAxisEnabled(mask=-2): tmp
 ' Enable gyroscope individual axes, by mask
 '   Valid values:
 '       0: Disable axis, 1: Enable axis
@@ -364,7 +364,7 @@ PUB GyroDataOverrun(): flag
     readReg(core.STATUS, 1, @flag)
     flag := ((flag >> core.FLD_ZYXOR) & %1) == 1
 
-PUB GyroDataRate(Hz): tmp
+PUB GyroDataRate(Hz=-2): tmp
 ' Set rate of data output, in Hz
 '   Valid values: *100, 200, 400, 800
 '   Any other value polls the chip and returns the current setting
@@ -397,7 +397,7 @@ PUB GyroDPS(ptr_x, ptr_y, ptr_z) | tmp[2]
     long[ptr_y] := ((tmp.word[Y_AXIS] signx 15) - _gbiasraw[Y_AXIS]) * _gyro_cnts_per_lsb
     long[ptr_z] := ((tmp.word[Z_AXIS] signx 15) - _gbiasraw[Z_AXIS]) * _gyro_cnts_per_lsb
 
-PUB GyroOpMode(mode): curr_mode
+PUB GyroOpMode(mode=-2): curr_mode
 ' Set operation mode
 '   Valid values:
 '      *POWERDOWN (0): Power down - lowest power state
@@ -442,7 +442,7 @@ PUB GyroScale(dps=-2): curr_scale
     curr_scale := (curr_scale | dps)
     writeReg(core.CTRL4, 1, @curr_scale)
 
-PUB HighPassFilterEnabled(enabled): tmp
+PUB HighPassFilterEnabled(enabled=-2): tmp
 ' Enable high-pass filter for gyro data
 '   Valid values:
 '      *FALSE (0): High-pass filter disabled
@@ -460,7 +460,7 @@ PUB HighPassFilterEnabled(enabled): tmp
     tmp := (tmp | enabled)
     writeReg(core.CTRL5, 1, @tmp)
 
-PUB HighPassFilterFreq(freq): tmp
+PUB HighPassFilterFreq(freq=-2): tmp
 ' Set high-pass filter frequency, in Hz
 '    Valid values:
 '       If ODR=100Hz: *8_00, 4_00, 2_00, 1_00, 0_50, 0_20, 0_10, 0_05, 0_02, 0_01
@@ -508,7 +508,7 @@ PUB HighPassFilterFreq(freq): tmp
     tmp := (tmp | freq)
     writeReg(core.CTRL2, 1, @tmp)
 
-PUB HighPassFilterMode(mode): tmp
+PUB HighPassFilterMode(mode=-2): tmp
 ' Set data output high pass filter mode
 '   Valid values:
 '      *HPF_NORMAL_RES (0): Normal mode (reset reading HP_RESET_FILTER) XXX - clarify/expand
@@ -528,7 +528,7 @@ PUB HighPassFilterMode(mode): tmp
     tmp := (tmp | mode)
     writeReg(core.CTRL2, 1, @tmp)
 
-PUB Int1Mask(func_mask): tmp
+PUB Int1Mask(func_mask=-2): tmp
 ' Set interrupt/function mask for INT1 pin
 '   Valid values:
 '       Bit 10   10
@@ -548,7 +548,7 @@ PUB Int1Mask(func_mask): tmp
     tmp := (tmp | func_mask)
     writeReg(core.CTRL3, 1, @tmp)
 
-PUB Int2Mask(func_mask): tmp
+PUB Int2Mask(func_mask=-2): tmp
 ' Set interrupt/function mask for INT2 pin
 '   Valid values:
 '       Bit 3210   3210
@@ -569,7 +569,7 @@ PUB Int2Mask(func_mask): tmp
     tmp := (tmp | func_mask)
     writeReg(core.CTRL3, 1, @tmp)
 
-PUB IntActiveState(state): tmp
+PUB IntActiveState(state=-2): tmp
 ' Set active state for interrupts
 '   Valid values: *INTLVL_LOW (0), INTLVL_HIGH (1)
 '   Any other value polls the chip and returns the current setting
@@ -588,10 +588,10 @@ PUB IntActiveState(state): tmp
 PUB Interrupt()
 ' Dummy method
 
-PUB IntMask(func_mask)
+PUB IntMask(func_mask=-2)
 ' Dummy method
 
-PUB IntOutputType(pp_od): tmp
+PUB IntOutputType(pp_od=-2): tmp
 ' Set interrupt pin output type
 '   Valid values:
 '      *INT_PP (0): Push-pull
@@ -615,7 +615,7 @@ PUB MagBias(x, y, z, rw=0)
 PUB MagData(x, y, z)
 ' Dummy method
 
-PUB MagDataRate(hz)
+PUB MagDataRate(hz=-2)
 ' Dummy method
 
 PUB MagDataReady()
@@ -627,7 +627,7 @@ PUB MagGauss(x, y, z)
 PUB MagScale(scale=-2)
 ' Dummy method
 
-PUB OpMode(mode)
+PUB OpMode(mode=-2)
 ' Dummy method
 
 PUB Temperature(): result

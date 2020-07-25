@@ -555,7 +555,7 @@ PUB FIFOUnreadSamples(): result
     readReg(core.FIFO_SRC_REG, 1, @result)
     result &= core.BITS_FSS
 
-PUB GyroAxisEnabled(xyzmask)
+PUB GyroAxisEnabled(xyzmask=-2)
 ' Dummy method
 
 PUB GyroBias(x, y, z, rw=0)
@@ -564,7 +564,7 @@ PUB GyroBias(x, y, z, rw=0)
 PUB GyroData(x, y, z)
 ' Dummy method
 
-PUB GyroDataRate(hz)
+PUB GyroDataRate(hz=-2)
 ' Dummy method
 
 PUB GyroDataReady()
@@ -573,7 +573,7 @@ PUB GyroDataReady()
 PUB GyroDPS(x, y, z)
 ' Dummy method
 
-PUB GyroOpMode(mode)
+PUB GyroOpMode(mode=-2)
 ' Dummy method
 
 PUB GyroScale(scale=-2)
@@ -641,7 +641,7 @@ PUB MagBias(x, y, z, rw=0)
 PUB MagData(x, y, z)
 ' Dummy method
 
-PUB MagDataRate(hz)
+PUB MagDataRate(hz=-2)
 ' Dummy method
 
 PUB MagDataReady()
@@ -650,7 +650,7 @@ PUB MagDataReady()
 PUB MagGauss(x, y, z)
 ' Dummy method
 
-PUB MagOpMode(mode)
+PUB MagOpMode(mode=-2)
 ' Dummy method
 
 PUB MagScale(scale=-2)
