@@ -1,0 +1,108 @@
+{
+    --------------------------------------------
+    Filename: MCP9808-Demo.spin2
+    Author: Jesse Burt
+    Description: Demo of the MCP9808 driver (P2 version)
+    Copyright (c) 2020
+    Started Jul 26, 2020
+    Updated Jul 26, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+CON
+
+    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = cfg._clkfreq_def
+
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
+    SER_BAUD    = 2_000_000
+
+    I2C_SCL     = 26
+    I2C_SDA     = 27
+    I2C_HZ      = 100_000
+' --
+
+    C           = mcp9808.C
+    F           = mcp9808.F
+
+OBJ
+
+    ser         : "com.serial.terminal.ansi"
+    cfg         : "core.con.boardcfg.p2eval"
+    int         : "string.integer"
+    mcp9808     : "sensor.temperature.mcp9808.i2c"
+
+PUB Main() | t
+
+    Setup()
+    mcp9808.tempscale(F)                                    ' C (0), F (1)
+    mcp9808.tempres(0_0625)                                 ' 0_0625, 0_1250, 0_2500, 0_5000 (Resolution: 0.0625C, 0.125, 0.25, 0.5)
+    ser.hidecursor()
+    repeat
+        t := mcp9808.temperature()
+        ser.position(0, 5)
+        ser.printf("Temperature: ")
+        decimaldot(t, 100)
+        ser.char(lookupz(mcp9808.tempscale(): "C", "F"))
+    until ser.rxcheck() == "q"
+    ser.showcursor()
+    FlashLED(LED, 100)     ' Signal execution finished
+
+PRI DecimalDot(scaled, divisor) | whole[4], part[4], places, tmp
+' Display a fixed-point scaled up number in decimal-dot notation - scale it back down by divisor
+'   e.g., Decimal (314159, 100000) would display 3.14159 on the terminal
+'   scaled: Fixed-point scaled up number
+'   divisor: Divide scaled-up number by this amount
+    whole := scaled / divisor
+    tmp := divisor
+    places := 0
+
+    repeat
+        tmp /= 10
+        places++
+    until tmp == 1
+    part := int.deczeroed(abs(scaled // divisor), places)
+
+    ser.dec (whole)
+    ser.char (".")
+    ser.str (part)
+    ser.clearline()
+
+PUB Setup()
+
+    repeat until ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.printf("Serial terminal started\n")
+    if mcp9808.start(I2C_SCL, I2C_SDA, I2C_HZ)
+        mcp9808.defaults()
+        ser.printf("MCP9808 driver started\n")
+    else
+        ser.printf("MCP9808 driver failed to start - halting\n")
+        flashled(LED, 500)
+
+#include "lib.utility.spin2"
+
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
