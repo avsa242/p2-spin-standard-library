@@ -5,7 +5,7 @@
     Description: IMU/Motion sensor data display demo
     Copyright (c) 2020
     Started Jul 18, 2020
-    Updated Jul 25, 2020
+    Updated Aug 1, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,6 +16,7 @@
 '#define L3GD20H_SPI
 '#define LIS3DH_I2C
 '#define LIS3DH_SPI
+'#define LSM303DLHC_I2C
 #define LSM9DS1_SPI
 
 CON
@@ -71,6 +72,14 @@ CON
     SCL_HZ      = 10_000_000
 #endif
 
+#ifdef LSM303DLHC_I2C
+' LSM303DLHC (I2C)
+    SCL_PIN     = 26
+    SDA_PIN     = 27
+    SCL_HZ      = 400_000
+    SLAVE_OPT   = 0
+#endif
+
 #ifdef LSM9DS1_SPI
 ' LSM9DS1
     CS_AG_PIN   = 24
@@ -101,6 +110,8 @@ OBJ
     imu     : "sensor.accel.3dof.lis3dh.i2c"
 #elseifdef LIS3DH_SPI
     imu     : "sensor.accel.3dof.lis3dh.spi"
+#elseifdef LSM303DLHC_I2C
+   imu     : "sensor.imu.6dof.lsm303dlhc.i2c"
 #elseifdef LSM9DS1_SPI
     imu     : "sensor.imu.9dof.lsm9ds1.3wspi"
 #else
@@ -337,6 +348,7 @@ PUB DisplaySettings() | axo, ayo, azo, gxo, gyo, gzo, mxo, myo, mzo
 ' Read back and display the settings
     gxo := gyo := gzo := 0
     axo := ayo := azo := 0
+    mxo := myo := mzo := 0
 
     ser.position(0, 3)
 
@@ -354,7 +366,11 @@ PUB DisplaySettings() | axo, ayo, azo, gxo, gyo, gzo, mxo, myo, mzo
         ser.clearline()
 
     if imu.MAG_DOF > 0
+#ifdef LSM303DLHC_I2C
+        ser.printf("MagScale: %d.%dGs\n", imu.magscale()/10, imu.magscale()//10)
+#else
         ser.printf("MagScale: %dGs\n", imu.magscale())
+#endif
         ser.printf("MagDataRate: %dHz\n", imu.magdatarate())
         imu.magbias(@mxo, @myo, @mzo)
         ser.printf("MagBias: %d(x), %d(y), %d(z)     \n", mxo, myo, mzo)
@@ -371,12 +387,14 @@ PUB UpdateSettings()
 '       ADXL345:    0_10, 0_20, 0_39, 0_78, 1_56, 3_13, 6_25, 12_5, 25, 50, 100, 200, 400, 800, 1600, 3200
 '       LIS3DH:     0, 1, 10, 25, 50, 100, 200, 400, 1344, 1600
 '       LSM9DS1:    0, 14, 59, 119, 238, 476, 952 (locked together with GyroDataRate() - chip limitation)
+'       LSM303DLHC: 0, 1, 10, 25, 50, 100, 200, 400, 1620, 1344, 5376
 
         imu.accelscale(2)
 '       AccelScale(g's)
 '       ADXL345:    2, 4, 8, 16
 '       LIS3DH:     2, 4, 8, 16
 '       LSM9DS1:    2, 4, 8, 16
+'       LSM303DLHC: 2, 4, 8, 16
 
         imu.accelaxisenabled(%111)
 '       All: 0 or 1 for each bit (%xyz)
@@ -407,10 +425,12 @@ PUB UpdateSettings()
         imu.magscale(4)
 '       MagScale(Gauss)
 '       LSM9DS1:    4, 8, 12, 16
+'       LSM303DLHC: 1_3 (1.3), 1_9 (1.9), 2_5 (2.5), 4_0 (4.0), 4_7 (4.7), 5_6 (5.6), 8_1 (8.1)
 
         imu.magdatarate(80_000)
 '       MagDataRate(milli-Hz)
 '       LSM9DS1:    0_625, 1_250, 2_500, 5_000, 10_000, 20_000, 40_000, 80_000
+'       LSM303DLHC: 0 (0.75), 1 (1.5), 3, 7 (7.5), 15, 30, 75, 220
 
         imu.magbias(0, 0, 0, imu.W)
 '       MagBias(x_adc_cnts, y_adc_cnts, z_adc_cnts) - Manually set corrective bias/offsets
@@ -467,6 +487,15 @@ PUB Setup()
         ser.printf("LIS3DH driver started (SPI)\n")
     else
         ser.printf("LIS3DH driver failed to start - halting\n")
+        imu.stop()
+        waitms(5)
+        flashled(LED, 500)
+#elseifdef LSM303DLHC_I2C
+    if imu.start(SCL_PIN, SDA_PIN, SCL_HZ)
+        imu.defaults()
+        ser.printf("LSM303DLHC driver started (I2C)\n")
+    else
+        ser.printf("LSM303DLHC driver failed to start - halting\n")
         imu.stop()
         waitms(5)
         flashled(LED, 500)
