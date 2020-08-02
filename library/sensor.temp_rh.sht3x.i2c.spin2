@@ -5,7 +5,7 @@
     Description: Driver for Sensirion SHT3x series Temperature/Relative Humidity sensors (P2 version)
     Copyright (c) 2020
     Started Nov 3, 2019
-    Updated Jul 14, 2020
+    Updated Aug 1, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,8 +15,6 @@ CON
     SLAVE_WR        = core.SLAVE_ADDR
     SLAVE_RD        = core.SLAVE_ADDR|1
 
-    DEF_SCL         = 28
-    DEF_SDA         = 29
     DEF_HZ          = 400_000
     I2C_MAX_FREQ    = core.I2C_MAX_FREQ
 
@@ -445,12 +443,12 @@ PRI oneShotMeasure(buff_addr)
         LOW, MED, HIGH:
             readReg(lookupz(_repeatability: core.MEAS_LOWREP, core.MEAS_MEDREP, core.MEAS_HIGHREP), 6, buff_addr)
         OTHER:
-            return FALSE
+            return
 
 PRI pollMeasure(buff_addr)
 
     if readReg(core.FETCHDATA, 6, buff_addr) == NODATA_AVAIL
-        return FALSE
+        return
 
 PRI rhPct_7bit(rh_pct): result
 ' Converts Percent RH to 7-bit value, for use with alert threshold setting
