@@ -5,7 +5,7 @@
     Description: Driver for TI's CC2500 ISM-band (2.4GHz) transceiver (P2 version)
     Copyright (c) 2020
     Started Dec 31, 2019
-    Updated Jul 14, 2020
+    Updated Aug 1, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -996,7 +996,7 @@ PUB Status(): result
     writeReg (core.CS_SNOP, 0, 0)
     return _status_byte
 
-PUB SyncMode(mode=-2) | tmp
+PUB SyncMode(mode=-2): curr_mode
 ' Set sync-word qualifier mode
 '   Valid values:
 '       SYNCMODE_NONE (0): No preamble or syncword
@@ -1008,16 +1008,16 @@ PUB SyncMode(mode=-2) | tmp
 '       SYNCMODE_1616_CS (6): 16 of 16 syncword bits must match, and carrier-sense must be above threshold
 '       SYNCMODE_3032_CS (7): 30 of 32 syncword bits must match, and carrier-sense must be above threshold
 '   Any other value polls the chip and returns the current setting
-    tmp := $00
-    readReg (core.MDMCFG2, 1, @tmp)
+    curr_mode := $00
+    readReg (core.MDMCFG2, 1, @curr_mode)
     case mode
         0..7:
         OTHER:
-            return tmp & core.BITS_SYNC_MODE
+            return curr_mode & core.BITS_SYNC_MODE
 
-    tmp &= core.MASK_SYNC_MODE
-    tmp := (tmp | mode) & core.MDMCFG2_MASK
-    writeReg (core.MDMCFG2, 1, @tmp)
+    curr_mode &= core.MASK_SYNC_MODE
+    curr_mode := (curr_mode | mode) & core.MDMCFG2_MASK
+    writeReg (core.MDMCFG2, 1, @curr_mode)
 
 PUB SyncWord(sync_word=-2): tmp
 ' Set transmitted (TX) or expected (RX) sync word
