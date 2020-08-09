@@ -17,6 +17,7 @@ CON
     I2C_MAX_FREQ            = 1_000_000                 ' SHT3X supports I2C FM up to 1MHz
 
     ADC_MAX                 = 65535
+    ADC_MAX_X100            = ADC_MAX * 100
 
 ' Periodic measurement commands
     MEAS_PERIODIC_0_5       = $2000 ' MSB |

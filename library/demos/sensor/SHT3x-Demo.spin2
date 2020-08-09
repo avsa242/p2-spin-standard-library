@@ -5,7 +5,7 @@
     Description: Demo of the SHT3x driver (P2 version)
     Copyright (c) 2020
     Started Nov 3, 2019
-    Updated Jun 24, 2020
+    Updated Aug 9, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,10 +15,18 @@ CON
     _xtlfreq        = cfg._xtlfreq
     _clkfreq        = cfg._clkfreq_def
 
-    COL_REG         = 0
-    COL_SET         = 12
-    COL_READ        = 24
-    COL_PF          = 40
+' -- User-modifiable constants
+    LED             = cfg.LED1
+    SER_RX          = cfg.SER_RX
+    SER_TX          = cfg.SER_TX
+    SER_BAUD        = 2_000_000
+
+' I2C
+    SCL_PIN         = 26
+    SDA_PIN         = 27
+    ADDR_BIT        = 0                                     ' Can be 0, or 1 for a second device on the bus
+    I2C_HZ          = 1_000_000                             ' Max: 1_000_000
+' --
 
 ' Temperature scale
     C               = 0
@@ -29,19 +37,6 @@ CON
     MED             = sht3x.MED
     HIGH            = sht3x.HIGH                            ' Most averaging, more stable readings
 
-' -- User-modifiable constants
-    LED             = cfg.LED1
-    SER_RX          = cfg.SER_RX
-    SER_TX          = cfg.SER_TX
-    SER_BAUD        = 2_000_000
-
-' I2C
-    SCL_PIN         = 8
-    SDA_PIN         = 9
-    ADDR_BIT        = 0                                     ' Can be 0, or 1 for a second device on the bus
-    I2C_HZ          = 1_000_000                             ' Max: 1_000_000
-' --
-
 OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
@@ -51,32 +46,32 @@ OBJ
 
 PUB Main() | temp, rh
 
-    Setup()
+    setup()
 
-    sht3x.Heater(FALSE)                                     ' Enable/Disable built-in heater
-    sht3x.Repeatability (LOW)                               ' Measurement repeatability (on-chip averaging)
-    sht3x.TempScale(C)                                      ' Temperature scale
+    sht3x.heaterenabled(FALSE)                              ' Enable/Disable built-in heater
+    sht3x.repeatability (LOW)                               ' Measurement repeatability (on-chip averaging)
+    sht3x.tempScale(C)                                      ' Temperature scale
 
     repeat
         ser.position(0, 3)
 
         ser.printf("Previous temperature: ")
-        DecimalDot(sht3x.LastTemperature(), 100)
+        decimaldot(sht3x.lasttemperature(), 100)
 
-        ser.printf("\nCurrent Temperature: ")
-        DecimalDot(sht3x.Temperature(), 100)
+        ser.printf("\nCurrent temperature: ")
+        decimaldot(sht3x.temperature(), 100)
 
         ser.printf("\n\nPrevious humidity: ")
-        DecimalDot(sht3x.LastHumidity(), 100)
+        decimaldot(sht3x.lasthumidity(), 100)
 
         ser.printf("\nRelative humidity: ")
-        DecimalDot(sht3x.Humidity(), 100)
+        decimaldot(sht3x.humidity(), 100)
 
         waitms (1000)
 
 PRI DecimalDot(scaled, divisor) | whole[4], part[4], places, tmp
 ' Display a fixed-point scaled up number in decimal-dot notation - scale it back down by divisor
-'   e.g., Decimal (314159, 100000) would display 3.14159 on the termainl
+'   e.g., Decimal (314159, 100000) would display 3.14159 on the terminal
 '   scaled: Fixed-point scaled up number
 '   divisor: Divide scaled-up number by this amount
     whole := scaled / divisor
@@ -87,25 +82,24 @@ PRI DecimalDot(scaled, divisor) | whole[4], part[4], places, tmp
         tmp /= 10
         places++
     until tmp == 1
-    part := int.DecZeroed(abs(scaled // divisor), places)
+    part := int.deczeroed(abs(scaled // divisor), places)
 
-    ser.Dec (whole)
-    ser.Char (".")
-    ser.Str (part)
+    ser.dec (whole)
+    ser.char (".")
+    ser.str (part)
     ser.clearline()
 
 PUB Setup()
 
-    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear()
+    repeat until ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.clear()
     ser.printf("Serial terminal started\n")
 
-    if sht3x.Start(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BIT)
-        ser.printf("SHT3x driver (S/N %x) started\n", sht3x.SerialNum())
-        sht3x.ClearStatus()
+    if sht3x.start(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BIT)
+        ser.printf("SHT3x driver (S/N %x) started\n", sht3x.serialnum())
     else
         ser.printf("SHT3x driver failed to start - halting")
-        FlashLED(LED, 500)
+        flashled(LED, 500)
 
 #include "lib.utility.spin2"
 

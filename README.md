@@ -32,7 +32,7 @@ As with anything though, your mileage may vary!
 
 ## Compiler compatibility
 
-- FastSpin 4.2.4 or newer (Supported: for most up-to-date language definitions)
+- FastSpin 4.3.0-beta or newer (Supported: for most up-to-date language definitions)
 - ~~FastSpin (older versions)~~ (Not supported: language incompatibility with current SPIN2 definition)
 - ~~PNut/Propeller Tool~~ (Not supported: available only on Windows platform, compiler feature incomplete)
 
