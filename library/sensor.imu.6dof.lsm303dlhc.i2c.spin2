@@ -5,7 +5,7 @@
     Description: Driver for the ST LSM303DLHC 6DoF IMU
     Copyright (c) 2020
     Started Aug 1, 2020
-    Updated Aug 1, 2020
+    Updated Aug 21, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -275,7 +275,7 @@ PUB CalibrateAccel() | tmpx, tmpy, tmpz, tmpbiasraw[3], axis, nr_samples, orig_s
 PUB CalibrateGyro()
 ' Dummy method
 
-PUB CalibrateMag(samples=32) | tmpx, tmpy, tmpz, tmpbiasraw[3], axis, orig_state
+PUB CalibrateMag() | tmpx, tmpy, tmpz, tmpbiasraw[3], axis, orig_state, samples
 ' Calibrate the magnetometer
     longfill(@tmpx, 0, 9)                                   ' Initialize vars to 0
     magbias(0, 0, 0, W)
@@ -286,7 +286,7 @@ PUB CalibrateMag(samples=32) | tmpx, tmpy, tmpz, tmpbiasraw[3], axis, orig_state
     magopmode(MAG_CONT)
     magscale(1_3)
     magdatarate(75)
-
+    samples := 32
     repeat samples
         magdata(@tmpx, @tmpy, @tmpz)                        ' Read magnetometer data and accumulate it
         tmpbiasraw[XAXIS] += tmpx                           '   for each axis
