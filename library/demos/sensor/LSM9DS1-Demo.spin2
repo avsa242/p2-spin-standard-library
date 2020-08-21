@@ -5,7 +5,7 @@
     Description: Demo of the LSM9DS1 driver (P2 version)
     Copyright (c) 2020
     Started Nov 3, 2019
-    Updated Jul 22, 2020
+    Updated Aug 21, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,8 +14,8 @@
 '#define LSM9DS1_SPI    NOT IMPLEMENTED YET
 CON
 
-     _xtlfreq   = cfg._xtlfreq
-     _clkfreq   = cfg._clkfreq_def
+    _xtlfreq   = cfg._xtlfreq
+    _clkfreq   = cfg._clkfreq_def
 
 ' -- User-modifiable constants
     LED         = cfg.LED1
@@ -179,7 +179,7 @@ PUB Calibrate()
     ser.Position (0, 14)
     ser.printf("Calibrating...")
     imu.CalibrateXLG()
-    imu.CalibrateMag (10)
+    imu.CalibrateMag()
     ser.Position (0, 14)
     ser.printf("              ")
 

@@ -9,7 +9,6 @@
     See end of file for terms of use.
     --------------------------------------------
 }
-
 CON
 
 ' Indicate to user apps how many Degrees of Freedom each sub-sensor has
@@ -302,7 +301,7 @@ PUB CalibrateGyro()
 
     CalibrateXLG()
 
-PUB CalibrateMag(samples) | magmin[3], magmax[3], magtmp[3], axis, mx, my, mz, msb, lsb
+PUB CalibrateMag() | magmin[3], magmax[3], magtmp[3], axis, mx, my, mz, msb, lsb, samples
 ' Calibrates the Magnetometer on the LSM9DS1 IMU module
     magtmp[0] := magtmp[1] := magtmp[2] := 0    'Initialize all variables to 0
     magmin[0] := magmin[1] := magmin[2] := 0
@@ -310,6 +309,7 @@ PUB CalibrateMag(samples) | magmin[3], magmax[3], magtmp[3], axis, mx, my, mz, m
     axis := mx := my := mz := msb := lsb := 0
     magbias(0, 0, 0, W)
 
+    samples := 32
     repeat samples
         repeat until MagDataReady()
         MagData(@mx, @my, @mz)
