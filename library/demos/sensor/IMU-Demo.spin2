@@ -5,7 +5,7 @@
     Description: IMU/Motion sensor data display demo
     Copyright (c) 2020
     Started Jul 18, 2020
-    Updated Aug 1, 2020
+    Updated Aug 21, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -18,11 +18,12 @@
 '#define LIS3DH_SPI
 '#define LSM303DLHC_I2C
 #define LSM9DS1_SPI
+'#define MPU9250_I2C
 
 CON
 
-     _xtlfreq   = cfg._xtlfreq
-     _clkfreq   = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = cfg._clkfreq_def
 
 ' -- User-modifiable constants
     LED         = cfg.LED1
@@ -88,6 +89,13 @@ CON
     SDIO_PIN    = 27
     SCL_HZ      = 10_000_000
 #endif
+
+#ifdef MPU9250_I2C
+' MPU9250 (I2C)
+    SCL_PIN     = 26
+    SDA_PIN     = 27
+    SCL_HZ      = 400_000
+#endif
 ' --
 
     DATA_X_COL  = 20
@@ -114,6 +122,8 @@ OBJ
    imu     : "sensor.imu.6dof.lsm303dlhc.i2c"
 #elseifdef LSM9DS1_SPI
     imu     : "sensor.imu.9dof.lsm9ds1.3wspi"
+#elseifdef MPU9250_I2C
+    imu     : "sensor.imu.9dof.mpu9250.i2c"
 #else
 #error "At least one sensor must be defined"
 #endif
@@ -314,7 +324,7 @@ PUB Calibrate()
     elseif imu.GYRO_DOF > 0
         imu.calibrategyro()
     if imu.MAG_DOF > 0
-        imu.calibratemag (10)
+        imu.calibratemag()
     ser.position (0, 14)
     ser.printf("              ")
 
@@ -388,6 +398,7 @@ PUB UpdateSettings()
 '       LIS3DH:     0, 1, 10, 25, 50, 100, 200, 400, 1344, 1600
 '       LSM9DS1:    0, 14, 59, 119, 238, 476, 952 (locked together with GyroDataRate() - chip limitation)
 '       LSM303DLHC: 0, 1, 10, 25, 50, 100, 200, 400, 1620, 1344, 5376
+'       MPU9250:    4..1000
 
         imu.accelscale(2)
 '       AccelScale(g's)
@@ -395,11 +406,12 @@ PUB UpdateSettings()
 '       LIS3DH:     2, 4, 8, 16
 '       LSM9DS1:    2, 4, 8, 16
 '       LSM303DLHC: 2, 4, 8, 16
+'       MPU9250:    2, 4, 8, 16
 
         imu.accelaxisenabled(%111)
 '       All: 0 or 1 for each bit (%xyz)
 
-        imu.accelbias(0, 0, 0, imu.W)
+'        imu.accelbias(0, 0, 0, imu.W)                      ' *Don't use this with MPU9250
 '       AccelBias(x_adc_cnts, y_adc_cnts, z_adc_cnts) - Manually set corrective bias/offsets
 '       x, y, z (-32768..32767), rw = 1 (write)
 
@@ -408,12 +420,13 @@ PUB UpdateSettings()
 '       GyroScale(deg/sec)
 '       L3GD20H:    245, 500, 2000
 '       LSM9DS1:    245, 500, 2000
+'       MPU9250:    250, 500, 1000, 2000
 
         imu.gyrodatarate(800)
 '       GyroDataRate(Hz)
 '       L3GD20H:    100, 200, 400, 800
 '       LSM9DS1:    0, 14, 59, 119, 238, 476, 952 (locked together with AccelDataRate() - chip limitation)
-
+'       MPU9250:    4..1000
         imu.gyroaxisenabled(%111)
 '       All: 0 or 1 for each bit (%xyz)
 
@@ -426,11 +439,13 @@ PUB UpdateSettings()
 '       MagScale(Gauss)
 '       LSM9DS1:    4, 8, 12, 16
 '       LSM303DLHC: 1_3 (1.3), 1_9 (1.9), 2_5 (2.5), 4_0 (4.0), 4_7 (4.7), 5_6 (5.6), 8_1 (8.1)
+'       MPU9250:    14, 16 (exception: bits)
 
         imu.magdatarate(80_000)
 '       MagDataRate(milli-Hz)
 '       LSM9DS1:    0_625, 1_250, 2_500, 5_000, 10_000, 20_000, 40_000, 80_000
 '       LSM303DLHC: 0 (0.75), 1 (1.5), 3, 7 (7.5), 15, 30, 75, 220
+'       MPU9250:    8, 100
 
         imu.magbias(0, 0, 0, imu.W)
 '       MagBias(x_adc_cnts, y_adc_cnts, z_adc_cnts) - Manually set corrective bias/offsets
@@ -504,6 +519,15 @@ PUB Setup()
         ser.printf("LSM9DS1 driver started\n")
     else
         ser.printf("LSM9DS1 driver failed to start- halting\n")
+        imu.stop()
+        waitms(5)
+        flashled(LED, 500)
+#elseifdef MPU9250_I2C
+    if imu.start(SCL_PIN, SDA_PIN, SCL_HZ)
+        imu.defaults()
+        ser.printf("MPU9250 driver started (I2C)\n")
+    else
+        ser.printf("MPU9250 driver failed to start - halting\n")
         imu.stop()
         waitms(5)
         flashled(LED, 500)
