@@ -5,7 +5,7 @@
     Description: Driver for the ST LSM9DS1 9DoF/3-axis IMU (P2 version)
     Copyright (c) 2020
     Started Aug 12, 2017
-    Updated Jul 25, 2020
+    Updated Aug 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -271,6 +271,9 @@ PUB AccelInt(): result | tmp
 '   Returns TRUE if interrupt asserted, FALSE if not
     readReg(XLG, core.STATUS_REG, 1, @tmp)
     result := ((tmp >> core.FLD_IG_XL) & %1) * TRUE
+
+PUB AccelLowPassFilter(Hz)
+' dummy method
 
 PUB AccelOpMode(mode)
 ' Dummy method
@@ -599,6 +602,9 @@ PUB GyroIntSelect(mode=-2): curr_mode 'XXX Expand
     curr_mode &= core.MASK_INT_SEL
     curr_mode := (curr_mode | mode) & core.CTRL_REG2_G_MASK
     writeReg(XLG, core.CTRL_REG2_G, 1, @curr_mode)
+
+PUB GyroLowPassFilter(Hz)
+' dummy method
 
 PUB GyroLowPower(enabled=-2): curr_setting
 ' Enable low-power mode
