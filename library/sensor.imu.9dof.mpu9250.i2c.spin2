@@ -5,7 +5,7 @@
     Description: Driver for the InvenSense MPU9250 (P2 version)
     Copyright (c) 2020
     Started Jun 10, 2020
-    Updated Aug 21, 2020
+    Updated Aug 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -668,6 +668,8 @@ PUB MagADCRes(bits=-2): curr_res
     readreg(core.CNTL1, 1, @curr_res)
     case bits
         14, 16:
+            _mag_cnts_per_lsb := lookdownz(bits: 14, 16)                    ' Set scaling factor
+            _mag_cnts_per_lsb := lookupz(_mag_cnts_per_lsb: 5_997, 1_499)   ' based on ADC res
             bits := lookdownz(bits: 14, 16) << core.FLD_BIT
         other:
             curr_res := (curr_res >> core.FLD_BIT) & %1
@@ -756,16 +758,17 @@ PUB MagOverflow(): flag
     readreg(core.ST2, 1, @flag)
     return ((flag >> core.FLD_HOFL) & %1) == 1
 
-PUB MagScale(scale=-2): curr_scl ' XXX PRELIMINARY
-' Set full-scale range of magnetometer, in bits
-'   Valid values: 14, 16
-    case scale
+PUB MagScale(scale=-2): curr_scl
+' Set full-scale range of magnetometer, in Gauss
+'   Valid values: 48
+'   NOTE: The magnetometer has only one full-scale range. This method is provided primarily for API compatibility with other IMUs
+    case magadcres()
         14:
             _mag_cnts_per_lsb := 5_997
         16:
             _mag_cnts_per_lsb := 1_499
         other:
-            return magadcres()
+            return 48
 
     magadcres(scale)
 
@@ -797,7 +800,7 @@ PUB MagTesla(mx, my, mz) | tmpx, tmpy, tmpz ' XXX unverified
     long[my] := (tmpy * _mag_cnts_per_lsb) * 100
     long[mz] := (tmpz * _mag_cnts_per_lsb) * 100
 
-PUB MagOpMode(mode=-2): curr_mode
+PUB MagOpMode(mode=-2): curr_mode | tmp
 ' Set magnetometer operating mode
 '   Valid values:
 '      *POWERDOWN (0): Power down
@@ -816,7 +819,10 @@ PUB MagOpMode(mode=-2): curr_mode
             return curr_mode & core.BITS_MODE
 
     mode := ((curr_mode & core.MASK_MODE) | mode) & core.CNTL1_MASK
-    writereg(core.CNTL1, 1, @mode)
+    tmp := POWERDOWN
+    writereg(core.CNTL1, 1, @tmp)                           ' Transition to power down state
+    waitms(100)                                             '   and wait 100ms first, per AK8963 datasheet
+    writereg(core.CNTL1, 1, @mode)                          ' Then, transition to the selected mode
 
 PUB MeasureMag()
 ' Perform magnetometer measurement
@@ -827,9 +833,9 @@ PUB ReadMagAdj()
     magopmode(FUSEACCESS)
     readreg(core.ASAX, 3, @_mag_sens_adj)
     magopmode(CONT100)
-    _mag_sens_adj[X_AXIS] := (((((((_mag_sens_adj[X_AXIS] * 1000) - 128_000) / 2)) / 128) + 1_000)) / 1000
-    _mag_sens_adj[Y_AXIS] := (((((((_mag_sens_adj[Y_AXIS] * 1000) - 128_000) / 2)) / 128) + 1_000)) / 1000
-    _mag_sens_adj[Z_AXIS] := (((((((_mag_sens_adj[Z_AXIS] * 1000) - 128_000) / 2)) / 128) + 1_000)) / 1000
+    _mag_sens_adj[X_AXIS] := ((((((_mag_sens_adj[X_AXIS] * 1000) - 128_000) / 2) / 128) + 1_000)) / 1000
+    _mag_sens_adj[Y_AXIS] := ((((((_mag_sens_adj[Y_AXIS] * 1000) - 128_000) / 2) / 128) + 1_000)) / 1000
+    _mag_sens_adj[Z_AXIS] := ((((((_mag_sens_adj[Z_AXIS] * 1000) - 128_000) / 2) / 128) + 1_000)) / 1000
 
 PUB Reset()
 ' Perform soft-reset
