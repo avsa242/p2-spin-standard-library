@@ -5,7 +5,7 @@
     Description: Driver for the ST LSM9DS1 9DoF/3-axis IMU (P2 version)
     Copyright (c) 2020
     Started Aug 12, 2017
-    Updated Aug 22, 2020
+    Updated Aug 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -260,7 +260,7 @@ PUB AccelG(ax, ay, az) | tmpx, tmpy, tmpz
     long[ay] := tmpy * _ares
     long[az] := tmpz * _ares
 
-PUB AccelHighRes(enabled): result | tmp
+PUB AccelHighRes(enabled=-2): result | tmp
 ' Enable high resolution mode for accelerometer
 '   Valid values: FALSE (0) or TRUE (1 or -1)
 '   Any other value polls the chip and returns the current setting
@@ -272,7 +272,7 @@ PUB AccelInt(): result | tmp
     readReg(XLG, core.STATUS_REG, 1, @tmp)
     result := ((tmp >> core.FLD_IG_XL) & %1) * TRUE
 
-PUB AccelLowPassFilter(Hz)
+PUB AccelLowPassFilter(Hz=-2)
 ' dummy method
 
 PUB AccelOpMode(mode)
@@ -304,32 +304,33 @@ PUB CalibrateGyro()
 
     CalibrateXLG()
 
-PUB CalibrateMag() | magmin[3], magmax[3], magtmp[3], axis, mx, my, mz, msb, lsb, samples
-' Calibrates the Magnetometer on the LSM9DS1 IMU module
-    magtmp[0] := magtmp[1] := magtmp[2] := 0    'Initialize all variables to 0
-    magmin[0] := magmin[1] := magmin[2] := 0
-    magmax[0] := magmax[1] := magmax[2] := 0
-    axis := mx := my := mz := msb := lsb := 0
-    magbias(0, 0, 0, W)
+PUB CalibrateMag() | magmin[3], magmax[3], magtmp[3], axis, samples, opmode_orig, odr_orig
+' Calibrate the magnetometer
+    longfill(@magmin, 0, 11)                                ' Initialize variables to 0
+    opmode_orig := magopmode()                              ' Store the user-set operating mode
+    odr_orig := magdatarate()                               '   and data rate
 
-    samples := 32
+    magopmode(MAG_OPMODE_CONT)                              ' Change to continuous measurement mode
+    magdatarate(80_000)                                     '   and fastest data rate
+    magbias(0, 0, 0, W)                                     ' Start with offsets cleared
+
+    magdata(@magtmp[X_AXIS], @magtmp[Y_AXIS], @magtmp[Z_AXIS])
+    magmax[X_AXIS] := magmin[X_AXIS] := magtmp[X_AXIS]      ' Establish initial minimum and maximum values:
+    magmax[Y_AXIS] := magmin[Y_AXIS] := magtmp[Y_AXIS]      ' Start both with the same value to avoid skewing the
+    magmax[Z_AXIS] := magmin[Z_AXIS] := magtmp[Z_AXIS]      '   calcs (because vars were initialized with 0)
+
+    samples := 100                                          ' XXX arbitrary
     repeat samples
-        repeat until MagDataReady()
-        MagData(@mx, @my, @mz)
-        magtmp[X_AXIS] := mx
-        magtmp[Y_AXIS] := my
-        magtmp[Z_AXIS] := mz
+        repeat until magdataready()
+        magdata(@magtmp[X_AXIS], @magtmp[Y_AXIS], @magtmp[Z_AXIS])
         repeat axis from X_AXIS to Z_AXIS
-            if (magtmp[axis] > magmax[axis])
-                magmax[axis] := magtmp[axis]
-            if (magtmp[axis] < magmin[axis])
-                magmin[axis] := magtmp[axis]
-    repeat axis from X_AXIS to Z_AXIS
-        _mbiasraw[axis] := (magmax[axis] + magmin[axis]) / 2
-        msb := (_mbiasraw[axis] & $FF00) >> 8
-        lsb := _mbiasraw[axis] & $00FF
-        writeReg(MAG, core.OFFSET_X_REG_L_M + (2 * axis), 1, @lsb)
-        writeReg(MAG, core.OFFSET_X_REG_H_M + (2 * axis), 1, @msb)
+            magmin[axis] := magtmp[axis] <# magmin[axis]
+            magmax[axis] := magtmp[axis] #> magmax[axis]
+
+    magbias((magmax[X_AXIS] + magmin[X_AXIS]) / 2, (magmax[Y_AXIS] + magmin[Y_AXIS]) / 2, (magmax[Z_AXIS] + magmin[Z_AXIS]) / 2, W)
+
+    magopmode(opmode_orig)                                  ' Restore the user settings
+    magdatarate(odr_orig)                                   '
 
 PUB CalibrateXLG() | abiasrawtmp[3], gbiasrawtmp[3], axis, ax, ay, az, gx, gy, gz, samples
 ' Calibrates the Accelerometer and Gyroscope
@@ -603,7 +604,7 @@ PUB GyroIntSelect(mode=-2): curr_mode 'XXX Expand
     curr_mode := (curr_mode | mode) & core.CTRL_REG2_G_MASK
     writeReg(XLG, core.CTRL_REG2_G, 1, @curr_mode)
 
-PUB GyroLowPassFilter(Hz)
+PUB GyroLowPassFilter(Hz=-2)
 ' dummy method
 
 PUB GyroLowPower(enabled=-2): curr_setting
@@ -612,7 +613,7 @@ PUB GyroLowPower(enabled=-2): curr_setting
 '   Any other value polls the chip and returns the current setting
     return booleanChoice(XLG, core.CTRL_REG3_G, core.FLD_LP_MODE, core.MASK_LP_MODE, core.CTRL_REG3_G_MASK, enabled, 1)
 
-PUB GyroOpMode(mode)
+PUB GyroOpMode(mode=-2)
 ' Dummy method
 
 PUB GyroScale(scale=-2): curr_scale
@@ -756,7 +757,7 @@ PUB MagDataReady(): flag
     readReg(MAG, core.STATUS_REG_M, 1, @flag)
     return (flag & core.BITS_DA) > 0
 
-PUB MagEndian(endianness): curr_order
+PUB MagEndian(endianness=-2): curr_order
 ' Choose byte order of magnetometer data
 '   Valid values: LITTLE (0) or BIG (1)
 '   Any other value polls the chip and returns the current setting
@@ -801,7 +802,7 @@ PUB MagInt(): intsrc
 '   0: Interrupt asserted
     readReg(MAG, core.INT_SRC_M, 1, @intsrc)
 
-PUB MagIntLevel(active_state): curr_state
+PUB MagIntLevel(active_state=-2): curr_state
 ' Set active state of INT_MAG pin when magnetometer interrupt asserted
 '   Valid values: ACTIVE_LOW (0), ACTIVE_HIGH (1)
 '   Any other value polls the chip and returns the current setting
@@ -809,7 +810,7 @@ PUB MagIntLevel(active_state): curr_state
     readReg(MAG, core.INT_CFG_M, 1, @curr_state)
     case active_state
         ACTIVE_LOW, ACTIVE_HIGH:
-            active_state ^= 1               ' This bit's polarity is opposite that of the XLG
+            active_state ^= 1                               ' This bit's polarity is opposite that of the XLG
             active_state <<= core.FLD_IEA
         OTHER:
             return (curr_state >> core.FLD_IEA) & %1
@@ -818,7 +819,7 @@ PUB MagIntLevel(active_state): curr_state
     curr_state := (curr_state | active_state) & core.INT_CFG_M_MASK
     writeReg(MAG, core.INT_CFG_M, 1, @curr_state)
 
-PUB MagIntsEnabled(enable_mask): curr_mask
+PUB MagIntsEnabled(enable_mask=-2): curr_mask
 ' Enable magnetometer interrupts, as a bitmask
 '   Valid values: %000..%111
 '     MSB   LSB
@@ -851,7 +852,7 @@ PUB MagIntsLatched(enabled=-2): curr_setting
 '   NOTE: If enabled, interrupts must be explicitly cleared using MagClearInt XXX verify
     return booleanChoice (MAG, core.INT_CFG_M, core.FLD_IEL, core.MASK_IEL, core.INT_CFG_M, enabled, -1)
 
-PUB MagIntThresh(level): curr_thr 'XXX rewrite to take gauss as a param
+PUB MagIntThresh(level=-2): curr_thr 'XXX rewrite to take gauss as a param
 ' Set magnetometer interrupt threshold
 '   Valid values: 0..32767
 '   Any other value polls the chip and returns the current setting
@@ -874,7 +875,7 @@ PUB MagLowPower(enabled=-2): curr_setting
 '   Any other value polls the chip and returns the current setting
     curr_setting := booleanChoice (MAG, core.CTRL_REG3_M, core.FLD_LP, core.MASK_LP, core.CTRL_REG3_M_MASK, enabled, 1)
 
-PUB MagOpMode(mode): curr_mode
+PUB MagOpMode(mode=-2): curr_mode
 ' Set magnetometer operating mode
 '   Valid values:
 '       MAG_OPMODE_CONT (0): Continuous conversion
@@ -896,7 +897,7 @@ PUB MagOverflow(): flag
 '   Returns: TRUE (-1) if measurement overflows sensor's internal range, FALSE otherwise
     return ((MagInt() >> core.FLD_MROI) & %1) == 1
 
-PUB MagPerf(mode): curr_mode
+PUB MagPerf(mode=-2): curr_mode
 ' Set magnetometer performance mode
 '   Valid values:
 '       MAG_PERF_LOW (0)
@@ -997,7 +998,7 @@ PUB XLGDataRate(Hz): curr_rate
     curr_rate := (curr_rate | Hz) & core.CTRL_REG1_G_MASK
     writeReg(XLG, core.CTRL_REG1_G, 1, @curr_rate)
 
-PUB XLGIntLevel(active_state): curr_state
+PUB XLGIntLevel(active_state=-2): curr_state
 ' Set active state for interrupts from Accelerometer and Gyroscope
 '   Valid values: ACTIVE_HIGH (0) - active high, ACTIVE_LOW (1) - active low
 '   Any other value polls the chip and returns the current setting
