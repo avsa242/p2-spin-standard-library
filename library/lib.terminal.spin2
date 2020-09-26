@@ -1,6 +1,21 @@
+{
+    --------------------------------------------
+    Filename: lib.terminal.spin2
+    Author: Jesse Burt
+        (based on std_text_routines.spinh,
+        by Eric Smith)
+    Description: Library to extend a terminal driver with
+        standard terminal routines (Bin, Dec, Hex, PrintF, Str)
+    Copyright (c) 2020
+    Started Dec 14, 2019
+    Updated Sep 13, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
 {{
    Standard routines for dealing with text
-   These are intended to extend any class with a "Char" method
+   These are intended to extend any class with a "char" method
    With the following additional methods
 
    Str(s)         : Print a string; note that unlike standard Spin the string()
@@ -32,16 +47,16 @@ PUB Bin(val, digits = 32) | mask
     if digits > 0 and digits < 32
         mask := (decod digits) - 1
         val &= mask
-    Num(val, 2, 0, digits)
+    num(val, 2, 0, digits)
 
 PUB Dec(val)
 ' Print a signed decimal number
-    Num(val, 10, 1, 0)
+    num(val, 10, 1, 0)
 
 PUB DecUns(val, digits = 0)
 ' Print an unsigned decimal number with the specified
 '   number of digits; 0 means just use as many as we need
-    Num(val, 10, 0, digits)
+    num(val, 10, 0, digits)
 
 PUB Hex(val, digits = 8) | mask
 ' Print a hex number with the specified number
@@ -50,14 +65,14 @@ PUB Hex(val, digits = 8) | mask
     if digits > 0 and digits < 8
         mask := (decod (4*digits)) - 1
         val &= mask
-    Num(val, 16, 0, digits)
+    num(val, 16, 0, digits)
 
 PUB NewLine()
 ' Print a carriage return and line-feed
-    Char(CR)
-    Char(LF)
+    char(CR)
+    char(LF)
 
-PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
+PUB Num(val, base, signflag, digitsneeded) | i, digit, r1, q1
 ' Print an number with a given base
 ' We do this by finding the remainder repeatedly
 ' This gives us the digits in reverse order
@@ -83,8 +98,8 @@ PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
             val := -val
 
 ' Make sure we will not overflow our buffer
-    if (digitsNeeded > 32)
-        digitsNeeded := 32
+    if (digitsneeded > 32)
+        digitsneeded := 32
 
 ' Accumulate the digits
     i := 0
@@ -94,10 +109,10 @@ PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
 ' Basically shift val right by 2 to make it positive
 ' Then adjust the result afterwards by the bit we
 ' shifted out
-            r1 := val&1  ' Capture low bit
-            q1 := val>>1 ' Divide val by 2
-            digit := r1 + 2*(q1 // base)
-            val := 2*(q1 / base)
+            r1 := val & 1  ' Capture low bit
+            q1 := val >> 1 ' Divide val by 2
+            digit := r1 + 2 * (q1 // base)
+            val := 2 * (q1 / base)
             if (digit >= base)
                 val++
                 digit -= base
@@ -110,14 +125,14 @@ PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
         else
             digit := (digit - 10) + "A"
         buffer[i++] := digit
-        --digitsNeeded
-    while (val <> 0 or digitsNeeded > 0) and (i < 32)
+        --digitsneeded
+    while (val <> 0 or digitsneeded > 0) and (i < 32)
     if (signflag > 1)
-        Char(signflag)
+        char(signflag)
 
 ' Now print the digits in reverse order
     repeat while (i > 0)
-        Char(buffer[--i])
+        char(buffer[--i])
 
 PUB PrintF(fmt = string(""), an=0, bn=0, cn=0, dn=0, en=0, fn=0) | c, valptr, val
 ' C like formatted print
@@ -132,30 +147,35 @@ PUB PrintF(fmt = string(""), an=0, bn=0, cn=0, dn=0, en=0, fn=0) | c, valptr, va
                 if (c == 0)
                     quit
                 if (c == "%")
-                    Char(c)
+                    char(c)
                     next
                 val := long[valptr]
                 valptr += 4
                 case c
-                    "d": Dec(val)
-                    "u": DecUns(val)
-                    "x": Hex(val)
-                    "s": Str(val)
-                    "c": Char(val)
+                    "d": dec(val)
+                    "u": decuns(val)
+                    "x": hex(val)
+                    "s": str(val)
+                    "c": char(val)
             "\":
                 c := byte[fmt++]
                 if c == 0
                     quit
                 case c
-                    "n": NewLine()
-                    "r": Char(CR)
-                    "t": Char(BS)
-                    other: Char(c)
+                    "n": newline()
+                    "r": char(CR)
+                    "t": char(BS)
+                    other: char(c)
             OTHER:
-                Char(c)
+                char(c)
 
 PUB Str(s = string("")) | c
 ' Output a string
     repeat while ((c := byte[s++]) <> 0)
-        Char(c)
+        char(c)
+
+PUB StrLn(s = string(""))
+' Output a string, with a newline appended
+    str(s)
+    newline()
 
