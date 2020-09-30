@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2020
     Started Feb 16, 2019
-    Updated Jul 22, 2020
+    Updated Sep 12, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,8 +15,9 @@ CON
     I2C_MAX_FREQ        = 400_000
     SLAVE_ADDR          = $50 << 1
 
-'' Register definitions
+' Register definitions
     DEV_FAMILY          = $00
+        DEVID_RESP      = $70                           ' Family code
     SN_0_7              = $01
     SN_8_15             = $02
     SN_16_23            = $03
