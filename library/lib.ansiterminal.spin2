@@ -14,7 +14,6 @@
 '           Dec (param)
 '           Char (param)
 '           Str (param)
-'           Position (x, y)
 }
 
 CON
