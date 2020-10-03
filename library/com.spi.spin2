@@ -4,7 +4,7 @@
     Description: SPI engine (smart-pin driven) for the Propeller 2
     Author: Jesse Burt
     Created: Apr 15, 2020
-    Updated: Jul 12, 2020
+    Updated: Oct 3, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -32,7 +32,6 @@ VAR
 OBJ
 
     sp      : "core.con.smartpins"
-    time    : "time"
 
 PUB Start(SCK, MOSI, MISO, SCK_FREQ): okay
 ' NOTE: MOSI pin must be SCK+1 and MISO pin must be SCK-1
@@ -41,7 +40,7 @@ PUB Start(SCK, MOSI, MISO, SCK_FREQ): okay
     pinstart(SCK, sp.TRANSITION_OUT | sp.SMART_OUT_DRIVE | sp.OUTPUT_ENABLED,{
     } spiclockperiod(SCK_FREQ), 0)
 
-    if lookdown(MISO: 0..63)
+    if lookdown(MISO: 0..63)                    ' MISO optional
         pinstart(MISO, sp.SYNCSERIAL_RX | sp.SMART_OUT_DRIVE |{
         } sp.OUTPUT_DISABLED | sp.BINP_RELPLS1_READ | sp.BINP_TRUE,{
         } sp.SAMPLE_A_BEFORE_B + (NUMBITS - 1), 0)
