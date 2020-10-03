@@ -22,8 +22,8 @@
 }}
 CON
 
-    CLKS        = NUMBITS * 2                               ' XXX hardcoded as original, for now
-    NUMBITS     = 8                                         '
+    CLKS        = NUMBITS * 2                   ' XXX hardcoded as original, for now
+    NUMBITS     = 8                             '
 
 VAR
 
@@ -38,50 +38,41 @@ PUB Start(SCK, MOSI, MISO, SCK_FREQ): okay
 ' NOTE: MOSI pin must be SCK+1 and MISO pin must be SCK-1
     longmove(@_SCK, @SCK, 3)
 
-    _dirl(SCK)                                              ' Configure smart pin for SCK
-    wrpin(SCK, sp.TRANSITION_OUT | sp.SMART_OUT_DRIVE | sp.OUTPUT_ENABLED)
-    wxpin(SCK, SPIClockPeriod(SCK_FREQ))
-    _dirh(SCK)
+    pinstart(SCK, sp.TRANSITION_OUT | sp.SMART_OUT_DRIVE | sp.OUTPUT_ENABLED,{
+    } spiclockperiod(SCK_FREQ), 0)
 
     if lookdown(MISO: 0..63)
-        _dirl(MISO)                                         ' Configure smart pin for MISO
-        wrpin(MISO, sp.SYNCSERIAL_RX | sp.SMART_OUT_DRIVE | sp.OUTPUT_DISABLED | sp.BINP_RELPLS1_READ | sp.BINP_TRUE)
-        wxpin(MISO, sp.SAMPLE_A_BEFORE_B + (NUMBITS - 1))
-        _dirh(MISO)
+        pinstart(MISO, sp.SYNCSERIAL_RX | sp.SMART_OUT_DRIVE |{
+        } sp.OUTPUT_DISABLED | sp.BINP_RELPLS1_READ | sp.BINP_TRUE,{
+        } sp.SAMPLE_A_BEFORE_B + (NUMBITS - 1), 0)
 
-    _dirl(MOSI)                                             ' Configure smart pin for MOSI
-    wrpin(MOSI, sp.SYNCSERIAL_TX | sp.SMART_OUT_DRIVE | sp.OUTPUT_ENABLED | sp.BINP_RELMIN1_READ | sp.BINP_INVERTED)
-    wxpin(MOSI, sp.START_STOP + (NUMBITS - 1))
-'    wypin(MOSI, $FF)                                       ' XXX Copy from original code - verify function
-    _dirh(MOSI)
+    pinstart(MOSI, sp.SYNCSERIAL_TX | sp.SMART_OUT_DRIVE | sp.OUTPUT_ENABLED |{
+    } sp.BINP_RELMIN1_READ | sp.BINP_INVERTED, sp.START_STOP + (NUMBITS - 1), $FF)
+'    wypin(MOSI, $FF)                           ' XXX Copy from original code - verify function
 
     rdpin(MISO)
-    return cogid()+1                                          ' Should be the same as parent cog; just need to return nonzero
+    return cogid()+1                            ' Parent cogid; return nonzero
 
 PUB Stop() | SCK, MOSI, MISO
 ' Reset smart pins - restore I/O pin control to "classic" digital DIR/IN/OUT mode
     longmove(@SCK, @_SCK, 3)
 
-    wypin(MOSI, 0)
-    wrpin(SCK, 0)
-    wrpin(MISO, 0)
-    wrpin(MOSI, 0)
-    _dirl(SCK)
-    _dirl(MISO)
-    _dirl(MOSI)
+    pinclear(SCK)
+    pinclear(MISO)
+    pinclear(MOSI)
 
 PUB Read(): result | SCK, MOSI, MISO, tmp
 ' Read a byte from SPI slave
     longmove(@SCK, @_SCK, 3)
     result := tmp := 0
 
-    tmp := rdpin(MISO)                                      ' Clear RX buffer (XXX verify)
-    tmp := rdpin(SCK)                                       ' XXX Copy from original code - verify function
-    wypin (SCK, CLKS)                                       ' Clock in data
+    tmp := rdpin(MISO)                          ' Clear RX buffer (XXX verify)
+    tmp := rdpin(SCK)                           ' XXX Copy from original code - verify function
+    wypin (SCK, CLKS)                           ' Clock in data
 
-    repeat until pinr(SCK)                                  ' Wait until SCK isn't busy
-    result := rdpin(MISO)                                   ' Read the clocked in data
-    result := (result rev 31) & $FF                         ' Reverse bit order and discard
+    repeat until pinr(SCK)                      ' Wait until SCK isn't busy
+    result := rdpin(MISO)                       ' Read the clocked in data
+    result := (result rev 31) & $FF             ' Reverse bit order and discard
     return result
 
 PUB Write(val) | SCK, MOSI, MISO, tmp
@@ -90,13 +81,13 @@ PUB Write(val) | SCK, MOSI, MISO, tmp
     tmp := 0
 
     val &= $FF
-    val <<= (32-8)                                          ' Move byte to MSB position
-    val := val rev 31                                       ' Reverse bit order
+    val <<= (32-8)                              ' Move byte to MSB position
+    val := val rev 31                           ' Reverse bit order
 
-    wypin(MOSI, val)                                        ' Load the byte to shift out
-    tmp := rdpin(SCK)                                       ' XXX Copy from original code - verify function
-    wypin(SCK, CLKS)                                        ' Start clocking out
-    repeat until pinr(SCK)                                  ' Wait until SCK isn't busy
+    wypin(MOSI, val)                            ' Load the byte to shift out
+    tmp := rdpin(SCK)                           ' XXX Copy from original code - verify function
+    wypin(SCK, CLKS)                            ' Start clocking out
+    repeat until pinr(SCK)                      ' Wait until SCK isn't busy
 
 PUB WriteBytes(nr_bytes, buff_addr) | SCK, MOSI, MISO, tmp
 ' Write multiple bytes to SPI slave
@@ -111,8 +102,8 @@ PUB WriteBytes(nr_bytes, buff_addr) | SCK, MOSI, MISO, tmp
 
 PRI SPIClockPeriod(SCK_FREQ): bt
 ' Calculate SPI clock period
-    bt := ((clkfreq / SCK_FREQ) / 2 ) + 1                   ' SPI bit time
-    bt := bt #> 2                                           ' Clamp to a minimum of syclock/2
+    bt := ((clkfreq / SCK_FREQ) / 2 ) + 1       ' SPI bit time
+    bt := bt #> 2                               ' Clamp to min of syclock/2
 
 {
     --------------------------------------------------------------------------------------------------------
