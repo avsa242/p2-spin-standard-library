@@ -58,6 +58,10 @@ VAR
     long _hw_rev
     long _cell_size, _cols, _rows
 
+OBJ
+
+    smpin   : "core.con.smartpins"
+
 PUB Start(pinbase, ptr_params, ptr_dispbuffer): okay | ptr, tmp
 
     _cols := long[ptr_params][2]
@@ -329,8 +333,8 @@ hsync           xcont   m_bs, #0                ' horizontal sync
     _ret_       add     ptr_fnt, #256
 
 ' Initialized data
-dacmode_s       long    %0000_0000_000_1011000000000_01_00000_0 ' hsync is 123-ohm, 3.3V
-dacmode_c       long    %0000_0000_000_1011100000000_01_00000_0 ' R/G/B are 75-ohm, 2.0V
+dacmode_s       long    smpin.DAC_123OHM_3V3 | smpin.OUTPUT_ENABLED
+dacmode_c       long    smpin.DAC_75OHM_2V0 | smpin.OUTPUT_ENABLED
 
 m_bs            long    $7F010000{+HFRONT_PORCH}' before sync
 m_sn            long    $7F010000{+HSYNC}       ' sync
