@@ -3,31 +3,15 @@
     Filename: com.i2c.spin2
     Description: Bitbanged I2C driver for the P2X8C4M64P
     Author: Jesse Burt
+        (based on jm_i2c.spin, originally by Jon McPhalen)
     Created: Jun 15, 2019
     Updated: Jun 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 
-    NOTE: This is a derivative of jm_i2c.spin, the SPIN I2C driver
-        originally written by Jon McPhalen. The originl header is
-        perserved below.
+    NOTE: Pull-up resistors _required_ on the SDA _and_ SCL lines.
+        SCL is not driven
 }
-'' =================================================================================================
-''
-''   File....... jm_i2c.spin2
-''   Purpose.... Low-level I2C routines (requires pull-ups on SCL and SDA)
-''   Author..... Jon "JonnyMac" McPhalen
-''               Copyright (c) 2009-2014 Jon McPhalen
-''               -- elements inspired by code from Mike Green
-''   E-mail.....
-''   Started.... 28 JUL 2009
-''   Updated.... 06 APR 2014
-''
-'' =================================================================================================
-
-'  IMPORTANT Note: This code requires pull-ups on the SDA _and_ SCL lines -- it does not drive
-'  the SCL line high.
-
 CON
 
     #0, ACK, NAK
