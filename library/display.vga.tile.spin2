@@ -97,7 +97,7 @@ PUB Start(pinbase, ptr_params, ptr_dispbuffer): okay | ptr, tmp
         long[ptr][0] := $0f000000               ' even characters
         long[ptr][1] := $0f010000               ' odd characters
 
-    init_terminal()
+    resetTerminal()
     _mycog := cogspin(16, @entry, ptr_params) + 1
     return _mycog
 

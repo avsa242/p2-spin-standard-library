@@ -157,7 +157,7 @@ PRI fixupcol(a): x | r, g, b
     b := (a >> 8) & $FF
     g := (a >> 16) & $FF
     r := a >> 24
-    x := vga.getrgbcolor(r, g, b)
+    x := vga.rgbcolor(r, g, b)
     return x
 
 PRI calcscale(pixclk, sysclk): scale | shiftcnt
