@@ -10,7 +10,7 @@
     --------------------------------------------
 }
 
-{{
+{
 '******************************
 '*  VGA tiled image driver
 '******************************
@@ -21,9 +21,7 @@ Two variants are provided: an 8 bit palette version and a 32 bit
 full color. To select the 8 bit version pass "4" (4 bytes per pixel)
 for the bytesperchr parameter; for 32 bit pass "8"
 
-Methods:
-
-start(params)
+PUB Start(params)
   Starts the driver. "params" is a pointer to a block of 32 bit parameters longs:
   params[0]: base pin to use for the VGA
   params[1]: pointer to screen buffer
@@ -42,14 +40,53 @@ start(params)
   params[14]: cell size, i.e. bytes per character (1, 2, 4, or 8)
   
   returns 1 + the number of the COG used, or 0 on failure
-}}
+
+  _cell_size is the size of each character cell in bytes, and
+  may be 8, 4, 2, or 1:
+  if 8, then each character has 2 longs:
+   first long is $RRGGBBcc, where RRGGBB is the text fgcolor, cc is the character
+   second long is $RRGGBBxx, where RRGGBB is the text bgcolor, xx is the effect mask
+
+  if 4, then each character has 4 bytes:
+   first is foreground color (1 byte index into ANSI LUT)
+   second is background color (1 byte index into ANSI LUT)
+   third is character
+   fourth is effect mask
+
+  if 2, then each character has 2 bytes
+   first is character
+   second is: 1 bit effect, 3 bit bg color, 4 bit fg color
+
+  if 1, then we have monochrome 7 bit characters; the high bit is for blinking
+
+}
 
 #include "lib.vgatext.spin2"
 #include "lib.terminal.spin2"
 
 CON
 
-    INTENSITY = 80                              ' 0..128
+    INTENSITY               = 80                ' 0..128
+
+    STATE_NORMAL            = 0
+    STATE_ESCAPE            = 1
+    STATE_START_CSI         = 2
+    STATE_IN_CSI            = 3
+    STATE_IN_PRIV           = 4
+    MAX_ESC_ARGS            = 8
+
+    CHAR_HIDDEN             = $01
+    CHAR_UNDERLINE          = $02
+    CHAR_STRIKETHRU         = $04
+    CHAR_BLINK_HIDDEN       = $10
+    CHAR_BLINK_UNDERLINE    = $20
+    CHAR_BLINK_STRIKETHRU   = $40
+    CHAR_BLINK_BG           = $80
+
+    CHAR_INVERSE            = $0100
+    CHAR_BOLD               = $0200
+    DEFAULT_FG_COLOR        = $FFFFFF00
+    DEFAULT_BG_COLOR        = 0
 
 VAR
 
@@ -57,6 +94,20 @@ VAR
     long _mycog
     long _hw_rev
     long _cell_size, _cols, _rows
+    long _curx, _cury                           ' cursor position
+    long _savex, _savey
+    long _text_bgcolor, _text_fgcolor           ' current color
+    long _state
+    long _screenptr
+    long _args[MAX_ESC_ARGS]
+    long _argidx
+    long _char_fx
+    long _scroll_first, _scroll_last
+    byte _cursor_visible
+    byte _cursor_enabled
+    byte _cursor_fx
+    byte _saved_cursor_data
+    byte _cursor_mask
 
 OBJ
 
@@ -107,6 +158,115 @@ PUB Stop()
         cogstop(_mycog-1)
         _mycog := 0
 
+PUB Char(c): result | fg, bg
+
+    concealcursor()
+    if (_state == STATE_NORMAL)
+        if (c == 8)                             ' backspace
+            position(_curx-1, _cury)
+        elseif (c == 10)                        ' line feed
+            if _cury == _scroll_last
+                scrollup()
+            else
+                _cury++
+        elseif (c == 13)                        ' carriage return
+            _curx := 0
+        elseif (c == 20)                        ' tab
+            position((_curx + 8) & ~7, _cury)
+        elseif (c == 27)
+            _state := STATE_ESCAPE
+        else
+            fg := _text_fgcolor
+            bg := _text_bgcolor
+            if _char_fx & CHAR_INVERSE
+                fg, bg := bg, fg                ' swap
+            glyphat(_curx, _cury, c, fg, bg, _char_fx & $FF)
+            _curx++
+            if _curx == _cols
+                _curx := 0
+                if _cury == _scroll_last
+                    scrollup()
+                else
+                    _cury++
+    elseif (_state == STATE_ESCAPE)
+        handle_esc(c)
+    elseif (_state == STATE_START_CSI)
+        handle_csi_start(c)
+    elseif (_state == STATE_IN_CSI)
+        handle_csi(c)
+    elseif (_state == STATE_IN_PRIV)
+        handle_priv(c)
+    revealcursor()
+    return 1
+
+PUB Clear()
+
+    clearrange(0, (_cols * _rows)-1)
+
+PUB GlyphAt(x, y, ch, fgcol, bgcol, fx=0) | bufptr
+' possible effects:
+' $01 = solid mask
+' $02 = underline
+' $04 = strikethrough
+' $08 = reserved
+' $10 = blinking mask
+' $20 = blinking underline
+' $40 = blinking strikethrough
+' $80 = reserved
+' these are stored in the lower 8 bits of the _char_fx variable
+    bufptr := _ptr_dispbuffer
+    bufptr += (y * _cols + x) * _cell_size
+    if _cell_size == 8
+        fgcol |= (ch & $FF)
+        bgcol |= (fx & $FF)
+        long[bufptr] := fgcol
+        bufptr += 4
+        long[bufptr] := bgcol
+    elseif _cell_size == 4
+        fgcol := fgcol | (bgcol << 8) | ((ch & $FF) << 16) | ((fx & $FF) << 24)
+        long[bufptr] := fgcol
+    elseif _cell_size == 2
+        fgcol := (ch & $FF) | ((bgcol & $7) << 12) | ((fgcol & $F) << 8)
+        word[bufptr] := fgcol
+    else
+        byte[bufptr] := ch & $ff
+
+PUB HideCursor()
+
+    _cursor_enabled := 0
+    setcursorvisible(0)
+
+PUB Position(x, y)
+
+    _curx := bound(0, x, _cols-1)
+    _cury := bound(0, y, _rows-1)
+
+PUB RGBColor(r, g, b): rgb
+' calculate a color value from an r,g,b triple
+    if _cell_size <= 4
+        rgb := 16 + 36 * (r / 51) + 6 * (g / 51) + (b / 51)
+    else
+        rgb := (r << 24 | g << 16 | b << 8)
+    return rgb
+
+PUB ShowCursor()
+' globals: force cursor on or off
+    _cursor_enabled := 1
+    setcursorvisible(_cursor_enabled)
+
+PRI ansiColor(n): result | ptr
+' look up an ANSI color from the color table
+    if _char_fx & CHAR_BOLD
+        n |= 8
+    if _cell_size <= 4
+        return n
+    ptr := @colortab
+    return long[ptr + (4 * n)]
+
+PRI bound(low, x, high): limit
+
+    return (low #> x) <# high
+
 PRI check_hw_rev(): tmp
 ' check the hardware revision
 ' return 1 for original silicon, 2 for new silicon
@@ -116,6 +276,363 @@ PRI check_hw_rev(): tmp
     cogspin(16, @hwcheck, @tmp)
     repeat while tmp == 0
     return tmp
+
+PRI clear_in_display(n) | startpix, endpix
+' clear from cursor to end of display (if n==0) or from start of screen to
+'   cursor (n == 1)
+' n==2 clears whole display and resets cursor to top
+    if n==2
+        _curx := _cury := 0
+        n := 0
+    if n==1
+        startpix := 0
+        endpix := (_cols * _cury) + _curx
+    else
+        startpix := (_cols * _cury) + _curx
+        endpix := (_cols * _rows) - 1
+    clearrange(startpix, endpix)
+
+PRI clear_in_line(n) | startpix, endpix
+
+    if n==2
+        _curx := 0
+        n:=0
+    if n==1
+        startpix := _cols * _cury
+        endpix := (_cols * _cury) + _curx
+    else
+        startpix := (_cols * _cury) + _curx
+        endpix := (_cols * (_cury + 1)) - 1
+    clearrange(startpix, endpix)
+
+PRI clearRange(a, b) | ptr, rngcnt, temp
+' clear from position a to position b (inclusive)
+' a and b are in character offsets (so they have to be scaled appropriately)
+    ptr := _ptr_dispbuffer + (_cell_size * a)
+    rngcnt := b-a
+    if (_cell_size == 1)
+        repeat while rngcnt >= 0
+            byte[ptr] := 0
+            ptr += 1
+            --rngcnt
+    elseif (_cell_size == 2)
+        temp := ((_text_fgcolor & $f) | ((_text_bgcolor & $7) << 4)) << 8
+        repeat while rngcnt >= 0
+            word[ptr] := temp
+            ptr += 2
+            --rngcnt
+    elseif (_cell_size == 4)
+        temp := _text_fgcolor | (_text_bgcolor << 8)
+        repeat while rngcnt >= 0
+            long[ptr] := temp
+            ptr += 4
+            --rngcnt
+    else
+        repeat while rngcnt >= 0
+            long[ptr] := _text_fgcolor
+            ptr += 4
+            long[ptr] := _text_bgcolor
+            ptr += 4
+            --rngcnt
+
+PRI concealCursor()
+
+    setcursorvisible(0)
+
+PRI copy_line(dest, src) | linelen
+
+    linelen := _cell_size * _cols
+    dest := _ptr_dispbuffer + (dest * linelen)
+    src := _ptr_dispbuffer + (src * linelen)
+    bytemove(dest, src, linelen)
+
+PRI defaultval(arg, v): result
+
+  return (arg) ? arg : v
+
+PRI fetchArg(i): result
+' get an argument that's already been set up, return -1 if not valid
+    if i >= _argidx
+        return -1
+    return _args[i]
+
+PRI getArgColor(i): col, newi | r, g, b, code
+' get a color out of arguments
+    code := fetcharg(i++)
+    if code == 0
+        return 0, i
+    if code == 2
+        r := fetcharg(i++) & $FF
+        g := fetcharg(i++) & $FF
+        b := fetcharg(i++) & $FF
+        r := rgbcolor(r, g, b)
+        return r, i
+    if code == 5
+        r := fetcharg(i++) & $FF
+        if _cell_size <= 4
+            return r, i
+        elseif (r <= 15)
+            r := colortab[r]
+        elseif (r >= 232)
+            r := 10 * (r - 232)
+            r += 8
+            return (r << 24 | r << 16 | r << 8), i
+        else
+            r := sixcolor(r)
+            return r, i
+    return 0, i                                 ' punt for now
+
+PRI handle_csi(c)
+' handle ANSI control sequences
+    if (c >= "0" and c <= "9")
+        _args[_argidx] := (10 * _args[_argidx]) + (c - "0")
+        return
+    _argidx++
+    if _argidx == MAX_ESC_ARGS
+        --_argidx
+    if (c == ";")
+        return
+
+    if (c == "A")
+        _cury -= defaultval(_args[0], 1)
+    elseif (c == "B")
+        _cury += defaultval(_args[0], 1)
+    elseif (c == "C")
+        _curx += defaultval(_args[0], 1)
+    elseif (c == "D")
+        _curx -= defaultval(_args[0], 1)
+    elseif (c == "E")
+        _cury += defaultval(_args[0], 1)
+        _curx := 0
+    elseif (c == "F")
+        _cury -= defaultval(_args[0], 1)
+        _curx := 0
+    elseif (c == "G")
+        _curx := defaultval(_args[0], 1) - 1
+    elseif (c == "H")
+        _cury := defaultval(_args[0], 1) - 1
+        _curx := defaultval(_args[1], 1) - 1
+    elseif (c == "J")
+        clear_in_display(defaultval(_args[0], 0))
+    elseif (c == "K")
+        clear_in_line(defaultval(_args[0], 0))
+    elseif (c == "m")
+        setgraphicrendition(0)
+    elseif (c == "r")
+        _scroll_first := defaultval(_args[0], 1) - 1
+        _scroll_last := defaultval(_args[1], _rows) - 1
+        _scroll_first := bound(0, _scroll_first, _rows-1)
+        _scroll_last := bound(_scroll_first, _scroll_last, _rows-1)
+        _curx := _cury := 0
+    elseif (c == "s")
+        _savex := _curx
+        _savey := _cury
+    elseif (c == "u")
+        _curx := _savex
+        _cury := _savey
+    position(_curx, _cury)                      ' sanity check
+    _state := STATE_NORMAL
+
+PRI handle_csi_start(c)
+' first character of control sequence
+' if it is '?' it's a private control sequence
+    if c == "?"
+        _state := STATE_IN_PRIV
+    else
+        _state := STATE_IN_CSI
+        handle_csi(c)
+
+PRI handle_esc(c) | i
+
+    if (c == "[")
+        repeat i from 0 to MAX_ESC_ARGS-1
+            _args[i] := 0
+        _argidx := 0
+        _state := STATE_START_CSI
+    elseif (c == "D")
+        if _cury == _scroll_last
+            scrollup()
+        else
+            _cury++
+    elseif (c == "M")
+        if _cury == _scroll_first
+            scrolldown()
+        else
+            --_cury
+    elseif (c == "c")
+        resetterminal()
+    else
+        _state := STATE_NORMAL
+
+PRI handle_priv(c) | a
+' handle private escape sequence
+    if (c >= "0" and c <= "9")
+        _args[_argidx] := (10 * _args[_argidx]) + (c - "0")
+        return
+    _argidx++
+    if _argidx == MAX_ESC_ARGS
+        --_argidx
+    if (c == ";")
+        return
+    if (c == "h")
+        a := defaultval(_args[0], 1)
+        if a == 25
+            _cursor_enabled := 1
+    elseif (c == "l")
+        a := defaultval(_args[0], 1)
+        if a == 25
+            _cursor_enabled := 0
+    _state := STATE_NORMAL
+
+PRI reset_graphics_state()
+
+    _text_bgcolor := 0
+    _text_fgcolor := (_cell_size == 8) ? $FFFFFF00 : 7
+    _char_fx := 0
+
+PRI resetTerminal()
+
+    reset_graphics_state()
+    clear()
+    _cursor_visible := 0
+    _cursor_enabled := 1
+    if _cell_size >= 4
+        _cursor_fx := $10                       ' blinking mask
+        _cursor_mask := $7f                     ' bg color blink disabled
+    else                                        '   for cursor
+        _cursor_fx := $80                       ' for 2 byte and 1 byte,
+        _cursor_mask := $ff                     '   only effect is in high bit
+    _curx := _cury := 0
+    _state := STATE_NORMAL
+    _scroll_first := 0
+    _scroll_last:= _rows-1
+
+PRI revealCursor()
+
+    setcursorvisible(_cursor_enabled)
+
+PRI scrollDown() | first, i
+
+    i := _scroll_last
+    first := _scroll_first
+    repeat while i > first
+        copy_line(i, i-1)
+        i := i-1
+    clearrange(_cols * first, (_cols * (first + 1))-1)
+
+PRI scrollUp() | last, i
+
+    i := _scroll_first
+    last := _scroll_last
+    repeat while i < last
+        copy_line(i, i+1)
+        i := i+1
+    clearrange(_cols * last, (_cols * (last + 1)) - 1)
+
+PRI setCursorVisible(yesno): result | bufptr, x, y
+
+    if _cursor_visible == yesno
+        return yesno
+
+' if asking to turn on the cursor, but it is
+' disabled, ignore the request
+    if yesno and not _cursor_enabled
+        return 0
+
+' change cursor state
+    _cursor_visible := yesno
+
+    bufptr := _ptr_dispbuffer
+' restrict x to be between 0 and _cols-1
+    x := _curx
+    y := _cury
+    x := 0 #> x <# (_cols-1)
+    y := 0 #> y <# (_rows-1)
+
+    bufptr += ((y * _cols) + x) * _cell_size
+    if _cell_size == 8
+        bufptr += 4
+    elseif _cell_size == 4
+        bufptr += 3
+    else
+        bufptr += (_cell_size-1)
+    x := byte[bufptr]
+    if _cursor_visible
+        _saved_cursor_data := x
+        x |= _cursor_fx
+        x &= _cursor_mask                       ' turn off bg color blink
+    else
+        x := _saved_cursor_data
+    byte[bufptr] := x
+
+' return old cursor state
+    return (yesno) ? 0 : 1
+
+PRI setGraphicRendition(i) | code
+
+    if i > _argidx
+        return
+    code := fetcharg(i++)
+
+    case code
+        0:
+            reset_graphics_state()
+        1:
+            _char_fx |= CHAR_BOLD
+        4:
+            _char_fx |= CHAR_UNDERLINE
+        5:
+            _char_fx |= CHAR_BLINK_HIDDEN|CHAR_BLINK_BG
+        7:
+            _char_fx |= CHAR_INVERSE
+        8:
+            _char_fx |= CHAR_HIDDEN
+        9:
+            _char_fx |= CHAR_STRIKETHRU
+        21:
+            _char_fx &= !CHAR_BOLD
+        22:
+            _char_fx &= !CHAR_BOLD
+        24:
+            _char_fx &= !CHAR_UNDERLINE
+        27:
+            _char_fx &= !CHAR_INVERSE
+        28:
+            _char_fx &= !CHAR_HIDDEN
+        29:
+            _char_fx &= !CHAR_STRIKETHRU
+        30..37:
+            _text_fgcolor := ansicolor(code - 30)
+        38:
+            _text_fgcolor,i := getargcolor(i)
+        39:
+            _text_fgcolor := DEFAULT_FG_COLOR
+        40..47:
+            _text_bgcolor := ansicolor(code - 40)
+        48:
+            _text_bgcolor,i := getargcolor(i)
+        49:
+            _text_bgcolor := DEFAULT_BG_COLOR
+    setgraphicrendition(i)
+
+PRI sixColor(x): result | r, g, b
+' calculate an RGB color from a 6,6,6 encoded 8 bit color
+    b := x // 6
+    x := x / 6
+    g := x // 6
+    r := x / 6
+    r := (255 * r)/6
+    g := (255 * g)/6
+    b := (255 * b)/6
+    return (r << 24) | (g << 16) | b
+
+DAT
+
+    colortab
+        long $00000000, $7F000000, $007F0000, $7F7F0000
+        long $00007F00, $7F007F00, $007F7F00, $C0C0C000
+        long $7F7F7F00, $FF000000, $00FF0000, $FFFF0000
+        long $0000FF00, $FF00FF00, $00FFFF00, $FFFFFF00
   
 CON
 
