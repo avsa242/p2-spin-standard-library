@@ -168,7 +168,8 @@ PRI bound(low, x, high): limit
     return (low #> x) <# high
 
 PRI clear_in_display(n) | startpix, endpix
-' clear from cursor to end of display (if n==0) or from start of screen to cursor (n == 1)
+' clear from cursor to end of display (if n==0) or from start of screen to
+'   cursor (n == 1)
 ' n==2 clears whole display and resets cursor to top
     if n==2
         _curx := _cury := 0
@@ -386,11 +387,11 @@ PRI resetTerminal()
     _cursor_visible := 0
     _cursor_enabled := 1
     if _cell_size >= 4
-        _cursor_fx := $10  ' blinking mask; use $20 for blinking underline
-        _cursor_mask := $7f    ' bg color blink disabled for cursor
-    else
-        _cursor_fx := $80  ' for 2 byte and 1 byte, only effect is in high bit
-        _cursor_mask := $ff
+        _cursor_fx := $10                       ' blinking mask
+        _cursor_mask := $7f                     ' bg color blink disabled
+    else                                        '   for cursor
+        _cursor_fx := $80                       ' for 2 byte and 1 byte,
+        _cursor_mask := $ff                     '   only effect is in high bit
     _curx := _cury := 0
     _state := STATE_NORMAL
     _scroll_first := 0
@@ -449,7 +450,7 @@ PRI setCursorVisible(yesno): result | bufptr, x, y
     if _cursor_visible
         _saved_cursor_data := x
         x |= _cursor_fx
-        x &= _cursor_mask  ' turn off bg color blink
+        x &= _cursor_mask                       ' turn off bg color blink
     else
         x := _saved_cursor_data
     byte[bufptr] := x
