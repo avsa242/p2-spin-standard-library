@@ -19,7 +19,7 @@ Runs in its own COG. See README.txt for theory of operation.
 
 Two variants are provided: an 8 bit palette version and a 32 bit
 full color. To select the 8 bit version pass "4" (4 bytes per pixel)
-for the bytes_per_char parameter; for 32 bit pass "8"
+for the bytesperchr parameter; for 32 bit pass "8"
 
 Methods:
 
@@ -79,8 +79,8 @@ PUB Start(pinbase, ptr_params, ptr_dispbuffer): okay | ptr, tmp
         long[ptr][2] := tmp                     ' before visible
         long[ptr][3] := tmp                     ' visible
         ptr := @m_rf_even
-        long[ptr][0] := $8f000000               ' even characters
-        long[ptr][1] := $8f010000               ' odd characters (different LUT base)
+        long[ptr][0] := $8f000000               ' even chars
+        long[ptr][1] := $8f010000               ' odd chars (diff. LUT base)
     else
 ' new silicon
         ptr := @m_bs
@@ -120,6 +120,7 @@ CON
     LINE_HANDLER_END    = $1f0                  ' pixel subroutine
   
 DAT     
+'l      c       i       o                       c/f
                 org     0
 ' on entry to the COG, ptra contains the parameter block, and
 ' ptrb points to the HUB address of the code (@entry)
@@ -135,10 +136,10 @@ text_rows
                 rdlong  text_rows, ptra++
 font_base
                 rdlong  font_base, ptra++
-font_width
-                rdlong  font_width, ptra++
-font_height
-                rdlong  font_height, ptra++
+fnt_width
+                rdlong  fnt_width, ptra++
+fnt_height
+                rdlong  fnt_height, ptra++
 fpix_scale
                 rdlong  fpix_scale, ptra++
 hfront_porch
@@ -156,47 +157,47 @@ vback_porch
 polarity
                 rdlong  polarity, ptra++
 ' this must be either 8 (for 32 bit color) or 4 (for 8 bit color)
-bytes_per_char
-                rdlong  bytes_per_char, ptra++
+bytesperchr
+                rdlong  bytesperchr, ptra++
 
 ' Setup 
-'
-' this code can be overwritten once we are going
+' (this code can be overwritten once we are going)
 
 vga_start
 ' calculate things based on parameters
 char_cnt
                 mov     char_cnt, text_cols
-strikethru_line
-                shr     char_cnt, #1            ' process 2 characters at a time
+strkthru_ln
+                shr     char_cnt, #1            ' process 2 chars at a time
 vsync_val
-                mov     strikethru_line, font_height
+                mov     strkthru_ln, fnt_height
 stride
-                shr     strikethru_line, #1     ' divide height by 2
+                shr     strkthru_ln, #1         ' divide height by 2
 stride_chunks
                 mov     stride, text_cols
 hpixels
-                mul     stride, bytes_per_char
+                mul     stride, bytesperchr
 vpixels
                 mov     stride_chunks, stride
-buffer_ptr
+ptr_buff
                 add     stride_chunks, #63
-font_ptr
+ptr_fnt
                 shr     stride_chunks, #6       ' divide by 64
 mycogid
                 mov     hpixels, text_cols
-font_line_counter
-                mul     hpixels, font_width
+fntln_cntr
+                mul     hpixels, fnt_width
 x
                 mov     vpixels, text_rows
 y
-                mul     vpixels, font_height
+                mul     vpixels, fnt_height
 
+'l      c       i       o                       c/f
 ' copy parameters into settings
 curchar
-                add     m_rf_even, font_width
+                add     m_rf_even, fnt_width
 cureff
-                add     m_rf_odd, font_width
+                add     m_rf_odd, fnt_width
 bgcolor
                 add     m_bs, hfront_porch
 fgcolor
@@ -245,25 +246,25 @@ cmodval
 ' load different routines into upper LUT depending on the bytes per char
 ' 8, 4, 2, or 1
 ' ptrb still points at @entry; make it point to the code we want to load
-                encod   bytes_per_char, bytes_per_char      ' convert 1, 2, 4, 8 to 0, 1, 2, 3
-                alts    bytes_per_char, #line_offset_table  ' look up in line_offset_table
-                add     ptrb, 0-0                           ' the offset we want for the code to load
+                encod   bytesperchr, bytesperchr' 1, 2, 4, 8 -> 0, 1, 2, 3
+                alts    bytesperchr, #ln_offs_tbl   ' look up in ln_offs_tbl
+                add     ptrb, 0-0               ' offset for the code to load
 
 ' now load the code into LUT
                 setq    #(LINE_HANDLER_END-LINE_HANDLER)-1
                 rdlong  LINE_HANDLER, ptrb
-	
+'l      c       i       o                       c/f
 ' Field loop
 field   
                 mov     y, vfront_porch         ' top blanks
                 call    #blank
-                mov     buffer_ptr, buffer_base
-                mov     font_ptr, font_base
-                mov     font_line_counter, font_height
-                add     field_count, #1
-                test    field_count, #32        wz
-        if_z    mov     field_effects, #$ff
-        if_nz   mov     field_effects, #$0f
+                mov     ptr_buff, buffer_base
+                mov     ptr_fnt, font_base
+                mov     fntln_cntr, fnt_height
+                add     field_cnt, #1
+                test    field_cnt, #32          wz
+        if_z    mov     field_fx, #$ff
+        if_nz   mov     field_fx, #$0f
   
                 mov     y, vpixels              ' set visible line
 line    
@@ -274,22 +275,22 @@ line
 ' this is stored as 8 byte per character;
 ' two longs, first containing 24 bit color + character glyph,
 ' second containing the 24 bit color and a reserved field
-	            rdfast  stride_chunks, buffer_ptr
+                rdfast  stride_chunks, ptr_buff
 
-                sub     font_line_counter, #1   wz
-        if_z    mov     font_line_counter, font_height
-        if_z    mov     font_ptr, font_base
-        if_z    add     buffer_ptr, stride      ' next line
+                sub     fntln_cntr, #1          wz
+        if_z    mov     fntln_cntr, fnt_height
+        if_z    mov     ptr_fnt, font_base
+        if_z    add     ptr_buff, stride        ' next line
 
 ' check for effects on this line
-                mov     line_effects, #$91
-                cmp     font_line_counter, #1   wz
-        if_z    or      line_effects, #$22
-                cmp     font_line_counter, strikethru_line  wz
-        if_z    or      line_effects, #$44
+                mov     line_fx, #$91
+                cmp     fntln_cntr, #1          wz
+        if_z    or      line_fx, #$22
+                cmp     fntln_cntr, strkthru_ln wz
+        if_z    or      line_fx, #$44
 
 ' turn off blink specific stuff
-                and     line_effects, field_effects
+                and     line_fx, field_fx
 
 ' the main loop processes 2 characters (16 pixels) at a time,
 ' ping-ponging between even and odd
@@ -323,9 +324,9 @@ blank           call    #hsync                  ' blank lines
 hsync           xcont   m_bs, #0                ' horizontal sync
                 xcont   m_sn, #1
                 xcont   m_bv, #0
-                setq    #63                     ' read 64 longs/256 bytes from font table
-                rdlong  font_line, font_ptr
-    _ret_       add     font_ptr, #256
+                setq    #63                     ' read 64 longs from font table
+                rdlong  fnt_ln, ptr_fnt
+    _ret_       add     ptr_fnt, #256
 
 ' Initialized data
 dacmode_s       long    %0000_0000_000_1011000000000_01_00000_0 ' hsync is 123-ohm, 3.3V
@@ -350,17 +351,17 @@ m_rf_odd        long    $0F010000{+FONT_WIDTH}  ' 1bpp LUT immediate
 '    40 = blinking strikethrough
 '    80 = if hidden, use bgcolor instead of fgcolor
 
-line_effects    long    0
+line_fx         long    0
 
 ' active effects for this field; the blinking ones will be turned off
 ' on half of the fields
-field_effects   long    0
+field_fx        long    0
 
 ' count of elapsed fields, used for blinking
-field_count     long    0
+field_cnt       long    0
 
 ' standard ANSI 256 color palette
-color_palette
+color_plt
 	long	$00000000, $80000000, $00800000, $80800000, $00008000, $80008000, $00808000, $c0c0c000
 	long	$80808000, $ff000000, $00ff0000, $ffff0000, $0000ff00, $ff00ff00, $00ffff00, $ffffff00
 	long	$00000000, $00003300, $00006600, $00009900, $0000cc00, $0000ff00, $00330000, $00333300
@@ -394,12 +395,11 @@ color_palette
 	long	$58585800, $62626200, $6c6c6c00, $76767600, $80808000, $8a8a8a00, $94949400, $9e9e9e00
 	long	$a8a8a800, $b2b2b200, $bcbcbc00, $c6c6c600, $d0d0d000, $dadada00, $e4e4e400, $eeeeee00
 
-
 ' space for 256 bytes of font data
-font_line       long    0[64]
+fnt_ln          long    0[64]
 
 ' table of offsets to the character handling subroutines
-line_offset_table
+ln_offs_tbl
                 long    @char1_loop - @entry
                 long    @char2_loop - @entry
                 long    @char4_loop - @entry
@@ -440,14 +440,14 @@ next_32bppchar
                 rflong  fgcolor
                 rflong  bgcolor
                 getbyte curchar, fgcolor, #0
-                test    bgcolor, line_effects wz
+                test    bgcolor, line_fx        wz
 
                 andn    fgcolor, #$FF
                 andn    bgcolor, #$FF
-                altgb   curchar, #font_line     ' fetch from font table
+                altgb   curchar, #fnt_ln        ' fetch from font table
                 getbyte curchar
 
-        if_nz   or      curchar, #$ff           ' if effect mask active add a line
+        if_nz   or      curchar, #$ff           ' if effect mask active add line
                 xcont   m_rf_even, curchar
                 wrlut   bgcolor, #0
                 wrlut   fgcolor, #1
@@ -456,14 +456,14 @@ next_32bppchar
                 rflong  fgcolor
                 rflong  bgcolor
                 getbyte curchar, fgcolor, #0
-                test    bgcolor, line_effects wz
+                test    bgcolor, line_fx        wz
 
                 andn    fgcolor, #$FF
                 andn    bgcolor, #$FF           ' handle in the glyphat code
-                altgb   curchar, #font_line     ' fetch from font table
+                altgb   curchar, #fnt_ln        ' fetch from font table
                 getbyte curchar
 
-        if_nz   or      curchar, #$ff           ' if effect mask active add a line
+        if_nz   or      curchar, #$ff           ' if effect mask active add line
                 xcont   m_rf_odd, curchar
                 wrlut   bgcolor, #32
                 wrlut   fgcolor, #33
@@ -488,16 +488,16 @@ next_8bppchar
                 rfbyte  cureff                  wc
 
 ' do table lookup on colors
-                alts    fgcolor, #color_Palette
+                alts    fgcolor, #color_plt
                 mov     fgcolor, 0-0
-                alts    bgcolor, #color_Palette
+                alts    bgcolor, #color_plt
                 mov     bgcolor, 0-0
 
-                altgb   curchar, #font_line     ' fetch from font table
+                altgb   curchar, #fnt_ln        ' fetch from font table
                 getbyte curchar
-                and     cureff, line_effects    wz
+                and     cureff, line_fx         wz
 
-        if_nz   muxnc   curchar, #$ff            ' if effect mask active add a line
+        if_nz   muxnc   curchar, #$ff           ' if effect mask active add line
                 xcont   m_rf_even, curchar
                 wrlut   bgcolor, #0
                 wrlut   fgcolor, #1
@@ -509,22 +509,19 @@ next_8bppchar
                 rfbyte  cureff                  wc
 
 ' do table lookup on colors
-                alts    fgcolor, #color_Palette
+                alts    fgcolor, #color_plt
                 mov     fgcolor, 0-0
-                alts    bgcolor, #color_Palette
+                alts    bgcolor, #color_plt
                 mov     bgcolor, 0-0
 
-                altgb   curchar, #font_line     ' fetch from font table
+                altgb   curchar, #fnt_ln        ' fetch from font table
                 getbyte curchar
-                and     cureff, line_effects    wz
-'	test	cureff, #$80 wc
+                and     cureff, line_fx         wz
 
-        if_nz   muxnc   curchar, #$ff           ' if effect mask active add a line
+        if_nz   muxnc   curchar, #$ff           ' if effect mask active add line
                 xcont   m_rf_odd, curchar
                 wrlut   bgcolor, #32
                 wrlut   fgcolor, #33
-
-' end of loop
 end_8bppchar
                 ret
                 fit     LINE_HANDLER_END
@@ -536,7 +533,7 @@ end_8bppchar
 ' 30 instructions
                 org     LINE_HANDLER
 char2_loop
-                and     line_effects, #$80
+                and     line_fx, #$80
                 rep     @end_char16, char_cnt
 next_char16
 
@@ -547,15 +544,15 @@ next_char16
                 getnib  bgcolor, cureff, #1
 
 ' do table lookup on colors
-                alts    fgcolor, #color_Palette
+                alts    fgcolor, #color_plt
                 mov     fgcolor, 0-0
-                alts    bgcolor, #color_Palette
+                alts    bgcolor, #color_plt
                 mov     bgcolor, 0-0
 
-                altgb   curchar, #font_line     ' fetch from font table
+                altgb   curchar, #fnt_ln        ' fetch from font table
                 getbyte curchar
-                test    cureff, line_effects    wz
-        if_nz   xor     curchar, #$ff           ' if effect mask active add a line
+                test    cureff, line_fx         wz
+        if_nz   xor     curchar, #$ff           ' if effect mask active add line
 
                 xcont   m_rf_even, curchar
                 wrlut   bgcolor, #0
@@ -568,21 +565,19 @@ next_char16
                 getnib  bgcolor, cureff, #1
 
 ' do table lookup on colors
-                alts    fgcolor, #color_Palette
+                alts    fgcolor, #color_plt
                 mov     fgcolor, 0-0
-                alts    bgcolor, #color_Palette
+                alts    bgcolor, #color_plt
                 mov     bgcolor, 0-0
 
-                altgb   curchar, #font_line     ' fetch from font table
+                altgb   curchar, #fnt_ln        ' fetch from font table
                 getbyte curchar
-                test    cureff, line_effects    wz
-        if_nz   xor     curchar, #$ff           ' if effect mask active add a line
+                test    cureff, line_fx         wz
+        if_nz   xor     curchar, #$ff           ' if effect mask active add line
 
                 xcont   m_rf_odd, curchar
                 wrlut   bgcolor, #32
                 wrlut   fgcolor, #33
-
-' end of loop
 end_char16
                 ret
                 fit     LINE_HANDLER_END
@@ -594,13 +589,13 @@ end_char16
 ' 16 instructions
                 org     LINE_HANDLER
 char1_loop
-                mov     fgcolor, color_Palette+7
-                mov     bgcolor, color_Palette
+                mov     fgcolor, color_plt+7
+                mov     bgcolor, color_plt
                 wrlut   bgcolor, #0
                 wrlut   fgcolor, #1
                 wrlut   bgcolor, #32
                 wrlut   fgcolor, #33
-                and     line_effects, #$80
+                and     line_fx, #$80
 
                 rep     @end_char8, char_cnt
 next_char8
@@ -609,24 +604,24 @@ next_char8
                 rfbyte  curchar
                 mov     cureff, curchar
                 and     curchar, #$7f
-                and     cureff, line_effects    wz
+                and     cureff, line_fx         wz
 
-                altgb   curchar, #font_line     ' fetch from font table
+                altgb   curchar, #fnt_ln        ' fetch from font table
                 getbyte curchar
 
-        if_nz   xor     curchar, #$ff           ' if effect mask active add a line
+        if_nz   xor     curchar, #$ff           ' if effect mask active add line
                 xcont   m_rf_even, curchar
 
 ' odd character
                 rfbyte  curchar
                 mov     cureff, curchar
                 and     curchar, #$7f
-                and     cureff, line_effects    wz
+                and     cureff, line_fx         wz
 
-                altgb   curchar, #font_line     ' fetch from font table
+                altgb   curchar, #fnt_ln        ' fetch from font table
                 getbyte curchar
 
-        if_nz   xor     curchar, #$ff           ' if effect mask active add a line
+        if_nz   xor     curchar, #$ff           ' if effect mask active add line
                 xcont   m_rf_odd, curchar
 
 ' end of loop
