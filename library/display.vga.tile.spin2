@@ -61,7 +61,6 @@ PUB Start(params)
 
 }
 
-#include "lib.vgatext.spin2"
 #include "lib.terminal.spin2"
 
 CON
