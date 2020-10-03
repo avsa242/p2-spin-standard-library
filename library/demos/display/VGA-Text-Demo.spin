@@ -1,6 +1,6 @@
 {
     --------------------------------------------
-    Filename: VGA-Tile-Demo.spin2
+    Filename: VGA-Text-Demo.spin2
     Author: Eric Smith
     Modified by: Jesse Burt
     Description: Demo of the tiling VGA text driver
@@ -29,9 +29,6 @@ CON
     PIXSHIFT        = 31
 
 ' -- User-modifiable constants
-    LED             = cfg#LED1
-    SER_RX          = cfg#SER_RX
-    SER_TX          = cfg#SER_TX
     SER_BAUD        = 2_000_000
     VGA_PINBASE     = 0
 ' --
@@ -51,13 +48,13 @@ VAR
 OBJ
 
     cfg         : "core.con.boardcfg.p2eval"
-    vga         : "display.vga.tile"
+    vga         : "display.vga.text"
     ser         : "com.serial.terminal.ansi"
 
 ' Uncomment one of the below for the specified video mode
-    vidmode  : "core.con.vga.640x480"
-'    vidmode  : "core.con.vga.800x600"
-'    vidmode  : "core.con.vga.1024x768"
+    vidmode : "core.con.vga.640x480"
+'    vidmode : "core.con.vga.800x600"
+'    vidmode : "core.con.vga.1024x768"
 
 DAT
 
@@ -112,8 +109,8 @@ PUB Demo_RunText() | n
 
 PUB Setup() | i, pclkscale, pclk, sysclk
 
-    ser.startrxtx(SER_RX, SER_TX, 0, SER_BAUD)
-    ser.printf("VGA text demo\n")
+    ser.start(SER_BAUD)
+    ser.printf("Serial terminal started\n")
 
     pclk := vidmode#PIX_CLKFREQ                 ' pixel clock
     sysclk := clkfreq                           ' system clock
