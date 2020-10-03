@@ -5,45 +5,36 @@
     Modified by: Jesse Burt
     Description: Demo of the tiling VGA text driver
     Started Nov 13, 2019
-    Updated Jul 13, 2020
+    Updated Oct 3, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
-''
-'' clock frequency settings
-'' for 640x480 we use a 25 MHz pixel clock
-'' for 800x600 we use a 40 MHz pixel clock
-'' for 1024x768 we use a 65 MHz pixel clock
-''
-'' for best results the system clock should be a multiple of
-'' the pixel clock
-''
-'' 200 MHz is a convenient one for many purposes, and
-'' is only a slight overclocking
-''
+'
+' clock frequency settings
+' for 640x480 we use a 25 MHz pixel clock
+' for 800x600 we use a 40 MHz pixel clock
+' for 1024x768 we use a 65 MHz pixel clock
+'
+' for best results the system clock should be a multiple of
+' the pixel clock
+'
+' 200 MHz is a convenient one for many purposes, and
+' is only a slight overclocking
+'
 CON
 
-    _XTALFREQ       = 20_000_000                                    ' crystal frequency
-    _XDIV           = 1                                             ' crystal divider to give 1MHz
-    _XMUL           = 10                                            ' crystal / div * mul
-    _XDIVP          = 1                                             ' crystal / div * mul /divp to give _CLKFREQ (1,2,4..30)
-    _XOSC           = %10                                   'OSC    ' %00=OFF, %01=OSC, %10=15pF, %11=30pF
-    _XSEL           = %11                                   'XI+PLL ' %00=rcfast(20+MHz), %01=rcslow(~20KHz), %10=XI(5ms), %11=XI+PLL(10ms)
-    _XPPPP          = ((_XDIVP>>1) + 15) & $F                       ' 1->15, 2->0, 4->1, 6->2...30->14
-    _CLOCKFREQ      = _XTALFREQ / _XDIV * _XMUL / _XDIVP            ' internal clock frequency
-    _SETFREQ        = 1<<24 + (_XDIV-1)<<18 + (_XMUL-1)<<8 + _XPPPP<<4 + _XOSC<<2  ' %0000_000e_dddddd_mmmmmmmmmm_pppp_cc_00  ' setup  oscillator
-
+    _xtlfreq        = cfg#_xtlfreq
+    _clkfreq        = 200_000_000
     PIXSHIFT        = 31
-    sys_clock_freq  = _CLOCKFREQ
-    sys_clock_mode  = _SETFREQ
 
-' User-modifiable constants
+' -- User-modifiable constants
     LED             = cfg#LED1
     SER_RX          = cfg#SER_RX
     SER_TX          = cfg#SER_TX
     SER_BAUD        = 2_000_000
-    VGA_PINBASE     = 40
+    VGA_PINBASE     = 0
+' --
 
 DAT
 
@@ -54,30 +45,26 @@ DAT
 
 VAR
 
-    long _params[40] ' parameters for running the VGA tile driver
-    long _screen_buffer[vgatimings#ROWS * vgatimings#COLS * (vgatimings#CELL_SIZE/4)]
+    long _params[40]                            ' VGA tile driver params
+    long _screen_buffer[vidmode#ROWS * vidmode#COLS * (vidmode#CELL_SIZE/4)]
 
 OBJ
 
     cfg         : "core.con.boardcfg.p2eval"
     vga         : "display.vga.tile"
     ser         : "com.serial.terminal.ansi"
-    time        : "time"
 
 ' Uncomment one of the below for the specified video mode
-'    vgatimings  : "core.con.vga.640x480"
-'    vgatimings  : "core.con.vga.800x600"
-    vgatimings  : "core.con.vga.1024x768"
+    vidmode  : "core.con.vga.640x480"
+'    vidmode  : "core.con.vga.800x600"
+'    vidmode  : "core.con.vga.1024x768"
 
 DAT
 
     orgh
-'
 ' font buffer
-'
     long
-    fontdata
-        file "font.8x16.unscii.bin"
+    fontdata    file "font.8x16.unscii.bin"
 
 PUB Main()
 
@@ -90,18 +77,18 @@ PUB Demo_FillText() | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
 
     ch := 0
 
-    repeat y from 0 to vgatimings#ROWS-1
-        grey := y<<3
-        bgcol := (grey<<24) | (grey<<16) | (grey<<8)
-        repeat x from 0 to vgatimings#COLS-1
+    repeat y from 0 to vidmode#ROWS-1
+        grey := y << 3
+        bgcol := (grey << 24) | (grey << 16) | (grey << 8)
+        repeat x from 0 to vidmode#COLS-1
             grey := (x & 15)
             idx := x / 16
             col1 := democolors[idx]
             col2 := democolors[idx+1]
-            fgcol := colorblend(col1, col2, (grey<<4) + grey)
+            fgcol := colorblend(col1, col2, (grey << 4) + grey)
             vga.glyphat(x, y, ch++, fixupcol(fgcol), fixupcol(bgcol), $20)
 
-    time.MSleep(10000)
+    waitms(10_000)
 
 PUB Demo_RunText() | n
 
@@ -121,43 +108,42 @@ PUB Demo_RunText() | n
         vga.str(string(27, "[0mEffects off "))
         vga.dec(n)
         n++
-        time.MSleep(100)
+        waitms(100)
 
-PUB Setup() | i, pclkscale, pclk, sysclk, x
+PUB Setup() | i, pclkscale, pclk, sysclk
 
-    clkset(sys_clock_mode, sys_clock_freq)  ' 20 MHz crystal * 8
     ser.startrxtx(SER_RX, SER_TX, 0, SER_BAUD)
     ser.printf("VGA text demo\n")
 
-    pclk := vgatimings#PIX_CLKFREQ ' pixel clock
-    sysclk := clkfreq  ' system clock
+    pclk := vidmode#PIX_CLKFREQ                 ' pixel clock
+    sysclk := clkfreq                           ' system clock
     ' calculate scale := $8000_0000 * pclk / sysclk
     ' this is equal to pclk / (sysclk / $8000_000)
     pclkscale := calcscale(pclk, sysclk)
 
     i := 0
     _params[i++] := VGA_PINBASE
-    _params[i++] := @_screen_buffer ' screen buffer
-    _params[i++] := vgatimings#COLS           ' screen columns
-    _params[i++] := vgatimings#ROWS           ' screen rows
-    _params[i++] := @fontdata  ' font data
-    _params[i++] := 8      ' font width
-    _params[i++] := vgatimings#FONT_HEIGHT    ' font height
-    _params[i++] := pclkscale 'fset           ' pixel clock scaling value
-    _params[i++] := vgatimings#H_FP             ' horizontal front porch
-    _params[i++] := vgatimings#HSYNC             ' hsync pulse
-    _params[i++] := vgatimings#H_BP             ' horizontal back porch
-    _params[i++] := vgatimings#V_FP             ' vertical front porch
-    _params[i++] := vgatimings#VSYNC_LINES              ' vertical sync lines
-    _params[i++] := vgatimings#V_BP             ' vertical back porch
-    _params[i++] := vgatimings#POLARITY            ' vertical/horizontal polarity
-    _params[i++] := vgatimings#CELL_SIZE
+    _params[i++] := @_screen_buffer             ' screen buffer
+    _params[i++] := vidmode#COLS                ' screen columns
+    _params[i++] := vidmode#ROWS                ' screen rows
+    _params[i++] := @fontdata                   ' font data
+    _params[i++] := 8                           ' font width
+    _params[i++] := vidmode#FONT_HEIGHT         ' font height
+    _params[i++] := pclkscale 'fset             ' pixel clock scaling value
+    _params[i++] := vidmode#H_FP                ' horizontal front porch
+    _params[i++] := vidmode#HSYNC               ' hsync pulse
+    _params[i++] := vidmode#H_BP                ' horizontal back porch
+    _params[i++] := vidmode#V_FP                ' vertical front porch
+    _params[i++] := vidmode#VSYNC_LINES         ' vertical sync lines
+    _params[i++] := vidmode#V_BP                ' vertical back porch
+    _params[i++] := vidmode#POLARITY            ' vertical/horizontal polarity
+    _params[i++] := vidmode#CELL_SIZE
 
     ' start up the VGA driver
     vga.start(VGA_PINBASE, @_params, @_screen_buffer)
     ser.printf("VGA driver started\n")
 
-PUB colorblend(a, b, mix): blended
+PRI colorblend(a, b, mix): blended
 
     org
         setpiv mix
@@ -166,30 +152,29 @@ PUB colorblend(a, b, mix): blended
 
     return a
 
-PUB fixupcol(a): x | r, g, b
+PRI fixupcol(a): x | r, g, b
 
-    b := (a>>8) & $FF
-    g := (a>>16) & $FF
-    r := a>>24
+    b := (a >> 8) & $FF
+    g := (a >> 16) & $FF
+    r := a >> 24
     x := vga.getrgbcolor(r, g, b)
-    'ser.printf("fixupcol(%x, %x, %x) -> %x\n", r, g, b, x)
     return x
 
-PRI calcscale(a, b): scale | shiftcnt
+PRI calcscale(pixclk, sysclk): scale | shiftcnt
 
     shiftcnt := PIXSHIFT
 ' remove factors of 5 (will be pretty common)
-    repeat while 0 == (a // 5) and 0 == (b // 5)
-        a := a / 5
-        b := b / 5
+    repeat while 0 == (pixclk // 5) and 0 == (sysclk // 5)
+        pixclk := pixclk / 5
+        sysclk := sysclk / 5
 
 ' scale a up as much as we can
-    repeat while ((a & $4000_0000) == 0) and shiftcnt > 0
-        a := a << 1
+    repeat while ((pixclk & $4000_0000) == 0) and shiftcnt > 0
+        pixclk := pixclk << 1
         shiftcnt--
 
-    repeat while ((b & 1) == 0) and shiftcnt > 0
-        b := b>>1
+    repeat while ((sysclk & 1) == 0) and shiftcnt > 0
+        sysclk := sysclk >>1
         shiftcnt--
-    return (a / b) << shiftcnt
+    return (pixclk / sysclk) << shiftcnt
 
