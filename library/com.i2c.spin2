@@ -5,7 +5,7 @@
     Author: Jesse Burt
         (based on jm_i2c.spin, originally by Jon McPhalen)
     Created: Jun 15, 2019
-    Updated: Jun 24, 2020
+    Updated: Oct 4, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -18,20 +18,20 @@ CON
 
 VAR
 
-    long _SCL                                               ' Bus pins
+    long _SCL                                   ' Bus pins
     long _SDA
     long _delay, _hdelay, _qdelay
 
 PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000): okay
 ' Define I2C SCL (clock) and SDA (data) pins
-    _delay := (clkfreq/I2C_HZ)                              ' Calculate delays based on clock freq
+    _delay := (clkfreq/I2C_HZ)                  ' Calculate delays based on clock freq
     _hdelay := _delay >> 1
     _qdelay := _delay >> 2
 
     _SCL := I2C_SCL
     _SDA := I2C_SDA
-    pinf(_SCL)                                              ' Float pins
-    pinf(_SDA)
+    pinf(I2C_SCL)                               ' Float pins
+    pinf(I2C_SDA)
     reset()
     okay := cogid() + 1
     return
@@ -42,63 +42,65 @@ PUB Present(slave_addr): ackbit
     ackbit := (write(slave_addr) == ACK)
     stop()
 
-PUB Read(ackbit): i2cbyte
+PUB Read(ackbit): i2cbyte | SCL, SDA
 ' Read byte from I2C bus
 '   Valid values:
 '       ackbit:
 '           ACK (0): Send ACK to slave device
 '           NAK (non-zero): Send NAK to slave device
+    longmove(@SCL, @_SCL, 2)
     ackbit := (ackbit <> 0)
-    pinf(_SDA)                                              ' Make SDA input
+    pinf(SDA)                                   ' Make SDA input
 
     repeat 8
         qd()
-        pinf(_SCL)                                          ' Float SCL
+        pinf(SCL)                               ' Float SCL
         hd()
-        i2cbyte := (i2cbyte << 1) | pinr(_SDA)              ' Read the bit
-        pinl(_SCL)                                          ' SCL low
+        i2cbyte := (i2cbyte << 1) | pinr(SDA)   ' Read the bit
+        pinl(SCL)                               ' SCL low
         qd()
 
-    (ackbit) ? pinf(_SDA) : pinl(_SDA)                      ' Output ACK bit
+    (ackbit) ? pinf(SDA) : pinl(SDA)            ' Output ACK bit
     qd()
-    pinf(_SCL)                                              ' Float SCL
+    pinf(SCL)                                   ' Float SCL
     hd()
-    pinl(_SCL)                                              ' SCL low
+    pinl(SCL)                                   ' SCL low
     qd()
 
     return (i2cbyte & $FF)
 
-PUB Reset()
+PUB Reset() | SCL, SDA
 ' Reset device
+    longmove(@SCL, @_SCL, 2)
     repeat 9
-        pinl(_SCL)
+        pinl(SCL)
         hd()
-        pinf(_SCL)
+        pinf(SCL)
         hd()
-        if (pinr(_SDA))
+        if (pinr(SDA))
             quit
 
 PUB Start()
 ' I2C Start condition (S, Sr)
 '   NOTE: Blocks while SCL held low (clock stretching)
-    pinf(_SDA)                                               ' Float pins
+    pinf(_SDA)                                  ' Float pins
     pinf(_SCL)
-    repeat while (pinr(_SCL) == 0)                           ' Allow "clock stretching"
+    repeat while (pinr(_SCL) == 0)              ' Allow "clock stretching"
     hd()
-    pinl(_SDA)                                               ' SDA low
+    pinl(_SDA)                                  ' SDA low
     hd()
-    pinl(_SCL)                                               ' SCL low
+    pinl(_SCL)                                  ' SCL low
     hd()
 
 PUB Stop()
 ' I2C Stop condition (P)
 '   NOTE: Blocks while SCL held low (clock stretching)
-    pinl(_SDA)                                               ' SDA low
+    pinl(_SDA)                                  ' SDA low
     hd()
-    pinf(_SCL)                                               ' Float SCL
+    pinf(_SCL)                                  ' Float SCL
     hd()
-    repeat until (pinr(_SCL) == 1)                           ' Hold for clock stretch
-    pinf(_SDA)                                               ' Float SDA
+    repeat until (pinr(_SCL) == 1)              ' Hold for clock stretch
+    pinf(_SDA)                                  ' Float SDA
     hd()
 
 PUB Wait(slave_addr) | ackbit
@@ -109,7 +111,8 @@ PUB Wait(slave_addr) | ackbit
     until (ackbit == ACK)
 
 PUB WaitTimeout(slave_addr, usec): ackbit, timeout | tmp
-' Wait for I2C device to be ready for new command, up to a maximum timeout of 'us' microseconds
+' Wait for I2C device to be ready for new command,
+'   up to a maximum timeout of 'usec' microseconds
 '   Returns:
 '       1st return value: TRUE if slave acknowledged, FALSE otherwise
 '       2nd return value: Duration waited, in microseconds
@@ -122,22 +125,23 @@ PUB WaitTimeout(slave_addr, usec): ackbit, timeout | tmp
     until (ackbit == ACK) OR (timeout == 0)
     return (ackbit == ACK), usec-timeout
 
-PUB Write(i2cbyte): ackbit
+PUB Write(i2cbyte): ackbit | SCL, SDA
 ' Write byte to I2C bus
 ' -- leaves SCL low
-    i2cbyte := (i2cbyte ^ $FF) << 24                        ' Move msb (bit7) to bit31
-    repeat 8                                                ' Output eight bits
-        ((i2cbyte rol= 1) & %1) ? pinl(_SDA) : pinf(_SDA)   ' Send MSB first
+    longmove(@SCL, @_SCL, 2)
+    i2cbyte := (i2cbyte ^ $FF) << 24            ' Move msb (bit7) to bit31
+    repeat 8                                    ' Output eight bits, MSB first
+        ((i2cbyte rol= 1) & %1) ? pinl(SDA) : pinf(SDA)
         hd()
-        pinf(_SCL)                                          ' Float SCL
+        pinf(SCL)                               ' SCL high
         hd()
-        pinl(_SCL)                                          ' SCL low
-    pinf(_SDA)                                              ' Release SDA to read ack bit
+        pinl(SCL)                               ' SCL low
+    pinf(SDA)                                   ' Release SDA to read ack bit
     hd()
-    pinf(_SCL)                                              ' Float SCL
+    pinf(SCL)                                   ' SCL high
     hd()
-    ackbit := pinr(_SDA)                                    ' Read ack bit
-    pinl(_SCL)                                              ' SCL low
+    ackbit := pinr(SDA)                         ' Read ack bit
+    pinl(SCL)                                   ' SCL low
     return ackbit
 
 PRI hd()
