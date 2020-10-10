@@ -5,7 +5,7 @@
     Description: Driver for Nordic Semi. nRF24L01+ (P2 version)
     Copyright (c) 2020
     Started Nov 2, 2019
-    Updated Jul 14, 2020
+    Updated Oct 9, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -747,6 +747,7 @@ PRI writeReg (reg_nr, nr_bytes, buff_addr): result | tmp
             pinh(_CSN)
 
         $00..$17, $1C..$1D:
+            reg_nr |= core#NRF24_W_REG
             case nr_bytes
                 0:
                     pinl(_CSN)
