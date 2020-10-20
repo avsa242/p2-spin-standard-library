@@ -5,7 +5,7 @@
     Author: Jesse Burt
         (based on jm_i2c.spin, originally by Jon McPhalen)
     Created: Jun 15, 2019
-    Updated: Oct 4, 2020
+    Updated: Oct 20, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -60,7 +60,7 @@ PUB Read(ackbit): i2cbyte | SCL, SDA
         pinl(SCL)                               ' SCL low
         qd()
 
-    (ackbit) ? pinf(SDA) : pinl(SDA)            ' Output ACK bit
+    (ackbit) ? (pinf(SDA)) : (pinl(SDA))        ' Output ACK bit
     qd()
     pinf(SCL)                                   ' Float SCL
     hd()
@@ -131,7 +131,7 @@ PUB Write(i2cbyte): ackbit | SCL, SDA
     longmove(@SCL, @_SCL, 2)
     i2cbyte := (i2cbyte ^ $FF) << 24            ' Move msb (bit7) to bit31
     repeat 8                                    ' Output eight bits, MSB first
-        ((i2cbyte rol= 1) & %1) ? pinl(SDA) : pinf(SDA)
+        ((i2cbyte rol= 1) & %1) ? (pinl(SDA)) : (pinf(SDA))
         hd()
         pinf(SCL)                               ' SCL high
         hd()
