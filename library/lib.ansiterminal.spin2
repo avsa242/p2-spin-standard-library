@@ -89,12 +89,12 @@ CON
     LOWLT               = $6d                   ' Lower-left
     CROSS               = $6e                   ' Cross/4-way
 ' Horizontal and Vertical lines
-    HORIZ               = $71                   ' H-line
-    LVCENT              = $74                   ' Left V-line w/H-stem
-    RVCENT              = $75                   ' Right V-line w/H-stem
-    BHCENT              = $76                   ' Bottom H-line w/V-stem
-    UHCENT              = $77                   ' Top H-line w/V-stem
-    VERT                = $78                   ' V-line
+    HLINE               = $71                   ' H-line
+    LVLHSTEM            = $74                   ' Left V-line w/H-stem
+    RVLHSTEM            = $75                   ' Right V-line w/H-stem
+    BHLVSTEM            = $76                   ' Bottom H-line w/V-stem
+    THLVSTEM            = $77                   ' Top H-line w/V-stem
+    VLINE               = $78                   ' V-line
 
 PUB BGColor(color)
 ' Set background color
