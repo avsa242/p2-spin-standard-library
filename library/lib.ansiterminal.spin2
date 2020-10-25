@@ -111,6 +111,67 @@ PUB Bold(mode=1)
 ' Set Bold attribute
     SGR(mode)
 
+PUB Box(x0, y0, x1, y1, brd_fg, brd_bg, filled=0) | inwidth, inheight, inbot, intop, x, y
+' Draw a box, using semigraphics characters
+'   x0, y0, x1, y1: upper left, lower right coords
+'   brd_fg, brd_bg: border foreground, background colors
+'   filled: fill box (bool)
+    inwidth := x1-x0-1                          ' inside border w, h
+    inheight := y1-y0-1
+    intop := y0+1                               ' inside border top, bot.
+    inbot := y1-1
+
+    case filled
+        false:                                  ' not filled:
+            bgcolor(brd_bg)
+            fgcolor(brd_fg)
+            position(x0, y0)                    ' draw top:
+            semigfx(true)                       '   enable semigfx mode
+            char(UPPLT)                         '   upper-left corner
+            repeat inwidth
+                char(HLINE)                     '   fill horiz. lines
+            char(UPPRT)                         '   upper-right corner
+
+            position(x0, y1)                    ' draw bottom
+            char(LOWLT)
+            repeat inwidth
+                char(HLINE)
+            char(LOWRT)
+
+            repeat y from intop to inbot        ' draw left side
+                position(x0, y)
+                char(VLINE)                     '   v-lines
+
+            repeat y from intop to inbot        ' draw right side
+                position(x1, y)
+                char(VLINE)
+            semigfx(false)                      ' done. turn off semigfx mode
+
+        true:                                   ' filled:
+            bgcolor(brd_bg)
+            fgcolor(brd_fg)
+            position(x0, y0)                    ' set window pos
+            semigfx(true)                       ' turn on semigfx mode
+
+            char(UPPLT)                         ' top row:
+            repeat inwidth                      '   fill with horiz. lines
+                char(HLINE)
+            char(UPPRT)
+
+            repeat y from intop to inbot        ' middle rows:
+                position(x0, y)                 '   left border
+                char(VLINE)                     '   vert. lines
+                repeat inwidth
+                    char(" ")                   '   fill line with spaces
+                char(VLINE)                     '   right border
+            newline()
+
+            char(LOWLT)                         ' bottom row
+            repeat inwidth
+                char(HLINE)
+            char(LOWRT)
+            semigfx(false)                      ' done. turn off semigfx mode
+
 PUB Clear(mode=2)
 ' Clear screen
     CSI()
@@ -313,6 +374,19 @@ PUB ShowCursor()
 PUB Strikethrough(mode=9)
 ' Set Strike-through attribute
     SGR(mode)
+
+PUB TextWindow(ptr_titlestr, x, y, w, h, brd_fg, brd_bg, ttl_fg)
+' Draw a window with title string and border
+'   x, y: upper-left coords of window
+'   w, h: window dimensions (_outer_)
+'   brd_fg, brd_bg: window border foreground, background colors
+'   ttl_fg: title text fg color
+    box(x, y, x+w, y+h-1, brd_fg, brd_bg, true)
+    bgcolor(brd_bg)
+    fgcolor(ttl_fg)
+
+    position(x+2, y)                            ' display window title
+    str(ptr_titlestr)
 
 PUB Underline(mode=4)
 ' Set Underline attribute
