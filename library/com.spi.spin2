@@ -4,7 +4,7 @@
     Description: SPI engine (smart-pin driven) for the Propeller 2
     Author: Jesse Burt
     Created: Apr 15, 2020
-    Updated: Oct 3, 2020
+    Updated: Oct 31, 2020
     See end of file for terms of use.
     --------------------------------------------
 
@@ -33,20 +33,55 @@ OBJ
 
     sp      : "core.con.smartpins"
 
-PUB Start(SCK, MOSI, MISO, SCK_FREQ): okay
-' NOTE: MOSI pin must be SCK+1 and MISO pin must be SCK-1
+PUB Start(SCK, MOSI, MISO, SCK_FREQ): okay | MISO_rel, MOSI_rel
+' SCK: SPI Clock
+' MOSI: Master Out Slave In
+' MISO: Master In Slave Out
+' SCK_FREQ: SPI bus clock frequency
+'   NOTE: MOSI and MISO must be within +/- 3 pins of SCK
+'   Example:
+'       If SCK is pin 10,
+'       MOSI and MISO can (uniquely) be 7, 8, 9, 11, 12, or 13
     longmove(@_SCK, @SCK, 3)
 
     pinstart(SCK, sp.TRANSITION_OUT | sp.SMART_OUT_DRIVE | sp.OUTPUT_ENABLED,{
-    } spiclockperiod(SCK_FREQ), 0)
+    } spiclockperiod(SCK_FREQ), 0)              ' Setup SCK in transition mode
 
     if lookdown(MISO: 0..63)                    ' MISO optional
-        pinstart(MISO, sp.SYNCSERIAL_RX | sp.SMART_OUT_DRIVE |{
-        } sp.OUTPUT_DISABLED | sp.BINP_RELPLS1_READ | sp.BINP_TRUE,{
-        } sp.SAMPLE_A_BEFORE_B + (NUMBITS - 1), 0)
+        case SCK-MISO                           ' Check: within 3 of SCK?
+            1, 2, 3:                            ' MISO pin is lower than SCK
+                MISO_rel := lookup(SCK-MISO:{
+                } sp.BINP_RELPLS1_READ,{        ' SCK is relative (MISO) + ...
+                } sp.BINP_RELPLS2_READ,{
+                } sp.BINP_RELPLS3_READ)
+            -1, -2, -3:                         ' MISO pin is higher than SCK
+                MISO_rel := lookup((SCK-MISO)+4:{
+                } sp.BINP_RELMIN3_READ,{        ' SCK is relative (MISO) - ...
+                } sp.BINP_RELMIN2_READ,{
+                } sp.BINP_RELMIN1_READ)
+            other:
+                return                          ' invalid choice for MISO
+
+    case SCK-MOSI
+        1, 2, 3:
+            MOSI_rel := lookup(SCK-MOSI:{
+            } sp.BINP_RELPLS1_READ,{
+            } sp.BINP_RELPLS2_READ,{
+            } sp.BINP_RELPLS3_READ)
+        -1, -2, -3:
+            MOSI_rel := lookup((SCK-MOSI)+4:{
+            } sp.BINP_RELMIN3_READ,{
+            } sp.BINP_RELMIN2_READ,{
+            } sp.BINP_RELMIN1_READ)
+        other:
+            return                              ' invalid choice for MOSI
+
+    pinstart(MISO, sp.SYNCSERIAL_RX | sp.SMART_OUT_DRIVE |{
+    } sp.OUTPUT_DISABLED | MISO_rel | sp.BINP_TRUE,{
+    } sp.SAMPLE_A_BEFORE_B + (NUMBITS - 1), 0)
 
     pinstart(MOSI, sp.SYNCSERIAL_TX | sp.SMART_OUT_DRIVE | sp.OUTPUT_ENABLED |{
-    } sp.BINP_RELMIN1_READ | sp.BINP_INVERTED, sp.START_STOP + (NUMBITS - 1), $FF)
+    } MOSI_rel | sp.BINP_INVERTED, sp.START_STOP + (NUMBITS - 1), $FF)
 '    wypin(MOSI, $FF)                           ' XXX Copy from original code - verify function
 
     rdpin(MISO)
