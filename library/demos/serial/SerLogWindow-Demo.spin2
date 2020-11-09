@@ -6,7 +6,7 @@
         "window" on the serial terminal
     Copyright (c) 2020
     Started Oct 25, 2020
-    Updated Oct 25, 2020
+    Updated Nov 9, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -43,24 +43,19 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    int     : "string.integer"
-    str     : "string"
+    sf      : "string.format"
 
 VAR
 
     byte    _logbuff[LOGBUFFSZ]
     byte    _msg[LINEWIDTH]
 
-DAT
-
-    _msg_templ  byte    "this is message ####", 0
-
 PUB Main() | i, x, y
 
     setup()
 
     x := 0
-    y := 4
+    y := 4                                      ' x, y coords of 'window'
     ser.textwindow(string("Log messages"), x, y, LOG_W, LOG_H, ser.CYAN, ser.BLUE, ser.WHITE)
 
     i := 0
@@ -68,10 +63,13 @@ PUB Main() | i, x, y
     ser.fgcolor(ser.CYAN)
     ser.bgcolor(ser.BLUE)
     repeat
-        bytemove(@_msg, @_msg_templ, strsize(@_msg_templ))
-        str.replaceall(@_msg, string("####"), int.deczeroed(i, 4))
+        ' copy formatted string to temp buffer _msg
+        sf.snprintf(@_msg, LINEWIDTH, string("this is message %d"), i)
+
+        ' display the scroll buffer and scroll it up one line
         msgscrollup(@_msg, x, y)
-        i++
+        bytefill(@_msg, 0, LINEWIDTH)           ' clear out the buffer
+        i++                                     ' increment counter used above
 
 PUB MsgScrollDown(ptr_msg, x, y) | ln, ins_left, ins_top
 ' Scroll a message buffer down one line and add new message to the top row
