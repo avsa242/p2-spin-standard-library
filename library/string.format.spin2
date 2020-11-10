@@ -7,7 +7,7 @@
         strings
     Copyright (c) 2020
     Started Nov 9, 2020
-    Updated Nov 9, 2020
+    Updated Nov 10, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -45,54 +45,55 @@ PUB SNPrintF(ptr_str, sz_str, ptr_fmt, an=0, bn=0, cn=0, dn=0, en=0, fn=0): out_
 '   Returns: updated (end-of destination) pointer
     valptr := @an                               ' point to an..fn params
     sz_str += ptr_str
-    repeat while byte[ptr_fmt]
+    repeat
         in := byte[ptr_fmt++]                   ' start parsing the format
-        if in == 0                              ' if byte from ptr_fmt is NUL,
-            quit                                '   that's the end
         if ptr_str >= sz_str                    ' if pointer reaches sz_str,
             quit                                '   quit
-        if in == "%"                            ' reached a format specifier
-            in := byte[ptr_fmt++]
-            if (in == 0)                        ' NUL reached - quit
-                quit
-            if (in == "%")                      ' literal "%"
+        case in
+            0:                                  ' if byte from ptr_fmt is NUL,
+                quit                            '   that's the end
+            "%":                                ' reached a format specifier
+                case in := byte[ptr_fmt++]
+                    0:                          ' NUL reached - quit
+                        quit
+                    "%":                        ' literal "%"
+                        byte[ptr_str++] := in
+                        next
+                val := long[valptr]             ' get value for current format
+                valptr += 4                     '   specifier, then go to next
+                case in
+                    "d":                        ' decimal
+                        dtmp := int.dec(val)    ' append and advance the
+                        str.append(ptr_str, dtmp)'   pointer by the length of
+                        ptr_str += strsize(dtmp)'   the number
+                    "u":                        ' decimal
+                        dtmp := int.dec(val)    '   (unsigned not currently
+                        str.append(ptr_str, dtmp)'   supported)
+                        ptr_str += strsize(dtmp)
+                    "x":                        ' hex
+                        str.append(ptr_str, int.hex(val, 8))
+                        ptr_str += 8
+                    "s":                        ' string
+                        str.append(ptr_str, val)
+                        ptr_str += strsize(val)
+                    "c":                        ' char
+                        byte[ptr_str++] := val
+            "\":                                ' escape sequence
+                in := byte[ptr_fmt++]
+                if in == 0
+                    quit
+                case in
+                    "n":                        ' newline
+                        str.append(ptr_str++, string(CR, LF))
+                    "r":                        ' carriage return
+                        byte[ptr_str++] := CR
+                    "t":                        ' tab
+                        byte[ptr_str++] := TB
+                    other:                      ' literal (unsupported escape)
+                        byte[ptr_str++] := in
+                ptr_str++
+            other:                              ' literal (no processing)
                 byte[ptr_str++] := in
-                next
-            val := long[valptr]                 ' get value for current format
-            valptr += 4                         '   specifier, then go to next
-            case in
-                "d":                            ' decimal
-                    dtmp := int.dec(val)        ' append and advance the
-                    str.append(ptr_str, dtmp)   '   pointer by the length of
-                    ptr_str += strsize(dtmp)    '   the number
-                "u":                            ' decimal
-                    dtmp := int.dec(val)        '   (unsigned not currently
-                    str.append(ptr_str, dtmp)   '   supported)
-                    ptr_str += strsize(dtmp)
-                "x":                            ' hex
-                    str.append(ptr_str, int.hex(val, 8))
-                    ptr_str += 8
-                "s":                            ' string
-                    str.append(ptr_str, val)
-                    ptr_str += strsize(val)
-                "c":                            ' char
-                    byte[ptr_str++] := val
-        elseif in == "\"                        ' escape sequence
-            in := byte[ptr_fmt++]
-            if in == 0
-                quit
-            case in
-                "n":                            ' newline
-                    str.append(ptr_str++, string(CR, LF))
-                "r":                            ' carriage return
-                    byte[ptr_str++] := CR
-                "t":                            ' tab
-                    byte[ptr_str++] := TB
-                other:                          ' literal (unsupported escape)
-                    byte[ptr_str++] := in
-            ptr_str++
-        else                                    ' literal (no processing)
-            byte[ptr_str++] := in
 
     return ptr_str                              ' return updated pointer
 
@@ -103,52 +104,52 @@ PUB SPrintF(ptr_str, ptr_fmt, an=0, bn=0, cn=0, dn=0, en=0, fn=0): out_ptr | in,
 '   an..fn: values to use in format specifiers' substitution
 '   Returns: updated (end-of destination) pointer
     valptr := @an                               ' point to an..fn params
-    repeat while byte[ptr_fmt]
-        in := byte[ptr_fmt++]                   ' start parsing the format
-        if in == 0                              ' if byte from ptr_fmt is NUL,
-            quit                                '   that's the end
-        if in == "%"                            ' reached a format specifier
-            in := byte[ptr_fmt++]
-            if (in == 0)                        ' NUL reached - quit
-                quit
-            if (in == "%")                      ' literal "%"
+    repeat
+        case (in := byte[ptr_fmt++])            ' start parsing the format
+            0:                                  ' if byte from ptr_fmt is NUL,
+                quit                            '   that's the end
+            "%":                                ' reached a format specifier
+                case (in := byte[ptr_fmt++])
+                    0:                          ' NUL reached - quit
+                        quit
+                    "%":                        ' literal "%"
+                        byte[ptr_str++] := in
+                        next
+                val := long[valptr]             ' get value for current format
+                valptr += 4                     '   specifier, then advance it
+                case in
+                    "d":                        ' decimal
+                        dtmp := int.dec(val)    ' append and advance the
+                        str.append(ptr_str, dtmp)'   pointer by the length of
+                        ptr_str += strsize(dtmp)'   the number
+                    "u":                        ' decimal
+                        dtmp := int.dec(val)    '   (unsigned not currently
+                        str.append(ptr_str, dtmp)'   supported)
+                        ptr_str += strsize(dtmp)
+                    "x":                        ' hex
+                        str.append(ptr_str, int.hex(val, 8))
+                        ptr_str += 8
+                    "s":                        ' string
+                        str.append(ptr_str, val)
+                        ptr_str += strsize(val)
+                    "c":                        ' char
+                        byte[ptr_str++] := val
+            "\":                                ' escape sequence
+                in := byte[ptr_fmt++]
+                if in == 0
+                    quit
+                case in
+                    "n":                        ' newline
+                        str.append(ptr_str++, string(CR, LF))
+                    "r":                        ' carriage return
+                        byte[ptr_str++] := CR
+                    "t":                        ' tab
+                        byte[ptr_str++] := TB
+                    other:                      ' literal (unsupported escape)
+                        byte[ptr_str++] := in
+                ptr_str++
+            other:                              ' literal (no processing)
                 byte[ptr_str++] := in
-                next
-            val := long[valptr]                 ' get value for current format
-            valptr += 4                         '   specifier, then advance it
-            case in
-                "d":                            ' decimal
-                    dtmp := int.dec(val)        ' append and advance the
-                    str.append(ptr_str, dtmp)   '   pointer by the length of
-                    ptr_str += strsize(dtmp)    '   the number
-                "u":                            ' decimal
-                    dtmp := int.dec(val)        '   (unsigned not currently
-                    str.append(ptr_str, dtmp)   '   supported)
-                    ptr_str += strsize(dtmp)
-                "x":                            ' hex
-                    str.append(ptr_str, int.hex(val, 8))
-                    ptr_str += 8
-                "s":                            ' string
-                    str.append(ptr_str, val)
-                    ptr_str += strsize(val)
-                "c":                            ' char
-                    byte[ptr_str++] := val
-        elseif in == "\"                        ' escape sequence
-            in := byte[ptr_fmt++]
-            if in == 0
-                quit
-            case in
-                "n":                            ' newline
-                    str.append(ptr_str++, string(CR, LF))
-                "r":                            ' carriage return
-                    byte[ptr_str++] := CR
-                "t":                            ' tab
-                    byte[ptr_str++] := TB
-                other:                          ' literal (unsupported escape)
-                    byte[ptr_str++] := in
-            ptr_str++
-        else                                    ' literal (no processing)
-            byte[ptr_str++] := in
 
     return ptr_str                              ' return updated pointer
 
