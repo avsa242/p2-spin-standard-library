@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2020
     Started: Jun 14, 2020
-    updated: Jul 24, 2020
+    updated: Dec 1, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -689,6 +689,7 @@ PUB Setup()
         ser.printf("SSD1306 driver failed to start - halting\n")
 #endif
     disp.fontaddress(fnt.baseaddr())
+    disp.fontscale(1)
     disp.fontsize(6, 8)
     disp.clear()
 
