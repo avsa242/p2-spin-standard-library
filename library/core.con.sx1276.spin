@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2020
     Started Oct 6, 2019
-    Updated Jul 22, 2020
+    Updated Dec 11, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,93 +16,96 @@ CON
     CPOL                        = 0
     CLK_DELAY                   = 1
     SCK_MAX_FREQ                = 10_000_000
-    MOSI_BITORDER               = 5             'MSBFIRST
-    MISO_BITORDER               = 0             'MSBPRE
+    MOSI_BITORDER               = 5             ' MSBFIRST
+    MISO_BITORDER               = 0             ' MSBPRE
 
-    WRITE                       = 1 << 7
+    WRITE                       = 1 << 7        ' OR with reg_nr to signal write
 
 ' General/shared functionality
     FIFO                        = $00
     OPMODE                      = $01
     OPMODE_MASK                 = $CF
-        FLD_LONGRANGEMODE       = 7
-        FLD_MODULATIONTYPE      = 5
-        FLD_LOWFREQUENCYMODEON  = 3
-        FLD_MODE                = 0
-        BITS_MODULATIONTYPE     = %11
-        BITS_MODE               = %111
-        MASK_LONGRANGEMODE      = OPMODE_MASK ^ (1 << FLD_LONGRANGEMODE)
-        MASK_MODULATIONTYPE     = OPMODE_MASK ^ (BITS_MODULATIONTYPE << FLD_MODULATIONTYPE)
-        MASK_LOWFREQUENCYMODEON = OPMODE_MASK ^ (1 << FLD_LOWFREQUENCYMODEON)
-        MASK_MODE               = OPMODE_MASK ^ (BITS_MODE << FLD_MODE)
+        LONGRANGEMODE           = 7
+        MODTYPE                 = 5
+        LOWFREQMODEON           = 3
+        MODE                    = 0
+        MODTYPE_BITS            = %11
+        MODE_BITS               = %111
+        LONGRANGEMODE_MASK      = (1 << LONGRANGEMODE) ^ OPMODE_MASK
+        MODTYPE_MASK            = (MODTYPE_BITS << MODTYPE) ^ OPMODE_MASK
+        LOWFREQMODEON_MASK      = (1 << LOWFREQMODEON) ^ OPMODE_MASK
+        MODE_MASK               = MODE_BITS ^ OPMODE_MASK
 
     FRFMSB                      = $06
     FRFMID                      = $07
     FRFLSB                      = $08
 
-    PACONFIG                    = $09
-    PACONFIG_MASK               = $FF
-        FLD_PASELECT            = 7
-        FLD_MAXPOWER            = 4
-        FLD_OUTPUTPOWER         = 0
-        BITS_MAXPOWER           = %111
-        BITS_OUTPUTPOWER        = %1111
-        MASK_PASELECT           = PACONFIG_MASK ^ (1 << FLD_PASELECT)
-        MASK_MAXPOWER           = PACONFIG_MASK ^ (BITS_MAXPOWER << FLD_MAXPOWER)
-        MASK_OUTPUTPOWER        = PACONFIG_MASK ^ (BITS_OUTPUTPOWER << FLD_OUTPUTPOWER)
+    PACFG                       = $09
+    PACFG_MASK                  = $FF
+        PASELECT                = 7
+        MAXPWR                  = 4
+        OUTPUTPWR               = 0
+        MAXPWR_BITS             = %111
+        OUTPUTPWR_BITS          = %1111
+        PASELECT_MASK           = (1 << PASELECT) ^ PACFG_MASK
+        MAXPWR_MASK             = (MAXPWR_BITS << MAXPWR) ^ PACFG_MASK
+        OUTPUTPWR_MASK          = OUTPUTPWR_BITS ^ PACFG_MASK
 
     PARAMP                      = $0A
     PARAMP_MASK                 = $0F
-        FLD_PARAMP              = 0
-        BITS_PARAMP             = %1111
+        PA_RAMP                 = 0
+        PA_RAMP_BITS            = %1111
 
     OCP                         = $0B
     OCP_MASK                    = $3F
-        FLD_OCPON               = 5
-        FLD_OCPTRIM             = 0
-        BITS_OCPTRIM            = %11111
-        MASK_OCPON              = OCP_MASK ^ (1 << FLD_OCPON)
-        MASK_OCPTRIM            = OCP_MASK ^ (BITS_OCPTRIM << FLD_OCPTRIM)
+        OCPON                   = 5
+        OCPTRIM                 = 0
+        OCPTRIM_BITS            = %11111
+        OCPON_MASK              = (1 << OCPON) ^ OCP_MASK
+        OCPTRIM_MASK            = OCPTRIM_BITS ^ OCP_MASK
 
     LNA                         = $0C
     LNA_MASK                    = $FB
-        FLD_LNAGAIN             = 5
-        FLD_LNABOOSTLF          = 3
-        FLD_LNABOOSTHF          = 0
-        BITS_LNAGAIN            = %111
-        BITS_LNABOOSTLF         = %11
-        BITS_LNABOOSTHF         = %11
-        MASK_LNAGAIN            = LNA_MASK ^ (BITS_LNAGAIN << FLD_LNAGAIN)
-        MASK_LNABOOSTLF         = LNA_MASK ^ (BITS_LNABOOSTLF << FLD_LNABOOSTLF)
-        MASK_LNABOOSTHF         = LNA_MASK ^ (BITS_LNABOOSTHF << FLD_LNABOOSTHF)
+        LNAGAIN                 = 5
+        LNABOOSTLF              = 3
+        LNABOOSTHF              = 0
+        LNAGAIN_BITS            = %111
+        LNABOOSTLF_BITS         = %11
+        LNABOOSTHF_BITS         = %11
+        LNAGAIN_MASK            = (LNAGAIN << LNAGAIN) ^ LNA_MASK
+        LNABOOSTLF_MASK         = (LNABOOSTLF << LNABOOSTLF) ^ LNA_MASK
+        LNABOOSTHF_MASK         = LNABOOSTHF_BITS ^ LNA_MASK
 
-    DIOMAPPING1                 = $40
-    DIOMAPPING1_MASK            = $FF
-        FLD_DIO0MAPPING         = 6
-        FLD_DIO1MAPPING         = 4
-        FLD_DIO2MAPPING         = 2
-        FLD_DIO3MAPPING         = 0
-        MASK_DIO0MAPPING        = DIOMAPPING1_MASK ^ (1 << FLD_DIO0MAPPING)
-        MASK_DIO1MAPPING        = DIOMAPPING1_MASK ^ (1 << FLD_DIO1MAPPING)
-        MASK_DIO2MAPPING        = DIOMAPPING1_MASK ^ (1 << FLD_DIO2MAPPING)
-        MASK_DIO3MAPPING        = DIOMAPPING1_MASK ^ (1 << FLD_DIO3MAPPING)
+    DIOMAP1                     = $40
+    DIOMAP1_MASK                = $FF
+        DIO0MAP                 = 6
+        DIO1MAP                 = 4
+        DIO2MAP                 = 2
+        DIO3MAP                 = 0
+        DIO0MAP_MASK            = (1 << DIO0MAP) ^ DIOMAP1_MASK
+        DIO1MAP_MASK            = (1 << DIO1MAP) ^ DIOMAP1_MASK
+        DIO2MAP_MASK            = (1 << DIO2MAP) ^ DIOMAP1_MASK
+        DIO3MAP_MASK            = 1 ^ DIOMAP1_MASK
 
-    DIOMAPPING2                 = $41
-    DIOMAPPING2_MASK            = $F1
-        FLD_DIO4MAPPING         = 6
-        FLD_DIO5MAPPING         = 4
-        MASK_DIO4MAPPING        = DIOMAPPING2_MASK ^ (1 << FLD_DIO4MAPPING)
-        MASK_DIO5MAPPING        = DIOMAPPING2_MASK ^ (1 << FLD_DIO5MAPPING)
+    DIOMAP2                     = $41
+    DIOMAP2_MASK                = $F1
+        DIO4MAP                 = 6
+        DIO5MAP                 = 4
+        DIO4MAP_MASK            = (1 << DIO4MAP) ^ DIOMAP2_MASK
+        DIO5MAP_MASK            = (1 << DIO5MAP) ^ DIOMAP2_MASK
 
     VERSION                     = $42
     TCXO                        = $4B
 
     PADAC                       = $4D
     PADAC_MASK                  = $07
-        FLD_PADAC_RSVD          = 3
-        BITS_PADAC_RSVD         = %11111
-        FLD_PADAC               = 0
-        BITS_PADAC              = %111
+        PADAC_RSVD              = 3
+        PADAC_RSVD_BITS         = %11111
+        PADAC_RSVD_DEF          = $10 < PADAC_RSVD
+        PA_DAC                  = 0
+        PA_DAC_BITS             = %111
+        PA_DEF                  = %100
+        PA_BOOST                = %111
 
     FORMERTEMP                  = $5B
     AGCREF                      = $61
@@ -115,8 +118,8 @@ CON
     BITRATELSB                  = $03
     FDEVMSB                     = $04
     FDEVLSB                     = $05
-    RXCONFIG                    = $0D
-    RSSICONFIG                  = $0E
+    RXCFG                       = $0D
+    RSSICFG                     = $0E
     RSSICOLLISION               = $0F
     RSSITHRESH                  = $10
     RSSIVALUE                   = $11
@@ -139,15 +142,15 @@ CON
 
     OSC                         = $24
     OSC_MASK                    = $0F
-        FLD_RCCALSTART          = 3
-        FLD_CLKOUT              = 0
-        BITS_CLKOUT             = %111
-        MASK_RCCALSTART         = OSC_MASK ^ (1 << FLD_RCCALSTART)
-        MASK_CLKOUT             = OSC_MASK ^ (BITS_CLKOUT << FLD_CLKOUT)
+        RCCALSTART              = 3
+        CLKOUT                  = 0
+        CLKOUT_BITS             = %111
+        RCCALSTART_MASK         = (1 << RCCALSTART) ^ OSC_MASK
+        CLKOUT_MASK             = CLKOUT_BITS ^ OSC_MASK
 
     PREAMBLEMSB                 = $25
     PREAMBLELSB                 = $26
-    SYNCCONFIG                  = $27
+    SYNCCFG                     = $27
     SYNCVALUE1                  = $28
     SYNCVALUE2                  = $29
     SYNCVALUE3                  = $2A
@@ -156,14 +159,14 @@ CON
     SYNCVALUE6                  = $2D
     SYNCVALUE7                  = $2E
     SYNCVALUE8                  = $2F
-    PACKETCONFIG1               = $30
-    PACKETCONFIG2               = $31
-    PAYLOADLENGTH               = $32
+    PACKETCFG1                  = $30
+    PACKETCFG2                  = $31
+    PAYLDLENGTH                 = $32
     NODEADRS                    = $33
     BROADCASTADRS               = $34
     FIFOTHRESH                  = $35
-    SEQCONFIG1                  = $36
-    SEQCONFIG2                  = $37
+    SEQCFG1                     = $36
+    SEQCFG2                     = $37
     TIMERRESOL                  = $38
     TIMER1COEF                  = $39
     TIMER2COEF                  = $3A
@@ -183,67 +186,67 @@ CON
     IRQFLAGS_MASK               = $11   'LORA
     IRQFLAGS                    = $12   'LORA
     RXNBBYTES                   = $13   'LORA
-    RXHEADERCNTVALUEMSB         = $14   'LORA
-    RXHEADERCNTVALUELSB         = $15   'LORA
+    RXHDRCNTVALUEMSB            = $14   'LORA
+    RXHDRCNTVALUELSB            = $15   'LORA
     RXPACKETCNTVALUEMSB         = $16   'LORA
     RXPACKETCNTVALUELSB         = $17   'LORA
 
-    MODEMSTAT                   = $18   'LORA
-        FLD_RXCODINGRATE        = 5
-        BITS_RXCODINGRATE       = %111
-        BITS_MODEMSTATUS        = %11111
+    MDMSTAT                     = $18   'LORA
+        RXCODERATE              = 5
+        RXCODERATE_BITS         = %111
+        MDMSTATUS_BITS          = %11111
 
     PKTSNRVALUE                 = $19   'LORA
     PKTRSSIVALUE                = $1A   'LORA
     LORA_RSSIVALUE              = $1B   'LORA
 
     HOPCHANNEL                  = $1C   'LORA
-        FLD_PLLTIMEOUT          = 7
-        FLD_CRCONPAYLOAD        = 6
-        FLD_FHSSPRESENTCHANNEL  = 0
-        BITS_FHSSPRESENTCHANNEL = %111111
+        PLLTIMEOUT              = 7
+        CRCONPAYLD              = 6
+        FHSSPRES_CHAN           = 0
+        FHSSPRES_CHAN_BITS      = %111111
 
-    MODEMCONFIG1                = $1D   'LORA
-    MODEMCONFIG1_MASK           = $FF
-        FLD_BW                  = 4
-        FLD_CODINGRATE          = 1
-        FLD_IMPL_HEADERMODEON   = 0
-        BITS_BW                 = %1111
-        BITS_CODINGRATE         = %111
-        MASK_BW                 = MODEMCONFIG1_MASK ^ (BITS_BW << FLD_BW)
-        MASK_CODINGRATE         = MODEMCONFIG1_MASK ^ (BITS_CODINGRATE << FLD_CODINGRATE)
-        MASK_IMPL_HEADERMODEON  = MODEMCONFIG1_MASK ^ (1 << FLD_IMPL_HEADERMODEON)
+    MDMCFG1                     = $1D   'LORA
+    MDMCFG1_MASK                = $FF
+        BW                      = 4
+        CODERATE                = 1
+        IMPL_HDRMODEON          = 0
+        BW_BITS                 = %1111
+        CODERATE_BITS           = %111
+        BW_MASK                 = (BW_BITS << BW) ^ MDMCFG1_MASK
+        CODERATE_MASK           = (CODERATE_BITS << CODERATE) ^ MDMCFG1_MASK
+        IMPL_HDRMODEON_MASK     = 1 ^ MDMCFG1_MASK
 
-    MODEMCONFIG2                = $1E   'LORA
-    MODEMCONFIG2_MASK           = $FF
-        FLD_SPREADINGFACTOR     = 4
-        FLD_TXCONTINUOUSMODE    = 3
-        FLD_RXPAYLOADCRCON      = 2
-        FLD_SYMBTIMEOUT_MSB     = 0
-        BITS_SPREADINGFACTOR    = %1111
-        BITS_SYMBTIMEOUT_MSB    = %11
-        MASK_SPREADINGFACTOR    = MODEMCONFIG2_MASK ^ (BITS_SPREADINGFACTOR << FLD_SPREADINGFACTOR)
-        MASK_TXCONTINUOUSMODE   = MODEMCONFIG2_MASK ^ (1 << FLD_TXCONTINUOUSMODE)
-        MASK_RXPAYLOADCRCON     = MODEMCONFIG2_MASK ^ (1 << FLD_RXPAYLOADCRCON)
-        MASK_SYMBTIMEOUTMSB     = MODEMCONFIG2_MASK ^ (BITS_SYMBTIMEOUT_MSB << FLD_SYMBTIMEOUT_MSB)
+    MDMCFG2                     = $1E   'LORA
+    MDMCFG2_MASK                = $FF
+        SPREADFACT              = 4
+        TXCONTMODE              = 3
+        RXPAYLDCRCON            = 2
+        SYMBTIMEOUT_MSB         = 0
+        SPREADFACT_BITS         = %1111
+        SYMBTIMEOUT_MSB_BITS    = %11
+        SPREADFACT_MASK         = (SPREADFACT_BITS << SPREADFACT) ^ MDMCFG2_MASK
+        TXCONTMODE_MASK         = (1 << TXCONTMODE) ^ MDMCFG2_MASK
+        RXPAYLDCRCON_MASK       = (1 << RXPAYLDCRCON) ^ MDMCFG2_MASK
+        SYMBTIMEOUTMSB_MASK     = SYMBTIMEOUT_MSB_BITS ^ MDMCFG2_MASK
 
     SYMBTIMEOUTLSB              = $1F   'LORA
-        FLD_SYMBTIMEOUT_LSB     = 0
-        BITS_SYMBTIMEOUT        = %1111111111
+        SYMBTIMEOUT_LSB         = 0
+        SYMBTIMEOUT_BITS        = %1111111111
 
     LORA_PREAMBLEMSB            = $20   'LORA
     LORA_PREAMBLELSB            = $21   'LORA
-    LORA_PAYLOADLENGTH          = $22   'LORA
-    MAXPAYLOADLENGTH            = $23   'LORA
+    LORA_PAYLDLENGTH            = $22   'LORA
+    MAXPAYLDLENGTH              = $23   'LORA
     HOPPERIOD                   = $24   'LORA
     FIFORXBYTEADDR              = $25   'LORA
 
-    MODEMCONFIG3                = $26   'LORA
-    MODEMCONFIG3_MASK           = $0C
-        FLD_LOWDATARATEOPTIMIZE = 3
-        FLD_AGCAUTOON           = 2
-        MASK_LOWDATARATEOPTIMIZE= MODEMCONFIG3_MASK ^ (1 << FLD_LOWDATARATEOPTIMIZE)
-        MASK_AGCAUTOON          = MODEMCONFIG3_MASK ^ (1 << FLD_AGCAUTOON)
+    MDMCFG3                     = $26   'LORA
+    MDMCFG3_MASK                = $0C
+        LOWDRATEOPT             = 3
+        AGCAUTOON               = 2
+        LOWDRATEOPT_MASK        = (1 << LOWDRATEOPT) ^ MDMCFG3_MASK
+        AGCAUTOON_MASK          = 1 ^ MDMCFG3_MASK
 
     PPMCORRECTION               = $27   'LORA
     LORA_FEIMSB                 = $28   'LORA
@@ -254,15 +257,15 @@ CON
 ' $2D..2E - RESERVED
     IFFREQ1                     = $2F   'LORA
     IFFREQ2                     = $30   'LORA
-    DETECTOPTIMIZE              = $31   'LORA
+    DETECTOPT                   = $31   'LORA
 ' $32 - RESERVED
     INVERTIQ                    = $33   'LORA
 ' $34..$35 - RESERVED
-    HIGHBWOPTIMIZE1             = $36   'LORA
+    HIGHBWOPT1                  = $36   'LORA
     DETECTIONTHRESHOLD          = $37   'LORA
 ' $38 - RESERVED
     SYNCWORD                    = $39   'LORA
-    HIGHBWOPTIMIZE2             = $3A   'LORA
+    HIGHBWOPT2                  = $3A   'LORA
     INVERTIQ2                   = $3B
 ' $3C..$3F - RESERVED
 
