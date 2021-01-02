@@ -6,9 +6,9 @@
         by Eric Smith)
     Description: Library to extend a terminal driver with
         standard terminal routines (Bin, Dec, Hex, PrintF, Str)
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Dec 14, 2019
-    Updated Sep 13, 2020
+    Updated Jan 2, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -33,6 +33,7 @@ CON
 
     BS              =  8                                    ' Backspace
     TB              =  9                                    ' Tab
+    CB              = 12                                    ' Clear
     CR              = 13                                    ' Carriage Return
     LF              = 10                                    ' Line Feed
 
