@@ -3,9 +3,9 @@
     Filename: core.con.st7735.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Mar 07, 2020
-    Updated Jul 22, 2020
+    Updated Jan 10, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,159 +13,170 @@
 CON
 
 ' SPI Configuration
-    CPOL                        = 0
-    SCK_DELAY                   = 1
-    SCK_MAX_FREQ                = 15_151_515    ' According to datasheet; seems to work fine at 20MHz, though
-    MOSI_BITORDER               = 5             'MSBFIRST
-    MISO_BITORDER               = 0             'MSBPRE
+    CPOL            = 0
+    SCK_DELAY       = 1
+    SCK_MAX_FREQ    = 15_151_515    ' According to datasheet; seems to work fine at 20MHz, though
+    MOSI_BITORDER   = 5             'MSBFIRST
+    MISO_BITORDER   = 0             'MSBPRE
 
-    FOSC                        = 625_000       ' Display controller oscillator freq
+    FOSC            = 625_000       ' Display controller oscillator freq
+
 ' Register definitions
-    NOOP                        = $00
-    SOFT_RESET                  = $01
-    RDDID                       = $04
-    RDDST                       = $09
-    RDDPM                       = $0A
-    RDD_MADCTL                  = $0B
-    RDD_COLMOD                  = $0C
-    RDDIM                       = $0D
-    RDDSM                       = $0E
-    SLPIN                       = $10
-    SLPOUT                      = $11
-    PTLON                       = $12
-    NORON                       = $13
-    INVOFF                      = $20
-    INVON                       = $21
-    GAMSET                      = $26
-    DISPOFF                     = $28
-    DISPON                      = $29
-    CASET                       = $2A
-    RASET                       = $2B
-    RAMWR                       = $2C
-    RGBSET                      = $2D
-    RAMRD                       = $2E
-    PTLAR                       = $30
-    TEOFF                       = $34
-    TEON                        = $35
+    NOOP            = $00
+    SOFT_RESET      = $01
+    RDDID           = $04
+    RDDST           = $09
+    RDDPM           = $0A
+    RDD_MADCTL      = $0B
+    RDD_COLMOD      = $0C
+    RDDIM           = $0D
+    RDDSM           = $0E
+    SLPIN           = $10
+    SLPOUT          = $11
+    PTLON           = $12
+    NORON           = $13
+    INVOFF          = $20
+    INVON           = $21
+    GAMSET          = $26
+    DISPOFF         = $28
+    DISPON          = $29
+    CASET           = $2A
+    RASET           = $2B
+    RAMWR           = $2C
+    RGBSET          = $2D
+    RAMRD           = $2E
+    PTLAR           = $30
+    TEOFF           = $34
+    TEON            = $35
 
-    MADCTL                      = $36
-    MADCTL_MASK                 = $FC
-        FLD_MY                  = 7
-        FLD_MX                  = 6
-        FLD_MV                  = 5
-        FLD_ML                  = 4
-        FLD_RGB                 = 3
-        FLD_MH                  = 2
-        MASK_MY                 = MADCTL_MASK ^ (1 << FLD_MY)
-        MASK_MX                 = MADCTL_MASK ^ (1 << FLD_MX)
-        MASK_MV                 = MADCTL_MASK ^ (1 << FLD_MV)
-        MASK_ML                 = MADCTL_MASK ^ (1 << FLD_ML)
-        MASK_RGB                = MADCTL_MASK ^ (1 << FLD_RGB)
-        MASK_MH                 = MADCTL_MASK ^ (1 << FLD_MH)
+    MADCTL          = $36
+    MADCTL_MASK     = $FC
+        MY          = 7
+        MX          = 6
+        MV          = 5
+        ML          = 4
+        RGB         = 3
+        MH          = 2
+        MY_MASK     = (1 << MY) ^ MADCTL_MASK
+        MX_MASK     = (1 << MX) ^ MADCTL_MASK
+        MV_MASK     = (1 << MV) ^ MADCTL_MASK
+        ML_MASK     = (1 << ML) ^ MADCTL_MASK
+        RGB_MASK    = (1 << RGB) ^ MADCTL_MASK
+        MH_MASK     = (1 << MH) ^ MADCTL_MASK
 
-    IDMOFF                      = $38
-    IDMON                       = $39
+    IDMOFF          = $38
+    IDMON           = $39
 
-    COLMOD                      = $3A
-    COLMOD_MASK                 = $07
-        FLD_IFPF                = 0
-        BITS_IFPF               = %111
+    COLMOD          = $3A
+    COLMOD_MASK     = $07
+        IFPF        = 0
+        IFPF_BITS   = %111
 
-    FRMCTR1                     = $B1
-        FLD_RTNA                = 0
-        FLD_FPA                 = 0
-        FLD_BPA                 = 0
-        BITS_RTNA               = %1111
-        BITS_FPA                = %111111
-        BITS_BPA                = %111111
+    FRMCTR1         = $B1
+        RTNA        = 0
+        FPA         = 0
+        BPA         = 0
+        RTNA_BITS   = %1111
+        FPA_BITS    = %111111
+        BPA_BITS    = %111111
 
-    FRMCTR2                     = $B2
+    FRMCTR2         = $B2
 
-    FRMCTR3                     = $B3
+    FRMCTR3         = $B3
 
-    INVCTR                      = $B4
-        FLD_NL                  = 0
-        FLD_NLC                 = 0
-        FLD_NLB                 = 1
-        FLD_NLA                 = 2
+    INVCTR          = $B4
+        NLA         = 2
+        NLB         = 1
+        NLC         = 0
+        NL          = 0
 
-    DISSET5                     = $B6
-        FLD_EQ                  = 0
-        FLD_SDT                 = 2
-        FLD_NO                  = 4
-        FLD_PT                  = 0
-        FLTD_PTG                = 2
-        BITS_EQ                 = %11
-        BITS_SDT                = %11
-        BITS_NO                 = %11
-        BITS_PT                 = %11
-        BITS_PTG                = %11
+    DISSET5         = $B6
+'-- cmd byte 1
+        NO          = 4
+        SDT         = 2
+        EQ          = 0
+        NO_BITS     = %11
+        SDT_BITS    = %11
+        EQ_BITS     = %11
+'-- cmd byte 2
+        PTG         = 2
+        PT          = 0
+        PTG_BITS    = %11
+        PT_BITS     = %11
 
-    PWCTR1                      = $C0
-        FLD_VRHP                = 0
-        FLD_AVDD                = 5
-        FLD_VRHN                = 0
-        FLD_MODE                = 6
-        BITS_VRHP               = %11111
-        BITS_AVDD               = %111
-        BITS_VRHN               = %11111
-        BITS_MODE               = %11
-        MASK_VRHP               = $FF ^ (BITS_VRHP << FLD_VRHP)
-        MASK_AVDD               = $FF ^ (BITS_AVDD << FLD_AVDD)
+    PWCTR1          = $C0
+    PWCTR1_MASK     = $FF
+'-- cmd byte 1
+        AVDD        = 5
+        VRHP        = 0
+        AVDD_BITS   = %111
+        VRHP_BITS   = %11111
+        AVDD_MASK   = (AVDD_BITS << AVDD) ^ PWCTR1_MASK
+        VRHP_MASK   = VRHP_BITS ^ PWCTR1_MASK
+'-- cmd byte 2
+        VRHN        = 0
+        VRHN_BITS   = %11111
+'-- cmd byte 3
+        MODE        = 6
+        MODE_BITS   = %11
 
-    PWCTR2                      = $C1
-        FLD_VGHBT               = 0
-        FLD_VGLSEL              = 2
-        FLD_VGH25               = 6
-        BITS_VGHBT              = %11
-        BITS_VGLSEL             = %11
-        BITS_VGH25              = %11
-        MASK_VGHBT              = $CF ^ (BITS_VGHBT << FLD_VGHBT)
-        MASK_VGLSEL             = $CF ^ (BITS_VGLSEL << FLD_VGLSEL)
-        MASK_VGH25              = $CF ^ (BITS_VGH25 << FLD_VGH25)
+    PWCTR2          = $C1
+    PWCTR2_MASK     = $CF
+        VGH25       = 6
+        VGLSEL      = 2
+        VGHBT       = 0
+        VGH25_BITS  = %11
+        VGLSEL_BITS = %11
+        VGHBT_BITS  = %11
+        VGH25_MASK  = (VGH25_BITS << VGH25) ^ PWCTR2_MASK
+        VGLSEL_MASK = (VGLSEL_BITS << VGLSEL) ^ PWCTR2_MASK
+        VGHBT_MASK  = VGHBT_BITS ^ PWCTR2_MASK
 
-    PWCTR3                      = $C2
-        FLD_AP                  = 0                                     ' These apply to PWCTR4 and 5, as well
-        FLD_SAP                 = 3
-        FLD_DCMSB               = 6
-        FLD_DCLSB               = 0
-        BITS_AP                 = %111
-        BITS_SAP                = %111
-        BITS_DCMSB              = %11
-        BITS_DCLSB              = %11111111
-        MASK_AP                 = $FF ^ (BITS_AP << FLD_AP)
-        MASK_SAP                = $FF ^ (BITS_SAP << FLD_SAP)
-        MASK_DCMSB              = $FF ^ (BITS_DCMSB << FLD_DCMSB)
+    PWCTR3          = $C2
+    PWCTR345_MASK   = $FF                       ' for each one of A, B, C
+'-- cmd byte 1                                  '
+        DCMSB       = 6                         '
+        SAP         = 3                         ' (PWCTR3, 4, 5)
+        AP          = 0                         '
+        DCMSB_BITS  = %11                       '
+        SAP_BITS    = %111                      '
+        AP_BITS     = %111                      '
+        DCMSB_MASK  = (DCMSB_BITS << DCMSB) ^ PWCTR345_MASK
+        SAP_MASK    = (SAP_BITS << SAP) ^ PWCTR345_MASK
+        AP_MASK     = AP_BITS ^ PWCTR345_MASK
+'-- cmd byte 2
+        DCLSB       = 0
+        DCLSB_BITS  = %11111111
 
-    PWCTR4                      = $C3
-    PWCTR5                      = $C4
+    PWCTR4          = $C3
+    PWCTR5          = $C4
 
-    VMCTR1                      = $C5
-    VMCTR1_MASK                 = $3F
-        FLD_VCOMS               = 0
-        BITS_VCOMS              = %111111
+    VMCTR1          = $C5
+    VMCTR1_MASK     = $3F
+        VCOMS       = 0
+        VCOMS_BITS  = %111111
 
-    VMOFCTR                     = $C7
-    VMOFCTR_MASK                = $1F
-        FLD_VMF                 = 0
-        BITS_VMF                = %11111
+    VMOFCTR         = $C7
+    VMOFCTR_MASK    = $1F
+        VMF         = 0
+        VMF_BITS    = %11111
 
-'   WRID2                       = $D1
-'   WRID3                       = $D2
+'   WRID2           = $D1
+'   WRID3           = $D2
 
-'   NVCTR1                      = $D9
+'   NVCTR1          = $D9
 
-    RDID1                       = $DA
-    RDID2                       = $DB
-    RDID3                       = $DC
-'   NVCTR2                      = $DE
-'   NVCTR3                      = $DF
+    RDID1           = $DA
+    RDID2           = $DB
+    RDID3           = $DC
+'   NVCTR2          = $DE
+'   NVCTR3          = $DF
 
-    GMCTRP1                     = $E0
+    GMCTRP1         = $E0
 
-    GMCTRN1                     = $E1
+    GMCTRN1         = $E1
 
-    PWCTR6                      = $FC
+    PWCTR6          = $FC
 
 #ifndef __propeller2__
 PUB Null
