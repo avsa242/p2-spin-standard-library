@@ -4,9 +4,9 @@
     Description: Demo of the bitmap graphics library
         (multi disp type capable)
     Author: Jesse Burt
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started: Jun 14, 2020
-    updated: Dec 1, 2020
+    updated: Jan 9, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -41,11 +41,11 @@ CON
 #elseifdef SSD1331
     WIDTH           = 96                                    ' 96x64 most common size
     HEIGHT          = 64
-    CS_PIN          = 31
-    SCK_PIN         = 24
-    MOSI_PIN        = 25
+    MOSI_PIN        = 24
+    SCK_PIN         = 25
+    CS_PIN          = 26
     DC_PIN          = 27
-    RESET_PIN       = 35
+    RESET_PIN       = 28
     SCK_HZ          = 20_000_000
 #elseifdef SSD1351
     WIDTH           = 128                                   ' 128x128 most common
@@ -668,7 +668,7 @@ PUB Setup()
         ser.printf("ST7735 driver started\n")
         disp.defaultscommon()
 #elseifdef SSD1331
-    if disp.start (CS_PIN, DC_PIN, MOSI_PIN, SCK_PIN, RESET_PIN, SCK_HZ, @_framebuffer)
+    if disp.start (CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RESET_PIN, SCK_HZ, @_framebuffer)
         ser.printf("SSD1331 driver started\n")
         disp.defaultscommon()
 #elseifdef SSD1351

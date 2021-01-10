@@ -3,109 +3,111 @@
     Filename: core.con.ssd1331.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started: Nov 18, 2018
-    Updated: Jul 22, 2020
+    Updated: Jan 8, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    CPOL                                = 0
-    MOSI_BITORDER                       = 5             ' MSBFIRST
-    SCK_MAX_FREQ                        = 6_666_666     ' According to the datasheet - though it seems to run at much higher clock speeds
+    CPOL                    = 0
+    MOSI_BITORDER           = 5                 ' MSBFIRST
+    SCK_MAX_FREQ            = 6_666_666         ' According to the datasheet
+                                                ' (isn't enforced in this
+                                                '   driver - ymmv)
 
 ' Register map
-    SSD1331_CMD_DRAWLINE                = $21
-    SSD1331_CMD_DRAWRECT                = $22
-    SSD1331_CMD_COPY                    = $23
-    SSD1331_CMD_CLEAR                   = $25
+    DRAWLINE                = $21
+    DRAWRECT                = $22
+    COPY                    = $23
+    CLEAR                   = $25
 
-    SSD1331_CMD_FILL                    = $26
-    SSD1331_CMD_FILL_MASK               = $11
-        FLD_FILL                        = 0
-        FLD_REVCOPY                     = 4
-        MASK_FILL                       = SSD1331_CMD_FILL_MASK ^ (1 << FLD_FILL)
-        MASK_REVCOPY                    = SSD1331_CMD_FILL_MASK ^ (1 << FLD_REVCOPY)
+    FILLCPY                 = $26
+    FILLCPY_MASK            = $11
+        REVCOPY             = 4
+        FILL                = 0
+        REVCOPY_MASK        = (1 << REVCOPY) ^ FILLCPY_MASK
+        FILL_MASK           = 1 ^ FILLCPY_MASK
 
-    SSD1331_CMD_SCROLLSETUP             = $27
-    SSD1331_CMD_SCROLLSTOP              = $2E
-    SSD1331_CMD_SCROLLSTART             = $2F
-    SSD1331_CMD_SETCOLUMN               = $15
-    SSD1331_CMD_SETROW                  = $75
-    SSD1331_CMD_CONTRASTA               = $81
-    SSD1331_CMD_CONTRASTB               = $82
-    SSD1331_CMD_CONTRASTC               = $83
-    SSD1331_CMD_MASTERCURRENT           = $87
+    SCROLLSETUP             = $27
+    SCROLLSTOP              = $2E
+    SCROLLSTART             = $2F
+    SETCOLUMN               = $15
+    SETROW                  = $75
+    CONTRASTA               = $81
+    CONTRASTB               = $82
+    CONTRASTC               = $83
+    MASTERCURRENT           = $87
 
-    SSD1331_CMD_SETREMAP                = $A0
-    SSD1331_CMD_SETREMAP_MASK           = $FF
-        FLD_ADDRINC                     = 0
-        FLD_SEGREMAP                    = 1
-        FLD_SUBPIX_ORDER                = 2
-        FLD_COMLR_SWAP                  = 3
-        FLD_COMREMAP                    = 4
-        FLD_COMSPLIT                    = 5
-        FLD_COLORFORMAT                 = 6
-        BITS_COLORFORMAT                = %11
-        MASK_ADDRINC                    = SSD1331_CMD_SETREMAP_MASK ^ (1 << FLD_ADDRINC)
-        MASK_SEGREMAP                   = SSD1331_CMD_SETREMAP_MASK ^ (1 << FLD_SEGREMAP)
-        MASK_SUBPIX_ORDER               = SSD1331_CMD_SETREMAP_MASK ^ (1 << FLD_SUBPIX_ORDER)
-        MASK_COMLR_SWAP                 = SSD1331_CMD_SETREMAP_MASK ^ (1 << FLD_COMLR_SWAP)
-        MASK_COMREMAP                   = SSD1331_CMD_SETREMAP_MASK ^ (1 << FLD_COMREMAP)
-        MASK_COMSPLIT                   = SSD1331_CMD_SETREMAP_MASK ^ (1 << FLD_COMSPLIT)
-        MASK_COLORFORMAT                = SSD1331_CMD_SETREMAP_MASK ^ (BITS_COLORFORMAT << FLD_COLORFORMAT)
+    SETREMAP                = $A0
+    SETREMAP_MASK           = $FF
+        COLORFMT            = 6
+        COMSPLIT            = 5
+        COMREMAP            = 4
+        COMLR_SWAP          = 3
+        SUBPIX_ORDER        = 2
+        SEGREMAP            = 1
+        ADDRINC             = 0
+        COLORFMT_BITS       = %11
+        COLORFMT_MASK       = (COLORFMT_BITS << COLORFMT) ^ SETREMAP_MASK
+        COMSPLIT_MASK       = (1 << COMSPLIT) ^ SETREMAP_MASK
+        COMREMAP_MASK       = (1 << COMREMAP) ^ SETREMAP_MASK
+        COMLR_SWAP_MASK     = (1 << COMLR_SWAP) ^ SETREMAP_MASK
+        SUBPIX_ORDER_MASK   = (1 << SUBPIX_ORDER) ^ SETREMAP_MASK
+        SEGREMAP_MASK       = (1 << SEGREMAP) ^ SETREMAP_MASK
+        ADDRINC_MASK        = 1 ^ SETREMAP_MASK
 
-    SSD1331_CMD_STARTLINE               = $A1
-    SSD1331_CMD_DISPLAYOFFSET           = $A2
-    SSD1331_CMD_NORMALDISPLAY           = $A4
-    SSD1331_CMD_DISPLAYALLON            = $A5
-    SSD1331_CMD_DISPLAYALLOFF           = $A6
-    SSD1331_CMD_INVERTDISPLAY           = $A7
-    SSD1331_CMD_SETMULTIPLEX            = $A8
-    SSD1331_CMD_DISPLAYONDIM            = $AC
+    STARTLINE               = $A1
+    DISPLAYOFFSET           = $A2
+    NORMALDISPLAY           = $A4
+    DISPLAYALLON            = $A5
+    DISPLAYALLOFF           = $A6
+    INVERTDISPLAY           = $A7
+    SETMULTIPLEX            = $A8
+    DISPLAYONDIM            = $AC
 
-    SSD1331_CMD_SETMASTER               = $AD
-        MASTERCFG_EXT_VCC               = $8E
+    SETMASTER               = $AD
+        MASTERCFG_EXT_VCC   = $8E
 
-    SSD1331_CMD_DISPLAYOFF              = $AE
-    SSD1331_CMD_DISPLAYON               = $AF
+    DISPLAYOFF              = $AE
+    DISPLAYON               = $AF
 
-    SSD1331_CMD_POWERMODE               = $B0
-        POWERMODE_POWERSAVE_ENA         = $1A
-        POWERMODE_POWERSAVE_DIS         = $0B
+    PWRMODE                 = $B0
+        PWRSAVE_ENA         = $1A
+        PWRSAVE_DIS         = $0B
 
-    SSD1331_CMD_PRECHARGE               = $B1
-    SSD1331_CMD_PRECHARGE_MASK          = $FF
-        FLD_PHASE1                      = 0
-        FLD_PHASE2                      = 4
-        BITS_PHASE1                     = %1111
-        BITS_PHASE2                     = %1111
-        MASK_PHASE1                     = SSD1331_CMD_PRECHARGE_MASK ^ (BITS_PHASE1)
-        MASK_PHASE2                     = SSD1331_CMD_PRECHARGE_MASK ^ (BITS_PHASE2 << FLD_PHASE2)
+    PRECHG                  = $B1
+    PRECHG_MASK             = $FF
+        PHASE2              = 4
+        PHASE1              = 0
+        PHASE2_BITS         = %1111
+        PHASE1_BITS         = %1111
+        PHASE2_MASK         = (PHASE2_BITS << PHASE2) ^ PRECHG_MASK
+        PHASE1_MASK         = PHASE1_BITS ^ PRECHG_MASK
 
-    SSD1331_CMD_CLOCKDIV                = $B3
-    SSD1331_CMD_CLOCKDIV_MASK           = $FF
-        FLD_CLKDIV                      = 0
-        FLD_FOSCFREQ                    = 4
-        BITS_CLKDIV                     = %1111
-        BITS_FOSCFREQ                   = %1111
-        MASK_CLKDIV                     = SSD1331_CMD_CLOCKDIV_MASK ^ (BITS_CLKDIV)
-        MASK_FOSCFREQ                   = SSD1331_CMD_CLOCKDIV_MASK ^ (BITS_FOSCFREQ << FLD_FOSCFREQ)
+    CLKDIV_FRQ              = $B3
+    CLKDIV_FRQ_MASK         = $FF
+        FOSCFREQ            = 4
+        CLKDIV              = 0
+        FOSCFREQ_BITS       = %1111
+        CLKDIV_BITS         = %1111
+        FOSCFREQ_MASK       = (FOSCFREQ_BITS << FOSCFREQ) ^ CLKDIV_FRQ_MASK
+        CLKDIV_MASK         = CLKDIV_BITS ^ CLKDIV_FRQ_MASK
 
-    SSD1331_CMD_PRECHARGEA              = $8A
-    SSD1331_CMD_PRECHARGEB              = $8B
-    SSD1331_CMD_PRECHARGEC              = $8C
-    SSD1331_CMD_PRECHARGELEVEL          = $BB
-    SSD1331_CMD_NOP1                    = $BC
-    SSD1331_CMD_NOP2                    = $BD
-    SSD1331_CMD_VCOMH                   = $BE
+    PRECHGA                 = $8A
+    PRECHGB                 = $8B
+    PRECHGC                 = $8C
+    PRECHGLVL               = $BB
+    NOP1                    = $BC
+    NOP2                    = $BD
+    VCOMH                   = $BE
 
-    SSD1331_CMD_NOP3                    = $E3
+    NOP3                    = $E3
 
-'' Other constants
-    SEL_EXTERNAL_VCC            = $8E
+' Other constants
+    SEL_EXTERNAL_VCC        = $8E
 
 #ifndef __propeller2__
 PUB Null
