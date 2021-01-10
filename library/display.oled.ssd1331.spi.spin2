@@ -1,8 +1,9 @@
 {
     --------------------------------------------
-    Filename: display.oled.ssd1331.spi.spin
+    Filename: display.oled.ssd1331.spi.spin2
     Author: Jesse Burt
     Description: Driver for Solomon Systech SSD1331 RGB OLED displays
+        (P2 version)
     Copyright (c) 2021
     Started: Apr 28, 2019
     Updated: Jan 9, 2021
@@ -54,7 +55,6 @@ CON
 OBJ
 
     core    : "core.con.ssd1331"
-    time    : "time"
     spi     : "com.spi"
 
 VAR
