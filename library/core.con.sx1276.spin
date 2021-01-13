@@ -3,9 +3,9 @@
     Filename: core.con.sx1276.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Oct 6, 2019
-    Updated Dec 11, 2020
+    Updated Jan 13, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -193,6 +193,11 @@ CON
 
     MDMSTAT                     = $18   'LORA
         RXCODERATE              = 5
+        MDM_CLR                 = 4
+        HDR_VALID               = 3
+        RX_ONGOING              = 2
+        SIG_SYNCD               = 1
+        SIG_DETECT              = 0
         RXCODERATE_BITS         = %111
         MDMSTATUS_BITS          = %11111
 

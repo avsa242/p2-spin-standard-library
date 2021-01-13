@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Driver for the SEMTECH SX1276
         LoRa/FSK/OOK transceiver
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Oct 6, 2019
-    Updated Dec 11, 2020
+    Updated Jan 13, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -78,6 +78,10 @@ CON
     CAD_DETECT              = 1                 ' channel activity detected
     INT_ALL                 = $FF
 
+' Payload length mode
+    PKTLEN_VAR              = 0
+    PKTLEN_FIXED            = 1
+
 VAR
 
     long _CS
@@ -118,14 +122,81 @@ PUB PresetLoRa()
     agcmode(false)
     coderate($04_05)
     crccheckenabled(false)
-    implicitheadermode(false)
+    payloadlencfg(PKTLEN_VAR)
     lnagain(0)
     lowfreqmode(true)
     preamblelength(8)
     rxbandwidth(125_000)
     rxtimeout(100)
-    spreadingfactor(128)
+    spreadfactor(7)
     syncword($12)
+
+PUB PresetDR0()
+' Physical bitrate (Rb) 980
+    presetlora()
+    spreadfactor(10)
+'    rxbandwidth(125_000)
+
+PUB PresetDR1()
+' Physical bitrate (Rb) 1760
+    presetlora()
+    spreadfactor(9)
+'    rxbandwidth(125_000)
+
+PUB PresetDR2()
+' Physical bitrate (Rb) 3125
+    presetlora()
+    spreadfactor(8)
+'    rxbandwidth(125_000)
+
+PUB PresetDR3()
+' Physical bitrate (Rb) 5470
+    presetlora()
+'    spreadfactor(7)
+'    rxbandwidth(125_000)
+
+PUB PresetDR4()
+' Physical bitrate (Rb) 12500
+    presetlora()
+    spreadfactor(8)
+'    rxbandwidth(125_000)
+
+PUB PresetDR8()
+' Physical bitrate (Rb) 980
+    presetlora()
+    spreadfactor(12)
+    rxbandwidth(500_000)
+
+PUB PresetDR9()
+' Physical bitrate (Rb) 1760
+    presetlora()
+    spreadfactor(11)
+    rxbandwidth(500_000)
+
+PUB PresetDR10()
+' Physical bitrate (Rb) 3900
+    presetlora()
+    spreadfactor(10)
+    rxbandwidth(500_000)
+
+PUB PresetDR11()
+' Physical bitrate (Rb) 7000
+    presetlora()
+    spreadfactor(9)
+    rxbandwidth(500_000)
+
+PUB PresetDR12()
+'  Physical bitrate (Rb) 12500
+    presetlora()
+    spreadfactor(8)
+    rxbandwidth(500_000)
+
+PUB PresetDR13()
+' Physical bitrate (Rb) 21900
+    presetlora()
+'    spreadfactor(7)
+    rxbandwidth(500_000)
+
 
 PUB AGCMode(state=-2): curr_state
 ' Enable AGC
@@ -188,8 +259,8 @@ PUB ClkOut(divisor=-2): curr_div
         1, 2, 4, 8, 16, 32, CLKOUT_RC, CLKOUT_OFF:
             divisor := lookdownz(divisor: 1, 2, 4, 8, 16, 32, CLKOUT_RC, CLKOUT_OFF)
         other:
-            result := curr_div & core.CLKOUT_BITS
-            return lookupz(result: 1, 2, 4, 8, 16, 32, CLKOUT_RC, CLKOUT_OFF)
+            curr_div &= core.CLKOUT_BITS
+            return lookupz(curr_div: 1, 2, 4, 8, 16, 32, CLKOUT_RC, CLKOUT_OFF)
 
     divisor := ((curr_div & core.CLKOUT_MASK) | divisor) & core.OSC_MASK
     writereg(core.OSC, 1, @divisor)
@@ -209,8 +280,8 @@ PUB CodeRate(rate=-2): curr_rate
         $04_05..$04_08:
             rate := lookdown(rate: $04_05, $04_06, $04_07, $04_08) << core.CODERATE
         other:
-            result := (curr_rate >> core.CODERATE) & core.CODERATE_BITS
-            return lookup(result: $04_05, $04_06, $04_07, $04_08)
+            curr_rate := (curr_rate >> core.CODERATE) & core.CODERATE_BITS
+            return lookup(curr_rate: $04_05, $04_06, $04_07, $04_08)
 
     rate := ((curr_rate & core.CODERATE_MASK) | rate) & core.MDMCFG1_MASK
     writereg(core.MDMCFG1, 1, @rate)
@@ -219,7 +290,7 @@ PUB CRCCheckEnabled(state=-2): curr_state
 ' Enable CRC generation and check on payload
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
-    curr_state := $00
+    curr_state := 0
     readreg(core.MDMCFG2, 1, @curr_state)
     case abs(state)
         0, 1:
@@ -428,7 +499,7 @@ PUB FSKRampTime(ramptime=-2): curr_time
 PUB HeaderInfoValid(): flag
 ' Flag indicating header in received packet is valid (with correct CRC)
 '   Returns: TRUE (-1) if header valid, FALSE (0) otherwise
-    flag := (((modemstatus() >> 3) & 1) == 1)
+    flag := (((modemstatus() >> core.HDR_VALID) & 1) == 1)
 
 PUB HopChannel(): curr_chan
 ' Returns current frequency hopping channel
@@ -452,22 +523,6 @@ PUB HopPeriod(symb_periods=-2): curr_periods
 PUB Idle()
 ' Change chip state to idle (standby)
     opmode(STDBY)
-
-PUB ImplicitHeaderMode(state=-2): curr_state   'XXX rename to PayloadLenCfg(), params: FIXED, VAR
-' Enable implicit header mode
-'   Valid values:
-'       TRUE(-1 or 1), *FALSE (0)
-'   Any other value polls the chip and returns the current setting
-    curr_state := 0
-    readreg(core.MDMCFG1, 1, @curr_state)
-    case abs(state)
-        0, 1:
-            state := abs(state) & 1
-        other:
-            return ((curr_state & 1) == 1)
-
-    state := ((curr_state & core.IMPL_HDRMODEON_MASK) | state) & core.MDMCFG1_MASK
-    writereg(core.MDMCFG1, 1, @state)
 
 PUB IntClear(mask=-2)
 ' Clear interrupt flags
@@ -542,7 +597,7 @@ PUB LastHdrRate(): rate
 '       $04_07  =   4/7
 '       $04_08  =   4/8
     readreg(core.MDMSTAT, 1, @rate)
-    rate >>= 5
+    rate >>= core.RXCODERATE
     return lookup(rate: $04_05, $04_06, $04_07, $04_08)
 
 PUB LastPacketBytes(): nr_bytes
@@ -623,7 +678,7 @@ PUB LowFreqMode(state=-2): curr_state
 
 PUB ModemClear(): flag
 ' Flag indicating modem clear
-    return (((modemstatus() >> 4) & 1) == 1)
+    return (((modemstatus() >> core.MDM_CLR) & 1) == 1)
 
 PUB ModemStatus(): status
 ' Return modem status bitmask
@@ -705,6 +760,25 @@ PUB PacketSNR(): snr
         -snr
     return (snr / 4)
 
+PUB PayloadLenCfg(mode=-2): curr_mode
+' Set payload length configuration/mode
+'   Valid values:
+'       PKTLEN_VAR (0): Variable-length payload
+'       PKTLEN_FIXED (1): Fixed-length payload
+'   Any other value polls the chip and returns the current setting
+'   NOTE: When using PKTLEN_FIXED, PayloadLength(), CodeRate(), and
+'       CRCCheckEnabled() must be configured identically on both
+'       TX and RX sides of the radio link.
+    curr_mode := 0
+    readreg(core.MDMCFG1, 1, @curr_mode)
+    case mode
+        0, 1:
+        other:
+            return (curr_mode & 1)
+
+    mode := ((curr_mode & core.IMPL_HDRMODEON_MASK) | mode) & core.MDMCFG1_MASK
+    writereg(core.MDMCFG1, 1, @mode)
+
 PUB PayloadLength(len=-2): curr_len
 ' Set payload length, in bytes
 '   Valid values: 1..255
@@ -765,7 +839,7 @@ PUB RXBandwidth(bw=-2): curr_bw
 '   Any other value polls the chip and returns the current setting
 '   NOTE: This setting also directly affects occupied RF bandwidth
 '       when transmitting
-'   NOTE: In the lower band, 250_000 and 500_000 are not supported - XXX clarify
+'   NOTE: In the 169MHz band, 250_000 and 500_000 are not supported
     curr_bw := 0
     readreg(core.MDMCFG1, 1, @curr_bw)
     case bw
@@ -787,7 +861,7 @@ PUB RXMode()
 
 PUB RXOngoing(): flag
 ' Flag indicating modem is in ongoing receive mode
-    return (((modemstatus() >> 2) & 1) == 1)
+    return (((modemstatus() >> core.RX_ONGOING) & 1) == 1)
 
 PUB RXPayload(nr_bytes, ptr_buff)
 ' Receive data from RX FIFO into buffer at ptr_buff
@@ -824,28 +898,26 @@ PUB SignalDetected(): flag
 
 PUB SignalSynchronized(): flag
 ' Flag indicating signal synchronized
-    return (((modemstatus() >> 1) & 1) == 1)
+    return (((modemstatus() >> core.SIG_SYNCD) & 1) == 1)
 
 PUB Sleep()
 ' Power down chip
     opmode(SLEEPMODE)
 
-PUB SpreadingFactor(cps=-2): curr_cps  'XXX change param to log2 of cps, instead (more standard)
-' Set spreading factor rate, in chips per symbol
-'   Valid values: 64, *128, 256, 512, 1024, 2048, 4096
+PUB SpreadFactor(sf=-2): curr_sf
+' Set spreading factor
+'   Valid values: 6, *7, 8, 9, 10, 11, 12
 '   Any other value polls the chip and returns the current setting
-    curr_cps := $00
-    readreg(core.MDMCFG2, 1, @curr_cps)
-    case cps
-        64, 128, 256, 512, 1024, 2048, 4096:
-            cps := (lookdown(cps: 64, 128, 256, 512, 1024, 2048, 4096) + 5){
-}           << core.SPREADFACT
+    curr_sf := 0
+    readreg(core.MDMCFG2, 1, @curr_sf)
+    case sf
+        6..12:
+            sf <<= core.SPREADFACT
         other:
-            curr_cps := (curr_cps >> core.SPREADFACT)-5
-            return lookup(curr_cps: 64, 128, 256, 512, 1024, 2048, 4096)
+            return (curr_sf >> core.SPREADFACT)
 
-    cps := ((curr_cps & core.SPREADFACT_MASK) | cps) & core.MDMCFG2_MASK
-    writereg(core.MDMCFG2, 1, @cps)
+    sf := ((curr_sf & core.SPREADFACT_MASK) | sf) & core.MDMCFG2_MASK
+    writereg(core.MDMCFG2, 1, @sf)
 
 PUB SyncWord(val=-2): curr_val
 ' Set LoRa Syncword
@@ -865,6 +937,8 @@ PUB TXContinuous(state=-2): curr_state
 '      *TXMODE_NORMAL (0): Normal mode; a single packet is sent
 '       TXMODE_CONT (1): Continuous mode; send multiple packets across the FIFO
 '   Any other value polls the chip and returns the current setting
+'   NOTE: TXMODE_CONT is used for spectral analysis. Typically, TXMODE_NORMAL
+'       should be used
     curr_state := 0
     readreg(core.MDMCFG2, 1, @curr_state)
     case state

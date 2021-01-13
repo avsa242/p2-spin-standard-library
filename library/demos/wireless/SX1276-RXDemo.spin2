@@ -1,8 +1,9 @@
 {
     --------------------------------------------
-    Filename: SX1276-RXDemo.spin
+    Filename: SX1276-RXDemo.spin2
     Author: Jesse Burt
     Description: Receive demo of the SX1276 driver (LoRa mode)
+        (P2 version)
     Copyright (c) 2020
     Started Dec 12, 2020
     Updated Dec 13, 2020
