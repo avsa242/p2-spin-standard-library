@@ -2,87 +2,106 @@
     --------------------------------------------
     Filename: INA260-Demo.spin2
     Author: Jesse Burt
-    Description: Simple demo of the INA260 driver (P2 version)
+    Description: Simple demo of the INA260 driver
+        (P2 version)
     Copyright (c) 2020
-    Started Nov 13, 2019
-    Updated Jun 13, 2020
+    Started Jan 18, 2020
+    Updated Dec 5, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    _xtlfreq    = cfg._xtlfreq
     _clkfreq    = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
     LED         = cfg.LED1
-    SER_RX      = cfg.SER_RX
-    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
-    I2C_SCL     = 27
-    I2C_SDA     = 28
+    I2C_SCL     = 14
+    I2C_SDA     = 15
     I2C_HZ      = 400_000
 ' --
+
+    VBUS_COL    = 0
+    I_COL       = VBUS_COL+15
+    P_COL       = I_COL+15
 
 OBJ
 
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
-    ina260      : "sensor.power.ina260.i2c.spin2"
+    ina260      : "sensor.power.ina260.i2c"
     int         : "string.integer"
 
-VAR
+PUB Main() | vbus, i, p
 
-    long _ser_cog, _ina260_cog
+    setup()
 
-PUB Main()
-
-    Setup()
-    ser.HideCursor()
+    ser.position(VBUS_COL, 3)
+    ser.str(string("Bus voltage"))
+    ser.position(I_COL, 3)
+    ser.str(string("Current"))
+    ser.position(P_COL, 3)
+    ser.str(string("Power"))
 
     repeat
-        repeat until ina260.ConversionReady()
-        ser.Position(0, 5)
-        ser.printf("Current: ")
-        Fractional(ina260.Current())
-        ser.printf("mA     \n")
+        repeat until ina260.conversionready()
+        vbus := ina260.busvoltage()
+        i := ina260.current()
+        p := ina260.power()
 
-        ser.printf("Bus Voltage: ")
-        Fractional(ina260.BusVoltage())
-        ser.printf("mV     \n")
+        ser.position(VBUS_COL, 5)
+        decimal(vbus, 1_000_000)
+        ser.char("V")
 
-        ser.printf("Power: ")
-        Fractional(ina260.Power())
-        ser.printf("mW     \n")
+        ser.position(I_COL, 5)
+        decimal(i, 1_000_000)
+        ser.char("A")
 
-        if ser.RXCheck() == "Q"                     ' Press captial Q to quit the demo
-            ser.ShowCursor()
-            ser.newline()
-            ser.printf("Halting")
-            quit
+        ser.position(P_COL, 5)
+        decimal(p, 1_000_000)
+        ser.char("W")
+        ser.clearline()
 
-    FlashLED(LED, 100)     ' Signal execution finished
+PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp, sign
+' Display a scaled up number as a decimal
+'   Scale it back down by divisor (e.g., 10, 100, 1000, etc)
+    whole := scaled / divisor
+    tmp := divisor
+    places := 0
+    part := 0
+    sign := 0
+    if scaled < 0
+        sign := "-"
+    else
+        sign := " "
 
-PUB Fractional(thousandths) | whole, part
+    repeat
+        tmp /= 10
+        places++
+    until tmp == 1
+    scaled //= divisor
+    part := int.deczeroed(abs(scaled), places)
 
-    whole := thousandths / 1000
-    part := int.DecZeroed(thousandths // 1000, 2)
-    ser.printf("%d.%s ", whole, part)
+    ser.char(sign)
+    ser.dec(abs(whole))
+    ser.char(".")
+    ser.str(part)
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear()
-    ser.PrintF("Serial terminal started\n")
-    if _ina260_cog := ina260.Start(I2C_SCL, I2C_SDA, I2C_HZ)
-        ser.Printf("INA260 driver started\n")
+    ser.start(SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.strln(string("Serial terminal started"))
+    if ina260.start(I2C_SCL, I2C_SDA, I2C_HZ)
+        ser.strln(string("INA260 driver started"))
     else
-        ser.Printf("INA260 driver failed to start - halting\n")
-        FlashLED(LED, 500)
-
-#include "lib.utility.spin2"
+        ser.strln(string("INA260 driver failed to start - halting"))
+        repeat
 
 DAT
 {

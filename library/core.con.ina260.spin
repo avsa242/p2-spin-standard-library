@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2020
     Started Nov 13, 2019
-    Updated Jul 22, 2020
+    Updated Dec 5, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -24,21 +24,21 @@ CON
 
     CONFIG              = $00
     CONFIG_MASK         = $8FFF
-        FLD_RESET       = 15
-        FLD_AVG         = 9
-        FLD_VBUSCT      = 6
-        FLD_ISHCT       = 3
-        FLD_MODE        = 0
-        BITS_RSVD       = %110 << 12    ' Reserved bits
-        BITS_AVG        = %111
-        BITS_VBUSCT     = %111
-        BITS_ISHCT      = %111
-        BITS_MODE       = %111
-        MASK_RESET      = CONFIG_MASK ^ (1 << FLD_RESET)
-        MASK_AVG        = CONFIG_MASK ^ (BITS_AVG << FLD_AVG)
-        MASK_VBUSCT     = CONFIG_MASK ^ (BITS_VBUSCT << FLD_VBUSCT)
-        MASK_ISHCT      = CONFIG_MASK ^ (BITS_ISHCT << FLD_ISHCT)
-        MASK_MODE       = CONFIG_MASK ^ (BITS_MODE << FLD_MODE)
+        RESET           = 15
+        AVG             = 9
+        VBUSCT          = 6
+        ISHCT           = 3
+        MODE            = 0
+        RSVD_BITS       = %110 << 12    ' Reserved bits
+        AVG_BITS        = %111
+        VBUSCT_BITS     = %111
+        ISHCT_BITS      = %111
+        MODE_BITS       = %111
+        RESET_MASK      = (1 << RESET) ^ CONFIG_MASK
+        AVG_MASK        = (AVG << AVG) ^ CONFIG_MASK
+        VBUSCT_MASK     = (VBUSCT << VBUSCT) ^ CONFIG_MASK
+        ISHCT_MASK      = (ISHCT << ISHCT) ^ CONFIG_MASK
+        MODE_MASK       = MODE_BITS ^ CONFIG_MASK
 
     CURRENT             = $01
 
@@ -46,33 +46,33 @@ CON
 
     POWER               = $03
 
-    MASK_ENABLE         = $06
-    MASK_ENABLE_MASK    = $FC1F
-        FLD_OCL         = 15
-        FLD_UCL         = 14
-        FLD_BOL         = 13
-        FLD_BUL         = 12
-        FLD_POL         = 11
-        FLD_CNVR        = 10
-        FLD_AFF         = 4
-        FLD_CVRF        = 3
-        FLD_OVF         = 2
-        FLD_APOL        = 1
-        FLD_LEN         = 0
-        FLD_ALERTS      = 10
-        BITS_ALERTS     = %111111
-        MASK_OCL        = MASK_ENABLE_MASK ^ (1 << FLD_OCL)
-        MASK_UCL        = MASK_ENABLE_MASK ^ (1 << FLD_UCL)
-        MASK_BOL        = MASK_ENABLE_MASK ^ (1 << FLD_BOL)
-        MASK_BUL        = MASK_ENABLE_MASK ^ (1 << FLD_BUL)
-        MASK_POL        = MASK_ENABLE_MASK ^ (1 << FLD_POL)
-        MASK_CNVR       = MASK_ENABLE_MASK ^ (1 << FLD_CNVR)
-        MASK_AFF        = MASK_ENABLE_MASK ^ (1 << FLD_AFF)
-        MASK_CVRF       = MASK_ENABLE_MASK ^ (1 << FLD_CVRF)
-        MASK_OVF        = MASK_ENABLE_MASK ^ (1 << FLD_OVF)
-        MASK_APOL       = MASK_ENABLE_MASK ^ (1 << FLD_APOL)
-        MASK_LEN        = MASK_ENABLE_MASK ^ (1 << FLD_LEN)
-        MASK_ALERTS     = MASK_ENABLE_MASK ^ (BITS_ALERTS << FLD_ALERTS)
+    ENABLE              = $06
+    ENABLE_MASK         = $FC1F
+        OCL             = 15
+        UCL             = 14
+        BOL             = 13
+        BUL             = 12
+        POL             = 11
+        CNVR            = 10
+        AFF             = 4
+        CVRF            = 3
+        OVF             = 2
+        APOL            = 1
+        LEN             = 0
+        ALERTS          = 10
+        ALERTS_BITS     = %111111
+        OCL_MASK        = (1 << OCL) ^ ENABLE_MASK
+        UCL_MASK        = (1 << UCL) ^ ENABLE_MASK
+        BOL_MASK        = (1 << BOL) ^ ENABLE_MASK
+        BUL_MASK        = (1 << BUL) ^ ENABLE_MASK
+        POL_MASK        = (1 << POL) ^ ENABLE_MASK
+        CNVR_MASK       = (1 << CNVR) ^ ENABLE_MASK
+        AFF_MASK        = (1 << AFF) ^ ENABLE_MASK
+        CVRF_MASK       = (1 << CVRF) ^ ENABLE_MASK
+        OVF_MASK        = (1 << OVF) ^ ENABLE_MASK
+        APOL_MASK       = (1 << APOL) ^ ENABLE_MASK
+        LEN_MASK        = (1 << LEN) ^ ENABLE_MASK
+        ALERTS_MASK     = ALERTS_BITS ^ ENABLE_MASK
 
     ALERT_LIMIT         = $07
 
@@ -82,7 +82,7 @@ CON
 
 #ifndef __propeller2__
 PUB Null
-'' This is not a top-level object
+' This is not a top-level object
 #endif
 
 DAT
