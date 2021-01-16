@@ -5,7 +5,7 @@
     Description: Low-level driver constants
     Copyright (c) 2020
     Created: Sep 30, 2018
-    Updated: Jul 22, 2020
+    Updated: Dec 6, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,9 +13,9 @@
 CON
 
 ' SPI Clock Polarity/Mode
-    CPOL                = 1
-    CLK_DELAY           = 10
-    SCK_MAX_HZ          = 5_000_000
+    CPOL                = 1             ' 0 or 1
+    CLK_DELAY           = 1
+    SCK_MAX_FREQ        = 5_000_000
     MOSI_BITORDER       = 5             'MSBFIRST
     MISO_BITORDER       = 2             'MSBPOST
 
@@ -24,45 +24,47 @@ CON
 
     CR0                 = $00
     CR0_MASK            = $FF
-        FLD_CMODE       = 7
-        FLD_ONESHOT     = 6
-        FLD_OCFAULT     = 4
-        FLD_CJ          = 3
-        FLD_FAULT       = 2
-        FLD_FAULTCLR    = 1
-        FLD_NOTCHFILT   = 0
-        BITS_OCFAULT    = %11
-        MASK_CMODE      = CR0_MASK ^ (1 << FLD_CMODE)
-        MASK_ONESHOT    = CR0_MASK ^ (1 << FLD_ONESHOT)
-        MASK_OCFAULT    = CR0_MASK ^ (BITS_OCFAULT << FLD_OCFAULT)
-        MASK_CJ         = CR0_MASK ^ (1 << FLD_CJ)
-        MASK_FAULT      = CR0_MASK ^ (1 << FLD_FAULT)
-        MASK_FAULTCLR   = CR0_MASK ^ (1 << FLD_FAULTCLR)
-        MASK_NOTCHFILT  = CR0_MASK ^ (1 << FLD_NOTCHFILT)
+        CMODE           = 7
+        ONESHOT         = 6
+        OCFAULT         = 4
+        CJ              = 3
+        FAULT           = 2
+        FAULTCLR        = 1
+        NOTCHFILT       = 0
+        OCFAULT_BITS    = %11
+        CMODE_MASK      = (1 << CMODE) ^ CR0_MASK
+        ONESHOT_MASK    = (1 << ONESHOT) ^ CR0_MASK
+        OCFAULT_MASK    = (OCFAULT_BITS << OCFAULT) ^ CR0_MASK
+        CJ_MASK         = (1 << CJ) ^ CR0_MASK
+        FAULT_MASK      = (1 << FAULT) ^ CR0_MASK
+        FAULTCLR_MASK   = (1 << FAULTCLR) ^ CR0_MASK
+        NOTCHFILT_MASK  = 1 ^ CR0_MASK
 
     CR1                 = $01
     CR1_MASK            = $7F
-        FLD_AVGSEL      = 4
-        FLD_TC_TYPE     = 0
-        BITS_AVGSEL     = %111
-        BITS_TC_TYPE    = %1111
-        MASK_AVGSEL     = CR1_MASK ^ (BITS_AVGSEL << FLD_AVGSEL)
-        MASK_TC_TYPE    = CR1_MASK ^ (BITS_TC_TYPE << FLD_TC_TYPE)
+        AVGSEL          = 4
+        TC_TYPE         = 0
+        AVGSEL_BITS     = %111
+        TC_TYPE_BITS    = %1111
+        AVGSEL_MASK     = (AVGSEL_BITS << AVGSEL) ^ CR1_MASK
+        TC_TYPE_MASK    = TC_TYPE_BITS ^ CR1_MASK
 
-    MASK                = $02
-    MASK_MASK           = $3F
-        FLD_CJ_HIGH     = 5
-        FLD_CJ_LOW      = 4
-        FLD_TC_HIGH     = 3
-        FLD_TC_LOW      = 2
-        FLD_OV_UV       = 1
-        FLD_OPEN        = 0
-        MASK_CJ_HIGH    = MASK_MASK ^ (1 << FLD_CJ_HIGH)
-        MASK_CJ_LOW     = MASK_MASK ^ (1 << FLD_CJ_LOW)
-        MASK_TC_HIGH    = MASK_MASK ^ (1 << FLD_TC_HIGH)
-        MASK_TC_LOW     = MASK_MASK ^ (1 << FLD_TC_LOW)
-        MASK_OV_UV      = MASK_MASK ^ (1 << FLD_OV_UV)
-        MASK_OPEN       = MASK_MASK ^ (1 << FLD_OPEN)
+    FAULTMASK           = $02
+    FAULTMASK_MASK      = $3F
+        RSVD            = 6
+        CJ_HIGH         = 5
+        CJ_LOW          = 4
+        TC_HIGH         = 3
+        TC_LOW          = 2
+        OV_UV           = 1
+        OPEN            = 0
+        RSVD_BITS       = %11
+        CJ_HIGH_MASK    = (1 << CJ_HIGH) ^ FAULTMASK_MASK
+        CJ_LOW_MASK     = (1 << CJ_LOW) ^ FAULTMASK_MASK
+        TC_HIGH_MASK    = (1 << TC_HIGH) ^ FAULTMASK_MASK
+        TC_LOW_MASK     = (1 << TC_LOW) ^ FAULTMASK_MASK
+        OV_UV_MASK      = (1 << OV_UV) ^ FAULTMASK_MASK
+        OPEN_MASK       = 1 ^ FAULTMASK_MASK
 
     CJHF                = $03
 
