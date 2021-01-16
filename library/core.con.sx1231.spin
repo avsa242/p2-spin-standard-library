@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2020
     Started Apr 19, 2019
-    Updated Jul 22, 2020
+    Updated Dec 20, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,10 +14,10 @@ CON
 
 ' SPI Configuration
     CPOL                        = 0
-    CLK_DELAY                   = 10
+    CLK_DLY                     = 1
     SCK_MAX_FREQ                = 10_000_000
-    MOSI_BITORDER               = 5             'MSBFIRST
-    MISO_BITORDER               = 0             'MSBPRE
+    MOSI_BITORDER               = 5             ' MSBFIRST
+    MISO_BITORDER               = 0             ' MSBPRE
 
     W                           = 1 << 7        ' wnr bit (Write access)
 
@@ -26,59 +26,60 @@ CON
 
     OPMODE                      = $01
     OPMODE_MASK                 = $FC
-        FLD_SEQUENCEROFF        = 7
-        FLD_LISTENON            = 6
-        FLD_LISTENABORT         = 5
-        FLD_MODE                = 2
-        BITS_MODE               = %111
-        MASK_SEQUENCEROFF       = OPMODE_MASK ^ (1 << FLD_SEQUENCEROFF)
-        MASK_LISTENON           = OPMODE_MASK ^ (1 << FLD_LISTENON)
-        MASK_LISTENABORT        = OPMODE_MASK ^ (1 << FLD_LISTENABORT)
-        MASK_MODE               = OPMODE_MASK ^ (BITS_MODE << FLD_MODE)
+        SEQOFF                  = 7
+        LISTENON                = 6
+        LISTENABT               = 5
+        MODE                    = 2
+        MODE_BITS               = %111
+        SEQOFF_MASK             = (1 << SEQOFF) ^ OPMODE_MASK
+        LISTENON_MASK           = (1 << LISTENON) ^ OPMODE_MASK
+        LISTENABT_MASK          = (1 << LISTENABT) ^ OPMODE_MASK
+        MODE_MASK               = (MODE_BITS << MODE) ^ OPMODE_MASK
 
-    DATAMODUL                   = $02
-    DATAMODUL_MASK              = $6B
-        FLD_DATAMODE            = 5
-        FLD_MODULATIONTYPE      = 3
-        FLD_MODULATIONSHAPING   = 0
-        BITS_DATAMODE           = %11
-        BITS_MODULATIONTYPE     = %01
-        BITS_MODULATIONSHAPING  = %11
-        MASK_DATAMODE           = DATAMODUL_MASK ^ (BITS_DATAMODE << FLD_DATAMODE)
-        MASK_MODULATIONTYPE     = DATAMODUL_MASK ^ (BITS_MODULATIONTYPE << FLD_MODULATIONTYPE)
-        MASK_MODULATIONSHAPING  = DATAMODUL_MASK ^ (BITS_MODULATIONSHAPING << FLD_MODULATIONSHAPING)
+    DATAMOD                     = $02
+    DATAMOD_MASK                = $6B
+        DATAMODE                = 5
+        MODTYPE                 = 3
+        MODSHP                  = 0
+        DATAMODE_BITS           = %11
+        MODTYPE_BITS            = %11
+        MODSHP_BITS             = %11
+        DATAMODE_MASK           = (DATAMODE_BITS << DATAMODE) ^ DATAMOD_MASK
+        MODTYPE_MASK            = (MODTYPE_BITS << MODTYPE) ^ DATAMOD_MASK
+        MODSHP_MASK             = MODSHP_BITS ^ DATAMOD_MASK
 
     BITRATEMSB                  = $03
     BITRATELSB                  = $04
-        BITS_BITRATE            = $FFFF
+        BITRATE_MASK            = $FFFF
 
     FDEVMSB                     = $05
     FDEVLSB                     = $06
-        BITS_FDEV               = $3FFF
+        FDEV_MASK               = $3FFF
 
     FRFMSB                      = $07
     FRFMID                      = $08
     FRFLSB                      = $09
-        BITS_FRF                = $FF_FF_FF
+        FRF_MASK                = $FF_FF_FF
 
     OSC1                        = $0A
     OSC1_MASK                   = $80
-        FLD_RCCALSTART          = 7
-        FLD_RCCALDONE           = 6
+        RCCALSTART              = 7
+        RCCALDONE               = 6
 
     AFCCTRL                     = $0B
     AFCCTRL_MASK                = $20
-        FLD_AFCLOWBETAON        = 5
+        AFCLOWBETAON            = 5
+        AFCLOWBETAON_MASK       = (1 << AFCLOWBETAON) ^ AFCCTRL_MASK
 
     LOWBAT                      = $0C
     LOWBAT_MASK                 = $1F
-        FLD_LOWBATMONITOR       = 4
-        FLD_LOWBATON            = 3
-        FLD_LOWBATTRIM          = 0
-        BITS_LOWBATTRIM         = %111
-        MASK_LOWBATMONITOR      = LOWBAT_MASK ^ (1 << FLD_LOWBATMONITOR)
-        MASK_LOWBATON           = LOWBAT_MASK ^ (1 << FLD_LOWBATON)
-        MASK_LOWBATTRIM         = LOWBAT_MASK ^ (BITS_LOWBATTRIM << FLD_LOWBATTRIM)
+        LOWBATMON               = 4
+        LOWBATON                = 3
+        LOWBATTRIM              = 0
+        LOWBATTRIM_BITS         = %111
+        LOWBATMON_MASK          = (1 << LOWBATMON) ^ LOWBAT_MASK
+        LOWBATON_MASK           = (1 << LOWBATON) ^ LOWBAT_MASK
+        LOWBATTRIM_MASK         = LOWBATTRIM_BITS ^ LOWBAT_MASK
 
     LISTEN1                     = $0D
     LISTEN2                     = $0E
@@ -86,58 +87,58 @@ CON
 
     VERSION                     = $10
 
-    PALEVEL                     = $11
-    PALEVEL_MASK                = $FF
-        FLD_PA0ON               = 7
-        FLD_PA1ON               = 6
-        FLD_PA2ON               = 5
-        FLD_OUTPUTPOWER         = 0
-        BITS_PA012              = %111
-        BITS_OUTPUTPOWER        = %11111
-        MASK_PA0ON              = PALEVEL_MASK ^ (1 << FLD_PA0ON)
-        MASK_PA1ON              = PALEVEL_MASK ^ (1 << FLD_PA1ON)
-        MASK_PA2ON              = PALEVEL_MASK ^ (1 << FLD_PA2ON)
-        MASK_PA012ON            = PALEVEL_MASK ^ (BITS_PA012 << FLD_PA0ON)
-        MASK_OUTPUTPOWER        = PALEVEL_MASK ^ (BITS_OUTPUTPOWER << FLD_OUTPUTPOWER)
+    PALVL                       = $11
+    PALVL_MASK                  = $FF
+        PA0ON                   = 7
+        PA1ON                   = 6
+        PA2ON                   = 5
+        OUTPWR                  = 0
+        PA012_BITS              = %111
+        OUTPWR_BITS             = %11111
+        PA0ON_MASK              = (1 << PA0ON) ^ PALVL_MASK
+        PA1ON_MASK              = (1 << PA1ON) ^ PALVL_MASK
+        PA2ON_MASK              = (1 << PA2ON) ^ PALVL_MASK
+        PA012ON_MASK            = (PA012_BITS << PA2ON) ^ PALVL_MASK
+        OUTPWR_MASK             = OUTPWR_BITS ^ PALVL_MASK
 
     PARAMP                      = $12
     PARAMP_MASK                 = $0F
-        FLD_PARAMP              = 0
-        BITS_PARAMP             = %1111
+        PA_RAMP                 = 0
+        PA_RAMP_BITS            = %1111
 
     OCP                         = $13
     OCP_MASK                    = $1F
-        FLD_OCPON               = 4
-        FLD_OCPTRIM             = 0
-        BITS_OCPTRIM            = %1111
-        MASK_OCPON              = OCP_MASK ^ (1 << FLD_OCPON)
-        MASK_OCPTRIM            = OCP_MASK ^ (BITS_OCPTRIM << FLD_OCPTRIM)
+        OCPON                   = 4
+        OCPTRIM                 = 0
+        OCPTRIM_BITS            = %1111
+        OCPON_MASK              = (1 << OCPON) ^ OCP_MASK
+        OCPTRIM_MASK            = OCPTRIM_BITS ^ OCP_MASK
 
     LNA                         = $18
     LNA_MASK                    = $BF
-        FLD_LNAZIN              = 7
-        FLD_LNACURRENTGAIN      = 3
-        FLD_LNAGAINSELECT       = 0
-        BITS_LNACURRENTGAIN     = %111
-        BITS_LNAGAINSELECT      = %111
-        MASK_LNAZIN             = LNA_MASK ^ (1 << FLD_LNAZIN)
-        MASK_LNACURRENTGAIN     = LNA_MASK ^ (BITS_LNACURRENTGAIN << FLD_LNACURRENTGAIN)
-        MASK_LNAGAINSELECT      = LNA_MASK ^ (BITS_LNAGAINSELECT<< FLD_LNAGAINSELECT)
+        LNAZIN                  = 7
+        LNACURRGAIN             = 3
+        LNAGAINSEL              = 0
+        LNACURRGAIN_BITS        = %111
+        LNAGAINSEL_BITS         = %111
+        LNAZIN_MASK             = (1 << LNAZIN) ^ LNA_MASK
+        LNACURRGAIN_MASK        = (LNACURRGAIN_BITS << LNACURRGAIN) ^ LNA_MASK
+        LNAGAINSEL_MASK         = LNAGAINSEL_BITS ^ LNA_MASK
 
     RXBW                        = $19
     RXBW_MASK                   = $FF
-        FLD_DCCFREQ             = 5
-        FLD_RXBWMANT            = 3
-        FLD_RXBWEXP             = 0
-        FLD_RXBW                = 0
-        BITS_DCCFREQ            = %111
-        BITS_RXBWMANT           = %11
-        BITS_RXBWEXP            = %111
-        BITS_RXBW               = %11111
-        MASK_DCCFREQ            = RXBW_MASK ^ (BITS_DCCFREQ << FLD_DCCFREQ)
-        MASK_RXBWMANT           = RXBW_MASK ^ (BITS_RXBWMANT << FLD_RXBWMANT)
-        MASK_RXBWEXP            = RXBW_MASK ^ (BITS_RXBWEXP << FLD_RXBWEXP)
-        MASK_RXBW               = RXBW_MASK ^ (BITS_RXBW << FLD_RXBW)
+        DCCFREQ                 = 5
+        RXBWMANT                = 3
+        RXBWEXP                 = 0
+        RX_BW                   = 0
+        DCCFREQ_BITS            = %111
+        RXBWMANT_BITS           = %11
+        RXBWEXP_BITS            = %111
+        RX_BW_BITS              = %11111
+        DCCFREQ_MASK            = (DCCFREQ_BITS << DCCFREQ) ^ RXBW_MASK
+        RXBWMANT_MASK           = (RXBWMANT_BITS << RXBWMANT) ^ RXBW_MASK
+        RXBWEXP_MASK            = (RXBWEXP_BITS << RXBWEXP) ^ RXBW_MASK
+        RX_BW_MASK              = RX_BW_BITS ^ RXBW_MASK
 
     AFCBW                       = $1A
     OOKPEAK                     = $1B
@@ -146,42 +147,65 @@ CON
 
     AFCFEI                      = $1E
     AFCFEI_MASK                 = $7F
-        FLD_FEIDONE             = 6     'R/O
-        FLD_FEISTART            = 5     'W/O
-        FLD_AFCDONE             = 4     'R/O
-        FLD_AFCAUTOCLEARON      = 3     'R/W
-        FLD_AFCAUTOON           = 2     'R/W
-        FLD_AFCCLEAR            = 1     'W/O
-        FLD_AFCSTART            = 0     'W/O
-        MASK_FEIDONE            = AFCFEI_MASK ^ (1 << FLD_FEIDONE)
-        MASK_FEISTART           = AFCFEI_MASK ^ (1 << FLD_FEISTART)
-        MASK_AFCDONE            = AFCFEI_MASK ^ (1 << FLD_AFCDONE)
-        MASK_AFCAUTOCLEARON     = AFCFEI_MASK ^ (1 << FLD_AFCAUTOCLEARON)
-        MASK_AFCAUTOON          = AFCFEI_MASK ^ (1 << FLD_AFCAUTOON)
-        MASK_AFCCLEAR           = AFCFEI_MASK ^ (1 << FLD_AFCCLEAR)
-        MASK_AFCSTART           = AFCFEI_MASK ^ (1 << FLD_AFCSTART)
+        FEIDONE                 = 6     'R/O
+        FEISTART                = 5     'W/O
+        AFCDONE                 = 4     'R/O
+        AFCAUTOCLRON            = 3     'R/W
+        AFCAUTOON               = 2     'R/W
+        AFCCLR                  = 1     'W/O
+        AFCSTART                = 0     'W/O
+        FEIDONE_MASK            = (1 << FEIDONE) ^ AFCFEI_MASK
+        FEISTART_MASK           = (1 << FEISTART) ^ AFCFEI_MASK
+        AFCDONE_MASK            = (1 << AFCDONE) ^ AFCFEI_MASK
+        AFCAUTOCLRON_MASK       = (1 << AFCAUTOCLRON) ^ AFCFEI_MASK
+        AFCAUTOON_MASK          = (1 << AFCAUTOON) ^ AFCFEI_MASK
+        AFCCLR_MASK             = (1 << AFCCLR) ^ AFCFEI_MASK
+        AFCSTART_MASK           = 1 ^ AFCFEI_MASK
 
     AFCMSB                      = $1F
     AFCLSB                      = $20
     FEIMSB                      = $21
     FEILSB                      = $22
-    RSSICONFIG                  = $23
+
+    RSSICFG                     = $23
+        RSSIDONE                = %10
+
     RSSIVALUE                   = $24
-    DIOMAPPING1                 = $25
-    DIOMAPPING2                 = $26
+
+    DIOMAP1                     = $25
+    DIOMAP1_MASK                = $FF
+        DIO0                    = 6
+        DIO1                    = 4
+        DIO2                    = 2
+        DIO3                    = 0
+        DIO_BITS                = %11           ' used for all DIOx fields
+        DIO0_MASK               = (DIO_BITS << DIO0) ^ DIOMAP1_MASK
+        DIO1_MASK               = (DIO_BITS << DIO1) ^ DIOMAP1_MASK
+        DIO2_MASK               = (DIO_BITS << DIO2) ^ DIOMAP1_MASK
+        DIO3_MASK               = (DIO_BITS << DIO3) ^ DIOMAP1_MASK
+
+    DIOMAP2                     = $26
+    DIOMAP2_MASK                = $F7
+        DIO4                    = 6
+        DIO5                    = 4
+        CLKOUT                  = 0
+        CLKOUT_BITS             = %111
+        DIO4_MASK               = (DIO_BITS << DIO4) ^ DIOMAP2_MASK
+        DIO5_MASK               = (DIO_BITS << DIO5) ^ DIOMAP2_MASK
+        CLKOUT_MASK             = CLKOUT_BITS ^ DIOMAP2_MASK
 
     IRQFLAGS1                   = $27
 
     IRQFLAGS2                   = $28
     IRQFLAGS2_MASK              = $FF
-        FLD_FIFOFULL            = 7
-        FLD_FIFONOTEMPTY        = 6
-        FLD_FIFOLEVEL           = 5
-        FLD_FIFOOVERRUN         = 4
-        FLD_PACKETSENT          = 3
-        FLD_PAYLOADREADY        = 2
-        FLD_CRCOK               = 1
-        FLD_LOWBAT              = 0
+        FIFOFULL                = 7
+        FIFONOTEMPTY            = 6
+        FIFOLVL                 = 5
+        FIFOOVERRUN             = 4
+        PKTSENT                 = 3
+        PAYLOADREADY            = 2
+        CRCOK                   = 1
+        LOWBATT                 = 0
 
     RSSITHRESH                  = $29
     RXTIMEOUT1                  = $2A
@@ -189,80 +213,82 @@ CON
     PREAMBLEMSB                 = $2C
     PREAMBLELSB                 = $2D
 
-    SYNCCONFIG                  = $2E
-    SYNCCONFIG_MASK             = $FF
-        FLD_SYNCON              = 7
-        FLD_FIFOFILLCONDITION   = 6
-        FLD_SYNCSIZE            = 3
-        FLD_SYNCTOL             = 0
-        BITS_SYNCSIZE           = %111
-        BITS_SYNCTOL            = %111
-        MASK_SYNCON             = SYNCCONFIG_MASK ^ (1 << FLD_SYNCON)
-        MASK_FIFOFILLCONDITION  = SYNCCONFIG_MASK ^ (1 << FLD_FIFOFILLCONDITION)
-        MASK_SYNCSIZE           = SYNCCONFIG_MASK ^ (BITS_SYNCSIZE << FLD_SYNCSIZE)
-        MASK_SYNCTOL            = SYNCCONFIG_MASK ^ (BITS_SYNCTOL << FLD_SYNCTOL)
+    SYNCCFG                     = $2E
+    SYNCCFG_MASK                = $FF
+        SYNCON                  = 7
+        FIFOFILLCOND            = 6
+        SYNCSIZE                = 3
+        SYNCTOL                 = 0
+        SYNCSIZE_BITS           = %111
+        SYNCTOL_BITS            = %111
+        SYNCON_MASK             = (1 << SYNCON) ^ SYNCCFG_MASK
+        FIFOFILLCOND_MASK       = (1 << FIFOFILLCOND) ^ SYNCCFG_MASK
+        SYNCSIZE_MASK           = (SYNCSIZE_BITS << SYNCSIZE) ^ SYNCCFG_MASK
+        SYNCTOL_MASK            = SYNCTOL_BITS ^ SYNCCFG_MASK
 
-    #$2F, SYNCVALUE1, SYNCVALUE2, SYNCVALUE3, SYNCVALUE4, SYNCVALUE5, SYNCVALUE6, SYNCVALUE7, SYNCVALUE8
+    #$2F, SYNCVALUE1, SYNCVALUE2, SYNCVALUE3, SYNCVALUE4, SYNCVALUE5,{
+}   SYNCVALUE6, SYNCVALUE7, SYNCVALUE8
 
-    PACKETCONFIG1               = $37
-    PACKETCONFIG1_MASK          = $FE
-        FLD_PACKETFORMAT        = 7
-        FLD_DCFREE              = 5
-        FLD_CRCON               = 4
-        FLD_CRCAUTOCLEAROFF     = 3
-        FLD_ADDRESSFILTERING    = 1
-        BITS_DCFREE             = %11
-        BITS_ADDRESSFILTERING   = %11
-        MASK_PACKETFORMAT       = PACKETCONFIG1_MASK ^ (1 << FLD_PACKETFORMAT)
-        MASK_DCFREE             = PACKETCONFIG1_MASK ^ (BITS_DCFREE << FLD_DCFREE)
-        MASK_CRCON              = PACKETCONFIG1_MASK ^ (1 << FLD_CRCON)
-        MASK_CRCAUTOCLEAROFF    = PACKETCONFIG1_MASK ^ (1 << FLD_CRCAUTOCLEAROFF)
-        MASK_ADDRESSFILTERING   = PACKETCONFIG1_MASK ^ (BITS_ADDRESSFILTERING << FLD_ADDRESSFILTERING)
+    PKTCFG1                     = $37
+    PKTCFG1_MASK                = $FE
+        PKTFORMAT               = 7
+        DCFREE                  = 5
+        CRCON                   = 4
+        CRCAUTOCLROFF           = 3
+        ADDRFILT                = 1
+        DCFREE_BITS             = %11
+        ADDRFILT_BITS           = %11
+        PKTFORMAT_MASK          = (1 << PKTFORMAT) ^ PKTCFG1_MASK
+        DCFREE_MASK             = (DCFREE_BITS << DCFREE) ^ PKTCFG1_MASK
+        CRCON_MASK              = (1 << CRCON) ^ PKTCFG1_MASK
+        CRCAUTOCLROFF_MASK      = (1 << CRCAUTOCLROFF) ^ PKTCFG1_MASK
+        ADDRFILT_MASK           = ADDRFILT_BITS ^ PKTCFG1_MASK
 
     PAYLOADLENGTH               = $38
 
     NODEADRS                    = $39
-    BROADCASTADRS               = $3A
+    BCASTADRS                   = $3A
 
     AUTOMODES                   = $3B
     AUTOMODES_MASK              = $FF
-        FLD_ENTERCONDITION      = 5
-        FLD_EXITCONDITION       = 2
-        FLD_INTERMEDIATEMODE    = 0
-        BITS_ENTERCONDITION     = %111
-        BITS_EXITCONDITION      = %111
-        BITS_INTERMEDIATEMODE   = %11
-        MASK_ENTERCONDITION     = AUTOMODES_MASK ^ (BITS_ENTERCONDITION << FLD_ENTERCONDITION)
-        MASK_EXITCONDITION      = AUTOMODES_MASK ^ (BITS_EXITCONDITION << FLD_EXITCONDITION)
-        MASK_INTERMEDIATEMODE   = AUTOMODES_MASK ^ (BITS_INTERMEDIATEMODE << FLD_INTERMEDIATEMODE)
+        ENTCOND                 = 5
+        EXITCOND                = 2
+        INTMDTMODE              = 0
+        ENTCOND_BITS            = %111
+        EXITCOND_BITS           = %111
+        INTMDTMODE_BITS         = %11
+        ENTCOND_MASK            = (ENTCOND_BITS << ENTCOND) ^ AUTOMODES_MASK
+        EXITCOND_MASK           = (EXITCOND_BITS << EXITCOND) ^ AUTOMODES_MASK
+        INTMDTMODE_MASK         = INTMDTMODE_BITS ^ AUTOMODES_MASK
 
     FIFOTHRESH                  = $3C
     FIFOTHRESH_MASK             = $FF
-        FLD_TXSTARTCONDITION    = 7
-        FLD_FIFOTHRESHOLD       = 0
-        BITS_FIFOTHRESHOLD      = %1111111
-        MASK_TXSTARTCONDITION   = FIFOTHRESH_MASK ^ (1 << FLD_TXSTARTCONDITION)
-        MASK_FIFOTHRESHOLD      = FIFOTHRESH_MASK ^ (BITS_FIFOTHRESHOLD << FLD_FIFOTHRESHOLD)
+        TXSTARTCOND             = 7
+        FIFOTHRESHOLD           = 0
+        FIFOTHRESHOLD_BITS      = %1111111
+        TXSTARTCOND_MASK        = (1 << TXSTARTCOND) ^ FIFOTHRESH_MASK
+        FIFOTHRESHOLD_MASK      = FIFOTHRESHOLD_BITS ^ FIFOTHRESH_MASK
 
-    PACKETCONFIG2               = $3D
-    PACKETCONFIG2_MASK          = $F7
-        FLD_INTERPACKETDELAY    = 4
-        FLD_RESTARTRX           = 2
-        FLD_AUTORESTARTRXON     = 1
-        FLD_AESON               = 0
-        BITS_INTERPACKETDELAY   = %1111
-        MASK_INTERPACKETDELAY   = PACKETCONFIG2_MASK ^ (BITS_INTERPACKETDELAY << FLD_INTERPACKETDELAY)
-        MASK_RESTARTRX          = PACKETCONFIG2_MASK ^ (1 << FLD_RESTARTRX)
-        MASK_AUTORESTARTRXON    = PACKETCONFIG2_MASK ^ (1 << FLD_AUTORESTARTRXON)
-        MASK_AESON              = PACKETCONFIG2_MASK ^ (1 << FLD_AESON)
+    PKTCFG2                     = $3D
+    PKTCFG2_MASK                = $F7
+        INTPKTDLY               = 4
+        RSTARTRX                = 2
+        AUTORSTARTRXON          = 1
+        AESON                   = 0
+        INTPKTDLY_BITS          = %1111
+        INTPKTDLY_MASK          = (INTPKTDLY_BITS << INTPKTDLY) ^ PKTCFG2_MASK
+        RSTARTRX_MASK           = (1 << RSTARTRX) ^ PKTCFG2_MASK
+        AUTORSTARTRXON_MASK     = (1 << AUTORSTARTRXON) ^ PKTCFG2_MASK
+        AESON_MASK              = 1 ^ PKTCFG2_MASK
 
-    #$3E, AESKEY1, AESKEY2, AESKEY3, AESKEY4, AESKEY5, AESKEY6, AESKEY7, AESKEY8, {
-}         AESKEY9, AESKEY10, AESKEY11, AESKEY12, AESKEY13, AESKEY14, AESKEY15, AESKEY16
+    #$3E, AESKEY1, AESKEY2, AESKEY3, AESKEY4, AESKEY5, AESKEY6, AESKEY7,{
+}   AESKEY8, AESKEY9, AESKEY10, AESKEY11, AESKEY12, AESKEY13, AESKEY14,{
+}   AESKEY15, AESKEY16
 
     TEMP1                       = $4E
     TEMP1_MASK                  = $0C
-        FLD_TEMPMEASSTART       = 3
-        FLD_TEMPMEASRUNNING     = 2
+        TEMPMEASSTART           = 3
+        TEMPMEASRUN             = 2
 
     TEMP2                       = $4F
 

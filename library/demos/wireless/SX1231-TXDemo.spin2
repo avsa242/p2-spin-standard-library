@@ -1,0 +1,117 @@
+{
+    --------------------------------------------
+    Filename: SX1231-TXDemo.spin2
+    Author: Jesse Burt
+    Description: Simple transmit demo of the sx1231 driver
+        (P2 version)
+    Copyright (c) 2020
+    Started Dec 15, 2020
+    Updated Dec 19, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+CON
+
+    _clkfreq        = cfg._clkfreq_def
+    _xtlfreq        = cfg._xtlfreq
+
+' -- User-modifiable constants
+    LED             = cfg.LED1
+    SER_BAUD        = 2_000_000
+
+    CS_PIN          = 0
+    SCK_PIN         = 1
+    MOSI_PIN        = 2
+    MISO_PIN        = 3
+' --
+
+OBJ
+
+    ser         : "com.serial.terminal.ansi"
+    cfg         : "core.con.boardcfg.p2eval"
+    int         : "string.integer"
+    sf          : "string.format"
+    sx1231      : "wireless.transceiver.sx1231.spi"
+
+VAR
+
+    byte _buffer[256]
+
+PUB Main() | count
+
+    setup()
+
+    ser.position(0, 3)
+    ser.strln(string("Transmit mode"))
+
+' -- TX/RX settings
+    sx1231.idle()
+    sx1231.carrierfreq(902_300_000)             ' US 902.3MHz
+    sx1231.payloadlen(8)                        ' the test packets are
+' --                                            '   8 bytes
+
+' -- TX-specific settings
+    sx1231.txsigrouting(1)
+    sx1231.txpower(14)                          ' -18..20dBm
+' --
+
+    count := 0
+    repeat
+        bytefill(@_buffer, 0, 256)              ' clear temp TX buffer
+
+        ' payload is the string 'TEST' with hexadecimal counter after
+        sf.sprintf(@_buffer, string("TEST%s"), int.hex(count, 4))
+
+        sx1231.idle()                           ' start in idle/standby
+        sx1231.txpayload(8, @_buffer)           ' queue the data
+        sx1231.txmode()                         ' transmit
+
+        repeat until sx1231.payloadsent()       ' wait until TX complete
+
+        ' sleep after transmit to avoid continuously transmitting a carrier
+        sx1231.sleep()                          ' *** important
+
+        count++
+        ser.position(0, 5)
+        ser.str(string("Sending: "))
+        ser.str(@_buffer)
+        waitms(5000)                            ' wait in between packets
+                                                ' (don't abuse the airwaves)
+PUB Setup()
+
+    ser.start(SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.strln(string("Serial terminal started"))
+
+    if sx1231.start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
+        sx1231.defaults()
+        ser.strln(string("SX1231 driver started"))
+    else
+        ser.strln(string("SX1231 driver failed to start - halting"))
+        sx1231.stop()
+        waitms(500)
+        repeat
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
+
