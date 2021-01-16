@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2020
     Started May 21, 2020
-    Updated Jul 22, 2020
+    Updated Dec 29, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -35,11 +35,11 @@ CON
     CMD_HSTART                      = $102
     CMD_VSTART                      = $103
     CMD_ASKIP_DAVG_FLIP             = $104
-        FLD_ASKIP_V                 = 5
-        FLD_ASKIP_H                 = 4
-        FLD_DAVG_V                  = 3
-        FLD_VFLIP                   = 1
-        FLD_HFLIP                   = 0
+        ASKIP_V                     = 5
+        ASKIP_H                     = 4
+        DAVG_V                      = 3
+        VFLIP                       = 1
+        HFLIP                       = 0
 
 ' AE/AG Controls
     R_AELEDOFF_UB                   = $046
@@ -51,23 +51,23 @@ CON
     R_AE_GAIN_UB                    = $04C
     R_AE_GAIN_LB                    = $04D
     R_AE_GAIN_STEP                  = $04E
-        FLD_SLEEP_AUTODIS           = 4
+        SLEEP_AUTODIS               = 4
     R_AE_GAIN_DEFAULT               = $04F
     R_EXP_SEL                       = $050
     R_MANUAL_GG                     = $051
-        FLD_AE_ENH                  = 4
-        FLD_MAN_EX_DEF              = 2
-        FLD_MANUAL_EXP              = 1
+        AE_ENH                      = 4
+        MAN_EX_DEF                  = 2
+        MANUAL_EXP                  = 1
     AG_STAGE_GG                     = $054
     REG_EXPOSURENUM_LSB             = $055
     REG_EXPOSURENUM_MSB             = $056
     REG_GGH_GLOBAL                  = $057
-'        FLD_GLOBAL                 = 0    ' XXX NEEDS CLARIFICATION - FIELDS BOTH START AT POS 0??
-'        FLD_GGH                    = 0
+'        GLOBAL                     = 0    ' XXX NEEDS CLARIFICATION - FIELDS BOTH START AT POS 0??
+'        GGH                        = 0
     AE_LED_OFF_YAVG                 = $058
     AE_DECINC                       = $059
-        FLD_INC                     = 1
-        FLD_DEC                     = 0
+        INC                         = 1
+        DEC                         = 0
     AE_NORMAL_FACTOR                = $05A
     R_GLOBAL                        = $142
     R_GGH                           = $144
@@ -126,9 +126,9 @@ CON
     PROCESSRESOLUTION               = $08C
     TIMEDELAYNUM                    = $08D
     DISABLE45DEGREE                 = $08E
-        FLD_45DEGRATIO              = 0
+        DEG45RATIO                  = 0
     XTOYGAIN                        = $08F
-        FLD_XYGAINRATIO             = 0
+        XYGAINRATIO                 = 0
     NOMOTIONCOUNTTHD                = $090
     NOOBJECTCOUNTTHD                = $091
     NORMALIZEDIMAGEWIDTH            = $092
@@ -139,20 +139,20 @@ CON
     ZDIRECTIONANGLETHD              = $097
     ROTATEANGLETHD                  = $098
     ROTATECONTIENH                  = $099
-        FLD_ROTATECONTITHD          = 0
+        ROTATECONTITHD              = 0
     ROTATEXYTHD                     = $09A
     ROTATEZTHD                      = $09B
     FILTERWEIGHT                    = $09C
-        FLD_FILTERDISTTHD           = 0 ' XXX NEEDS CLARIFICATION
+        FILTERDISTTHD               = 0 ' XXX NEEDS CLARIFICATION
     STARTDISTTHD                    = $09D
-        FLD_ENDDISTTHD              = 0
+        ENDDISTTHD                  = 0
     ROTATEENH                       = $09F
-        FLD_ZDIRECTIONENH           = 0
-        FLD_YDIRECTIONENH           = 0
-        FLD_XDIRECTIONENH           = 0
+        ZDIRECTIONENH               = 0
+        YDIRECTIONENH               = 0
+        XDIRECTIONENH               = 0
     FILTERIMAGE                     = $0A5
-        FLD_FILTERAVG_MODE          = 0
-        FLD_USELIGHTWEIGHT          = 0
+        FILTERAVG_MODE              = 0
+        USELIGHTWEIGHT              = 0
     DIFFANGLETHD                    = $0A9
     OBJECTCENTERX_LSB               = $0AC
     OBJECTCENTERX_MSB               = $0AD
@@ -165,9 +165,9 @@ CON
     GY                              = $0B4
     GZ                              = $0B5
     GESTURERESULT                   = $0B6
-        FLD_STATE                   = 0     ' XXX
+        GR_STATE                    = 0     ' XXX
     WAVECOUNT                       = $0B7
-        FLD_ABORTCOUNT              = 0     ' XXX
+        ABORTCOUNT                  = 0     ' XXX
     NOOBJECTCOUNT                   = $0B8
     NOMOTIONCOUNT                   = $0B9
     LIGHTCOUNT                      = $0BA
@@ -191,15 +191,15 @@ CON
     YTOZSUM                         = $0CC
     YTOZFACTOR                      = $0CD
     POSITIONFILTERLENGTH            = $0CE
-        FLD_PROCFILTERLENGTH        = 0 ' XXX
+        PROCFILTERLENGTH            = 0 ' XXX
     WAVECOUNTTHD                    = $0CF
-        FLD_WAVEANGLETHD            = 0 ' XXX
+        WAVEANGLETHD                = 0 ' XXX
     ABORTCOUNTTHD                   = $0D0
-        FLD_ABORTXYRATIO            = 0 ' XXX
+        ABORTXYRATIO                = 0 ' XXX
     ABORTLENGTH                     = $0D1
     ABORTINTERVALCOUNTTHD           = $0D2
-        FLD_CONFIRMMODE             = 0 ' XXX
-        FLD_WAVEENH                 = 0 ' XXX
+        CONFIRMMODE                 = 0 ' XXX
+        WAVEENH                     = 0 ' XXX
     POSITIONFILTERCENTERX_LSB       = $0D3
     POSITIONFILTERCENTERX_MSB       = $0D4
     POSITIONFILTERCENTERY_MSB       = $0D4
