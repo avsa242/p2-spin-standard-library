@@ -3,9 +3,9 @@
     Filename: core.con.ds28cm00.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Feb 16, 2019
-    Updated Sep 12, 2020
+    Updated Jan 2, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -27,7 +27,7 @@ CON
     CRC                 = $07
     CTRL_REG            = $08
     CTRL_REG_MASK       = $01
-        FLD_CM          = 0
+        CM              = 0
 
     CM_I2C              = 0
     CM_SMBUS            = 1

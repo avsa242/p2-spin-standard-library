@@ -3,9 +3,9 @@
     Filename: DS28CM00-Demo.spin2
     Author: Jesse Burt
     Description: Demo of the DS28CM00 64-bit ROM ID chip (P2 version)
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Oct 27, 2019
-    Updated Sep 12, 2020
+    Updated Jan 2, 2021
     See end of file for terms of use.
     --------------------------------------------
     NOTE: If a common EEPROM (e.g. AT24Cxxxx) is on the same I2C bus as the SSN,
@@ -20,8 +20,6 @@ CON
 
 ' -- User-modifiable constants
     LED         = cfg.LED1
-    SER_RX      = cfg.SER_RX
-    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
     I2C_SCL     = 24
@@ -47,8 +45,8 @@ PUB Main() | i
     ser.hex(ssn.deviceid(), 2)
     ser.printf("\nSerial Number: $")
     ssn.sn(@_sn)
-    repeat i from 0 to 7
-        ser.hex(_sn.byte[i], 2)
+    repeat i from 7 to 0
+        ser.hex(_sn[i], 2)
     ser.printf("\nCRC: $%x, Valid: ", ssn.crc())
     case ssn.crcvalid()
         true: ser.printf("Yes\n")
@@ -59,15 +57,16 @@ PUB Main() | i
 
 PUB Setup()
 
-    repeat until ser.startrxtx(SER_RX, SER_TX, 0, SER_BAUD)
+    ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
-    ser.printf("Serial terminal started\n")
+    ser.strln(string("Serial terminal started"))
     if ssn.start(I2C_SCL, I2C_SDA, I2C_HZ)
-        ser.printf("DS28CM00 driver started\n")
+        ser.strln(string("DS28CM00 driver started"))
     else
-        ser.printf("DS28CM00 driver failed to start - halting\n")
+        ser.strln(string("DS28CM00 driver failed to start - halting"))
         ssn.stop()
+        repeat
 
 DAT
 {

@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Driver for the DS28CM00
      64-bit I2C Silicon Serial Number (P2 version)
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Oct 27, 2019
-    Updated Sep 12, 2020
+    Updated Jan 2, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -33,13 +33,13 @@ PUB Null()
 PUB Start(SCL_PIN, SDA_PIN, SCL_HZ=100_000): okay
 
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        i2c.setup(SCL_PIN, SDA_PIN, SCL_HZ)             ' I2C Object Started?
-        waitms(1)
-        if i2c.present(SLAVE_WR)                        ' Response from device?
-            if deviceid() == core.DEVID_RESP
-            return cogid()+1
+        if okay := i2c.setup(SCL_PIN, SDA_PIN, SCL_HZ)
+            waitms(1)
+            if i2c.present(SLAVE_WR)            ' check device bus presence
+                if deviceid() == core.DEVID_RESP
+                    return okay
 
-    return FALSE                                        ' Something above went wrong
+    return FALSE                                ' Something above went wrong
 
 PUB Stop()
 
@@ -85,25 +85,21 @@ PUB SN(ptr_buff)
     readreg(core.DEV_FAMILY, 8, ptr_buff)
 
 PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
-' Read nr_bytes from the slave device
+' Read nr_bytes from the slave device into ptr_buff
     case reg_nr
         $00..$08:
         other:
             return
 
-    case nr_bytes
-        1..9:
-            cmd_pkt.byte[0] := SLAVE_WR
-            cmd_pkt.byte[1] := reg_nr
-        other:
-            return
+    cmd_pkt.byte[0] := SLAVE_WR
+    cmd_pkt.byte[1] := reg_nr
 
     i2c.start()
-    i2c.write(cmd_pkt.byte[0])
-    i2c.write(cmd_pkt.byte[1])
+    repeat tmp from 0 to 1
+        i2c.write(cmd_pkt.byte[tmp])
 
     i2c.start()
-    i2c.write (SLAVE_RD)
+    i2c.write(SLAVE_RD)
     repeat tmp from 0 to nr_bytes-1
         byte[ptr_buff][tmp] := i2c.read(tmp == (nr_bytes-1))
     i2c.stop()
