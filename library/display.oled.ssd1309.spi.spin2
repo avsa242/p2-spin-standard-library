@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: display.oled.ssd1309.i2c.spin2
+    Filename: display.oled.ssd1306.i2c.spin2
     Description: Driver for Solomon Systech SSD1309 SPI OLED display drivers (P2 version)
     Author: Jesse Burt
-    Copyright (c) 2020
+    Copyright (c) 2021
     Created: Dec 27, 2019
-    Updated: Jun 23, 2020
+    Updated: Jan 2, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,9 +14,9 @@
 
 CON
 
-    MAX_COLOR       = 1
     BYTESPERPX      = 1
-
+    MAX_COLOR       = 1
+i
 ' Display visibility modes
     NORMAL          = 0
     ALL_ON          = 1
@@ -25,189 +25,198 @@ CON
 OBJ
 
     core    : "core.con.ssd1309"
-    time    : "time"
-    io      : "io"
     spi     : "com.spi"
 
 VAR
 
+    long _CS, _DC, _RES
     long _ptr_drawbuffer
     word _buff_sz
-    word BYTESPERLN
+    word bytesperln
     byte _disp_width, _disp_height, _disp_xmax, _disp_ymax
-    byte _CS, _SCK, _MOSI, _DC, _RES
 
 PUB Null()
 ' This is not a top-level object
 
-PUB Start(width, height, CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RES_PIN, SCK_FREQ, dispbuffer_address): okay
+PUB Start(width, height, CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RES_PIN,{
+}   SCK_FREQ=10_000_000, ptr_dispbuff): okay
 ' Start the driver with custom settings
 ' Valid values:
 '       width: 0..128
 '       height: 32, 64
-'       CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RES_PIN: 0..63
-    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and lookdown(DC_PIN: 0..63)
-        if okay := spi.Start(SCK_PIN, SDA_PIN, -1, SCK_FREQ)
+'       CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RES_PIN: 0..31
+    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
+}   lookdown(SDA_PIN: 0..63) and lookdown(DC_PIN: 0..63)
+        ' SPI engine started with MISO param same pin as MOSI (SDA); it
+        '   shouldn't matter though, as spi.Read() is never called.
+        if okay := spi.start(SCK_PIN, SDA_PIN, -1, SCK_FREQ)
             _CS := CS_PIN
-            _SCK := SCK_PIN
-            _MOSI := SDA_PIN
             _DC := DC_PIN
             _RES := RES_PIN
 
-            pinl (_DC)
-            pinh (_CS)
-            pinh (_RES)
-
-            Reset()
+            pinh(_CS)
+            pinl(_DC)
+            pinh(_RES)
+            reset()
 
             _disp_width := width
             _disp_height := height
             _disp_xmax := _disp_width-1
             _disp_ymax := _disp_height-1
-            BYTESPERLN := _disp_width * BYTESPERPX
+            bytesperln := _disp_width * BYTESPERPX
             _buff_sz := (_disp_width * _disp_height) / 8
-            Address(dispbuffer_address)
+            address(ptr_dispbuff)
             return
-    return                                                'If we got here, something went wrong
+    return FALSE                                ' something above failed
 
 PUB Stop()
 
-    Powered(FALSE)
+    powered(FALSE)
 
 PUB Defaults()
-
-    Powered(FALSE)
-    ClockFreq (444)
-    DisplayLines(_disp_height-1)
-    DisplayOffset(0)
-    DisplayStartLine(0)
-    ChargePumpReg(TRUE)
-    AddrMode (0)
-    MirrorH(FALSE)
-    MirrorV(FALSE)
+' Factory default settings
+    powered(FALSE)
+    clockfreq(444)
+    displaylines(_disp_height-1)
+    displayoffset(0)
+    displaystartline(0)
+    chargepumpreg(TRUE)
+    addrmode(0)
+    mirrorh(FALSE)
+    mirrorv(FALSE)
     case _disp_height
         32:
-            COMPinCfg(0, 0)
+            compincfg(0, 0)
         64:
-            COMPinCfg(1, 0)
-        OTHER:
-            COMPinCfg(0, 0)
-    Contrast(127)
-    PrechargePeriod (1, 15)
-    COMLogicHighLevel (0_77)
-    DisplayVisibility(NORMAL)
-    DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
-    Powered(TRUE)
+            compincfg(1, 0)
+        other:
+            compincfg(0, 0)
+    contrast(127)
+    prechargeperiod(1, 15)
+    comlogichighlevel(0_77)
+    displayvisibility(NORMAL)
+    displaybounds(0, 0, _disp_xmax, _disp_ymax)
+    powered(TRUE)
 
-PUB Address(addr=-2): result
+PUB Address(addr): curr_addr
 ' Set framebuffer address
     case addr
         $0004..$7FFF-_buff_sz:
             _ptr_drawbuffer := addr
-            result := _ptr_drawbuffer
-            return
-        OTHER:
-            result := _ptr_drawbuffer
-            return
+            return _ptr_drawbuffer
+        other:
+            return _ptr_drawbuffer
 
 PUB AddrMode(mode)
 ' Set Memory Addressing Mode
-'   0: Horizontal addressing mode
-'   1: Vertical
-'   2: Page (POR)
+'   Valid values:
+'       0: Horizontal addressing mode
+'       1: Vertical
+'       2: Page (POR)
     case mode
         0, 1, 2:
-        OTHER:
+        other:
             return
 
-    writeReg(core.CMD_MEM_ADDRMODE, 1, mode)
+    writereg(core.CMD_MEM_ADDRMODE, 1, mode)
 
 PUB ChargePumpReg(enabled)
 ' Enable Charge Pump Regulator when display power enabled
+'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Any other value is ignored
     case abs(enabled)
         0, 1:
             enabled := lookupz(abs(enabled): $10, $14)
-        OTHER:
+            writereg(core.CMD_CHARGEPUMP, 1, enabled)
+        other:
             return
-    writeReg(core.CMD_CHARGEPUMP, 1, enabled)
 
 PUB ClearAccel()
 ' Dummy method
 
 PUB ClockFreq(kHz)
 ' Set Oscillator frequency, in kHz
-'   Valid values: 360, 372, 384, 396, 408, 420, 432, 444, 456, 468, 480, 492, 504, 516, 528, 540
+'   Valid values: 360, 372, 384, 396, 408, 420, 432, 444, 456, 468, 480, 492,
+'                 504, 516, 528, 540
 '   Any other value is ignored
-'   NOTE: Range is interpolated, based solely on the range specified in the datasheet, divided into 16 steps
+'   NOTE: Range is interpolated, based solely on the range specified in the
+'       datasheet, divided into 16 steps
     case kHz
         core.FOSC_MIN..core.FOSC_MAX:
-            kHz := lookdownz(kHz: 360, 372, 384, 396, 408, 420, 432, 444, 456, 468, 480, 492, 504, 516, 528, 540) << core.FLD_OSCFREQ
-        OTHER:
+            kHz := lookdownz(kHz: 360, 372, 384, 396, 408, 420, 432, 444, 456,{
+}           468, 480, 492, 504, 516, 528, 540) << core.OSCFREQ
+            writereg(core.CMD_SETOSCFREQ, 1, kHz)
+        other:
             return
 
-    writeReg(core.CMD_SETOSCFREQ, 1, kHz)
-
 PUB COMLogicHighLevel(level)
-' Set Vcomh deselect level 0.65, 0.77, 0.83 * Vcc
-'   Valid values: 0.65, 0.77, 0.83
-'   Any other value sets the POR value, 0.77
+' Set Vcomh deselect level, in volts
+'   Valid values: 0_65, 0_77, 0_83 (0.65, 0.77, 0.83)
+'   Any other value sets the POR value, 0_77
     case level
-        0.67:
+        0_67:
             level := %000 << 4
-        0.77:
+        0_77:
             level := %010 << 4
-        0.83:
+        0_83:
             level := %011 << 4
-        OTHER:
+        other:
             level := %010 << 4
 
-    writeReg(core.CMD_SETVCOMDESEL, 1, level)
+    writereg(core.CMD_SETVCOMDESEL, 1, level)
 
 PUB COMPinCfg(pin_config, remap) | config
 ' Set COM Pins Hardware Configuration and Left/Right Remap
 '  pin_config: 0: Sequential                      1: Alternative (POR)
 '       remap: 0: Disable Left/Right remap (POR)  1: Enable remap
-' POR: $12
-    config := %0000_0010
+' POR: $12  ' XXX clear this up
+    config := %0000_0010    'XXX clear this up - use CON
     case pin_config
         0:
-        OTHER:
+        other:
             config := config | (1 << 4)
 
     case remap
         1:
             config := config | (1 << 5)
-        OTHER:
+        other:
 
-    writeReg(core.CMD_SETCOM_CFG, 1, config)
+    writereg(core.CMD_SETCOM_CFG, 1, config)
 
 PUB Contrast(level)
-' Set Contrast Level 0..255 (POR = 127)
+' Set Contrast Level
+'   Valid values: 0..255
+'   Any other value sets the POR value, 127
     case level
         0..255:
-        OTHER:
+        other:
             level := 127
 
-    writeReg(core.CMD_CONTRAST, 1, level)
+    writereg(core.CMD_CONTRAST, 1, level)
 
 PUB DisplayBounds(sx, sy, ex, ey)
 ' Set displayable area
-    ifnot lookup(sx: 0..127) or lookup(sy: 0..63) or lookup(ex: 0..127) or lookup(ey: 0..63)
-        return
+'   Valid values:
+'       sx, ex: 0..127
+'       sy, ey: 0..63
+    ifnot lookup(sx: 0..127) or lookup(sy: 0..63) or lookup(ex: 0..127){
+}   or lookup(ey: 0..63)                        ' if coordinates are invalid,
+        return                                  '   ignore and return
 
     sy >>= 3
     ey >>= 3
-    writeReg(core.CMD_SET_COLADDR, 2, (ex << 8) | sx)
-    writeReg(core.CMD_SET_PAGEADDR, 2, (ey << 8) | sy)
+    writereg(core.CMD_SET_COLADDR, 2, (ex << 8) | sx)
+    writereg(core.CMD_SET_PAGEADDR, 2, (ey << 8) | sy)
 
-PUB DisplayInverted(enabled) | tmp
+PUB DisplayInverted(enabled)
 ' Invert display colors
+'   Valid values: TRUE (-1 or 1), FALSE (0)
     case abs(enabled)
         0:
-            DisplayVisibility(NORMAL)
+            displayvisibility(NORMAL)
         1:
-            DisplayVisibility(INVERTED)
-        OTHER:
+            displayvisibility(INVERTED)
+        other:
             return
 
 PUB DisplayLines(lines)
@@ -218,141 +227,151 @@ PUB DisplayLines(lines)
     case lines
         16..64:
             lines -= 1
-        OTHER:
+            writereg(core.CMD_SETMUXRATIO, 1, lines)
+        other:
             return
-
-    writeReg(core.CMD_SETMUXRATIO, 1, lines)
 
 PUB DisplayOffset(offset)
-' Set Display Offset/vertical shift from 0..63
-' POR: 0
+' Set Display Offset/vertical shift
+'   Valid values: 0..63
+'   Any other value sets the POR value, 0
     case offset
         0..63:
-        OTHER:
+        other:
             offset := 0
 
-    writeReg(core.CMD_SETDISPOFFS, 1, offset)
+    writereg(core.CMD_SETDISPOFFS, 1, offset)
 
 PUB DisplayStartLine(start_line)
-' Set Display Start Line from 0..63
+' Set Display Start Line
+'   Valid values: 0..63
+'   Any other value sets the POR value, 0
     case start_line
         0..63:
-        OTHER:
-            return
+        other:
+            start_line := 0
 
-    writeReg($40, 0, start_line)
+    writereg($40, 0, start_line)    'XXX define reg in core file
 
-PUB DisplayVisibility(mode) | tmp
+PUB DisplayVisibility(mode)
 ' Set display visibility
+'   Valid values:
+'       NORMAL: Normal display
+'       ALL_ON: Set all pixels on (doesn't affect previous display contents)
+'       INVERTED: Invert display colors
     case mode
         NORMAL:
-            writeReg (core.CMD_RAMDISP_ON, 0, 0)
-            writeReg (core.CMD_DISP_NORM, 0, 0)
+            writereg(core.CMD_RAMDISP_ON, 0, 0)
+            writereg(core.CMD_DISP_NORM, 0, 0)
         ALL_ON:
-            writeReg (core.CMD_RAMDISP_ON, 0, 1)
+            writereg(core.CMD_RAMDISP_ON, 0, 1)
         INVERTED:
-            writeReg (core.CMD_DISP_NORM, 0, 1)
-        OTHER:
+            writereg(core.CMD_DISP_NORM, 0, 1)
+        other:
             return
 
 PUB MirrorH(enabled)
 ' Mirror display, horizontally
-' NOTE: Only affects subsequent data - no effect on data in GDDRAM  'XXX clarify
+' NOTE: Takes effect only after next drawing operation; doesn't affect
+'   current display contents
     case abs(enabled)
-        0, 1: enabled := abs(enabled)
-        OTHER:
+        0, 1:
+            enabled := abs(enabled)
+        other:
             return
 
-    writeReg(core.CMD_SEG_MAP0, 0, enabled)
+    writereg(core.CMD_SEG_MAP0, 0, enabled)
 
 PUB MirrorV(enabled)
 ' Mirror display, vertically
-' NOTE: Only affects subsequent data - no effect on data in GDDRAM
-' POR: 0
+' NOTE: Takes effect only after next drawing operation; doesn't affect
+'   current display contents
     case abs(enabled)
-        0:
-        1: enabled := 8
-        OTHER:
+        0, 1:
+            enabled := lookupz(abs(enabled): 0, 8)
+        other:
             return
 
-    writeReg(core.CMD_COMDIR_NORM, 0, enabled)
+    writereg(core.CMD_COMDIR_NORM, 0, enabled)
 
-PUB Powered(enabled) | tmp
+PUB Powered(enabled)
 ' Enable display power
+'   Valid values: TRUE (-1 or 1), FALSE (0)
     case abs(enabled)
         0, 1:
             enabled := abs(enabled) + core.CMD_DISP_OFF
-        OTHER:
+        other:
             return
-    writeReg(enabled, 0, 0)
+    writereg(enabled, 0, 0)
 
 PUB PrechargePeriod(phs1_clks, phs2_clks)
-' Set Pre-charge period: 1..15 DCLK
-' POR: 2 (both)
+' Set Pre-charge period, in display clocks
+'   Valid values: 1..15
+'   Any other value sets the POR value, 2 (both)
     case phs1_clks
         1..15:
-        OTHER:
+        other:
             phs1_clks := 2
 
     case phs2_clks
         1..15:
-        OTHER:
+        other:
             phs2_clks := 2
 
-    writeReg(core.CMD_SETPRECHARGE, 1, (phs2_clks << 4) | phs1_clks)
+    writereg(core.CMD_SETPRECHARGE, 1, (phs2_clks << 4) | phs1_clks)
 
 PUB Reset()
 ' Reset the display controller
-    if lookup(_RES: 0..63)
+    if lookup(_RES: 0..31)
         pinh(_RES)
         waitus(3)
         pinl(_RES)
         waitus(3)
         pinh(_RES)
 
-PUB Update() | tmp
+PUB Update()
 ' Write display buffer to display
-    DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
+    displaybounds(0, 0, _disp_xmax, _disp_ymax)
 
-    pinl(_CS)
     pinh(_DC)
-    spi.WriteBytes(_buff_sz, _ptr_drawbuffer)
+    pinl(_CS)
+    spi.writebytes(_buff_sz, _ptr_drawbuffer)
     pinh(_CS)
 
-PUB WriteBuffer(buff_addr, buff_sz) | tmp
-' Write buff_sz bytes of buff_addr to display
-    DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
+PUB WriteBuffer(ptr_buff, buff_sz) | tmp
+' Write buff_sz bytes of ptr_buff to display
+    displaybounds(0, 0, _disp_xmax, _disp_ymax)
 
-    pinl(_CS)
     pinh(_DC)
-    spi.WriteBytes(buff_sz, buff_addr)
+    pinl(_CS)
+    spi.writebytes(buff_sz, ptr_buff)
     pinh(_CS)
 
-PRI writeReg(reg_nr, nr_bytes, val) | cmd_packet[2], tmp, ackbit
-' Write nr_bytes to reg_nrister 'reg_nr' stored in val
+PRI writeReg(reg_nr, nr_bytes, val) | cmd_pkt[2], tmp
+' Write nr_bytes to register 'reg_nr' stored in val
 ' If nr_bytes is
-'   0, It's a command that has no arguments - write the command only
-'   1, It's a command with a single byte argument - write the command, then the byte
-'   2, It's a command with two arguments - write the command, then the two bytes (encoded as a word)
+'   0, Command without arguments: write the command only
+'   1, Command with a single byte argument - write the command, then the byte
+'   2, Command with two arguments - write the command, then the two bytes
     case nr_bytes
         0:
-            cmd_packet.byte[0] := reg_nr | val 'Simple command
+            cmd_pkt.byte[0] := reg_nr | val     ' Simple command
             nr_bytes := 1
         1:
-            cmd_packet.byte[0] := reg_nr       'Command w/1-byte argument
-            cmd_packet.byte[1] := val
+            cmd_pkt.byte[0] := reg_nr           ' Command w/1-byte argument
+            cmd_pkt.byte[1] := val
             nr_bytes := 2
         2:
-            cmd_packet.byte[0] := reg_nr       'Command w/2-byte argument
-            cmd_packet.byte[1] := val & $FF
-            cmd_packet.byte[2] := (val >> 8) & $FF
+            cmd_pkt.byte[0] := reg_nr           ' Command w/2-byte argument
+            cmd_pkt.byte[1] := val & $FF
+            cmd_pkt.byte[2] := (val >> 8) & $FF
             nr_bytes := 3
-        OTHER:
+        other:                                  ' invalid
             return
 
-    pinl(_CS)
     pinl(_DC)
-    spi.WriteBytes(nr_bytes, @cmd_packet)
+    pinl(_CS)
+    spi.writebytes(nr_bytes, @cmd_pkt)
     pinh(_CS)
 
 DAT

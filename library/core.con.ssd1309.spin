@@ -3,9 +3,9 @@
     Filename: core.con.ssd1309.spin
     Author: Jesse Burt
     Description: SSD1309 OLED/PLED Display driver registers/command set
-    Copyright (c) 2020
+    Copyright (c) 2021
     Created: Apr 26, 2019
-    Updated: Jul 22, 2020
+    Updated: Jan 2, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -61,10 +61,10 @@ CON
 
     CMD_SETDISPOFFS = $D3
     CMD_SETOSCFREQ  = $D5
-        FLD_OSCFREQ = 4
-        FLD_CLKDIV  = 0
-        BITS_OSCFREQ= %1111
-        BITS_CLKDIV = %1111
+        OSCFREQ     = 4
+        CLKDIV      = 0
+        OSCFREQ_BITS= %1111
+        CLKDIV_BITS = %1111
 
     CMD_CHARGEPUMP  = $8D
 
