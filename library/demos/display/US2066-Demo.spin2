@@ -1,203 +1,204 @@
 {
     --------------------------------------------
     Filename: OLED-US2066-Demo.spin2
-    Description: Demonstrates functionality of the
-     US2066 OLED Display object (P2 version)
+    Description: Demo of the US2066 driver
+        (P2 version)
     Author: Jesse Burt
-    Copyright (c) 2020
-    Created Nov 16, 2019
-    Updated Jun 23, 2020
+    Copyright (c) 2021
+    Created Dec 30, 2017
+    Updated Jan 2, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
-    _xtlfreq    = cfg._xtlfreq
     _clkfreq    = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
 
 ' -- User modifiable constants
     LED         = cfg.LED1
-    SER_RX      = cfg.SER_RX
-    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
-    WIDTH       = 16        ' Your display's dimensions, in character cells
-    HEIGHT      = 2
+' uncomment one of the below pairs, depending on your display size
+    WIDTH       = 20
+    HEIGHT      = 4
+'    WIDTH       = 16
+'    HEIGHT      = 2
 
-    SCL_PIN     = 27
-    SDA_PIN     = 28
-    RESET_PIN   = 31        ' I/O pin attached to display's RESET pin
+    SCL_PIN     = 16
+    SDA_PIN     = 17
+    RESET_PIN   = 18        ' I/O pin attached to display's RESET pin
     I2C_HZ      = 400_000
     SLAVE_BIT   = 0         ' Default slave address
 ' --
 
     DEMO_DELAY  = 2         ' Delay (sec) between different demos
-    MODE_DELAY  = 1         ' Delay (sec) between different modes within a particular demo()
-
-VAR
-
-    byte _ser_cog
+    MODE_DELAY  = 1         ' Delay (sec) between different modes within a particular demo
 
 OBJ
 
     cfg : "core.con.boardcfg.p2eval"
     time: "time"
-    oled: "display.oled.us2066.i2c.spin2"
+    oled: "display.oled.us2066.i2c"
     ser : "com.serial.terminal.ansi"
 
 PUB Main()
 
-    Setup()
+    setup()
 
-    Greet_Demo()
-    time.Sleep (DEMO_DELAY)
-    oled.Clear()
+    greet_demo()
+    time.sleep(DEMO_DELAY)
+    oled.clear()
 
-    Count_Demo()
-    time.Sleep (DEMO_DELAY)
-    oled.Clear()
+    count_demo()
+    time.sleep(DEMO_DELAY)
+    oled.clear()
 
-    DoubleHeight_Demo()
-    time.Sleep (DEMO_DELAY)
-    oled.Clear()
+    doubleheight_demo()
+    time.sleep(DEMO_DELAY)
+    oled.clear()
 
-    Contrast_Demo()
-    time.Sleep (DEMO_DELAY)
-    oled.Clear()
+    contrast_demo()
+    time.sleep(DEMO_DELAY)
+    oled.clear()
 
-    Position_Demo()
-    time.Sleep (DEMO_DELAY)
-    oled.Clear()
+    position_demo()
+    time.sleep(DEMO_DELAY)
+    oled.clear()
 
-    Cursor_demo()
-    time.Sleep (DEMO_DELAY)
-    oled.Clear()
+    cursor_demo()
+    time.sleep(DEMO_DELAY)
+    oled.clear()
 
-    Invert_demo()
-    time.Sleep (DEMO_DELAY)
-    oled.Clear()
+    invert_demo()
+    time.sleep(DEMO_DELAY)
+    oled.clear()
 
-    FontWidth_Demo()
-    time.Sleep (DEMO_DELAY)
-    oled.Clear()
+    fontwidth_demo()
+    time.sleep(DEMO_DELAY)
+    oled.clear()
 
-    Mirror_Demo()
-    time.Sleep (DEMO_DELAY)
-    oled.Clear()
+    mirror_demo()
+    time.sleep(DEMO_DELAY)
+    oled.clear()
 
     oled.stop()
-    FlashLED (LED, 100)
+    repeat
 
 PUB Contrast_Demo() | i
 
-    oled.Position (0, 0)
-    oled.printf("Change contrast\nlevel:")
+    oled.position(0, 0)
+    oled.printf(string("Change contrast\nlevel:"), 0)
     case HEIGHT
         2:
             repeat i from -255 to 255 step 1
-                oled.Position (7, 1)
-                oled.Contrast (abs(i))
-                oled.DecUns(abs(i), 3)
-                oled.Char(" ")
-                oled.Hex(abs(i), 2)
-                waitms (10)
+                oled.position(7, 1)
+                oled.contrast(abs(i))
+                oled.decuns(abs(i), 3)
+                oled.char(" ")
+                oled.hex(abs(i), 2)
+                waitms(10)
         4:
             oled.newline()
-            oled.DoubleHeight (1)
+            oled.doubleheight(1)
 
             repeat i from -255 to 255 step 1
-                oled.Position (0, 2)
-                oled.Contrast (abs(i))
-                oled.DecUns(abs(i), 3)
-                oled.Char(" ")
-                oled.Hex(abs(i), 2)
-                oled.Char(" ")
-                oled.Bin(abs(i), 8)
-                waitms (10)
+                oled.position(0, 2)
+                oled.contrast(abs(i))
+                oled.decuns(abs(i), 3)
+                oled.char(" ")
+                oled.hex(abs(i), 2)
+                oled.char(" ")
+                oled.bin(abs(i), 8)
+                waitms(10)
 
-    oled.DoubleHeight (0)
+    oled.doubleheight(0)
 
 PUB Count_Demo() | i
 
     case HEIGHT
         2:
-            oled.Position (0, 0)
-            oled.printf("Rapidly changing\ndisplay contents")
-            time.sleep (3)
+            oled.position(0, 0)
+            oled.strln(string("Rapidly changing"))
+            oled.strln(string("display contents"))
+            time.sleep(3)
             oled.clear()
-            oled.printf("Compare to LCD!:\ni = ")
+            oled.strln(string("Compare to LCD!"))
+
             repeat i from 0 to 3000
-                oled.Position (4, 1)
-                oled.Dec (i)
+                oled.position(0, 1)
+                oled.printf(string("i = %d"), i)
         4:
-            oled.Position (0, 0)
-            oled.printf("Rapidly changing\ndisplay contents\n(compare to LCD!)\ni = ")
+            oled.position(0, 0)
+            oled.strln(string("Rapidly changing"))
+            oled.strln(string("display contents"))
+            oled.strln(string("(compare to LCD!)"))
             repeat i from 0 to 3000
-                oled.Position (4, 3)
-                oled.Dec (i)
+                oled.position(0, 3)
+                oled.printf(string("i = %d"), i)
 
-PUB Cursor_Demo() | delay, dbl_mode
+PUB Cursor_demo() | delay, dbl_mode
 
-    delay := 25
+    delay := 25                                 ' milliseconds
     case HEIGHT
         2:
             repeat dbl_mode from 0 to 3 step 3
-                oled.Clear()
-                oled.DoubleHeight (dbl_mode)
-                oled.CursorMode (0)
-                oled.Position (0, 0)
-                oled.StrDelay (string("No cursor   (0)"), delay)
-                time.Sleep (2)
-                oled.ClearLine (0)
+                oled.clear()
+                oled.doubleheight(dbl_mode)
+                oled.cursormode(0)
+                oled.position(0, 0)
+                oled.strdelay(string("No cursor  (0)"), delay)
+                time.sleep(2)
+                oled.clearline(0)
 
-                oled.CursorMode (1)
-                oled.Position (0, 0)
-                oled.StrDelay (string("Block/blink (1)"), delay)
-                time.Sleep (2)
-                oled.ClearLine (0)
+                oled.cursormode(1)
+                oled.position(0, 0)
+                oled.strdelay(string("Block/blink(1)"), delay)
+                time.sleep(2)
+                oled.clearline(0)
 
-                oled.CursorMode (2)
-                oled.Position (0, 0)
-                oled.StrDelay (string("Underscore  (2)"), delay)
-                time.Sleep (2)
-                oled.ClearLine (0)
+                oled.cursormode(2)
+                oled.position(0, 0)
+                oled.strdelay(string("Underscore (2)"), delay)
+                time.sleep(2)
+                oled.clearline(0)
 
-                oled.CursorMode (3)
-                oled.Position (0, 0)
-                oled.StrDelay (string("Under./blink(3)"), delay)
-                time.Sleep (2)
+                oled.cursormode(3)
+                oled.position(0, 0)
+                oled.strdelay(string("Under./blink(3)"), delay)
+                time.sleep(2)
         4:
             repeat dbl_mode from 0 to 2 step 2
-                oled.Clear()
-                oled.DoubleHeight (dbl_mode)
-                oled.CursorMode (0)
-                oled.Position (0, 0)
-                oled.StrDelay (string("Cursor:"), delay)
+                oled.clear()
+                oled.doubleheight(dbl_mode)
+                oled.cursormode(0)
+                oled.position(0, 0)
+                oled.strdelay(string("Cursor:"), delay)
 
-                oled.Position (0, 1)
-                oled.StrDelay (string("None            (0)"), delay)
-                time.Sleep (2)
-                oled.ClearLine (1)
+                oled.position(0, 1)
+                oled.strdelay(string("None           (0)"), delay)
+                time.sleep(2)
+                oled.clearline(1)
 
-                oled.CursorMode (1)
-                oled.Position (0, 1)
-                oled.StrDelay (string("Block/blink     (1)"), delay)
-                time.Sleep (2)
-                oled.ClearLine (1)
+                oled.cursormode(1)
+                oled.position(0, 1)
+                oled.strdelay(string("Block/blink    (1)"), delay)
+                time.sleep(2)
+                oled.clearline(1)
 
-                oled.CursorMode (2)
-                oled.Position (0, 1)
-                oled.StrDelay (string("Underscore      (2)"), delay)
-                time.Sleep (2)
-                oled.ClearLine (1)
+                oled.cursormode(2)
+                oled.position(0, 1)
+                oled.strdelay(string("Underscore     (2)"), delay)
+                time.sleep(2)
+                oled.clearline(1)
 
-                oled.CursorMode (3)
-                oled.Position (0, 1)
-                oled.StrDelay (string("Underscore/blink(3)"), delay)
-                time.Sleep (2)
+                oled.cursormode(3)
+                oled.position(0, 1)
+                oled.strdelay(string("Underscore/blink(3)"), delay)
+                time.sleep(2)
 
-    oled.DoubleHeight (0)
-    oled.CursorMode (0)
+    oled.doubleheight(0)
+    oled.cursormode(0)
 
 PUB DoubleHeight_Demo() | mode, line
 
@@ -205,90 +206,90 @@ PUB DoubleHeight_Demo() | mode, line
         2:
             mode := 0
             repeat 6
-                oled.DoubleHeight (mode)
+                oled.doubleheight(mode)
                 repeat line from 0 to 1
-                    oled.Position (0, line)
-                    oled.printf("Double-height")
-                time.Sleep (MODE_DELAY)
+                    oled.position(0, line)
+                    oled.str(string("Double-height"))
+                time.sleep(MODE_DELAY)
                 mode += 3
                 if mode > 3
                     mode  := 0
-            oled.DoubleHeight (0)
+            oled.doubleheight(0)
         4:
             repeat mode from 0 to 4
-                oled.DoubleHeight (mode)
-                oled.Position (14, 0)
-                oled.printf("Mode %d", mode)
+                oled.doubleheight(mode)
+                oled.position(14, 0)
+                oled.printf(string("Mode %d"), mode, 0, 0, 0, 0, 0)
                 repeat line from 0 to 3
-                    oled.Position (0, line)
-                    oled.printf("Double-height")
-                time.Sleep (MODE_DELAY)
+                    oled.position(0, line)
+                    oled.str(string("Double-height"))
+                time.sleep(MODE_DELAY)
 
-PUB FontWidth_Demo() | px, dbl_mode
+PUB FontWidth_demo() | px, dbl_mode
 
-    oled.Clear()
+    oled.clear()
 
     repeat dbl_mode from 0 to 3 step 3
-        oled.DoubleHeight (dbl_mode)
+        oled.doubleheight(dbl_mode)
         repeat 2
             repeat px from 6 to 5
-                oled.FontWidth (px)
-                oled.Position (0, 0)
-                oled.printf("%d-pixel width", px)
-                time.Sleep (MODE_DELAY)
+                oled.fontwidth(px)
+                oled.position(0, 0)
+                oled.printf(string("%d-pixel width"), px)
+                time.sleep(MODE_DELAY)
 
-    oled.FontWidth (5)
-    oled.DoubleHeight (0)
+    oled.fontwidth(5)
+    oled.doubleheight(0)
 
 PUB Greet_Demo()
 
     case HEIGHT
         2:
-            oled.Position (0, 0)
-            oled.Str (@w16l1)
-            time.Sleep (1)
+            oled.position(0, 0)
+            oled.str(@w16l1)
+            time.sleep(1)
 
-            oled.Position (0, 1)
-            oled.Str (@w16l2)
-            time.Sleep (1)
+            oled.position(0, 1)
+            oled.str(@w16l2)
+            time.sleep(1)
 
         4:
-            oled.Position (0, 0)
-            oled.Str (@w20l1)
-            time.Sleep (1)
+            oled.position(0, 0)
+            oled.str(@w20l1)
+            time.sleep(1)
 
-            oled.Position (0, 1)
-            oled.Str (@w20l2)
-            time.Sleep (1)
+            oled.position(0, 1)
+            oled.str(@w20l2)
+            time.sleep(1)
 
-            oled.Position (0, 2)
-            oled.Str (@w20l3)
-            time.Sleep (1)
+            oled.position(0, 2)
+            oled.str(@w20l3)
+            time.sleep(1)
 
-            oled.Position (0, 3)
-            oled.Str (@w20l4)
+            oled.position(0, 3)
+            oled.str(@w20l4)
 
-    time.Sleep (1)
+    time.sleep(1)
 
-PUB Invert_Demo() | i
+PUB Invert_demo() | i
 
-    oled.Clear()
-    oled.Position (0, 0)
-    oled.printf("Display")
+    oled.clear()
+    oled.position(0, 0)
+    oled.str(string("Display"))
 
     repeat i from 1 to 3
-        oled.DisplayInverted (TRUE)
-        oled.Position (WIDTH-8, HEIGHT-1)
-        oled.printf("INVERTED")
-        time.Sleep (MODE_DELAY)
-        oled.DisplayInverted (FALSE)
-        oled.Position (WIDTH-8, HEIGHT-1)
-        oled.printf("NORMAL  ")
-        time.Sleep (MODE_DELAY)
+        oled.displayinverted(TRUE)
+        oled.position(WIDTH-8, HEIGHT-1)
+        oled.str(string("INVERTED"))
+        time.sleep(MODE_DELAY)
+        oled.displayinverted(FALSE)
+        oled.position(WIDTH-8, HEIGHT-1)
+        oled.str(string("NORMAL  "))
+        time.sleep(MODE_DELAY)
 
 PUB Mirror_Demo() | row, col
 
-    oled.Clear()
+    oled.clear()
 
     case HEIGHT
         2:
@@ -298,80 +299,84 @@ PUB Mirror_Demo() | row, col
             row := 0
             col := WIDTH-13
 
-    oled.MirrorH (FALSE)
-    oled.MirrorV (FALSE)
-    oled.ClearLine (0)
-    oled.Position (0, 0)
-    oled.printf("Mirror OFF")
-    time.Sleep (2)
+    oled.mirrorh(FALSE)
+    oled.mirrorv(FALSE)
+    oled.clearline(0)
+    oled.position(0, 0)
+    oled.str(string("Mirror OFF"))
+    time.sleep(2)
 
-    oled.MirrorH (TRUE)
-    oled.MirrorV (FALSE)
-    oled.ClearLine (0)
-    oled.Position (col, 0)
-    oled.printf("Mirror HORIZ.")
-    time.Sleep (2)
+    oled.mirrorh(TRUE)
+    oled.mirrorv(FALSE)
+    oled.clearline(0)
+    oled.position(col, 0)
+    oled.str(string("Mirror HORIZ."))
+    time.sleep(2)
 
-    oled.MirrorH (FALSE)
-    oled.MirrorV (TRUE)
-    oled.ClearLine (0)
-    oled.Position (0, row)
-    oled.printf("Mirror VERT.")
-    time.Sleep (2)
+    oled.mirrorh(FALSE)
+    oled.mirrorv(TRUE)
+    oled.clearline(0)
+    oled.position(0, row)
+    oled.str(string("Mirror VERT."))
+    time.sleep(2)
 
-    oled.MirrorH (TRUE)
-    oled.MirrorV (TRUE)
-    oled.ClearLine (0)
-    oled.Position (col, row)
-    oled.printf("Mirror BOTH")
-    time.Sleep (2)
+    oled.mirrorh(TRUE)
+    oled.mirrorv(TRUE)
+    oled.clearline(0)
+    oled.position(col, row)
+    oled.str(string("Mirror BOTH"))
+    time.sleep(2)
 
-    oled.Clear()
-    oled.MirrorH (FALSE)
-    oled.MirrorV (FALSE)
+    oled.clear()
+    oled.mirrorh(FALSE)
+    oled.mirrorv(FALSE)
 
 PUB Position_Demo() | x, y
 
     repeat y from 0 to HEIGHT-1
         repeat x from 0 to WIDTH-1
-            oled.Position(0, 0)
-            oled.printf("Position %d,%d ", x, y)
-            oled.Position((x-1 #> 0), y)
-            oled.Char(" ")
-            oled.Char("-")
-            waitms (25)
+            oled.position(0, 0)
+            oled.printf(string("Position %d,%d "), x, y)
+            oled.position((x-1 #> 0), y)
+            oled.char(" ")
+            oled.char("-")
+            waitms(25)
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear()
-    ser.PrintF("Serial terminal started\n")
+    ser.start(SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.strln(string("Serial terminal started"))
 
-    if oled.Start (SCL_PIN, SDA_PIN, RESET_PIN, I2C_HZ, SLAVE_BIT)
-        ser.PrintF("US2066 driver started\n")
+    ' use default Propeller I2C pins and 100kHz. Specify reset pin
+'    if oled.start(RESET_PIN)
+
+    ' use all custom settings
+    if oled.start(SCL_PIN, SDA_PIN, RESET_PIN, I2C_HZ, SLAVE_BIT)
+        ser.strln(string("US2066 driver started"))
     else
-        ser.PrintF("US2066 driver failed to start - halting\n")
+        ser.strln(string("US2066 driver failed to start - halting"))
         oled.stop()
-        waitms (500)
-        FlashLED (cfg.LED1, 500)
+        waitms(500)
+        repeat
 
-    oled.MirrorH (FALSE)
-    oled.MirrorV (FALSE)
-    oled.Clear()
-    oled.Position (0, 0)
-    oled.DisplayVisibility (oled.NORMAL)
-    waitms (100)
-
-#include "lib.utility.spin2"
+    oled.mirrorh(FALSE)
+    oled.mirrorv(FALSE)
+    oled.clear()
+    oled.position(0, 0)
+    oled.displayvisibility(oled.NORMAL)
+    waitms(100)
 
 DAT
-
+' Greet text
 '                  0|    |    |    |15
     w16l1   byte{0}"Parallax P2    ", 0
     w16l2   byte{1}"(US2066 2x16)  ", 0
 
 '                  0|    |    |    |   |19
-    w20l1   byte{0}"Parallax P2X8C4M64P ", 0
+    w20l1   byte{0}"    Parallax P2     ", 0
+
     w20l2   byte{1}"       on the       ", 0
     w20l3   byte{2}"    US2066 OLED     ", 0
     w20l4   byte{3}"        4x20        ", 0
