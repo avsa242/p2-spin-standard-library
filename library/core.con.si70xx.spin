@@ -3,9 +3,9 @@
     Filename: core.con.si70xx.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2019
+    Copyright (c) 2021
     Started Jul 20, 2019
-    Updated Jul 21, 2019
+    Updated Jan 3, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,7 +14,7 @@ CON
 
     I2C_MAX_FREQ        = 400_000
     SLAVE_ADDR          = $40 << 1
-    TPU                 = 80    'Powerup time
+    TPU                 = 80                    ' Powerup time
 
 ' Register definitions
 
@@ -30,19 +30,19 @@ CON
 
     RD_RH_T_USER1       = $E7
     RD_RH_T_USER1_MASK  = $FF
-        FLD_RES_LSB     = 0
-        FLD_HTRE        = 2
-        FLD_RES_MSB     = 7
-        BITS_RES        = %1000_0001
-        MASK_RES_LSB    = RD_RH_T_USER1_MASK ^ (1 << FLD_RES_LSB)
-        MASK_HTRE       = RD_RH_T_USER1_MASK ^ (1 << FLD_HTRE)
-        MASK_RES_MSB    = RD_RH_T_USER1_MASK ^ (1 << FLD_RES_MSB)
-        MASK_RES        = MASK_RES_LSB | MASK_RES_MSB
+        ADCRES_MSB      = 7
+        HTRE            = 2
+        ADCRES_LSB      = 0
+        ADCRES_BITS     = %1000_0001
+        ADCRES_MSB_MASK = RD_RH_T_USER1_MASK ^ (1 << ADCRES_MSB)
+        HTRE_MASK       = RD_RH_T_USER1_MASK ^ (1 << HTRE)
+        ADCRES_LSB_MASK = RD_RH_T_USER1_MASK ^ (1 << ADCRES_LSB)
+        ADCRES_MASK     = ADCRES_LSB | ADCRES_MSB
 
     WR_HEATER           = $51
     RD_HEATER           = $11
-        FLD_HEATER      = 0
-        BITS_HEATER     = %1111
+        HEATER          = 0
+        HEATER_BITS     = %1111
 
     RD_SERIALNUM_1      = $FA0F
     RD_SERIALNUM_2      = $FCC9
