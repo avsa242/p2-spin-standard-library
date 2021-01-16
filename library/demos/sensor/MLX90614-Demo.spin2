@@ -1,31 +1,28 @@
 {
     --------------------------------------------
-    Filename: MLX90614-Demo.spin2
+    Filename: MLX90614-Demo.spin
     Author: Jesse Burt
-    Description: Demo for the MLX90614 driver (P2 version)
+    Description: Demo for the MLX90614 driver
     Copyright (c) 2020
-    Started Nov 10, 2019
-    Updated Jun 13, 2020
+    Started Mar 17, 2019
+    Updated Dec 8, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    _xtlfreq    = cfg._xtlfreq
     _clkfreq    = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
     LED         = cfg.LED1
-    SER_RX      = cfg.SER_RX
-    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
-    I2C_SCL     = 28
-    I2C_SDA     = 27
-    I2C_HZ      = 100_000
+    I2C_SCL     = 11
+    I2C_SDA     = 10
+    I2C_HZ      = 100_000                       ' max is 100_000
 
-' Choose one of the temperature scales below
     TEMP_SCALE  = C
 ' --
 
@@ -37,60 +34,67 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    mlx     : "sensor.temperature.mlx90614.i2c.spin2"
+    mlx     : "sensor.temperature.mlx90614.i2c"
     int     : "string.integer"
 
 PUB Main() | Tobj, Tamb
 
-    Setup()
+    setup()
 
-    mlx.Scale(TEMP_SCALE)
+    mlx.tempscale(TEMP_SCALE)
 
     repeat
-        Tobj := mlx.ObjTemp (1)
-        Tamb := mlx.AmbientTemp()
+        Tobj := mlx.objtemp(1)
+        Tamb := mlx.ambienttemp()
 
-        ser.Position (0, 5)
-        ser.printf("Tobj: ")
-        Decimal(Tobj, 100)
+        ser.position(0, 5)
+        ser.str(string("Object temp: "))
+        decimal(Tobj, 100)
+        ser.newline()
 
-        ser.printf("\nTa: ")
-        Decimal(Tamb, 100)
+        ser.str(string("Ambient temp: "))
+        decimal(Tamb, 100)
 
-        waitms (100)
+        waitms(100)
 
-PUB Decimal(scaled, divisor) | whole[4], part[4], places, tmp
-' Display a fixed-point scaled up number in decimal-dot notation - scale it back down by divisor
-'   e.g., Decimal (314159, 100000) would display 3.14159 on the termainl
-'   scaled: Fixed-point scaled up number
-'   divisor: Divide scaled-up number by this amount
+PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp, sign
+' Display a scaled up number as a decimal
+'   Scale it back down by divisor (e.g., 10, 100, 1000, etc)
     whole := scaled / divisor
     tmp := divisor
     places := 0
+    part := 0
+    sign := 0
+    if scaled < 0
+        sign := "-"
+    else
+        sign := " "
 
     repeat
         tmp /= 10
         places++
     until tmp == 1
-    part := int.DecZeroed(abs(scaled // divisor), places)
+    scaled //= divisor
+    part := int.deczeroed(abs(scaled), places)
 
-    ser.printf("%d.%s", whole, part)
+    ser.char(sign)
+    ser.dec(abs(whole))
+    ser.char(".")
+    ser.str(part)
 
 PUB Setup()
 
-    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear()
-    ser.PrintF("Serial terminal started\n")
-
-    if mlx.Startx(I2C_SCL, I2C_SDA, I2C_HZ)
-        ser.PrintF("MLX90614 driver started\n")    
+    ser.start(SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.strln(string("Serial terminal started"))
+    if mlx.start(I2C_SCL, I2C_SDA, I2C_HZ)
+        ser.strln(string("MLX90614 driver started"))
     else
-        ser.PrintF("MLX90614 driver failed to start - halting\n")
-        mlx.Stop()
-        waitms (500)
-        FlashLED(LED, 500)
-
-#include "lib.utility.spin2"
+        ser.strln(string("MLX90614 driver failed to start - halting"))
+        mlx.stop()
+        waitms(30)
+        repeat
 
 DAT
 {
