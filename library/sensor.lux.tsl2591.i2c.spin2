@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: sensor.lux.tsl2591.spin2
-    Description: Driver for the TSL2591 I2C Light/lux sensor (P2 version)
+    Filename: sensor.lux.tsl2591.spin
+    Description: Driver for the TSL2591 I2C Light/lux sensor
     Author: Jesse Burt
     Copyright (c) 2020
     Started Nov 23, 2019
-    Updated Jun 24, 2020
+    Updated Dec 20, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,9 +15,11 @@ CON
     SLAVE_WR        = core.SLAVE_ADDR
     SLAVE_RD        = core.SLAVE_ADDR|1
 
+    DEF_SCL         = 28
+    DEF_SDA         = 29
     DEF_HZ          = 100_000
 
-    LSB             = 0
+    FPSCALE         = 1_000                     ' fixed-point math scale
 
 ' Gain settings
     GAIN_LOW        = 0
@@ -33,7 +35,9 @@ CON
 
 VAR
 
-    word _ir_counts, _fullspec_counts
+    long _cpl, _itime, _gain, _glass_att, _dev_fact
+    long _ir_adc_scl, _full_adc_scl
+    word _ir_adc, _full_adc
 
 OBJ
 
@@ -43,352 +47,389 @@ OBJ
 PUB Null()
 ' This is not a top-level object
 
-PUB Start(SCL_PIN, SDA_PIN, I2C_HZ=100_000): okay
-
+PUB Start(SCL_PIN, SDA_PIN, I2C_HZ): okay
+' Start using custom settings
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
         if I2C_HZ <= core.I2C_MAX_FREQ
-            if okay := i2c.Setup (SCL_PIN, SDA_PIN, I2C_HZ)
-                if DeviceID() == core.DEV_ID_RESP
-                    Reset()
+            if okay := i2c.setup(SCL_PIN, SDA_PIN, I2C_HZ)
+                waitms(100)
+                if deviceid() == core.DEV_ID_RESP
+                    reset()
                     return okay
-    return FALSE
+    return FALSE                                ' something above failed
 
 PUB Stop()
 ' Kills I2C cog
+    powered(FALSE)
+
+PUB Defaults()
+' Factory default settings
+    reset()
+
+PUB Defaults_ALS()
+' Factory defaults, with sensor enabled
+    reset()
+    powered(TRUE)
+    sensorenabled(TRUE)
+    devicefactor(408)
+    glassattenuation(1)
+    gain(1)
+    integrationtime(100)
 
 PUB ClearAllInts()
 ' Clears both ALS (persistent) and NPALS (non-persistent) Interrupts
-    writeReg (core.TRANS_SPECIAL, core.SF_CLEARALS_NOPERSIST_INT, 0, 0)
+    writereg(core.SF_CLRALS_NP_INT, 0, 0)
 
 PUB ClearInt()
 ' Clears NPALS Interrupt
-    writeReg (core.TRANS_SPECIAL, core.SF_CLEAR_NOPERSIST_INT, 0, 0)
+    writereg(core.SF_CLR_NP_INT, 0, 0)
 
 PUB ClearPersistInt()
 ' Clears ALS Interrupt
-    writeReg (core.TRANS_SPECIAL, core.SF_CLEARALSINT, 0, 0)
+    writereg(core.SF_CLRALSINT, 0, 0)
 
-PUB DataReady(): result
-' Indicates ADCs completed integration cycle since AEN bit was set
-    result := $00
-    readReg (core.STATUS, 1, @result)
-    return ((result >> core.FLD_AVALID) & %1) * TRUE
+PUB DataReady(): flag
+' Flag indicating new luminosity data is ready
+'   Returns: TRUE (-1) or FALSE (0)
+    flag := 0
+    readreg(core.STATUS, 1, @flag)
+    return ((flag >> core.AVALID) & 1) == 1
 
-PUB DeviceID(): result
+PUB DeviceFactor(df)
+' Set device factor
+    _dev_fact := df
+
+PUB DeviceID(): id
 ' Device ID of chip
 '   Known values: $50
-    result := $00
-    readReg (core.ID, 1, @result)
-    result &= $FF
+    id := 0
+    readreg(core.ID, 1, @id)
 
 PUB ForceInt()
 ' Force an ALS Interrupt
-' NOTE: Per TLS2591 Datasheet, for an interrupt to be visible on the INT pin,
-'  one of the interrupt enable bits in the ENABLE ($00) register must be set.
-'  i.e., make sure you've called EnableInts(TRUE) or EnablePersist (TRUE)
-    writeReg (core.TRANS_SPECIAL, core.SF_FORCEINT, 0, 0)
+' NOTE: An active interrupt will always be visible using Interrupt(),
+'   however, to be visible on the INT pin, IntsEnabled() or
+'   PersistIntsEnabled() must be set to TRUE
+    writereg(core.SF_FORCEINT, 0, 0)
 
-PUB Gain(multiplier=-2): result | tmp
-' Set gain multiplier/factor
-'   Valid values: 1, 25, 428, 9876
+PUB Gain(gainx=-2): curr_gain
+' Set gain gainx/factor
+'   Valid values: *1, 25, 428, 9876
 '   Any other value polls the chip and returns the current setting
-    tmp := $00
-    readReg (core.CONTROL, 1, @tmp)
-    case multiplier
+    curr_gain := 0
+    readreg(core.CONTROL, 1, @curr_gain)
+    case gainx
         1, 25, 428, 9876:
-            multiplier := lookdownz(multiplier: 1, 25, 428, 9876) << core.FLD_AGAIN
-        OTHER:
-            result := (tmp >> core.FLD_AGAIN) & core.BITS_AGAIN
-            return lookupz(result: 1, 25, 428, 9876)
+            _gain := gainx
+            gainx := lookdownz(gainx: 1, 25, 428, 9876) << core.AGAIN
+        other:
+            curr_gain := (curr_gain >> core.AGAIN) & core.AGAIN_BITS
+            return lookupz(curr_gain: 1, 25, 428, 9876)
 
-    tmp &= core.MASK_AGAIN
-    tmp := (tmp | multiplier) & core.CONTROL_MASK
-    writeReg (core.TRANS_NORMAL, core.CONTROL, 1, tmp)
+    gainx := ((curr_gain & core.AGAIN_MASK) | gainx) & core.CONTROL_MASK
+    writereg(core.CONTROL, 1, gainx)
+    updatecpl()                                 ' update counts per lux equ.
 
-PUB IntegrationTime(time_ms=-2): result | tmp
+PUB GlassAttenuation(ga)
+' Set glass attenuation factor
+    _glass_att := ga
+
+PUB IntegrationTime(time_ms=-2): curr_time
 ' Set ADC Integration time, in milliseconds (affects both photodiode channels)
-'   Valid values: 100, 200, 300, 400, 500, 600
+'   Valid values: *100, 200, 300, 400, 500, 600
 '   Any other value polls the chip and returns the current setting
-    tmp := $00
-    readReg (core.CONTROL, 1, @tmp)
+    curr_time := 0
+    readreg(core.CONTROL, 1, @curr_time)
     case time_ms
         100, 200, 300, 400, 500, 600:
+            _itime := time_ms
             time_ms := lookdownz(time_ms: 100, 200, 300, 400, 500, 600)
-        OTHER:
-            result := tmp & core.BITS_ATIME
-            return lookupz(result: 100, 200, 300, 400, 500, 600)
+        other:
+            curr_time &= core.ATIME_BITS
+            return lookupz(curr_time: 100, 200, 300, 400, 500, 600)
 
-    tmp &= core.MASK_ATIME
-    tmp := (tmp | time_ms) & core.CONTROL_MASK
-    writeReg (core.TRANS_NORMAL, core.CONTROL, 1, tmp)
+    time_ms := ((curr_time & core.ATIME_MASK) | time_ms) & core.CONTROL_MASK
+    writereg(core.CONTROL, 1, time_ms)
+    updatecpl()                                 ' update counts per lux equ.
 
-PUB Interrupt(): result
-' Indicates if a non-persistent interrupt has been triggered
+PUB Interrupt(): flag
+' Flag indicating a non-persistent interrupt has been triggered
 '   Returns: TRUE (-1) if interrupt triggered, FALSE (0) otherwise
-    result := $00
-    readReg (core.STATUS, 1, @result)
-    result := ((result >> core.FLD_NPINTR) & %1) * TRUE
+'   NOTE: An active interrupt will always be visible using Interrupt(),
+'       however, to be visible on the INT pin, EnableInts() or EnablePersist()
+'       must be set to TRUE
+    flag := 0
+    readreg(core.STATUS, 1, @flag)
+    return ((flag >> core.NPINTR) & 1) == 1
 
-PUB IntsEnabled(enabled=-2): result | tmp
+PUB IntsEnabled(state=-2): curr_state
 ' Enable non-persistent interrupts
-'   Valid values: TRUE (1 or -1): interrupts enabled, FALSE (0) disables interrupts
+'   Valid values: TRUE (1 or -1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting
-    tmp := $00
-    readReg (core.ENABLE, 1, @tmp)
-    case abs(enabled)
+    curr_state := 0
+    readreg(core.ENABLE, 1, @curr_state)
+    case abs(state)
         0, 1:
-            enabled := abs(enabled) << core.FLD_NPIEN
-        OTHER:
-            result := ((tmp >> core.FLD_NPIEN) & %1) * TRUE
-            return
+            state := abs(state) << core.NPIEN
+        other:
+            return ((curr_state >> core.NPIEN) & 1) == 1
 
-    tmp &= core.MASK_NPIEN
-    tmp := (tmp | enabled) & core.ENABLE_MASK
-    writeReg (core.TRANS_NORMAL, core.ENABLE, 1, tmp)
+    state := ((curr_state & core.NPIEN_MASK) | state) & core.ENABLE_MASK
+    writereg(core.ENABLE, 1, state)
 
-PUB IntThresh(low, high): result | tmp
+PUB IntThresh(low, high): curr_thr
 ' Set non-persistent interrupt thresholds
-'   Valid values for low and high thresholds: 0..65535
+'   Valid values for low and high thresholds: 0..65535 (default: 0, 0)
 '   Any other value polls the chip and returns the current setting
-'       (high threshold will be returned in upper word of result, low threshold in lower word)
-    tmp := $00000000
-    readReg (core.NPAILTL, 4, @tmp)
+'   Returns:
+'       [31..16]: high threshold
+'       [15..0]: low threshold
+    curr_thr := 0
+    readreg(core.NPAILTL, 4, @curr_thr)
     case low
         0..65535:
-        OTHER:
-            result.word[0] := tmp.word[0]
+        other:
+            return curr_thr.word[0]
 
     case high
         0..65535:
             high := (high << 16) | low
-        OTHER:
-            result.word[1] := tmp.word[1]
+        other:
+            return curr_thr.word[1]
 
-    case result
+    case curr_thr
         0:
-        OTHER:
-            return result
+        other:
+            return curr_thr
 
-    writeReg (core.TRANS_NORMAL, core.NPAILTL, 4, high)
+    writereg(core.NPAILTL, 4, high)
 
-PUB LastFull(): result
+PUB LastFull(): fsdata
 ' Returns full-spectrum data from last measurement
-    result := _fullspec_counts
+    return _full_adc
 
-PUB LastIR(): result
+PUB LastIR(): irdata
 ' Returns infra-red data from last measurement
-    result := _ir_counts
+    return _ir_adc
 
-PUB Measure(channel=0): result | tmp
+PUB LastLux(): l
+' Return Lux from last measurement (scale = 1000x)
+    return ((_full_adc_scl - _ir_adc_scl) * (FPSCALE - (_ir_adc_scl / _full_adc_scl))) / _cpl
+
+PUB Lux(): l
+' Return Lux from live measurement (scale = 1000x)
+    measure(BOTH)
+    return ((_full_adc_scl - _ir_adc_scl) * (FPSCALE - (_ir_adc_scl / _full_adc_scl))) / _cpl
+
+PUB Measure(channel): lum_data
 ' Get luminosity data from sensor
 '   Valid values:
 '       %00 - Full spectrum
 '       %01 - IR
 '       %10 - Visible
-'       %11 - Both (most-significant word: IR, least-signficant word: Full-spectrum)
+'       %11 - Both (Returns: [31..16]: IR, [15..0]: Full-spectrum)
 '   Any other values ignored
-    tmp := $00000000
-    readReg (core.C0DATAL, 4, @tmp)
+    lum_data := 0
+    readreg(core.C0DATAL, 4, @lum_data)
     case channel
         %00:
-            result := tmp.word[0] & $FFFF
+            lum_data := lum_data.word[0] & $FFFF
         %01:
-            result := tmp.word[1] & $FFFF
+            lum_data := lum_data.word[1] & $FFFF
         %10:
-            result := (tmp.word[0] - tmp.word[1]) & $FFFF
+            lum_data := (lum_data.word[0] - lum_data.word[1]) & $FFFF
         %11:
-            result := tmp
-        OTHER:
+            lum_data := lum_data
+        other:
             return
 
-    _ir_counts := tmp.word[1] & $FFFF
-    _fullspec_counts := tmp.word[0] & $FFFF
+    _ir_adc := lum_data.word[1] & $FFFF
+    _full_adc := lum_data.word[0] & $FFFF
+    _ir_adc_scl := _ir_adc * FPSCALE
+    _full_adc_scl := _full_adc * FPSCALE
 
-PUB PackageID(): result
+PUB PackageID(): id
 ' Returns Package ID
 '   Known values: $00
-    result := $00
-    readReg (core.PID, 1, @result)
+    id := 0
+    readreg(core.PID, 1, @id)
 
-PUB PersistInt(): result
-' Indicates if a persistent interrupt has been triggered
+PUB PersistInt(): flag
+' Flag indicating a persistent interrupt has been triggered
 '   Returns: TRUE (-1) an interrupt, FALSE (0) otherwise
-    result := $00
-    readReg (core.STATUS, 1, @result)
-    result := ((result >> core.FLD_AINT) & %1) * TRUE
+'   NOTE: An active interrupt will always be visible using PersistInt(),
+'       however, to be visible on the INT pin, PersistIntsEnabled()
+'       must be set to TRUE
+    flag := 0
+    readreg(core.STATUS, 1, @flag)
+    return ((flag >> core.AINT) & 1) == 1
 
-PUB PersistIntCycles(cycles=-2): result | tmp
-' Set number of consecutive cycles necessary to generate an interrupt (i.e., persistence)
+PUB PersistIntCycles(cycles=-2): curr_cyc
+' Set number of consecutive cycles necessary to generate an interrupt
 '   Valid values:
-'       0, 1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60
+'       *0, 1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60
+'       Special cases:
+'           0: Every cycle generates an interrupt, regardless of value
+'           1: Any value outside the threshold generates an interrupt
 '   Any other value polls the chip and returns the current setting
-    tmp := $00
-    readReg (core.PERSIST, 1, @tmp)
     case cycles
         0, 1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60:
-            cycles := lookdownz(cycles: 0, 1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60)
-        OTHER:
-            tmp &= core.BITS_APERS
-            result := lookupz(tmp: 0, 1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60)
-            return
+            writereg(core.PERSIST, 1, curr_cyc)
+            cycles := lookdownz(cycles: 0, 1, 2, 3, 5, 10, 15, 20, 25, 30, 35,{
+}           40, 45, 50, 55, 60)
+        other:
+            curr_cyc := 0
+            readreg(core.PERSIST, 1, @curr_cyc)
+            curr_cyc &= core.APERS_BITS
+            return lookupz(curr_cyc: 0, 1, 2, 3, 5, 10, 15, 20, 25, 30, 35,{
+}           40, 45, 50, 55, 60)
 
-    tmp := cycles & core.PERSIST_MASK
-    writeReg (core.TRANS_NORMAL, core.PERSIST, 1, tmp)
-
-PUB PersistIntsEnabled(enabled=-2): result | tmp
+PUB PersistIntsEnabled(state=-2): curr_state
 ' Enable persistent interrupts
 '   Valid values:
-'       TRUE (1 or -1): Enabled
-'       FALSE (0): Disabled
+'       TRUE (1 or -1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting
-    tmp := $00
-    readReg (core.ENABLE, 1, @tmp)
-    case abs(enabled)
+    curr_state := 0
+    readreg(core.ENABLE, 1, @curr_state)
+    case abs(state)
         0, 1:
-            enabled := abs(enabled) << core.FLD_AIEN
-        OTHER:
-            result := ((tmp >> core.FLD_AIEN) & %1) * TRUE
-            return
+            state := abs(state) << core.AIEN
+        other:
+            return ((curr_state >> core.AIEN) & 1) == 1
 
-    tmp &= core.MASK_AIEN
-    tmp := (tmp | enabled) & core.ENABLE_MASK
-    writeReg (core.TRANS_NORMAL, core.ENABLE, 1, tmp)
+    state := ((curr_state & core.AIEN_MASK) | state) & core.ENABLE_MASK
+    writereg(core.ENABLE, 1, state)
 
-PUB PersistIntThresh(low, high): result | tmp
+PUB PersistIntThresh(low, high): curr_thr
 ' Sets trigger threshold values for persistent ALS interrupts
 '   Valid values for low and high thresholds: 0..65535
 '   Any other value polls the chip and returns the current setting
 '   Returns:
-'       Most Significant Word: High threshold
-'       Least Significant Word: Low threshold
-    tmp := $0000
-    readReg (core.AILTL, 4, @tmp)
+'       [31..16]: High threshold
+'       [15..0]: Low threshold
+    curr_thr := 0
+    readreg(core.AILTL, 4, @curr_thr)
     case low
         0..65535:
-        OTHER:
-            result.word[0] := tmp.word[0]
+        other:
+            return curr_thr.word[0]
 
     case high
         0..65535:
             high := (high << 16) | low
-        OTHER:
-            result.word[1] := tmp.word[1]
+        other:
+            return curr_thr.word[1]
 
-    case result
+    case curr_thr
         0:
-        OTHER:
-            return result
+        other:
+            return curr_thr
 
-    writeReg (core.TRANS_NORMAL, core.AILTL, 4, high)
+    writereg(core.AILTL, 4, high)
 
-PUB Powered(enabled=-2): result | tmp
+PUB Powered(state=-2): curr_state
 ' Enable sensor power
 '   Valid values:
-'       TRUE (1 or -1): Power on
-'       FALSE (0): Power off
+'       TRUE (1 or -1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting
-    tmp := $00
-    readReg (core.ENABLE, 1, @tmp)
-    case abs(enabled)
+    curr_state := 0
+    readreg(core.ENABLE, 1, @curr_state)
+    case abs(state)
         0, 1:
-            enabled := abs(enabled)
-        OTHER:
-            result := (tmp & %1) * TRUE
-            return
+            state := abs(state)
+        other:
+            return (curr_state & 1) == 1
 
-    tmp &= core.MASK_PON
-    tmp := (tmp | enabled) & core.ENABLE_MASK
-    writeReg (core.TRANS_NORMAL, core.ENABLE, 1, tmp)
+    state := ((curr_state & core.PON_MASK) | state) & core.ENABLE_MASK
+    writereg(core.ENABLE, 1, state)
 
 PUB Reset()
 ' Resets the TSL2591 (equivalent to POR)
-    writeReg (core.TRANS_NORMAL, core.CONTROL, 1, 1 << core.FLD_SRESET)
+    writereg(core.CONTROL, 1, 1 << core.SRESET)
 
-PUB SensorEnabled(enabled=-2): result | tmp
+PUB SensorEnabled(state=-2): curr_state
 ' Enable ambient light sensor ADCs
 '   Valid values:
-'       TRUE (1 or -1): Enabled
-'       FALSE (0): Disabled
+'       TRUE (1 or -1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting
-    tmp := $00
-    readReg (core.ENABLE, 1, @tmp)
-    case abs(enabled)
+    curr_state := 0
+    readreg(core.ENABLE, 1, @curr_state)
+    case abs(state)
         0, 1:
-            enabled := abs(enabled) << core.FLD_AEN
-        OTHER:
-            result := ((tmp >> core.FLD_AEN) & %1) * TRUE
-            return
+            state := abs(state) << core.AEN
+        other:
+            return ((curr_state >> core.AEN) & 1) == 1
 
-    tmp &= core.MASK_AEN
-    tmp := (tmp | enabled) & core.ENABLE_MASK
-    writeReg (core.TRANS_NORMAL, core.ENABLE, 1, tmp)
+    state := ((curr_state & core.AEN_MASK) | state) & core.ENABLE_MASK
+    writereg(core.ENABLE, 1, state)
 
-PUB SleepAfterInt(enabled=-2): result | tmp
+PUB SleepAfterInt(state=-2): curr_state
 ' Enable Sleep After Interrupt
 '   Valid values:
-'       TRUE (1 or -1): Enable
-'       FALSE (0): Disable
+'       TRUE (1 or -1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting
-    tmp := $00
-    readReg (core.ENABLE, 1, @tmp)
-    case abs(enabled)
+    curr_state := 0
+    readreg(core.ENABLE, 1, @curr_state)
+    case abs(state)
         0, 1:
-            enabled := abs(enabled) << core.FLD_SAI
-        OTHER:
-            result := ((tmp >> core.FLD_SAI) & %1) * TRUE
+            state := abs(state) << core.SAI
+        other:
+            return ((curr_state >> core.SAI) & 1) == 1
+
+    state := ((curr_state & core.SAI_MASK) | state) & core.ENABLE_MASK
+    writereg(core.ENABLE, 1, state)
+
+PRI updateCPL()
+' Update counts-per-lux, used in Lux calculations
+    _cpl := ((_itime * _gain) * FPSCALE) / (_glass_att * _dev_fact)
+
+PUB readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+' Read nr_bytes from device into ptr_buff
+'    writereg(reg_nr, 0, 0)
+    case reg_nr
+        core.ENABLE, core.CONTROL, core.AILTL..core.PERSIST,{
+}       core.PID..core.C1DATAH:
+            cmd_pkt.byte[0] := SLAVE_WR
+            cmd_pkt.byte[1] := reg_nr | core.CMD_NORMAL
+
+            i2c.start()
+            repeat tmp from 0 to 1
+                i2c.write(cmd_pkt.byte[tmp])
+
+            i2c.wait(SLAVE_RD)
+            repeat tmp from 0 to nr_bytes-1
+                byte[ptr_buff][tmp] := i2c.read(tmp == nr_bytes-1)
+            i2c.stop()
+        other:
             return
 
-    tmp &= core.MASK_SAI
-    tmp := (tmp | enabled) & core.ENABLE_MASK
-    writeReg (core.TRANS_NORMAL, core.ENABLE, 1, tmp)
-
-PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet[2], tmp
-'Read nr_bytes from register 'reg' to address 'addr_buff'
-    writeReg (core.TRANS_NORMAL, reg_nr, 0, 0)
-
-    i2c.Start()
-    i2c.Write (SLAVE_RD)
-    repeat tmp from 0 to nr_bytes-1
-        byte[buff_addr][tmp] := i2c.Read (tmp == nr_bytes-1)
-    i2c.Stop()
-
-PRI writeReg(trans_type, reg_nr, nr_bytes, val) | cmd_packet[2], tmp
-' Write nr_bytes to register 'reg' stored in val
-    cmd_packet.byte[LSB] := SLAVE_WR
-
-    case trans_type
-        core.TRANS_NORMAL:
-            case reg_nr
-                core.ENABLE, core.CONTROL, core.AILTL..core.NPAIHTH, core.PERSIST, core.PID..core.C1DATAH:
-                OTHER:
-                    return
-'            cmd_packet.byte[1] := (core.TSL2591_CMD | trans_type) | reg
-
-        core.TRANS_SPECIAL:
-            case reg_nr
-                core.SF_FORCEINT, core.SF_CLEARALSINT, core.SF_CLEARALS_NOPERSIST_INT, core.SF_CLEAR_NOPERSIST_INT:
-                    nr_bytes := 0
-                    val := 0
-                OTHER:
-                    return
-
-        OTHER:
+PRI writeReg(reg_nr, nr_bytes, val) | cmd_pkt[2], tmp
+' Write nr_bytes from val to device
+    case reg_nr
+        core.ENABLE, core.CONTROL, core.AILTL..core.PERSIST:
+            reg_nr |= core.CMD_NORMAL
+        core.SF_FORCEINT, core.SF_CLRALSINT, core.SF_CLRALS_NP_INT,{
+}       core.SF_CLR_NP_INT:
+            nr_bytes := 0
+            val := 0
+        other:
             return
 
-    cmd_packet.byte[1] := (core.TSL2591_CMD | trans_type) | reg_nr
+    cmd_pkt.byte[0] := SLAVE_WR
+    cmd_pkt.byte[1] := reg_nr
 
     case nr_bytes
         0:
         1..4:
             repeat tmp from 0 to nr_bytes-1
-                cmd_packet.byte[2 + tmp] := val.byte[tmp]
-        OTHER:
+                cmd_pkt.byte[2 + tmp] := val.byte[tmp]
+        other:
             return
 
-    i2c.Start()
-    repeat tmp from 0 to nr_bytes+1
-        i2c.Write(cmd_packet.byte[tmp])
-    i2c.Stop()
+    i2c.start()
+    repeat tmp from 0 to nr_bytes+2
+        i2c.write(cmd_pkt.byte[tmp])
+    i2c.stop()
 
 DAT
 {
