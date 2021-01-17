@@ -1,168 +1,78 @@
 {
     --------------------------------------------
-    Filename: TCS347x-Demo.spin2
+    Filename: TCS3x7x-Demo.spin2
     Author: Jesse Burt
-    Description: Demo of the TCS3x7x driver (P2 version)
+    Description: Demo of the TCS3x7x driver
+        (P2 version)
     Copyright (c) 2020
-    Started: Nov 11, 2019
-    Updated: Jun 24, 2020
+    Started: Jun 24, 2018
+    Updated: Dec 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    _xtlfreq        = cfg._xtlfreq
     _clkfreq        = cfg._clkfreq_def
+    _xtlfreq        = cfg._xtlfreq
 
 ' -- User-modifiable constants
     LED             = cfg.LED1
-    SER_RX          = cfg.SER_RX
-    SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
-    I2C_SCL         = 11
-    I2C_SDA         = 12
+    I2C_SCL         = 28
+    I2C_SDA         = 29
     I2C_HZ          = 400_000
 
-' I/O Pin connected to the (optional) on-board white LED and INT pin
-    WHITE_LED_PIN   = 14
-    INT_PIN         = 24
+' I/O Pin connected to the (optional) on-board white LED
+    LED_ENABLED     = TRUE
+    WHITE_LED_PIN   = 25
 ' --
 
 OBJ
 
-    cfg   : "core.con.boardcfg.p2eval"
-    ser   : "com.serial.terminal.ansi"
-    rgb   : "sensor.color.tcs3x7x.i2c.spin2"
+    cfg : "core.con.boardcfg.p2eval"
+    ser : "com.serial.terminal.ansi"
+    rgb : "sensor.color.tcs3x7x.i2c"
 
-VAR
+PUB Main()
 
-    byte _led_enabled
-
-PUB Main() | rgbc_data[2], rdata, gdata, bdata, cdata, cmax, i, int, thr, rrow, grow, brow, crow, range
-
-    Setup()
-
-    rgb.ClearInt()                                          ' Clear interrupts
-    rgb.Gain(1)                                             ' 1, 4, 16, 60 (x)
-    rgb.WaitTimer(FALSE)                                    ' On-chip timer - wait between measurements
-    rgb.IntsEnabled (TRUE)                                  ' TRUE, FALSE
-    rgb.IntThreshold ($1000, $FFFF)                         ' low level, high level: 0..65535 each
-    rgb.Persistence (60)                                    ' Num. consecutive cycles measurement must stay outside threshold to actually trigger an interrupt: 0..60 (see Persistence() in driver file)
-    rgb.IntegrationTime (12_000)                            ' Sensor ADC integration time, in microseconds (2_400..700_000, multiples of 2_400)
-    rgb.Powered(TRUE)                                       ' Power on sensor
-
-    _led_enabled := TRUE
-
-    range := 256
-    crow := 4
-    rrow := crow + 1
-    grow := crow + 2
-    brow := crow + 3
-    ser.clear()
-    ser.position (0, 0)
-    ser.printf("Gain: %dx  ", rgb.Gain())
-
-    ser.printf("Interrupts: %s", lookupz(abs(rgb.IntsEnabled()): string("Off"), string("On ")))
-
-    thr := rgb.IntThreshold()                               ' word 0 = low threshold, word 1 = high threshold
-    ser.printf(" Threshold: %x .. %x", thr & $FFFF, (thr >> 16) & $FFFF)
-
-    ser.position (0, crow)
-    ser.printf("Clear")
-    ser.position (0, rrow)
-    ser.printf("Red")
-    ser.position (0, grow)
-    ser.printf("Green")
-    ser.position (0, brow)
-    ser.printf("Blue")
-
-    ser.HideCursor()
+    setup()
 
     repeat
-        rgb.OpMode(rgb.MEASURE)                             ' Turn on the sensor ADCs
-        if _led_enabled                                     ' Flash the white LED, if enabled
-            pinh (WHITE_LED_PIN)
-        repeat until rgb.DataReady()                        ' When the chip has taken a set of measurements,
-        rgb.RGBCData (@rgbc_data)                           '   read the data
-        rgb.OpMode(rgb.PAUSE)                               ' Turn off the sensor ADCs
-        if _led_enabled
-            pinl (WHITE_LED_PIN)
+        rgb.opmode(rgb.RUN)
+        if LED_ENABLED                          ' if LED is enabled,
+            pinh(WHITE_LED_PIN)                 '   illuminate the sample
+        repeat until rgb.dataready()            ' wait for new sensor data
+        rgb.opmode(rgb.STDBY)                   ' pause sensor while processing
+        if LED_ENABLED
+            pinl(WHITE_LED_PIN)
 
-        cdata := ((rgbc_data.byte[1] << 8) | rgbc_data.byte[0]) & $FFFF
-        rdata := ((rgbc_data.byte[3] << 8) | rgbc_data.byte[2]) & $FFFF
-        gdata := ((rgbc_data.byte[5] << 8) | rgbc_data.byte[4]) & $FFFF
-        bdata := ((rgbc_data.byte[7] << 8) | rgbc_data.byte[6]) & $FFFF
+        rgb.measure()
 
-        ser.color(ser.WHITE, ser.BLACK)               ' Draw bargraphs for each color channel
-        Graph (6, crow, cdata, 0, range, 70, TRUE, thr & $FFFF, (thr >> 16) & $FFFF)
-
-        ser.color(ser.RED, ser.BLACK)
-        Graph (6, rrow, rdata, 0, range, 70, FALSE, 0, 0)
-
-        ser.color(ser.GREEN, ser.BLACK)
-        Graph (6, grow, gdata, 0, range, 70, FALSE, 0, 0)
-
-        ser.color(ser.BLUE, ser.BLACK)
-        Graph (6, brow, bdata, 0, range, 70, FALSE, 0, 0)
-
-        ser.color(ser.WHITE, ser.BLACK)
-
-        ser.printf("\nInterrupt: ")                         ' Indicate if an interrupt has been triggered
-        if rgb.Interrupt()
-            ser.printf("Yes")
-        else
-            ser.printf("No ")
-
-PUB Graph(graphx, graphy, in, inmin, inmax, outrange, grads, exc_lo, exc_hi) | output, scale, inrange, bar
-' Calculate
-    scale := 10
-    inrange := inmax-inmin
-    output := ((((in << scale)-(inmin << scale)) / inrange) * outrange) >> scale
-
-' Graduations
-    if grads
-        exc_lo := ((((exc_lo << scale)-(inmin << scale)) / inrange) * outrange) >> scale
-        exc_hi := ((((exc_hi << scale)-(inmin << scale)) / inrange) * outrange) >> scale
-        repeat bar from 0 to outrange
-            case bar
-                exc_lo:
-                    ser.position (graphx + bar, graphy-1)
-                    ser.char ("L")
-                exc_hi:
-                    ser.position (graphx + bar, graphy-1)
-                    ser.char ("H")
-                0..outrange:
-                    if bar//5 == 0
-                        ser.position (graphx + bar, graphy-1)
-                        ser.char ("|")
-' Graph
-    repeat bar from 0 to outrange
-        ser.position (graphx + bar, graphy)
-        if bar <= output
-            ser.char (".")
-        else
-            ser.char (" ")
+        ser.position(0, 3)
+        ser.printf("Clear: %x\n", rgb.lastclear())
+        ser.printf("Red:   %x\n", rgb.lastred())
+        ser.printf("Green: %x\n", rgb.lastgreen())
+        ser.printf("Blue:  %x\n", rgb.lastblue())
 
 PUB Setup()
 
-    pinl (WHITE_LED_PIN)
+    if LED_ENABLED
+        pinl(WHITE_LED_PIN)                     ' turn off the LED, initially
 
-    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.start(SER_BAUD)
+    waitms(30)
     ser.clear()
-    ser.reset()
-    ser.printf("Serial terminal started\n")
-
-    if rgb.Start(I2C_SCL, I2C_SDA, I2C_HZ)
-        ser.printf("TCS3X7X driver started\n")
+    ser.strln(string("Serial terminal started"))
+    if rgb.start(I2C_SCL, I2C_SDA, I2C_HZ)
+        ser.strln(string("TCS3X7X driver started"))
+        rgb.defaults_measure()
     else
-        ser.printf("TCS3X7X driver failed to start - halting\n")
-        rgb.Stop()
-        waitms (500)
-        FlashLED(cfg.LED1, 500)
-
-#include "lib.utility.spin2"
+        ser.strln(string("TCS3X7X driver failed to start - halting"))
+        rgb.stop()
+        waitms(500)
+        repeat
 
 DAT
 {

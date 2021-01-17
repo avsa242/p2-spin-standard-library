@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2020
     Started: Jun 24, 2018
-    Updated: Jul 22, 2020
+    Updated: Dec 24, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -23,22 +23,21 @@ CON
 ' CMD   TYPE        ADDR (REG)/SF
 
     CMD                 = $80
-        FLD_TYPE        = 5
-        TYPE_BYTE       = %00 << FLD_TYPE  'Don't auto-increment address pointer - use for reading single register
-        TYPE_BLOCK      = %01 << FLD_TYPE  'Auto-increment address pointer - use for reading multiple sequential registers
-        TYPE_SPECIAL    = %11 << FLD_TYPE  'Special Function
-        SF_CLR_INT_CLR  = %00110
+    CMD_BYTE            = CMD | %00_00000
+    CMD_BLOCK           = CMD | %01_00000
+    CMD_SPECIAL         = CMD | %11_00000
+    CMD_CLR_INT         = CMD_SPECIAL | %00110
 
     ENABLE              = $00
     ENABLE_MASK         = $1B
-        FLD_AIEN        = 4
-        FLD_WEN         = 3
-        FLD_AEN         = 1
-        FLD_PON         = 0
-        MASK_AIEN       = ENABLE_MASK ^ (1 << FLD_AIEN)
-        MASK_WEN        = ENABLE_MASK ^ (1 << FLD_WEN)
-        MASK_AEN        = ENABLE_MASK ^ (1 << FLD_AEN)
-        MASK_PON        = ENABLE_MASK ^ (1 << FLD_PON)
+        AIEN            = 4
+        WEN             = 3
+        AEN             = 1
+        PON             = 0
+        AIEN_MASK       = (1 << AIEN) ^ ENABLE_MASK
+        WEN_MASK        = (1 << WEN) ^ ENABLE_MASK
+        AEN_MASK        = (1 << AEN) ^ ENABLE_MASK
+        PON_MASK        = 1 ^ ENABLE_MASK
 
     ATIME               = $01
     WTIME               = $03
@@ -50,17 +49,17 @@ CON
 
     PERS                = $0C
     PERS_MASK           = $0F
-        FLD_APERS       = 0
-        BITS_APERS      = %1111
+        APERS           = 0
+        APERS_BITS      = %1111
 
     CONFIG              = $0D
     CONFIG_MASK         = $02
-        FLD_WLONG       = 1
+        WLONG           = 1
 
     CONTROL             = $0F
     CONTROL_MASK        = $03
-        FLD_AGAIN       = 0
-        BITS_AGAIN      = %11
+        AGAIN           = 0
+        AGAIN_BITS      = %11
 
     DEVID               = $12
     DEVID_3472_1_5      = $44
@@ -68,8 +67,8 @@ CON
 
     STATUS              = $13
     STATUS_MASK         = $11
-        FLD_AINT        = 4
-        FLD_AVALID      = 0
+        AINT            = 4
+        AVALID          = 0
 
     CDATAL              = $14       'CLEAR DATA
     CDATAH              = $15
