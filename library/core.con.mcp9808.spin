@@ -3,9 +3,9 @@
     Filename: core.con.mcp9808.spin2
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Jul 26, 2020
-    Updated Jul 26, 2020
+    Updated Jan 17, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,32 +15,32 @@ CON
     I2C_MAX_FREQ    = 400_000
     SLAVE_ADDR      = $18 << 1
 
-'' Register definitions
+' Register definitions
     RFU             = $00           ' R/O
 
     CONFIG          = $01           ' R/W
     CONFIG_MASK     = $07FF
-        FLD_HYST    = 9
-        FLD_SHDN    = 8
-        FLD_CRTLOC  = 7
-        FLD_WINLOC  = 6
-        FLD_INTCLR  = 5
-        FLD_ALTSTAT = 4
-        FLD_ALTCNT  = 3
-        FLD_ALTSEL  = 2
-        FLD_ALTPOL  = 1
-        FLD_ALTMOD  = 0
-        BITS_HYST   = %11
-        MASK_HYST   = CONFIG_MASK ^ (BITS_HYST << FLD_HYST)
-        MASK_SHDN   = CONFIG_MASK ^ (1 << FLD_SHDN)
-        MASK_CRTLOC = CONFIG_MASK ^ (1 << FLD_CRTLOC)
-        MASK_WINLOC = CONFIG_MASK ^ (1 << FLD_WINLOC)
-        MASK_INTCLR = CONFIG_MASK ^ (1 << FLD_INTCLR)
-        MASK_ALTSTAT= CONFIG_MASK ^ (1 << FLD_ALTSTAT)
-        MASK_ALTCNT = CONFIG_MASK ^ (1 << FLD_ALTCNT)
-        MASK_ALTSEL = CONFIG_MASK ^ (1 << FLD_ALTSEL)
-        MASK_ALTPOL = CONFIG_MASK ^ (1 << FLD_ALTPOL)
-        MASK_ALTMOD = CONFIG_MASK ^ (1 << FLD_ALTMOD)
+        HYST        = 9
+        SHDN        = 8
+        CRTLOC      = 7
+        WINLOC      = 6
+        INTCLR      = 5
+        ALTSTAT     = 4
+        ALTCNT      = 3
+        ALTSEL      = 2
+        ALTPOL      = 1
+        ALTMOD      = 0
+        HYST_BITS   = %11
+        HYST_MASK   = (HYST_BITS << HYST) ^ CONFIG_MASK
+        SHDN_MASK   = (1 << SHDN) ^ CONFIG_MASK
+        CRTLOC_MASK = (1 << CRTLOC) ^ CONFIG_MASK
+        WINLOC_MASK = (1 << WINLOC) ^ CONFIG_MASK
+        INTCLR_MASK = (1 << INTCLR) ^ CONFIG_MASK
+        ALTSTAT_MASK= (1 << ALTSTAT) ^ CONFIG_MASK
+        ALTCNT_MASK = (1 << ALTCNT) ^ CONFIG_MASK
+        ALTSEL_MASK = (1 << ALTSEL) ^ CONFIG_MASK
+        ALTPOL_MASK = (1 << ALTPOL) ^ CONFIG_MASK
+        ALTMOD_MASK = (1 << ALTMOD) ^ CONFIG_MASK
 
     ALERT_UPPER     = $02           ' R/W
     ALERT_LOWER     = $03           ' R/W
@@ -52,8 +52,8 @@ CON
     RESOLUTION      = $08           ' R/W
 
 #ifndef __propeller2__
-PUB Null
-'' This is not a top-level object
+PUB Null{}
+' This is not a top-level object
 #endif
 
 {
@@ -76,3 +76,4 @@ PUB Null
     SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     --------------------------------------------------------------------------------------------------------
 }
+

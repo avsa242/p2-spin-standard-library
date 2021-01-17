@@ -2,10 +2,11 @@
     --------------------------------------------
     Filename: MCP9808-Demo.spin2
     Author: Jesse Burt
-    Description: Demo of the MCP9808 driver (P2 version)
-    Copyright (c) 2020
+    Description: Demo of the MCP9808 driver
+        (P2 version)
+    Copyright (c) 2021
     Started Jul 26, 2020
-    Updated Jul 26, 2020
+    Updated Jan 17, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,13 +17,12 @@ CON
 
 ' -- User-modifiable constants
     LED         = cfg.LED1
-    SER_RX      = cfg.SER_RX
-    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
-    I2C_SCL     = 26
-    I2C_SDA     = 27
-    I2C_HZ      = 100_000
+    I2C_SCL     = 16
+    I2C_SDA     = 17
+    I2C_HZ      = 400_000                       ' max is 400_000
+    ADDR_BITS   = %000                          ' %000..%111
 ' --
 
     C           = mcp9808.C
@@ -37,54 +37,54 @@ OBJ
 
 PUB Main() | t
 
-    Setup()
-    mcp9808.tempscale(F)                                    ' C (0), F (1)
-    mcp9808.tempres(0_0625)                                 ' 0_0625, 0_1250, 0_2500, 0_5000 (Resolution: 0.0625C, 0.125, 0.25, 0.5)
-    ser.hidecursor()
+    setup()
+    mcp9808.tempscale(C)                        ' C (0), F (1)
+    mcp9808.tempres(0_0625)                     ' 0_0625, 0_1250, 0_2500, 0_5000
+'                                               (Res: 0.0625C, 0.125, 0.25, 0.5)
     repeat
         t := mcp9808.temperature()
         ser.position(0, 5)
-        ser.printf("Temperature: ")
-        decimaldot(t, 100)
-        ser.char(lookupz(mcp9808.tempscale(): "C", "F"))
-    until ser.rxcheck() == "q"
-    ser.showcursor()
-    FlashLED(LED, 100)     ' Signal execution finished
+        ser.str(string("Temperature: "))
+        decimal(t, 100)
+        ser.char(lookupz(mcp9808.tempscale(-2): "C", "F"))
 
-PRI DecimalDot(scaled, divisor) | whole[4], part[4], places, tmp
-' Display a fixed-point scaled up number in decimal-dot notation - scale it back down by divisor
-'   e.g., Decimal (314159, 100000) would display 3.14159 on the terminal
-'   scaled: Fixed-point scaled up number
-'   divisor: Divide scaled-up number by this amount
+PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp, sign
+' Display a scaled up number as a decimal
+'   Scale it back down by divisor (e.g., 10, 100, 1000, etc)
     whole := scaled / divisor
     tmp := divisor
     places := 0
+    part := 0
+    sign := 0
+    if scaled < 0
+        sign := "-"
+    else
+        sign := " "
 
     repeat
         tmp /= 10
         places++
     until tmp == 1
-    part := int.deczeroed(abs(scaled // divisor), places)
+    scaled //= divisor
+    part := int.deczeroed(abs(scaled), places)
 
-    ser.dec (whole)
-    ser.char (".")
-    ser.str (part)
-    ser.clearline()
+    ser.char(sign)
+    ser.dec(abs(whole))
+    ser.char(".")
+    ser.str(part)
 
 PUB Setup()
 
-    repeat until ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
-    ser.printf("Serial terminal started\n")
-    if mcp9808.start(I2C_SCL, I2C_SDA, I2C_HZ)
+    ser.strln(string("Serial terminal started"))
+    if mcp9808.start(I2C_SCL, I2C_SDA, I2C_HZ, ADDR_BITS)
         mcp9808.defaults()
-        ser.printf("MCP9808 driver started\n")
+        ser.strln(string("MCP9808 driver started"))
     else
-        ser.printf("MCP9808 driver failed to start - halting\n")
-        flashled(LED, 500)
-
-#include "lib.utility.spin2"
+        ser.strln(string("MCP9808 driver failed to start - halting"))
+        repeat
 
 {
     --------------------------------------------------------------------------------------------------------
