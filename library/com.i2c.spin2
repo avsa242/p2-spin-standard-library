@@ -3,16 +3,21 @@
     Filename: com.i2c.spin2
     Description: Bitbanged I2C driver for the P2X8C4M64P
     Author: Jesse Burt
-        (based on jm_i2c.spin, originally by Jon McPhalen)
     Created: Jun 15, 2019
-    Updated: Oct 20, 2020
+    Updated: Jan 19, 2021
     See end of file for terms of use.
-    --------------------------------------------
 
-    NOTE: Pull-up resistors _required_ on the SDA _and_ SCL lines.
-        SCL is not driven
+    NOTE: This is based on jm_i2c.spin, by
+        Jon McPhalen
+    --------------------------------------------
 }
+
+' NOTE: Pull-up resistors are required on SDA _and_ SCL lines
+'   This object doesn't drive either line (open-drain, not push-pull)
+
 CON
+
+    DEF_HZ  = 100_000
 
     #0, ACK, NAK
 
@@ -21,6 +26,25 @@ VAR
     long _SCL                                   ' Bus pins
     long _SDA
     long _delay, _hdelay, _qdelay
+
+PUB Init(SCL, SDA, HZ=DEF_HZ): status
+' Initialize I2C engine using custom I2C pins
+'   SCL, SDA: 0..31 (each unique)
+'   HZ: 1..1_000_000
+    longmove(@_SCL, @SCL, 2)                    ' Copy pins
+
+    _delay := (clkfreq/HZ)                      ' Calculate delays based on
+    _hdelay := _delay >> 1                      '   system clock freq
+    _qdelay := _delay >> 2
+
+    pinf(_SCL)                                  ' Float pins
+    pinf(_SDA)
+
+    return cogid{}+1                            ' return current cog id
+
+PUB DeInit
+' Deinitialize - clear out hub vars
+    longfill(@_SCL, 0, 2)
 
 PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000): okay
 ' Define I2C SCL (clock) and SDA (data) pins
@@ -36,11 +60,32 @@ PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000): okay
     okay := cogid() + 1
     return
 
-PUB Present(slave_addr): ackbit
+PUB Present(slave_addr): status
 ' Pings device, returns true if ACK
     start()
-    ackbit := (write(slave_addr) == ACK)
-    stop()
+    return (write(slave_addr) == ACK)
+
+PUB Rd_Byte(ackbit): i2cbyte
+' Read byte from I2C bus
+    rdblock_lsbf(@i2cbyte, 1, ackbit)
+
+PUB Rd_Long(ackbit): i2clong
+' Read long from I2C bus
+    rdblock_lsbf(@i2clong, 4, ackbit)
+
+PUB Rd_Word(ackbit): i2cword
+' Read word from I2C bus
+    rdblock_lsbf(@i2cword, 2, ackbit)
+
+PUB RdBlock_LSBF(ptr_buff, nr_bytes, ack_last) | bytenum, i2cbyte
+' Read nr_bytes from I2C bus into ptr_buff, LSByte-first
+    repeat bytenum from 0 to nr_bytes-1
+        byte[ptr_buff][bytenum] := read(((bytenum == nr_bytes-1) & ack_last))
+
+PUB RdBlock_MSBF(ptr_buff, nr_bytes, ack_last) | bytenum, i2cbyte
+' Read nr_bytes from I2C bus into ptr_buff, MSByte-first
+    repeat bytenum from nr_bytes-1 to 0
+        byte[ptr_buff][bytenum] := read(((bytenum == 0) & ack_last))
 
 PUB Read(ackbit): i2cbyte | SCL, SDA
 ' Read byte from I2C bus
@@ -70,19 +115,20 @@ PUB Read(ackbit): i2cbyte | SCL, SDA
     return (i2cbyte & $FF)
 
 PUB Reset() | SCL, SDA
-' Reset device
+' Reset I2C bus
     longmove(@SCL, @_SCL, 2)
-    repeat 9
+    repeat 9                                    ' send up to 9 clock pulses
         pinl(SCL)
         hd()
         pinf(SCL)
         hd()
-        if (pinr(SDA))
-            quit
+        if (pinr(SDA))                          ' if SDA is released,
+            quit                                '   our work is done - return
 
 PUB Start()
-' I2C Start condition (S, Sr)
-'   NOTE: Blocks while SCL held low (clock stretching)
+' Create start or re-start condition (S, Sr)
+'   NOTE: This method supports clock stretching;
+'       waits while SCL pin is held low
     pinf(_SDA)                                  ' Float pins
     pinf(_SCL)
     repeat while (pinr(_SCL) == 0)              ' Allow "clock stretching"
@@ -93,8 +139,9 @@ PUB Start()
     hd()
 
 PUB Stop()
-' I2C Stop condition (P)
-'   NOTE: Blocks while SCL held low (clock stretching)
+' Create I2C Stop condition (P)
+'   NOTE: This method supports clock stretching;
+'       waits while SDA pin is held low
     pinl(_SDA)                                  ' SDA low
     hd()
     pinf(_SCL)                                  ' Float SCL
@@ -105,25 +152,51 @@ PUB Stop()
 
 PUB Wait(slave_addr) | ackbit
 ' Waits for I2C device to be ready for new command
+'   NOTE: This method will wait indefinitely,
+'   if the device doesn't respond
     repeat
         start()
         ackbit := write(slave_addr)
     until (ackbit == ACK)
 
-PUB WaitTimeout(slave_addr, usec): ackbit, timeout | tmp
+PUB WaitTimeout(slave_addr, usec): status
 ' Wait for I2C device to be ready for new command,
 '   up to a maximum timeout of 'usec' microseconds
 '   Returns:
-'       1st return value: TRUE if slave acknowledged, FALSE otherwise
-'       2nd return value: Duration waited, in microseconds
-    timeout := usec
+'       ACK(0): device responded within specified time
+'       NAK(1): device didn't respond
     repeat
-        start()
-        ackbit := write(slave_addr)
+        if (present(slave_addr))
+            return ACK
         waitus(1)
-        timeout--
-    until (ackbit == ACK) OR (timeout == 0)
-    return (ackbit == ACK), usec-timeout
+        usec--
+    until (usec == 0)
+
+    return NAK
+
+PUB Wr_Byte(b): ackbit
+' Write byte to I2C bus
+    return wrblock_lsbf(@b, 1)
+
+PUB Wr_Long(l): ackbit
+' Write long to I2C bus
+'   least-significant byte first
+    return wrblock_lsbf(@l, 4)
+
+PUB Wr_Word(w): ackbit
+' Write word to I2C bus
+'   least-significant byte first
+    return wrblock_lsbf(@w, 2)
+
+PUB WrBlock_LSBF(ptr_buff, nr_bytes): ackbit | bytenum, i2cbyte
+' Write nr_bytes to I2C bus from ptr_buff, LSByte-first
+    repeat bytenum from 0 to nr_bytes-1
+        ackbit := write(byte[ptr_buff][bytenum])
+
+PUB WrBlock_MSBF(ptr_buff, nr_bytes): ackbit | bytenum, i2cbyte
+' Write nr_bytes to I2C bus from ptr_buff, MSByte-first
+    repeat bytenum from nr_bytes-1 to 0
+        ackbit := write(byte[ptr_buff][bytenum])
 
 PUB Write(i2cbyte): ackbit | SCL, SDA
 ' Write byte to I2C bus
