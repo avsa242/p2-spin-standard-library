@@ -3,9 +3,9 @@
     Filename: core.con.mpu9250.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Sep 2, 2019
-    Updated Aug 15, 2020
+    Updated Jan 23, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,7 +19,7 @@ CON
     DEVID_RESP                  = $7148
 
 ' Startup time
-    TREGRW                      = 100               ' ms
+    TREGRW                      = 100_000       ' usec
 
 ' Accelerometer / Gyroscope registers
     SELF_TEST_X_GYRO            = $7100
@@ -29,9 +29,9 @@ CON
     SELF_TEST_Y_ACCEL           = $710E
     SELF_TEST_Z_ACCEL           = $710F
 
-    XG_OFFS_USR                 = $7113                       '..$14 (LSB)
-    YG_OFFS_USR                 = $7115                       '..$16 (LSB)
-    ZG_OFFS_USR                 = $7117                       '..$18 (LSB
+    XG_OFFS_USR                 = $7113         '..$14 (LSB)
+    YG_OFFS_USR                 = $7115         '..$16 (LSB)
+    ZG_OFFS_USR                 = $7117         '..$18 (LSB
 
     SMPLRT_DIV                  = $7119
 
@@ -52,14 +52,14 @@ CON
         YGYRO_CTEN              = 6
         ZGYRO_CTEN              = 5
         GYRO_FS_SEL             = 3
-        FCHOICE_B               = 0
+        FCH_B                   = 0
         GYRO_FS_SEL_BITS        = %11
-        FCHOICE_B_BITS          = %11
+        FCH_B_BITS              = %11
         XGYRO_CTEN_MASK         = (1 << XGYRO_CTEN) ^ GYRO_CFG_MASK
         YGYRO_CTEN_MASK         = (1 << YGYRO_CTEN) ^ GYRO_CFG_MASK
         ZGYRO_CTEN_MASK         = (1 << ZGYRO_CTEN) ^ GYRO_CFG_MASK
         GYRO_FS_SEL_MASK        = (GYRO_FS_SEL_BITS << GYRO_FS_SEL) ^ GYRO_CFG_MASK
-        FCHOICE_B_MASK          = FCHOICE_B_BITS ^ GYRO_CFG_MASK
+        FCH_B_MASK              = FCH_B_BITS ^ GYRO_CFG_MASK
 
     ACCEL_CFG                   = $711C
     ACCEL_CFG_MASK              = $F8
@@ -75,10 +75,10 @@ CON
 
     ACCEL_CFG2                  = $711D
     ACCEL_CFG2_MASK             = $0F
-        ACCEL_FCHOICE_B         = 3
+        ACCEL_FCH_B             = 3
         A_DLPFCFG               = 0
         A_DLPFCFG_BITS          = %111
-        ACCEL_FCHOICE_B_MASK    = (1 << ACCEL_FCHOICE_B) ^ ACCEL_CFG2_MASK
+        ACCEL_FCH_B_MASK        = (1 << ACCEL_FCH_B) ^ ACCEL_CFG2_MASK
         A_DLPFCFG_MASK          = A_DLPFCFG_BITS ^ ACCEL_CFG2_MASK
 
     LP_ACCEL_ODR                = $711E
@@ -109,38 +109,38 @@ CON
 
     INT_BYPASS_CFG              = $7137
     INT_BYPASS_CFG_MASK         = $FE
-        FLD_BYPASS_EN           = 1
-        FLD_FSYNC_INT_MODE_EN   = 2
-        FLD_ACTL_FSYNC          = 3
-        FLD_INT_ANYRD_2CLEAR    = 4
-        FLD_LATCH_INT_EN        = 5
-        FLD_OPEN                = 6
-        FLD_ACTL                = 7
-        MASK_BYPASS_EN          = INT_BYPASS_CFG_MASK ^ (1 << FLD_BYPASS_EN)
-        MASK_FSYNC_INT_MODE_EN  = INT_BYPASS_CFG_MASK ^ (1 << FLD_FSYNC_INT_MODE_EN)
-        MASK_ACTL_FSYNC         = INT_BYPASS_CFG_MASK ^ (1 << FLD_ACTL_FSYNC)
-        MASK_INT_ANYRD_2CLEAR   = INT_BYPASS_CFG_MASK ^ (1 << FLD_INT_ANYRD_2CLEAR)
-        MASK_LATCH_INT_EN       = INT_BYPASS_CFG_MASK ^ (1 << FLD_LATCH_INT_EN)
-        MASK_OPEN               = INT_BYPASS_CFG_MASK ^ (1 << FLD_OPEN)
-        MASK_ACTL               = INT_BYPASS_CFG_MASK ^ (1 << FLD_ACTL)
+        ACTL                    = 7
+        OPEN                    = 6
+        LATCH_INT_EN            = 5
+        INT_ANYRD_2CLR          = 4
+        ACTL_FSYNC              = 3
+        FSYNC_INTMODE_EN        = 2
+        BYPASS_EN               = 1
+        ACTL_MASK               = (1 << ACTL) ^ INT_BYPASS_CFG_MASK
+        OPEN_MASK               = (1 << OPEN) ^ INT_BYPASS_CFG_MASK
+        LATCH_INT_EN_MASK       = (1 << LATCH_INT_EN) ^ INT_BYPASS_CFG_MASK
+        INT_ANYRD_2CLR_MASK     = (1 << INT_ANYRD_2CLR) ^ INT_BYPASS_CFG_MASK
+        ACTL_FSYNC_MASK         = (1 << ACTL_FSYNC) ^ INT_BYPASS_CFG_MASK
+        FSYNC_INTMODE_EN_MASK   = (1 << FSYNC_INTMODE_EN) ^ INT_BYPASS_CFG_MASK
+        BYPASS_EN_MASK          = (1 << BYPASS_EN) ^ INT_BYPASS_CFG_MASK
 
     INT_ENABLE                  = $7138
     INT_ENABLE_MASK             = $59
-        FLD_WOM_EN              = 6
-        FLD_FIFO_OVERFLOW_EN    = 4
-        FLD_FSYNC_INT_EN        = 3
-        FLD_RAW_RDY_EN          = 0
-        MASK_WOM_EN             = INT_ENABLE_MASK ^ (1 << FLD_WOM_EN)
-        MASK_FIFO_OVERFLOW_EN   = INT_ENABLE_MASK ^ (1 << FLD_FIFO_OVERFLOW_EN)
-        MASK_FSYNC_INT_EN       = INT_ENABLE_MASK ^ (1 << FLD_FSYNC_INT_EN)
-        MASK_RAW_RDY_EN         = INT_ENABLE_MASK ^ (1 << FLD_RAW_RDY_EN)
+        WOM_EN                  = 6
+        FIFO_OVERFL_EN          = 4
+        FSYNC_INT_EN            = 3
+        RAW_RDY_EN              = 0
+        WOM_EN_MASK             = (1 << WOM_EN) ^ INT_ENABLE_MASK
+        FIFO_OVERFL_EN_MASK     = (1 << FIFO_OVERFL_EN) ^ INT_ENABLE_MASK
+        FSYNC_INT_EN_MASK       = (1 << FSYNC_INT_EN) ^ INT_ENABLE_MASK
+        RAW_RDY_EN_MASK         = (1 << RAW_RDY_EN) ^ INT_ENABLE_MASK
 
     INT_STATUS                  = $713A
     INT_STATUS_MASK             = $59
-        FLD_WOM_INT             = 6
-        FLD_FIFO_OVERFLOW_INT   = 4
-        FLD_FSYNC_INT           = 3
-        FLD_RAW_DATA_RDY_INT    = 0
+        WOM_INT                 = 6
+        FIFO_OVERFL_INT         = 4
+        FSYNC_INT               = 3
+        RAW_DATA_RDY_INT        = 0
 
     ACCEL_XOUT_H                = $713B
     ACCEL_XOUT_L                = $713C
@@ -197,44 +197,45 @@ CON
 
     USER_CTRL                   = $716A
     USER_CTRL_MASK              = $77
-        FLD_SIG_COND_RST        = 0
-        FLD_I2C_MST_RST         = 1
-        FLD_FIFO_RST            = 2
-        FLD_I2C_IF_DIS          = 4
-        FLD_I2C_MST_EN          = 5
-        FLD_FIFO_EN             = 6
-        MASK_SIG_COND_RST       = USER_CTRL_MASK ^ (1 << FLD_SIG_COND_RST)
-        MASK_I2C_MST_RST        = USER_CTRL_MASK ^ (1 << FLD_I2C_MST_RST)
-        MASK_FIFO_RST           = USER_CTRL_MASK ^ (1 << FLD_FIFO_RST)
-        MASK_I2C_IF_DIS         = USER_CTRL_MASK ^ (1 << FLD_I2C_IF_DIS)
-        MASK_I2C_MST_EN         = USER_CTRL_MASK ^ (1 << FLD_I2C_MST_EN)
-        MASK_FIFO_EN            = USER_CTRL_MASK ^ (1 << FLD_FIFO_EN)
+        FIFOEN                  = 6
+        I2C_MST_EN              = 5
+        I2C_IF_DIS              = 4
+        FIFO_RST                = 2
+        I2C_MST_RST             = 1
+        SIG_COND_RST            = 0
+        FIFOEN_MASK             = (1 << FIFOEN) ^ USER_CTRL_MASK
+        I2C_MST_EN_MASK         = (1 << I2C_MST_EN) ^ USER_CTRL_MASK
+        I2C_IF_DIS_MASK         = (1 << I2C_IF_DIS) ^ USER_CTRL_MASK
+        FIFO_RST_MASK           = (1 << FIFO_RST) ^ USER_CTRL_MASK
+        I2C_MST_RST_MASK        = (1 << I2C_MST_RST) ^ USER_CTRL_MASK
+        SIG_COND_RST_MASK       = (1 << SIG_COND_RST) ^ USER_CTRL_MASK
 
     PWR_MGMT_1                  = $716B
     PWR_MGMT_1_MASK             = $FF
         H_RESET                 = 7
         SLEEP                   = 6
         CYCLE                   = 5
-        GYRO_STANDBY            = 4
+        GYRO_STDBY              = 4
         PD_PTAT                 = 3
         CLKSEL                  = 0
         CLKSEL_BITS             = %111
         H_RESET_MASK            = (1 << H_RESET) ^ PWR_MGMT_1_MASK
         SLEEP_MASK              = (1 << SLEEP) ^ PWR_MGMT_1_MASK
         CYCLE_MASK              = (1 << CYCLE) ^ PWR_MGMT_1_MASK
-        GYRO_STANDBY_MASK       = (1 << GYRO_STANDBY) ^ PWR_MGMT_1_MASK
+        GYRO_STDBY_MASK         = (1 << GYRO_STDBY) ^ PWR_MGMT_1_MASK
         PD_PTAT_MASK            = (1 << PD_PTAT) ^ PWR_MGMT_1_MASK
         CLKSEL_MASK             = CLKSEL_BITS ^ PWR_MGMT_1_MASK
+        XLG_SOFT_RST            = 1 << H_RESET
 
     PWR_MGMT_2                  = $716C
     PWR_MGMT_2_MASK             = $3F
-        FLD_DISABLE_XYZA        = 3
-        FLD_DISABLE_XYZG        = 0
-        BITS_DISABLE_XYZA       = %111
-        BITS_DISABLE_XYZG       = %111
-        MASK_DISABLE_XYZA       = PWR_MGMT_2_MASK ^ (BITS_DISABLE_XYZA << FLD_DISABLE_XYZA)
-        MASK_DISABLE_XYZG       = PWR_MGMT_2_MASK ^ (BITS_DISABLE_XYZG << FLD_DISABLE_XYZG)
-        DISABLE_INVERT          = %111
+        DIS_XYZA                = 3
+        DIS_XYZG                = 0
+        DIS_XYZA_BITS           = %111
+        DIS_XYZG_BITS           = %111
+        DIS_XYZA_MASK           = (DIS_XYZA_BITS << DIS_XYZA) ^ PWR_MGMT_2_MASK
+        DIS_XYZG_MASK           = (DIS_XYZG_BITS << DIS_XYZG) ^ PWR_MGMT_2_MASK
+        DIS_INVERT              = %111
 
     FIFO_COUNTH                 = $7172
     FIFO_COUNTL                 = $7173
@@ -255,8 +256,8 @@ CON
 
     ST1                         = $4802
     ST1_MASK                    = $03
-        FLD_DOR                 = 1
-        FLD_DRDY                = 0
+        DOR                     = 1
+        DRDY                    = 0
 
     HXL                         = $4803
     HXH                         = $4804
@@ -267,27 +268,27 @@ CON
 
     ST2                         = $4809
     ST2_MASK                    = $18
-        FLD_BITM                = 4
-        FLD_HOFL                = 3
+        BITM                    = 4
+        HOFL                    = 3
 
     CNTL1                       = $480A
     CNTL1_MASK                  = $1F
-        FLD_BIT                 = 4
-        FLD_MODE                = 0
-        BITS_MODE               = %1111
-        MASK_BIT                = CNTL1_MASK ^ (1 << FLD_BIT)
-        MASK_MODE               = CNTL1_MASK ^ (BITS_MODE << FLD_MODE)
+        BIT                     = 4
+        MODE                    = 0
+        MODE_BITS               = %1111
+        BIT_MASK                = (1 << BIT) ^ CNTL1_MASK
+        MODE_MASK               = (MODE_BITS << MODE) ^ CNTL1_MASK
 
     CNTL2                       = $480B
     CNTL2_MASK                  = $01
-        FLD_SRST                = 0
-
+        SRST                    = 0
+        SOFT_RST                = 1 { << SRST }
 ' RESERVED - $0B
 
     ASTC                        = $480C
     ASTC_MASK                   = $40
-        FLD_SELF                = 6
-        MASK_SELF               = ASTC_MASK ^ (1 << FLD_SELF)
+        SELF                    = 6
+        SELF_MASK               = (1 << SELF) ^ ASTC_MASK
 
 ' TEST 1 - $0D
 ' TEST 2 - $0E
