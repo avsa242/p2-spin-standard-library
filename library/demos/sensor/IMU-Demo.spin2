@@ -17,8 +17,8 @@
 '#define LIS3DH_I2C
 '#define LIS3DH_SPI
 '#define LSM303DLHC_I2C
-#define LSM9DS1_SPI
-'#define MPU9250_I2C
+'#define LSM9DS1_SPI
+#define MPU9250_I2C
 
 CON
 
@@ -92,8 +92,8 @@ CON
 
 #ifdef MPU9250_I2C
 ' MPU9250 (I2C)
-    SCL_PIN     = 26
-    SDA_PIN     = 27
+    SCL_PIN     = 0
+    SDA_PIN     = 1
     SCL_HZ      = 400_000
 #endif
 ' --
@@ -515,7 +515,7 @@ PUB Setup()
         waitms(5)
         flashled(LED, 500)
 #elseifdef LSM9DS1_SPI
-    if imu.start (SCL_PIN, SDIO_PIN, CS_AG_PIN, CS_M_PIN, SCL_HZ)
+    if imu.start(SCL_PIN, SDIO_PIN, CS_AG_PIN, CS_M_PIN, SCL_HZ)
         ser.printf("LSM9DS1 driver started\n")
     else
         ser.printf("LSM9DS1 driver failed to start- halting\n")
@@ -523,8 +523,8 @@ PUB Setup()
         waitms(5)
         flashled(LED, 500)
 #elseifdef MPU9250_I2C
-    if imu.start(SCL_PIN, SDA_PIN, SCL_HZ)
-        imu.defaults()
+    if imu.startx(SCL_PIN, SDA_PIN, SCL_HZ)
+        imu.preset_xl_g_m()
         ser.printf("MPU9250 driver started (I2C)\n")
     else
         ser.printf("MPU9250 driver failed to start - halting\n")
