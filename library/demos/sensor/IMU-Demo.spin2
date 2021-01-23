@@ -27,8 +27,6 @@ CON
 
 ' -- User-modifiable constants
     LED         = cfg.LED1
-    SER_RX      = cfg.SER_RX
-    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
 #ifdef ADXL345_SPI
@@ -103,6 +101,9 @@ CON
     DATA_Z_COL  = DATA_Y_COL+12
     DATA_OVR_COL= DATA_Z_COL+12
 
+    RAW         = 0
+    CALC        = 1
+
 OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
@@ -125,7 +126,7 @@ OBJ
 #elseifdef MPU9250_I2C
     imu     : "sensor.imu.9dof.mpu9250.i2c"
 #else
-#error "At least one sensor must be defined"
+#error "One, and only one sensor must be defined"
 #endif
 
 VAR
@@ -145,16 +146,16 @@ PUB Main()
 
     repeat
         case ser.rxcheck()
-            "q", "Q":                                       ' Quit the demo
+            "q", "Q":                           ' Quit the demo
                 ser.position(0, 15)
-                ser.printf("Halting")
+                ser.strln("Halting")
                 imu.stop()
                 waitms(5)
                 quit
-            "c", "C":                                       ' Perform calibration
+            "c", "C":                           ' Perform calibration
                 calibrate()
                 displaysettings()
-            "r", "R":                                       ' Change display mode: raw/calculated
+            "r", "R":                           ' Change display mode: raw/calculated
                 _dispmode ^= 1
                 displaysettings()
 
@@ -169,14 +170,14 @@ PUB Main()
         ser.newline()
 
         case _dispmode
-            0:
+            RAW:
                 if imu.ACCEL_DOF > 0
                     accelraw()
                 if imu.GYRO_DOF > 0
                     gyroraw()
                 if imu.MAG_DOF > 0
                     magraw()
-            1:
+            CALC:
                 if imu.ACCEL_DOF > 0
                     accelcalc()
                 if imu.GYRO_DOF > 0    
@@ -185,15 +186,15 @@ PUB Main()
                     magcalc()
 
     ser.showcursor()
-    flashled(LED, 100)
+    repeat
 
 PUB AccelCalc() | ax, ay, az
 
     repeat until imu.acceldataready()
-    imu.accelg (@ax, @ay, @az)
+    imu.accelg(@ax, @ay, @az)
     if imu.acceldataoverrun()
         _a_overruns++
-    ser.printf("Accel:")
+    ser.str("Accel:")
 
     ser.positionx(DATA_X_COL)
     decimaldot(ax, 1000000)
@@ -211,19 +212,19 @@ PUB AccelCalc() | ax, ay, az
 PUB AccelRaw() | ax, ay, az
 
     repeat until imu.acceldataready()
-    imu.acceldata (@ax, @ay, @az)
+    imu.acceldata(@ax, @ay, @az)
     if imu.acceldataoverrun()
         _a_overruns++
-    ser.printf("Accel:")
+    ser.str("Accel:")
 
     ser.positionx(DATA_X_COL)
-    ser.str (int.decpadded (ax, 9))
+    ser.str(int.decpadded(ax, 9))
 
     ser.positionx(DATA_Y_COL)
-    ser.str (int.decpadded (ay, 9))
+    ser.str(int.decpadded(ay, 9))
 
     ser.positionx(DATA_Z_COL)
-    ser.str (int.decpadded (az, 9))
+    ser.str(int.decpadded(az, 9))
 
     ser.positionx(DATA_OVR_COL)
     ser.dec(_a_overruns)
@@ -235,7 +236,7 @@ PUB GyroCalc() | gx, gy, gz
     imu.gyrodps (@gx, @gy, @gz)
     if imu.gyrodataoverrun()
         _g_overruns++
-    ser.printf("Gyro:  ")
+    ser.str("Gyro:  ")
 
     ser.positionx(DATA_X_COL)
     decimaldot(gx, 1000000)
@@ -253,19 +254,19 @@ PUB GyroCalc() | gx, gy, gz
 PUB GyroRaw() | gx, gy, gz
 
     repeat until imu.gyrodataready()
-    imu.gyrodata (@gx, @gy, @gz)
+    imu.gyrodata(@gx, @gy, @gz)
     if imu.gyrodataoverrun()
         _g_overruns++
-    ser.printf("Gyro:")
+    ser.str("Gyro:")
 
     ser.positionx(DATA_X_COL)
-    ser.str (int.decpadded (gx, 9))
+    ser.str(int.decpadded(gx, 9))
 
     ser.positionx(DATA_Y_COL)
-    ser.str (int.decpadded (gy, 9))
+    ser.str(int.decpadded(gy, 9))
 
     ser.positionx(DATA_Z_COL)
-    ser.str (int.decpadded (gz, 9))
+    ser.str(int.decpadded(gz, 9))
 
     ser.positionx(DATA_OVR_COL)
     ser.dec(_g_overruns)
@@ -274,10 +275,10 @@ PUB GyroRaw() | gx, gy, gz
 PUB MagCalc() | mx, my, mz
 
     repeat until imu.magdataready()
-    imu.maggauss (@mx, @my, @mz)
+    imu.maggauss(@mx, @my, @mz)
     if imu.magdataoverrun()
         _m_overruns++
-    ser.printf("Mag:")
+    ser.str("Mag:")
 
     ser.positionx(DATA_X_COL)
     decimaldot(mx, 1000000)
@@ -295,19 +296,19 @@ PUB MagCalc() | mx, my, mz
 PUB MagRaw() | mx, my, mz
 
     repeat until imu.magdataready()
-    imu.magdata (@mx, @my, @mz)
+    imu.magdata(@mx, @my, @mz)
     if imu.magdataoverrun()
         _m_overruns++
-    ser.printf("Mag:")
+    ser.str("Mag:")
 
     ser.positionx(DATA_X_COL)
-    ser.str (int.decpadded (mx, 9))
+    ser.str(int.decpadded(mx, 9))
 
     ser.positionx(DATA_Y_COL)
-    ser.str (int.decpadded (my, 9))
+    ser.str(int.decpadded(my, 9))
 
     ser.positionx(DATA_Z_COL)
-    ser.str (int.decpadded (mz, 9))
+    ser.str(int.decpadded(mz, 9))
 
     ser.positionx(DATA_OVR_COL)
     ser.dec(_m_overruns)
@@ -315,8 +316,8 @@ PUB MagRaw() | mx, my, mz
 
 PUB Calibrate()
 
-    ser.position (0, 14)
-    ser.printf("Calibrating...")
+    ser.position(0, 14)
+    ser.str("Calibrating...")
     if imu.ACCEL_DOF > 0 && imu.GYRO_DOF > 0
         imu.calibratexlg()
     elseif imu.ACCEL_DOF > 0
@@ -325,8 +326,8 @@ PUB Calibrate()
         imu.calibrategyro()
     if imu.MAG_DOF > 0
         imu.calibratemag()
-    ser.position (0, 14)
-    ser.printf("              ")
+    ser.positionx(0)
+    ser.clearline()
 
 PUB DecimalDot(scaled, divisor) | whole[4], part[4], places, tmp, sign
 ' Display a scaled up number in its natural form - scale it back down by divisor
@@ -350,8 +351,8 @@ PUB DecimalDot(scaled, divisor) | whole[4], part[4], places, tmp, sign
     else
         ser.char(" ")
     ser.dec(abs(whole))
-    ser.char (".")
-    ser.str (part)
+    ser.char(".")
+    ser.str(part)
     ser.str("  ")
 
 PUB DisplaySettings() | axo, ayo, azo, gxo, gyo, gzo, mxo, myo, mzo
@@ -363,28 +364,43 @@ PUB DisplaySettings() | axo, ayo, azo, gxo, gyo, gzo, mxo, myo, mzo
     ser.position(0, 3)
 
     if imu.ACCEL_DOF > 0
-        ser.printf("AccelScale: %dg\n", imu.accelscale())
-        ser.printf("AccelDataRate: %dHz\n", imu.acceldatarate())
+        ser.strln("AccelScale:")
+        ser.strln("AccelDataRate:")
+        ser.strln("AccelBias:")
         imu.accelbias(@axo, @ayo, @azo)
-        ser.printf("AccelBias: %d(x), %d(y), %d(z)     \n", axo, ayo, azo)
+
+        ser.position(DATA_X_COL, 3)
+        ser.printf("%dg\n", imu.accelscale())
+        ser.positionx(DATA_X_COL)
+        ser.printf("%dHz\n", imu.acceldatarate())
+        ser.positionx(DATA_X_COL)
+        ser.printf("%d(x), %d(y), %d(z)     \n", axo, ayo, azo)
 
     if imu.GYRO_DOF > 0
-        ser.printf("GyroScale: %ddps\n", imu.gyroscale())
-        ser.printf("GyroDataRate: %dHz\n", imu.gyrodatarate())
+        ser.strln("GyroScale:")
+        ser.strln("GyroDataRate:")
+        ser.strln("GyroBias:")
         imu.gyrobias(@gxo, @gyo, @gzo)
-        ser.printf("GyroBias: %d(x), %d(y), %d(z)     \n", gxo, gyo, gzo)
-        ser.clearline()
+
+        ser.position(DATA_X_COL, 6)
+        ser.printf("%ddps\n", imu.gyroscale())
+        ser.positionx(DATA_X_COL)
+        ser.printf("%dHz\n", imu.gyrodatarate())
+        ser.positionx(DATA_X_COL)
+        ser.printf("%d(x), %d(y), %d(z)     \n", gxo, gyo, gzo)
 
     if imu.MAG_DOF > 0
-#ifdef LSM303DLHC_I2C
-        ser.printf("MagScale: %d.%dGs\n", imu.magscale()/10, imu.magscale()//10)
-#else
-        ser.printf("MagScale: %dGs\n", imu.magscale())
-#endif
-        ser.printf("MagDataRate: %dHz\n", imu.magdatarate())
+        ser.strln("MagScale:")
+        ser.strln("MagDataRate:")
+        ser.strln("MagBias:")
         imu.magbias(@mxo, @myo, @mzo)
-        ser.printf("MagBias: %d(x), %d(y), %d(z)     \n", mxo, myo, mzo)
-        ser.clearline()
+
+        ser.position(DATA_X_COL, 9)
+        ser.printf("%d.%dGs\n", imu.magscale()/10, imu.magscale()//10)
+        ser.positionx(DATA_X_COL)
+        ser.printf("%dHz\n", imu.magdatarate())
+        ser.positionx(DATA_X_COL)
+        ser.printf("%d(x), %d(y), %d(z)     \n", mxo, myo, mzo)
 
     ser.position(0, 15)
     ser.str(lookupz(_dispmode: string("Raw       "), string("Calculated")))
@@ -431,7 +447,7 @@ PUB UpdateSettings()
 '       All: 0 or 1 for each bit (%xyz)
 
         imu.gyrobias(0, 0, 0, imu.W)
-'       GyroBias(x_adc_cnts, y_adc_cnts, z_adc_cnts) - Manually set corrective bias/offsets
+'       gyrobias(x_adc_cnts, y_adc_cnts, z_adc_cnts) - Manually set corrective bias/offsets
 '       x, y, z (-32768..32767), rw = 1 (write)
 
     if imu.MAG_DOF > 0
@@ -448,92 +464,90 @@ PUB UpdateSettings()
 '       MPU9250:    8, 100
 
         imu.magbias(0, 0, 0, imu.W)
-'       MagBias(x_adc_cnts, y_adc_cnts, z_adc_cnts) - Manually set corrective bias/offsets
+'       magbias(x_adc_cnts, y_adc_cnts, z_adc_cnts) - Manually set corrective bias/offsets
 
 PUB Setup()
 
-    repeat until ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
     ser.printf("Serial terminal started\n")
 
 #ifdef ADXL345_SPI
     if imu.start(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_HZ)
-        ser.printf("ADXL345 driver started (SPI)\n")
+        ser.strln("ADXL345 driver started (SPI)")
         imu.defaults()
         imu.accelopmode(imu.MEASURE)
     else
-        ser.printf("ADXL345 driver failed to start - halting\n")
+        ser.strln("ADXL345 driver failed to start - halting")
         imu.stop()
-        waitms (5)
-        flashled(LED, 500)
+        waitms(5)
+        repeat
 #elseifdef L3GD20H_I2C
-    if imu.start (SCL_PIN, SDA_PIN, SCL_HZ)
+    if imu.start(SCL_PIN, SDA_PIN, SCL_HZ)
         imu.defaults()
         imu.gyroopmode(imu.MEASURE)
-        ser.printf("L3GD20H driver started (I2C)\n")
+        ser.strln("L3GD20H driver started (I2C)")
     else
-        ser.printf("L3GD20H driver failed to start - halting\n")
+        ser.strln("L3GD20H driver failed to start - halting")
         imu.stop()
-        waitms (5)
-        flashled(LED, 500)
+        waitms(5)
+        repeat
 #elseifdef L3GD20H_SPI
-    if imu.start (CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN)
+    if imu.start(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN)
         imu.defaults()
         imu.gyroopmode(imu.MEASURE)
-        ser.printf("L3GD20H driver started (SPI)\n")
+        ser.strln("L3GD20H driver started (SPI)")
     else
-        ser.printf("L3GD20H driver failed to start - halting\n")
+        ser.strln("L3GD20H driver failed to start - halting")
         imu.stop()
         waitms (5)
-        flashled(LED, 500)
+        repeat
 #elseifdef LIS3DH_I2C
     if imu.start(SCL_PIN, SDA_PIN, SCL_HZ, SLAVE_OPT)
         imu.defaults()
-        ser.printf("LIS3DH driver started (I2C)\n")
+        ser.strln("LIS3DH driver started (I2C)")
     else
-        ser.printf("LIS3DH driver failed to start - halting\n")
+        ser.strln("LIS3DH driver failed to start - halting")
         imu.stop()
         waitms(5)
-        flashled(LED, 500)
+        repeat
 #elseifdef LIS3DH_SPI
     if imu.start(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_HZ)
         imu.defaults()
-        ser.printf("LIS3DH driver started (SPI)\n")
+        ser.strln("LIS3DH driver started (SPI)")
     else
-        ser.printf("LIS3DH driver failed to start - halting\n")
+        ser.strln("LIS3DH driver failed to start - halting")
         imu.stop()
         waitms(5)
-        flashled(LED, 500)
+        repeat
 #elseifdef LSM303DLHC_I2C
     if imu.start(SCL_PIN, SDA_PIN, SCL_HZ)
         imu.defaults()
-        ser.printf("LSM303DLHC driver started (I2C)\n")
+        ser.strln("LSM303DLHC driver started (I2C)")
     else
-        ser.printf("LSM303DLHC driver failed to start - halting\n")
+        ser.strln("LSM303DLHC driver failed to start - halting")
         imu.stop()
         waitms(5)
-        flashled(LED, 500)
+        repeat
 #elseifdef LSM9DS1_SPI
     if imu.start(SCL_PIN, SDIO_PIN, CS_AG_PIN, CS_M_PIN, SCL_HZ)
-        ser.printf("LSM9DS1 driver started\n")
+        ser.strln("LSM9DS1 driver started (SPI)")
     else
-        ser.printf("LSM9DS1 driver failed to start- halting\n")
+        ser.strln("LSM9DS1 driver failed to start- halting")
         imu.stop()
         waitms(5)
-        flashled(LED, 500)
+        repeat
 #elseifdef MPU9250_I2C
     if imu.startx(SCL_PIN, SDA_PIN, SCL_HZ)
         imu.preset_xl_g_m()
-        ser.printf("MPU9250 driver started (I2C)\n")
+        ser.strln("MPU9250 driver started (I2C)")
     else
-        ser.printf("MPU9250 driver failed to start - halting\n")
+        ser.strln("MPU9250 driver failed to start - halting")
         imu.stop()
         waitms(5)
-        flashled(LED, 500)
+        repeat
 #endif
-
-#include "lib.utility.spin2"
 
 DAT
 {
