@@ -4,7 +4,7 @@
     Description: Bitbanged I2C driver for the P2X8C4M64P
     Author: Jesse Burt
     Created: Jun 15, 2019
-    Updated: Jan 19, 2021
+    Updated: Jan 25, 2021
     See end of file for terms of use.
 
     NOTE: This is based on jm_i2c.spin, by
@@ -29,7 +29,7 @@ VAR
 
 PUB Init(SCL, SDA, HZ=DEF_HZ): status
 ' Initialize I2C engine using custom I2C pins
-'   SCL, SDA: 0..31 (each unique)
+'   SCL, SDA: 0..63 (each unique)
 '   HZ: 1..1_000_000
     longmove(@_SCL, @SCL, 2)                    ' Copy pins
 
@@ -69,14 +69,6 @@ PUB Rd_Byte(ackbit): i2cbyte
 ' Read byte from I2C bus
     rdblock_lsbf(@i2cbyte, 1, ackbit)
 
-PUB Rd_Long(ackbit): i2clong
-' Read long from I2C bus
-    rdblock_lsbf(@i2clong, 4, ackbit)
-
-PUB Rd_Word(ackbit): i2cword
-' Read word from I2C bus
-    rdblock_lsbf(@i2cword, 2, ackbit)
-
 PUB RdBlock_LSBF(ptr_buff, nr_bytes, ack_last) | bytenum, i2cbyte
 ' Read nr_bytes from I2C bus into ptr_buff, LSByte-first
     repeat bytenum from 0 to nr_bytes-1
@@ -86,6 +78,22 @@ PUB RdBlock_MSBF(ptr_buff, nr_bytes, ack_last) | bytenum, i2cbyte
 ' Read nr_bytes from I2C bus into ptr_buff, MSByte-first
     repeat bytenum from nr_bytes-1 to 0
         byte[ptr_buff][bytenum] := read(((bytenum == 0) & ack_last))
+
+PUB RdLong_LSBF(ackbit): i2c2long
+' Read long from I2C bus, least-significant byte first
+    rdblock_lsbf(@i2c2long, 4, ackbit)
+
+PUB RdLong_MSBF(ackbit): i2c2long
+' Read long from I2C bus, least-significant byte first
+    rdblock_msbf(@i2c2long, 4, ackbit)
+
+PUB RdWord_LSBF(ackbit): i2c2word
+' Read word from I2C bus, least-significant byte first
+    rdblock_lsbf(@i2c2word, 2, ackbit)
+
+PUB RdWord_MSBF(ackbit): i2c2word
+' Read word from I2C bus, least-significant byte first
+    rdblock_msbf(@i2c2word, 2, ackbit)
 
 PUB Read(ackbit): i2cbyte | SCL, SDA
 ' Read byte from I2C bus
@@ -178,16 +186,6 @@ PUB Wr_Byte(b): ackbit
 ' Write byte to I2C bus
     return wrblock_lsbf(@b, 1)
 
-PUB Wr_Long(l): ackbit
-' Write long to I2C bus
-'   least-significant byte first
-    return wrblock_lsbf(@l, 4)
-
-PUB Wr_Word(w): ackbit
-' Write word to I2C bus
-'   least-significant byte first
-    return wrblock_lsbf(@w, 2)
-
 PUB WrBlock_LSBF(ptr_buff, nr_bytes): ackbit | bytenum, i2cbyte
 ' Write nr_bytes to I2C bus from ptr_buff, LSByte-first
     repeat bytenum from 0 to nr_bytes-1
@@ -197,6 +195,22 @@ PUB WrBlock_MSBF(ptr_buff, nr_bytes): ackbit | bytenum, i2cbyte
 ' Write nr_bytes to I2C bus from ptr_buff, MSByte-first
     repeat bytenum from nr_bytes-1 to 0
         ackbit := write(byte[ptr_buff][bytenum])
+
+PUB WrLong_LSBF(long2i2c): ackbit
+' Write long to I2C bus, least-significant byte first
+    return wrblock_lsbf(@long2i2c, 4)
+
+PUB WrLong_MSBF(long2i2c): ackbit
+' Write long to I2C bus, most-significant byte first
+    return wrblock_msbf(@long2i2c, 4)
+
+PUB WrWord_LSBF(word2i2c): ackbit
+' Write word to I2C bus, least-significant byte first
+    return wrblock_lsbf(@word2i2c, 2)
+
+PUB WrWord_MSBF(word2i2c): ackbit
+' Write word to I2C bus, most-significant byte first
+    return wrblock_msbf(@word2i2c, 2)
 
 PUB Write(i2cbyte): ackbit | SCL, SDA
 ' Write byte to I2C bus
