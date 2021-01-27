@@ -3,9 +3,9 @@
     Filename: core.con.lis3dh.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Mar 15, 2020
-    Updated Jul 22, 2020
+    Updated Jan 27, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,186 +13,182 @@
 CON
 
 ' I2C Configuration
-    SLAVE_ADDR                  = $18 << 1
-    I2C_MAX_FREQ                = 400_000
+    SLAVE_ADDR          = $18 << 1
+    I2C_MAX_FREQ        = 400_000
 
 ' SPI Configuration
-    CPOL                        = 0             ' Datasheet diagrams imply it's 1, but it doesn't work
-    MOSI_BITORDER               = 5             ' MSBFIRST
-    MISO_BITORDER               = 0             ' MSBPRE
-    SCK_DELAY                   = 1             ' P1/SPIN1
-    SCK_MAX_FREQ                = 10_000_000    ' P2/SPIN2
+    SPI_MODE            = 0
+    SCK_DELAY           = 1             ' P1/SPIN1
+    SCK_MAX_FREQ        = 10_000_000    ' P2/SPIN2
 
-    W                           = 0
-    R                           = 1 << 7
-    MS_SPI                      = 1 << 6
-    MS_I2C                      = 1 << 7
+    W                   = 0
+    R                   = 1 << 7
+    MS_SPI              = 1 << 6
+    MS_I2C              = 1 << 7
 
-    TPOR                        = 5             ' ms
+    TPOR                = 5             ' ms
 
 ' Register definitions
-    STATUS_REG_AUX              = $07
-    OUT_ADC1_L                  = $08
-    OUT_ADC1_H                  = $09
-    OUT_ADC2_L                  = $0A
-    OUT_ADC2_H                  = $0B
-    OUT_ADC3_L                  = $0C
-    OUT_ADC3_H                  = $0D
+    STATUS_REG_AUX      = $07
+    OUT_ADC1_L          = $08
+    OUT_ADC1_H          = $09
+    OUT_ADC2_L          = $0A
+    OUT_ADC2_H          = $0B
+    OUT_ADC3_L          = $0C
+    OUT_ADC3_H          = $0D
 
-    WHO_AM_I                    = $0F
-    WHO_AM_I_RESP               = $33
+    WHO_AM_I            = $0F
+    WHO_AM_I_RESP       = $33
 
-    CTRL_REG0                   = $1E
-    TEMP_CFG_REG                = $1F
+    CTRL_REG0           = $1E
+    TEMP_CFG_REG        = $1F
 
-    CTRL_REG1                   = $20
-    CTRL_REG1_MASK              = $FF
-        FLD_ODR                 = 4
-        FLD_LPEN                = 3
-        FLD_XYZEN               = 0
-        BITS_ODR                = %1111
-        BITS_XYZEN              = %111
-        MASK_ODR                = CTRL_REG1_MASK ^ (BITS_ODR << FLD_ODR)
-        MASK_LPEN               = CTRL_REG1_MASK ^ (1 << FLD_LPEN)
-        MASK_XYZEN              = CTRL_REG1_MASK ^ (BITS_XYZEN << FLD_XYZEN)
+    CTRL_REG1           = $20
+    CTRL_REG1_MASK      = $FF
+        ODR             = 4
+        LPEN            = 3
+        XYZEN           = 0
+        ODR_BITS        = %1111
+        XYZEN_BITS      = %111
+        ODR_MASK        = (ODR_BITS << ODR) ^ CTRL_REG1_MASK
+        LPEN_MASK       = (1 << LPEN) ^ CTRL_REG1_MASK
+        XYZEN_MASK      = (XYZEN_BITS << XYZEN) ^ CTRL_REG1_MASK
 
-    CTRL_REG2                   = $21
+    CTRL_REG2           = $21
 
-    CTRL_REG3                   = $22
-    CTRL_REG3_MASK              = $FE
-        FLD_I1_CLICK            = 7
-        FLD_I1_IA1              = 6
-        FLD_I1_IA2              = 5
-        FLD_I1_ZYXDA            = 4
-        FLD_I1_321DA            = 3
-        FLD_I1_WTM              = 2
-        FLD_I1_OVERRUN          = 1
-        MASK_I1_CLICK           = CTRL_REG3_MASK ^ (1 << FLD_I1_CLICK)
-        MASK_I1_IA1             = CTRL_REG3_MASK ^ (1 << FLD_I1_IA1)
-        MASK_I1_IA2             = CTRL_REG3_MASK ^ (1 << FLD_I1_IA2)
-        MASK_I1_ZYXDA           = CTRL_REG3_MASK ^ (1 << FLD_I1_ZYXDA)
-        MASK_I1_321DA           = CTRL_REG3_MASK ^ (1 << FLD_I1_321DA)
-        MASK_I1_WTM             = CTRL_REG3_MASK ^ (1 << FLD_I1_WTM)
-        MASK_I1_OVERRUN         = CTRL_REG3_MASK ^ (1 << FLD_I1_OVERRUN)
+    CTRL_REG3           = $22
+    CTRL_REG3_MASK      = $FE
+        I1_CLICK        = 7
+        I1_IA1          = 6
+        I1_IA2          = 5
+        I1_ZYXDA        = 4
+        I1_321DA        = 3
+        I1_WTM          = 2
+        I1_OVERRUN      = 1
+        I1_CLICK_MASK   = (1 << I1_CLICK) ^ CTRL_REG3_MASK
+        I1_IA1_MASK     = (1 << I1_IA1) ^ CTRL_REG3_MASK
+        I1_IA2_MASK     = (1 << I1_IA2) ^ CTRL_REG3_MASK
+        I1_ZYXDA_MASK   = (1 << I1_ZYXDA) ^ CTRL_REG3_MASK
+        I1_321DA_MASK   = (1 << I1_321DA) ^ CTRL_REG3_MASK
+        I1_WTM_MASK     = (1 << I1_WTM) ^ CTRL_REG3_MASK
+        I1_OVERRUN_MASK = (1 << I1_OVERRUN) ^ CTRL_REG3_MASK
 
-    CTRL_REG4                   = $23
-    CTRL_REG4_MASK              = $FF
-        FLD_BDU                 = 7
-        FLD_BLE                 = 6
-        FLD_FS                  = 4
-        FLD_HR                  = 3
-        FLD_ST                  = 1
-        FLD_SIM                 = 0
-        BITS_FS                 = %11
-        BITS_ST                 = %11
-        MASK_BDU                = CTRL_REG4_MASK ^ (1 << FLD_BDU)
-        MASK_BLE                = CTRL_REG4_MASK ^ (1 << FLD_BLE)
-        MASK_FS                 = CTRL_REG4_MASK ^ (BITS_FS << FLD_FS)
-        MASK_HR                 = CTRL_REG4_MASK ^ (1 << FLD_HR)
-        MASK_ST                 = CTRL_REG4_MASK ^ (BITS_ST << FLD_ST)
-        MASK_SIM                = CTRL_REG4_MASK ^ (1 << FLD_SIM)
+    CTRL_REG4           = $23
+    CTRL_REG4_MASK      = $FF
+        BDU             = 7
+        BLE             = 6
+        FS              = 4
+        HR              = 3
+        ST              = 1
+        SIM             = 0
+        FS_BITS         = %11
+        ST_BITS         = %11
+        BDU_MASK        = (1 << BDU) ^ CTRL_REG4_MASK
+        BLE_MASK        = (1 << BLE) ^ CTRL_REG4_MASK
+        FS_MASK         = (FS_BITS << FS) ^ CTRL_REG4_MASK
+        HR_MASK         = (1 << HR) ^ CTRL_REG4_MASK
+        ST_MASK         = (ST_BITS << ST) ^ CTRL_REG4_MASK
+        SIM_MASK        = (1 << SIM) ^ CTRL_REG4_MASK
 
-    CTRL_REG5                   = $24
-    CTRL_REG5_MASK              = $CF
-        FLD_BOOT                = 7
-        FLD_FIFO_EN             = 6
-        FLD_LIR_INT1            = 3
-        FLD_D4D_INT1            = 2
-        FLD_LIR_INT2            = 1
-        FLD_D4D_INT2            = 0
-        MASK_BOOT               = CTRL_REG5_MASK ^ (1 << FLD_BOOT)
-        MASK_FIFO_EN            = CTRL_REG5_MASK ^ (1 << FLD_FIFO_EN)
-        MASK_LIR_INT1           = CTRL_REG5_MASK ^ (1 << FLD_LIR_INT1)
-        MASK_D4D_INT1           = CTRL_REG5_MASK ^ (1 << FLD_D4D_INT1)
-        MASK_LIR_INT2           = CTRL_REG5_MASK ^ (1 << FLD_LIR_INT2)
-        MASK_D4D_INT2           = CTRL_REG5_MASK ^ (1 << FLD_D4D_INT2)
+    CTRL_REG5           = $24
+    CTRL_REG5_MASK      = $CF
+        BOOT            = 7
+        FIFO_EN         = 6
+        LIR_INT1        = 3
+        D4D_INT1        = 2
+        LIR_INT2        = 1
+        D4D_INT2        = 0
+        BOOT_MASK       = (1 << BOOT) ^ CTRL_REG5_MASK
+        FIFO_EN_MASK    = (1 << FIFO_EN) ^ CTRL_REG5_MASK
+        LIR_INT1_MASK   = (1 << LIR_INT1) ^ CTRL_REG5_MASK
+        D4D_INT1_MASK   = (1 << D4D_INT1) ^ CTRL_REG5_MASK
+        LIR_INT2_MASK   = (1 << LIR_INT2) ^ CTRL_REG5_MASK
+        D4D_INT2_MASK   = (1 << D4D_INT2) ^ CTRL_REG5_MASK
 
-    CTRL_REG6                   = $25
-    REFERENCE                   = $26
+    CTRL_REG6           = $25
+    REFERENCE           = $26
 
-    STATUS_REG                  = $27
-        FLD_ZYXOR               = 7
-        FLD_ZOR                 = 6
-        FLD_YOR                 = 5
-        FLD_XOR                 = 4
-        FLD_ZYXDA               = 3
-        FLD_ZDA                 = 2
-        FLD_YDA                 = 1
-        FLD_XDA                 = 0
+    STATUS_REG          = $27
+        ZYXOR           = 7
+        Z_OR            = 6
+        Y_OR            = 5
+        X_OR            = 4
+        ZYXDA           = 3
+        ZDA             = 2
+        YDA             = 1
+        XDA             = 0
 
-    OUT_X_L                     = $28
-    OUT_X_H                     = $29
-    OUT_Y_L                     = $2A
-    OUT_Y_H                     = $2B
-    OUT_Z_L                     = $2C
-    OUT_Z_H                     = $2D
+    OUT_X_L             = $28
+    OUT_X_H             = $29
+    OUT_Y_L             = $2A
+    OUT_Y_H             = $2B
+    OUT_Z_L             = $2C
+    OUT_Z_H             = $2D
 
-    FIFO_CTRL_REG               = $2E
-    FIFO_CTRL_REG_MASK          = $FF
-        FLD_FM                  = 6
-        FLD_TR                  = 5
-        FLD_FTH                 = 0
-        BITS_FM                 = %11
-        BITS_FTH                = %11111
-        MASK_FM                 = FIFO_CTRL_REG_MASK ^ (BITS_FM << FLD_FM)
-        MASK_TR                 = FIFO_CTRL_REG_MASK ^ (1 << FLD_TR)
-        MASK_FTH                = FIFO_CTRL_REG_MASK ^ (BITS_FTH << FLD_FTH)
+    FIFO_CTRL_REG       = $2E
+    FIFO_CTRL_REG_MASK  = $FF
+        FM              = 6
+        TR              = 5
+        FTH             = 0
+        FM_BITS         = %11
+        FTH_BITS        = %11111
+        FM_MASK         = (FM_BITS << FM) ^ FIFO_CTRL_REG_MASK
+        TR_MASK         = (1 << TR) ^ FIFO_CTRL_REG_MASK
+        FTH_MASK        = (FTH_BITS << FTH) ^ FIFO_CTRL_REG_MASK
 
-    FIFO_SRC_REG                = $2F
-    FIFO_SRC_REG_MASK           = $FF
-        FLD_WTM                 = 7
-        FLD_OVRN_FIFO           = 6
-        FLD_EMPTY               = 5
-        FLD_FSS                 = 0
-        BITS_FSS                = %11111
-        MASK_WTM                = FIFO_SRC_REG_MASK ^ (1 << FLD_WTM)
-        MASK_OVRN_FIFO          = FIFO_SRC_REG_MASK ^ (1 << FLD_OVRN_FIFO)
-        MASK_EMPTY              = FIFO_SRC_REG_MASK ^ (1 << FLD_EMPTY)
-        MASK_FSS                = FIFO_SRC_REG_MASK ^ (BITS_FSS << FLD_FSS)
+    FIFO_SRC_REG        = $2F
+    FIFO_SRC_REG_MASK   = $FF
+        WTM             = 7
+        OVRN_FIFO       = 6
+        EMPTY           = 5
+        FSS             = 0
+        FSS_BITS        = %11111
+        WTM_MASK        = (1 << WTM) ^ FIFO_SRC_REG_MASK
+        OVRN_FIFO_MASK  = (1 << OVRN_FIFO) ^ FIFO_SRC_REG_MASK
+        EMPTY_MASK      = (1 << EMPTY) ^ FIFO_SRC_REG_MASK
+        FSS_MASK        = (FSS_BITS << FSS) ^ FIFO_SRC_REG_MASK
 
-    INT1_CFG                    = $30
+    INT1_CFG            = $30
 
-    INT1_SRC                    = $31
-    INT1_SRC_MASK               = $7F
-        FLD_IA                  = 6
-        FLD_ZH                  = 5
-        FLD_ZL                  = 4
-        FLD_YH                  = 3
-        FLD_YL                  = 2
-        FLD_XH                  = 1
-        FLD_XL                  = 0
-        BITS_XYZ                = %111111
+    INT1_SRC            = $31
+    INT1_SRC_MASK       = $7F
+        IA              = 6
+        ZH              = 5
+        ZL              = 4
+        YH              = 3
+        YL              = 2
+        XH              = 1
+        XL              = 0
+        XYZ_BITS        = %111111
 
-    INT1_THS                    = $32
-    INT1_DURATION               = $33
-    INT2_CFG                    = $34
-    INT2_SRC                    = $35
-    INT2_THS                    = $36
-    INT2_DURATION               = $37
+    INT1_THS            = $32
+    INT1_DURATION       = $33
+    INT2_CFG            = $34
+    INT2_SRC            = $35
+    INT2_THS            = $36
+    INT2_DURATION       = $37
 
-    CLICK_CFG                   = $38
+    CLICK_CFG           = $38
 
-    CLICK_SRC                   = $39
-    CLICK_SRC_MASK              = $7F
-        FLD_CLICK_IA            = 6
-        FLD_DCLICK              = 5
-        FLD_SCLICK              = 4
-        FLD_SIGN                = 3
-        FLD_Z                   = 2
-        FLD_Y                   = 1
-        FLD_X                   = 0
+    CLICK_SRC           = $39
+    CLICK_SRC_MASK      = $7F
+        CLICK_IA        = 6
+        DCLICK          = 5
+        SCLICK          = 4
+        SIGN            = 3
+        Z               = 2
+        Y               = 1
+        X               = 0
 
-    CLICK_THS                   = $3A
-    TIME_LIMIT                  = $3B
-    TIME_LATENCY                = $3C
-    TIME_WINDOW                 = $3D
-    ACT_THS                     = $3E
-    ACT_DUR                     = $3F
+    CLICK_THS           = $3A
+    TIME_LIMIT          = $3B
+    TIME_LATENCY        = $3C
+    TIME_WINDOW         = $3D
+    ACT_THS             = $3E
+    ACT_DUR             = $3F
 
-#ifndef __propeller2__
-PUB Null
-'' This is not a top-level object
-#endif
+PUB Null{}
+' This is not a top-level object
 
 {
     --------------------------------------------------------------------------------------------------------

@@ -2,41 +2,45 @@
     --------------------------------------------
     Filename: LIS3DH-Demo.spin2
     Author: Jesse Burt
-    Description: Demo of the LIS3DH driver (P2 version)
-    Copyright (c) 2020
-    Started Mar 15, 2020
-    Updated Jun 24, 2020
+    Description: Demo of the LIS3DH driver
+        (P2 version)
+    Copyright (c) 2021
+    Started Aug 12, 2017
+    Updated Jan 27, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 ' Uncomment one of the following to choose which interface the LIS3DH is connected to
-'#define LIS3DH_I2C
-#define LIS3DH_SPI
+#define LIS3DH_I2C
+'#define LIS3DH_SPI
 
 CON
 
-    _xtlfreq        = cfg._xtlfreq
-    _clkfreq        = cfg._clkfreq_def
+    _clkfreq    = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    LED             = cfg.LED1
-    SER_RX          = cfg.SER_RX
-    SER_TX          = cfg.SER_TX
-    SER_BAUD        = 2_000_000
+    LED         = cfg.LED1
+    SER_BAUD    = 2_000_000
 
-    CS_PIN          = 24                                        ' SPI
-    SCL_PIN         = 25                                        ' SPI, I2C
-    SDA_PIN         = 26                                        ' SPI, I2C
-    SDO_PIN         = 27                                        ' SPI
-    SCL_HZ          = 10_000_000                                 ' SPI
-    I2C_HZ          = 400_000                                   ' I2C
-    SLAVE_OPT       = 0                                         ' I2C
+    CS_PIN      = 0                             ' SPI
+    SCL_PIN     = 1                             ' SPI, I2C
+    SDA_PIN     = 2                             ' SPI, I2C
+    SDO_PIN     = 3                             ' SPI
+    I2C_HZ      = 400_000                       ' I2C
+    SPI_HZ      = 10_000_000                    ' SPI
+    SLAVE_OPT   = 0                             ' I2C
 ' --
+
+    DAT_X_COL   = 20
+    DAT_Y_COL   = DAT_X_COL + 15
+    DAT_Z_COL   = DAT_Y_COL + 15
 
 OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
+    time    : "time"
     int     : "string.integer"
 #ifdef LIS3DH_I2C
     accel   : "sensor.accel.3dof.lis3dh.i2c"
@@ -44,121 +48,84 @@ OBJ
     accel   : "sensor.accel.3dof.lis3dh.spi"
 #endif
 
-VAR
+PUB Main()
 
-    long _overruns
-
-PUB Main() | dispmode
-
-    Setup()
-
-    accel.AccelADCRes(10)                                   ' 8, 10, 12 (low-power, normal, high-res, resp.)
-    accel.AccelScale(2)                                     ' 2, 4, 8, 16 (g's)
-    accel.AccelDataRate(100)                                ' 0, 1, 10, 25, 50, 100, 200, 400, 1344, 1600
-    accel.AccelAxisEnabled(%111)                            ' 0 or 1 for each bit (%xyz)
-    accel.FIFOMode(accel.BYPASS)                            ' accel.BYPASS, accel.FIFO, accel.STREAM, accel.TRIGGER
-    accel.IntThresh(1_000000)                               ' 0..16_000000 (ug's, i.e., 0..16g)
-    accel.IntMask(%100000)                                  ' Bits 5..0: Zhigh event | Zlow event | Yh|Yl|Xh|Xl
-
-    ser.HideCursor()
-    dispmode := 0
-
-    ser.position(0, 3)
-    ser.printf("AccelScale: %d\n", accel.AccelScale())      ' Read back the settings from above
-    ser.printf("AccelADCRes: %d\n", accel.AccelADCRes())    '
-    ser.printf("AccelDataRate: %d\n", accel.AccelDataRate())'
-    ser.printf("FIFOMode: %d\n", accel.FIFOMode())          '
-    ser.printf("Int thresh: %d\n", accel.IntThresh())       '
-    ser.printf("IntMask: ")                                 '
-    ser.bin(accel.IntMask(), 6)                             '
+    setup()
+    accel.preset_active()
 
     repeat
-        case ser.RxCheck()
-            "q", "Q":                                       ' Quit the demo
-                ser.Position(0, 15)
-                ser.printf("Halting")
-                accel.Stop()
-                waitms(5)
-                quit
-            "c", "C":                                       ' Perform calibration
-                Calibrate()
-            "r", "R":                                       ' Change display mode: raw/calculated
-                ser.Position(0, 10)
-                repeat 2
-                    ser.ClearLine(ser.CLR_CUR_TO_END)
-                    ser.Newline()
-                dispmode ^= 1
+        ser.position(0, 3)
+        accelcalc()
 
-        ser.Position (0, 10)
-        case dispmode
-            0: AccelRaw()
-            1: AccelCalc()
-
-        ser.position (0, 12)
-        ser.printf("Interrupt: %s", lookupz(accel.Interrupt() >> 6: string("No "), string("Yes")))
-
-    ser.ShowCursor()
-    FlashLED(LED, 100)
+        if ser.rxcheck() == "c"                 ' press the 'c' key in the demo
+            calibrate()                         ' to calibrate sensor offsets
 
 PUB AccelCalc() | ax, ay, az
 
-    repeat until accel.AccelDataReady()
-    accel.AccelG (@ax, @ay, @az)
-    if accel.AccelDataOverrun()
-        _overruns++
-    ser.printf("Accel micro-g: ")
-    ser.Str (int.DecPadded (ax, 10))
-    ser.Str (int.DecPadded (ay, 10))
-    ser.Str (int.DecPadded (az, 10))
-    ser.Newline()
-    ser.printf("Overruns: ")
-    ser.Dec (_overruns)
-
-PUB AccelRaw() | ax, ay, az
-
-    repeat until accel.AccelDataReady()
-    accel.AccelData (@ax, @ay, @az)
-    if accel.AccelDataOverrun()
-        _overruns++
-    ser.printf("Raw Accel: ")
-    ser.Str (int.DecPadded (ax, 7))
-    ser.Str (int.DecPadded (ay, 7))
-    ser.Str (int.DecPadded (az, 7))
-
-    ser.Newline()
-    ser.printf("Overruns: ")
-    ser.Dec (_overruns)
+    repeat until accel.acceldataready()         ' wait for new sensor data set
+    accel.accelg(@ax, @ay, @az)                 ' read calculated sensor data
+    ser.str(string("Accel (g):"))
+    ser.positionx(DAT_X_COL)
+    decimal(ax, 1000000)                        ' data is in micro-g's; display
+    ser.positionx(DAT_Y_COL)                    ' it as if it were a float
+    decimal(ay, 1000000)
+    ser.positionx(DAT_Z_COL)
+    decimal(az, 1000000)
+    ser.clearline()
+    ser.newline()
 
 PUB Calibrate()
 
-    ser.Position (0, 12)
-    ser.printf("Calibrating...")
-    accel.Calibrate()
-    ser.Position (0, 12)
-    ser.printf("              ")
+    ser.position(0, 7)
+    ser.str(string("Calibrating..."))
+    accel.calibrateaccel()
+    ser.positionx(0)
+    ser.clearline()
+
+PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp, sign
+' Display a scaled up number as a decimal
+'   Scale it back down by divisor (e.g., 10, 100, 1000, etc)
+    whole := scaled / divisor
+    tmp := divisor
+    places := 0
+    part := 0
+    sign := 0
+    if scaled < 0
+        sign := "-"
+    else
+        sign := " "
+
+    repeat
+        tmp /= 10
+        places++
+    until tmp == 1
+    scaled //= divisor
+    part := int.deczeroed(abs(scaled), places)
+
+    ser.char(sign)
+    ser.dec(abs(whole))
+    ser.char(".")
+    ser.str(part)
+    ser.chars(" ", 5)
 
 PUB Setup()
 
-    repeat until ser.StartRXTX(SER_RX, SER_TX, 0, SER_BAUD)
+    ser.start(SER_BAUD)
     waitms(30)
-    ser.Clear()
-    ser.printf("Serial terminal started\n")
+    ser.clear()
+    ser.strln(string("Serial terminal started"))
 #ifdef LIS3DH_SPI
-    if accel.Start(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_HZ)
-        accel.Defaults()
-        ser.printf("LIS3DH driver started (SPI)\n")
+    if accel.startx(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SPI_HZ)
+        ser.strln(string("LIS3DH driver started (SPI)"))
 #elseifdef LIS3DH_I2C
-    if accel.Start(SCL_PIN, SDA_PIN, I2C_HZ, SLAVE_OPT)
-        accel.Defaults()
-        ser.printf("LIS3DH driver started (I2C)\n")
+    if accel.startx(SCL_PIN, SDA_PIN, I2C_HZ, SLAVE_OPT)
+        ser.strln(string("LIS3DH driver started (I2C)"))
 #endif
     else
-        ser.printf("LIS3DH driver failed to start - halting\n")
-        accel.Stop()
+        ser.strln(string("LIS3DH driver failed to start - halting"))
+        accel.stop()
         waitms(5)
-        FlashLED(LED, 500)
-
-#include "lib.utility.spin2"
+        repeat
 
 DAT
 {
