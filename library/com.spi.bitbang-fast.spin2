@@ -218,7 +218,7 @@ PUB Start(MOSI, MISO, SCK, SCK_HZ, CPOL=0): okay
         _dirw(MISO, 0)
     pinw(SCK, _CPOL)
     _dirw(SCK, 1)
-    _clock_delay := ((clkfreq / SCK_HZ) / 2) #> 2
+    _clk_delay := ((clkfreq / SCK_HZ) / 2) #> 2
     okay := cogid() + 1
 
 {{
@@ -249,7 +249,7 @@ CON
 
 PUB Read(MISO, SCK, mode, nr_bits): result | clk_delay, tmp
 
-    clk_delay := _clock_delay
+    clk_delay := _clk_delay
     pinw(SCK, _CPOL)                                         ' Set initial clock state/clock polarity
     tmp := 32 - nr_bits
 
@@ -294,7 +294,7 @@ PUB Read(MISO, SCK, mode, nr_bits): result | clk_delay, tmp
 
 PUB Write(MOSI, SCK, mode, nr_bits, val) | clk_delay, tmp
 
-    clk_delay := _clock_delay
+    clk_delay := _clk_delay
     tmp := 32-(nr_bits-1)
     case_fast mode
         LSBFIRST:
