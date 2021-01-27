@@ -1,4 +1,4 @@
-o{
+{
     --------------------------------------------
     Filename: core.con.lsm9ds1.spin
     Author: Jesse Burt

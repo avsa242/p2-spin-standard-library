@@ -257,6 +257,12 @@ PUB AccelScale(scale=-2): curr_scl
     scale := ((curr_scl & core.FS_XL_MASK) | scale)
     writereg(XLG, core.CTRL_REG6_XL, 1, @scale)
 
+PUB CalibrateAccel()
+' dummy method (to be implemented)
+
+PUB CalibrateGyro()
+' dummy method (to be implemented)
+
 PUB CalibrateMag() | magmin[3], magmax[3], magtmp[3], axis, samples, orig_opmode, orig_odr
 ' Calibrate the magnetometer
     longfill(@magmin, 0, 11)                    ' Initialize variables to 0
@@ -449,6 +455,9 @@ PUB GyroData(ptr_x, ptr_y, ptr_z) | tmp[2]
     long[ptr_x] := ~~tmp.word[X_AXIS] - _gbiasraw[X_AXIS]
     long[ptr_y] := ~~tmp.word[Y_AXIS] - _gbiasraw[Y_AXIS]
     long[ptr_z] := ~~tmp.word[Z_AXIS] - _gbiasraw[Z_AXIS]
+
+PUB GyroDataOverrun()
+' dummy method
 
 PUB GyroDataRate(rate=-2): curr_rate
 ' Set Gyroscope Output Data Rate, in Hz

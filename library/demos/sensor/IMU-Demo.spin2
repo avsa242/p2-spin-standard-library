@@ -122,7 +122,7 @@ OBJ
 #elseifdef LSM303DLHC_I2C
    imu     : "sensor.imu.6dof.lsm303dlhc.i2c"
 #elseifdef LSM9DS1_SPI
-    imu     : "sensor.imu.9dof.lsm9ds1.3wspi"
+    imu     : "sensor.imu.9dof.lsm9ds1.spi"
 #elseifdef MPU9250_I2C
     imu     : "sensor.imu.9dof.mpu9250.i2c"
 #else
@@ -531,7 +531,8 @@ PUB Setup()
         waitms(5)
         repeat
 #elseifdef LSM9DS1_SPI
-    if imu.start(SCL_PIN, SDIO_PIN, CS_AG_PIN, CS_M_PIN, SCL_HZ)
+    if imu.start(CS_AG_PIN, CS_M_PIN, SCL_PIN, SDIO_PIN, SCL_HZ)
+        imu.preset_xl_g_m_3wspi()
         ser.strln("LSM9DS1 driver started (SPI)")
     else
         ser.strln("LSM9DS1 driver failed to start- halting")
