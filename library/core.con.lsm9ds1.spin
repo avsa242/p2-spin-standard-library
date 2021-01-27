@@ -1,23 +1,21 @@
-{
+o{
     --------------------------------------------
     Filename: core.con.lsm9ds1.spin
     Author: Jesse Burt
     Description: LSM9DS1 low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Feb 9, 2019
-    Updated Jul 22, 2020
+    Updated Jan 26, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 ' SPI Configuration
-    CPOL                    = 1
-    CLK_DELAY               = 1
+    SPI_MODE                = 3
     SCK_MAX_FREQ            = 10_000_000
-    MOSI_BITORDER           = 5             'MSBFIRST
-    MISO_BITORDER           = 2             'MSBPOST
 
+    TPOR                    = 110_000           ' usec
     WHOAMI_AG_RESP          = $68
     WHOAMI_M_RESP           = $3D
     WHOAMI_BOTH_RESP        = (WHOAMI_AG_RESP << 8) | WHOAMI_M_RESP
@@ -25,11 +23,11 @@ CON
 ' LSM9DS1 Register map
     ACT_THS                 = $04
     ACT_THS_MASK            = $FF
-        FLD_SLEEP_ON_INACT  = 7
-        FLD_ACT_THS         = 0
-        BITS_ACT_THS        = %1111111
-        MASK_SLEEP_ON_INACT = ACT_THS_MASK ^ (1 << FLD_SLEEP_ON_INACT)
-        MASK_ACT_THS        = ACT_THS_MASK ^ (BITS_ACT_THS << FLD_ACT_THS)
+        SLP_ON_INACT        = 7
+        ACT_THR             = 0
+        ACT_THR_BITS        = %1111111
+        SLP_ON_INACT_MASK   = (1 << SLP_ON_INACT) ^ ACT_THS_MASK
+        ACT_THR_MASK        = (ACT_THR_BITS << ACT_THR) ^ ACT_THS_MASK
 
     ACT_DUR                 = $05
     INT_GEN_CFG_XL          = $06
@@ -41,57 +39,57 @@ CON
 
     INT1_CTRL               = $0C
     INT1_CTRL_MASK          = $FF
-        FLD_INT1_IG_G       = 7
-        FLD_INT1_IG_XL      = 6
-        FLD_INT1_FSS5       = 5
-        FLD_INT1_OVR        = 4
-        FLD_INT1_FTH        = 3
-        FLD_INT1_BOOT       = 2
-        FLD_INT1_DRDY_G     = 1
-        FLD_INT1_DRDY_XL    = 0
-        MASK_INT1_IG_G      = INT1_CTRL_MASK ^ (1 << FLD_INT1_IG_G)
-        MASK_INT1_IG_XL     = INT1_CTRL_MASK ^ (1 << FLD_INT1_IG_XL)
-        MASK_INT1_FSS5      = INT1_CTRL_MASK ^ (1 << FLD_INT1_FSS5)
-        MASK_INT1_OVR       = INT1_CTRL_MASK ^ (1 << FLD_INT1_OVR)
-        MASK_INT1_FTH       = INT1_CTRL_MASK ^ (1 << FLD_INT1_FTH)
-        MASK_INT1_BOOT      = INT1_CTRL_MASK ^ (1 << FLD_INT1_BOOT)
-        MASK_INT1_DRDY_G    = INT1_CTRL_MASK ^ (1 << FLD_INT1_DRDY_G)
-        MASK_INT1_DRDY_XL   = INT1_CTRL_MASK ^ (1 << FLD_INT1_DRDY_XL)
+        INT1_IG_G           = 7
+        INT1_IG_XL          = 6
+        INT1_FSS5           = 5
+        INT1_OVR            = 4
+        INT1_FTH            = 3
+        INT1_BOOT           = 2
+        INT1_DRDY_G         = 1
+        INT1_DRDY_XL        = 0
+        INT1_IG_G_MASK      = (1 << INT1_IG_G) ^ INT1_CTRL_MASK
+        INT1_IG_XL_MASK     = (1 << INT1_IG_XL) ^ INT1_CTRL_MASK
+        INT1_FSS5_MASK      = (1 << INT1_FSS5) ^ INT1_CTRL_MASK
+        INT1_OVR_MASK       = (1 << INT1_OVR) ^ INT1_CTRL_MASK
+        INT1_FTH_MASK       = (1 << INT1_FTH) ^ INT1_CTRL_MASK
+        INT1_BOOT_MASK      = (1 << INT1_BOOT) ^ INT1_CTRL_MASK
+        INT1_DRDY_G_MASK    = (1 << INT1_DRDY_G) ^ INT1_CTRL_MASK
+        INT1_DRDY_XL_MASK   = (1 << INT1_DRDY_XL) ^ INT1_CTRL_MASK
 
     INT2_CTRL               = $0D
     WHO_AM_I_XG             = $0F
 
     CTRL_REG1_G             = $10
     CTRL_REG1_G_MASK        = $FB
-        FLD_ODR             = 5
-        FLD_FS              = 3
-        FLD_BW              = 0
-        BITS_ODR            = %111
-        BITS_FS             = %11
-        BITS_BW             = %11
-        MASK_ODR            = CTRL_REG1_G_MASK ^ (BITS_ODR << FLD_ODR)
-        MASK_FS             = CTRL_REG1_G_MASK ^ (BITS_FS << FLD_FS)
-        MASK_BW             = CTRL_REG1_G_MASK ^ (BITS_BW << FLD_BW)
+        ODR                 = 5
+        FS                  = 3
+        BW                  = 0
+        ODR_BITS            = %111
+        FS_BITS             = %11
+        BW_BITS             = %11
+        ODR_MASK            = (ODR_BITS << ODR) ^ CTRL_REG1_G_MASK
+        FS_MASK             = (FS_BITS << FS) ^ CTRL_REG1_G_MASK
+        BW_MASK             = (BW_BITS << BW) ^ CTRL_REG1_G_MASK
 
     CTRL_REG2_G             = $11
     CTRL_REG2_G_MASK        = $0F
-        FLD_INT_SEL         = 2
-        FLD_OUT_SEL         = 0
-        BITS_INT_SEL        = %11
-        BITS_OUT_SEL        = %11
-        MASK_INT_SEL        = CTRL_REG2_G_MASK ^ (BITS_INT_SEL << FLD_INT_SEL)
-        MASK_OUT_SEL        = CTRL_REG2_G_MASK ^ (BITS_OUT_SEL << FLD_OUT_SEL)
+        INT_SEL             = 2
+        OUT_SEL             = 0
+        INT_SEL_BITS        = %11
+        OUT_SEL_BITS        = %11
+        INT_SEL_MASK        = (INT_SEL_BITS << INT_SEL) ^ CTRL_REG2_G_MASK
+        OUT_SEL_MASK        = (OUT_SEL_BITS << OUT_SEL) ^ CTRL_REG2_G_MASK
 
     CTRL_REG3_G             = $12
     CTRL_REG3_G_MASK        = $CF
-        FLD_LP_MODE         = 7
-        FLD_HP_EN           = 6
-        FLD_HPCF_G          = 0
-        BITS_HPCF_G         = %1111
-        BITS_LP_MODE        = %1
-        MASK_LP_MODE        = CTRL_REG3_G_MASK ^ (BITS_LP_MODE << FLD_LP_MODE)
-        MASK_HP_EN          = CTRL_REG3_G_MASK ^ (1 << FLD_HP_EN)
-        MASK_HPCF_G         = CTRL_REG3_G_MASK ^ (BITS_HPCF_G << FLD_HPCF_G)
+        LP_MODE             = 7
+        HP_EN               = 6
+        HPCF_G              = 0
+        HPCF_G_BITS         = %1111
+        LP_MODE_BITS        = %1
+        LP_MODE_MASK        = (LP_MODE_BITS << LP_MODE) ^ CTRL_REG3_G_MASK
+        HP_EN_MASK          = (1 << HP_EN) ^ CTRL_REG3_G_MASK
+        HPCF_G_MASK         = (HPCF_G_BITS << HPCF_G) ^ CTRL_REG3_G_MASK
 
     ORIENT_CFG_G            = $13
     INT_GEN_SRC_G           = $14
@@ -99,13 +97,13 @@ CON
     OUT_TEMP_H              = $16
     STATUS_REG              = $17
         STATUS_REG_MASK     = $7F
-        FLD_IG_XL           = 6
-        FLD_IG_G            = 5
-        FLD_INACT           = 4
-        FLD_BOOT_STATUS     = 3
-        FLD_TDA             = 2
-        FLD_GDA             = 1
-        FLD_XLDA            = 0
+        IG_XL               = 6
+        IG_G                = 5
+        INACT               = 4
+        BOOT_STATUS         = 3
+        TDA                 = 2
+        GDA                 = 1
+        XLDA                = 0
 
     OUT_X_G_L               = $18
     OUT_X_G_H               = $19
@@ -116,114 +114,117 @@ CON
 
     CTRL_REG4               = $1E
     CTRL_REG4_MASK          = $3B
-        FLD_ZEN_G           = 5
-        FLD_YEN_G           = 4
-        FLD_XEN_G           = 3
-        FLD_LIR_XL1         = 1
-        FLD_4D_XL1          = 0
-        BITS_EN_G           = %111
-        MASK_ZEN_G          = CTRL_REG4_MASK ^ (1 << FLD_ZEN_G)
-        MASK_YEN_G          = CTRL_REG4_MASK ^ (1 << FLD_YEN_G)
-        MASK_XEN_G          = CTRL_REG4_MASK ^ (1 << FLD_XEN_G)
-        MASK_EN_G           = CTRL_REG4_MASK ^ (BITS_EN_G << FLD_XEN_G)
-        MASK_LIR_XL1        = CTRL_REG4_MASK ^ (1 << FLD_LIR_XL1)
-        MASK_4D_XL1         = CTRL_REG4_MASK ^ (1 << FLD_4D_XL1)
+        ZEN_G               = 5
+        YEN_G               = 4
+        XEN_G               = 3
+        LIR_XL1             = 1
+        XL1_4D              = 0
+        EN_G_BITS           = %111
+        ZEN_G_MASK          = (1 << ZEN_G) ^ CTRL_REG4_MASK
+        YEN_G_MASK          = (1 << YEN_G) ^ CTRL_REG4_MASK
+        XEN_G_MASK          = (1 << XEN_G) ^ CTRL_REG4_MASK
+        EN_G_MASK           = (EN_G_BITS << XEN_G) ^ CTRL_REG4_MASK
+        LIR_XL1_MASK        = (1 << LIR_XL1) ^ CTRL_REG4_MASK
+        XL1_4D_MASK         = (1 << XL1_4D) ^ CTRL_REG4_MASK
 
     CTRL_REG5_XL            = $1F
     CTRL_REG5_XL_MASK       = $F8
-        FLD_DEC_1           = 7
-        FLD_DEC_0           = 6
-        FLD_ZEN_xL          = 5
-        FLD_YEN_XL          = 4
-        FLD_XEN_XL          = 3
-        BITS_EN_XL          = %111
-        MASK_DEC_1          = CTRL_REG5_XL_MASK ^ (1 << FLD_DEC_1)
-        MASK_DEC_0          = CTRL_REG5_XL_MASK ^ (1 << FLD_DEC_0)
-        MASK_ZEN_XL         = CTRL_REG5_XL_MASK ^ (1 << FLD_ZEN_XL)
-        MASK_YEN_XL         = CTRL_REG5_XL_MASK ^ (1 << FLD_YEN_XL)
-        MASK_XEN_XL         = CTRL_REG5_XL_MASK ^ (1 << FLD_XEN_XL)
-        MASK_EN_XL          = CTRL_REG5_XL_MASK ^ (BITS_EN_XL << FLD_XEN_XL)
+        DEC_1               = 7
+        DEC_0               = 6
+        ZEN_XL              = 5
+        YEN_XL              = 4
+        XEN_XL              = 3
+        EN_XL               = 3
+        EN_XL_BITS          = %111
+        DEC_1_MASK          = (1 << DEC_1) ^ CTRL_REG5_XL_MASK
+        DEC_0_MASK          = (1 << DEC_0) ^ CTRL_REG5_XL_MASK
+        ZEN_XL_MASK         = (1 << ZEN_XL) ^ CTRL_REG5_XL_MASK
+        YEN_XL_MASK         = (1 << YEN_XL) ^ CTRL_REG5_XL_MASK
+        XEN_XL_MASK         = (1 << XEN_XL) ^ CTRL_REG5_XL_MASK
+        EN_XL_MASK          = (EN_XL_BITS << EN_XL) ^ CTRL_REG5_XL_MASK
 
     CTRL_REG6_XL            = $20
     CTRL_REG6_XL_MASK       = $FF
-        FLD_ODR_XL          = 5
-        FLD_FS_XL           = 3
-        FLD_BW_SCAL         = 2
-        FLD_BW_XL           = 0
-        BITS_ODR_XL         = %111
-        BITS_FS_XL          = %11
-        BITS_BW_SCAL        = %1
-        BITS_BW_XL          = %11
-        MASK_ODR_XL         = CTRL_REG6_XL_MASK ^ (BITS_ODR_XL << FLD_ODR_XL)
-        MASK_FS_XL          = CTRL_REG6_XL_MASK ^ (BITS_FS_XL << FLD_FS_XL)
-        MASK_BW_SCAL        = CTRL_REG6_XL_MASK ^ (BITS_BW_SCAL << FLD_BW_SCAL)
-        MASK_BW_XL          = CTRL_REG6_XL_MASK ^ (BITS_BW_XL << FLD_BW_XL)
+        ODR_XL              = 5
+        FS_XL               = 3
+        BW_SCAL             = 2
+        BW_XL               = 0
+        ODR_XL_BITS         = %111
+        FS_XL_BITS          = %11
+        BW_SCAL_BITS        = %1
+        BW_XL_BITS          = %11
+        ODR_XL_MASK         = (ODR_XL_BITS << ODR_XL) ^ CTRL_REG6_XL_MASK
+        FS_XL_MASK          = (FS_XL_BITS << FS_XL) ^ CTRL_REG6_XL_MASK
+        BW_SCAL_MASK        = (BW_SCAL_BITS << BW_SCAL) ^ CTRL_REG6_XL_MASK
+        BW_XL_MASK          = (BW_XL_BITS << BW_XL) ^ CTRL_REG6_XL_MASK
 
     CTRL_REG7_XL            = $21
     CTRL_REG7_XL_MASK       = $E5
-        FLD_HR              = 7
-        FLD_DCF             = 5
-        FLD_FDS             = 2
-        FLD_HPIS1           = 0
-        BITS_HR             = %1
-        BITS_DCF            = %11
-        BITS_FDS            = %1
-        BITS_HPIS1          = %1
-        MASK_HR             = CTRL_REG7_XL_MASK ^ (BITS_HR << FLD_HR)
-        MASK_DCF            = CTRL_REG7_XL_MASK ^ (BITS_DCF << FLD_DCF)
-        MASK_FDS            = CTRL_REG7_XL_MASK ^ (BITS_FDS << FLD_FDS)
-        MASK_HPIS1          = CTRL_REG7_XL_MASK ^ (BITS_HPIS1 << FLD_HPIS1)
+        HR                  = 7
+        DCF                 = 5
+        FDS                 = 2
+        HPIS1               = 0
+        HR_BITS             = %1
+        DCF_BITS            = %11
+        FDS_BITS            = %1
+        HPIS1_BITS          = %1
+        HR_MASK             = (HR_BITS << HR) ^ CTRL_REG7_XL_MASK
+        DCF_MASK            = (DCF_BITS << DCF) ^ CTRL_REG7_XL_MASK
+        FDS_MASK            = (FDS_BITS << FDS) ^ CTRL_REG7_XL_MASK
+        HPIS1_MASK          = (HPIS1_BITS << HPIS1) ^ CTRL_REG7_XL_MASK
 
     CTRL_REG8               = $22
     CTRL_REG8_MASK          = $FF
-        FLD_BOOT            = 7
-        FLD_BDU             = 6
-        FLD_H_LACTIVE       = 5
-        FLD_PP_OD           = 4
-        FLD_SIM             = 3
-        FLD_IF_ADD_INC      = 2
-        FLD_BLE             = 1
-        FLD_SW_RESET        = 0
-        MASK_BOOT           = CTRL_REG8_MASK ^ (1 << FLD_BOOT)
-        MASK_BDU            = CTRL_REG8_MASK ^ (1 << FLD_BDU)
-        MASK_H_LACTIVE      = CTRL_REG8_MASK ^ (1 << FLD_H_LACTIVE)
-        MASK_PP_OD          = CTRL_REG8_MASK ^ (1 << FLD_PP_OD)
-        MASK_SIM            = CTRL_REG8_MASK ^ (1 << FLD_SIM)
-        MASK_IF_ADD_INC     = CTRL_REG8_MASK ^ (1 << FLD_IF_ADD_INC)
-        MASK_BLE            = CTRL_REG8_MASK ^ (1 << FLD_BLE)
-        MASK_SW_RESET       = CTRL_REG8_MASK ^ (1 << FLD_SW_RESET)
+        BOOT                = 7
+        BDU                 = 6
+        H_LACTIVE           = 5
+        PP_OD               = 4
+        SIM                 = 3
+        IF_ADD_INC          = 2
+        BLE                 = 1
+        SW_RESET            = 0
+        BOOT_MASK           = (1 << BOOT) ^ CTRL_REG8_MASK
+        BDU_MASK            = (1 << BDU) ^ CTRL_REG8_MASK
+        H_LACTIVE_MASK      = (1 << H_LACTIVE) ^ CTRL_REG8_MASK
+        PP_OD_MASK          = (1 << PP_OD) ^ CTRL_REG8_MASK
+        SIM_MASK            = (1 << SIM) ^ CTRL_REG8_MASK
+        IF_ADD_INC_MASK     = (1 << IF_ADD_INC) ^ CTRL_REG8_MASK
+        BLE_MASK            = (1 << BLE) ^ CTRL_REG8_MASK
+        SW_RESET_MASK       = (1 << SW_RESET) ^ CTRL_REG8_MASK
+        XLG_SW_RESET        = 1
+        XLG_3WSPI           = 1 << SIM
 
     CTRL_REG9               = $23
     CTRL_REG9_MASK          = $5F
-        FLD_SLEEP_G         = 6
-        FLD_FIFO_TEMP_EN    = 4
-        FLD_DRDY_MASK_BIT   = 3
-        FLD_I2C_DISABLE     = 2
-        FLD_FIFO_EN         = 1
-        FLD_STOP_ON_FTH     = 0
-        BITS_SLEEP_G        = %1
-        BITS_FIFO_TEMP_EN   = %1
-        BITS_DRDY_MASK_BIT  = %1
-        BITS_I2C_DISABLE    = %1
-        BITS_FIFO_EN        = %1
-        BITS_STOP_ON_FTH    = %1
-        MASK_SLEEP_G        = CTRL_REG9_MASK ^ (BITS_SLEEP_G << FLD_SLEEP_G)
-        MASK_FIFO_TEMP_EN   = CTRL_REG9_MASK ^ (BITS_FIFO_TEMP_EN << FLD_FIFO_TEMP_EN)
-        MASK_DRDY_MASK_BIT  = CTRL_REG9_MASK ^ (BITS_DRDY_MASK_BIT << FLD_DRDY_MASK_BIT)
-        MASK_I2C_DISABLE    = CTRL_REG9_MASK ^ (BITS_I2C_DISABLE << FLD_I2C_DISABLE)
-        MASK_FIFO_EN        = CTRL_REG9_MASK ^ (BITS_FIFO_EN << FLD_FIFO_EN)
-        MASK_STOP_ON_FTH    = CTRL_REG9_MASK ^ (BITS_STOP_ON_FTH << FLD_STOP_ON_FTH)
+        SLP_G               = 6
+        FIFO_TEMP_EN        = 4
+        DRDY_BIT            = 3
+        I2C_DIS             = 2
+        FIFO_EN             = 1
+        STOP_ON_FTH         = 0
+        SLP_G_BITS          = %1
+        FIFO_TEMP_EN_BITS   = %1
+        DRDY_BIT_BITS       = %1
+        I2C_DIS_BITS        = %1
+        FIFO_EN_BITS        = %1
+        STOP_ON_FTH_BITS    = %1
+        SLP_G_MASK          = (SLP_G_BITS << SLP_G) ^ CTRL_REG9_MASK
+        FIFO_TEMP_EN_MASK   = (FIFO_TEMP_EN_BITS << FIFO_TEMP_EN) ^ CTRL_REG9_MASK
+        DRDY_BIT_MASK       = (DRDY_BIT_BITS << DRDY_BIT) ^ CTRL_REG9_MASK
+        I2C_DIS_MASK        = (I2C_DIS_BITS << I2C_DIS) ^ CTRL_REG9_MASK
+        FIFO_EN_MASK        = (FIFO_EN_BITS << FIFO_EN) ^ CTRL_REG9_MASK
+        STOP_ON_FTH_MASK    = (STOP_ON_FTH_BITS << STOP_ON_FTH) ^ CTRL_REG9_MASK
 
     CTRL_REG10              = $24
     INT_GEN_SRC_XL          = $26
     INT_GEN_SRC_XL_MASK     = $7F
-        FLD_IA_XL           = 6
-        FLD_ZH_XL           = 5
-        FLD_ZL_XL           = 4
-        FLD_YH_XL           = 3
-        FLD_YL_XL           = 2
-        FLD_XH_XL           = 1
-        FLD_XL_XL           = 0
+        IA_XL               = 6
+        ZH_XL               = 5
+        ZL_XL               = 4
+        YH_XL               = 3
+        YL_XL               = 2
+        XH_XL               = 1
+        XL_XL               = 0
 
 
     STATUS_REG_1            = $27
@@ -236,17 +237,17 @@ CON
 
     FIFO_CTRL               = $2E
     FIFO_CTRL_MASK          = $FF
-        FLD_FMODE           = 5
-        FLD_FTH             = 0
-        BITS_FMODE          = %111
-        BITS_FTH            = %11111
-        MASK_FMODE          = FIFO_CTRL_MASK ^ (BITS_FMODE << FLD_FMODE)
-        MASK_FTH            = FIFO_CTRL_MASK ^ (BITS_FTH << FLD_FTH)
+        FMODE               = 5
+        FTH                 = 0
+        FMODE_BITS          = %111
+        FTH_BITS            = %11111
+        FMODE_MASK          = (FMODE_BITS << FMODE) ^ FIFO_CTRL_MASK
+        FTH_MASK            = (FTH_BITS << FTH) ^ FIFO_CTRL_MASK
 
     FIFO_SRC                = $2F
-        FLD_FTH_STAT        = 7
-        FLD_FSS             = 0
-        BITS_FSS            = %111111
+        FTH_STAT            = 7
+        FSS                 = 0
+        FSS_BITS            = %111111
 
     INT_GEN_CFG_G           = $30
     INT_GEN_THS_XH_G        = $31
@@ -266,70 +267,71 @@ CON
 
     CTRL_REG1_M             = $20
     CTRL_REG1_M_MASK        = $FF
-        FLD_TEMP_COMP       = 7
-        FLD_OM              = 5
-        FLD_DO              = 2
-        FLD_FAST_ODR        = 1
-        FLD_ST              = 0
-        BITS_OM             = %11
-        BITS_DO             = %111
-        MASK_TEMP_COMP      = CTRL_REG1_M_MASK ^ (1 << FLD_TEMP_COMP)
-        MASK_OM             = CTRL_REG1_M_MASK ^ (BITS_OM << FLD_OM)
-        MASK_DO             = CTRL_REG1_M_MASK ^ (BITS_DO << FLD_DO)
-        MASK_FAST_ODR       = CTRL_REG1_M_MASK ^ (1 << FLD_FAST_ODR)
-        MASK_ST             = CTRL_REG1_M_MASK ^ (1 << FLD_ST)
+        TEMP_COMP           = 7
+        OM                  = 5
+        DO                  = 2
+        FAST_ODR            = 1
+        ST                  = 0
+        OM_BITS             = %11
+        DO_BITS             = %111
+        TEMP_COMP_MASK      = (1 << TEMP_COMP) ^ CTRL_REG1_M_MASK
+        OM_MASK             = (OM_BITS << OM) ^ CTRL_REG1_M_MASK
+        DO_MASK             = (DO_BITS << DO) ^ CTRL_REG1_M_MASK
+        FAST_ODR_MASK       = (1 << FAST_ODR) ^ CTRL_REG1_M_MASK
+        ST_MASK             = (1 << ST) ^ CTRL_REG1_M_MASK
 
     CTRL_REG2_M             = $21
     CTRL_REG2_M_MASK        = $6C
-        FLD_FS_M            = 5
-        FLD_REBOOT          = 3
-        FLD_SOFT_RST        = 2
-        BITS_FS_M           = %11
-        BITS_REBOOT         = %1
-        BITS_SOFT_RST       = %1
-        MASK_FS_M           = CTRL_REG2_M_MASK ^ (BITS_FS_M << FLD_FS_M)
-        MASK_REBOOT         = CTRL_REG2_M_MASK ^ (BITS_REBOOT << FLD_REBOOT)
-        MASK_SOFT_RST       = CTRL_REG2_M_MASK ^ (BITS_SOFT_RST << FLD_SOFT_RST)
+        FS_M                = 5
+        RE_BOOT             = 3
+        SOFT_RST            = 2
+        FS_M_BITS           = %11
+        RE_BOOT_BITS        = %1
+        SOFT_RST_BITS       = %1
+        FS_M_MASK           = (FS_M_BITS << FS_M) ^ CTRL_REG2_M_MASK
+        RE_BOOT_MASK        = (RE_BOOT_BITS << RE_BOOT) ^ CTRL_REG2_M_MASK
+        SOFT_RST_MASK       = (SOFT_RST_BITS << SOFT_RST) ^ CTRL_REG2_M_MASK
 
     CTRL_REG3_M             = $22
     CTRL_REG3_M_MASK        = $A7
-        FLD_M_I2C_DISABLE   = 7
-        FLD_LP              = 5
-        FLD_M_SIM           = 2
-        FLD_MD              = 0
-        BITS_MD             = %11
-        MASK_M_I2C_DISABLE  = CTRL_REG3_M_MASK ^ (1 << FLD_M_I2C_DISABLE)
-        MASK_LP             = CTRL_REG3_M_MASK ^ (1 << FLD_LP)
-        MASK_M_SIM          = CTRL_REG3_M_MASK ^ (1 << FLD_M_SIM)
-        MASK_MD             = CTRL_REG3_M_MASK ^ (BITS_MD << FLD_MD)
+        M_I2C_DIS           = 7
+        LP                  = 5
+        M_SIM               = 2
+        MD                  = 0
+        MD_BITS             = %11
+        M_I2C_DIS_MASK      = (1 << M_I2C_DIS) ^ CTRL_REG3_M_MASK
+        LP_MASK             = (1 << LP) ^ CTRL_REG3_M_MASK
+        M_SIM_MASK          = (1 << M_SIM) ^ CTRL_REG3_M_MASK
+        MD_MASK             = (MD_BITS << MD) ^ CTRL_REG3_M_MASK
+        M_3WSPI             = 1 << M_SIM
 
     CTRL_REG4_M             = $23
     CTRL_REG4_M_MASK        = $0E
-        FLD_OMZ             = 2
-        FLD_BLE_M           = 1
-        BITS_OMZ            = %11
-        MASK_OMZ            = CTRL_REG4_M_MASK ^ (BITS_OMZ << FLD_OMZ)
-        MASK_BLE_M          = CTRL_REG4_M_MASK ^ (1 << FLD_BLE_M)
+        OMZ                 = 2
+        BLE_M               = 1
+        OMZ_BITS            = %11
+        OMZ_MASK            = (OMZ_BITS << OMZ) ^ CTRL_REG4_M_MASK
+        BLE_M_MASK          = (1 << BLE_M) ^ CTRL_REG4_M_MASK
 
     CTRL_REG5_M             = $24
     CTRL_REG5_M_MASK        = $C0
-        FLD_FAST_READ       = 7
-        FLD_BDU_M           = 6
-        MASK_FAST_READ      = CTRL_REG5_M_MASK ^ (1 << FLD_FAST_READ)
-        MASK_BDU_M          = CTRL_REG5_M_MASK ^ (1 << FLD_BDU_M)
+        FAST_READ           = 7
+        BDU_M               = 6
+        FAST_READ_MASK      = (1 << FAST_READ) ^ CTRL_REG5_M_MASK
+        BDU_M_MASK          = (1 << BDU_M) ^ CTRL_REG5_M_MASK
 
     STATUS_REG_M            = $27
     STATUS_REG_M_MASK       = $FF
-        FLD_DA              = 0
-        FLD_ZYXDA           = 3
-        FLD_OR              = 4
-        FLD_ZYXOR           = 7
-        BITS_DA             = %1111
-        BITS_OR             = %1111
-        MASK_DA             = STATUS_REG_M_MASK ^ (BITS_DA << FLD_DA)
-        MASK_OR             = STATUS_REG_M_MASK ^ (BITS_OR << FLD_OR)
-        MASK_ZYXOR          = STATUS_REG_M_MASK ^ (1 << FLD_ZYXOR)
-        MASK_ZYXDA          = STATUS_REG_M_MASK ^ (1 << FLD_ZYXDA)
+        DA                  = 0
+        ZYXDA               = 3
+        OVERRN              = 4
+        ZYXOR               = 7
+        DA_BITS             = %1111
+        OVERRN_BITS         = %1111
+        DA_MASK             = (DA_BITS << DA) ^ STATUS_REG_M_MASK
+        OR_MASK             = (OVERRN_BITS << OVERRN) ^ STATUS_REG_M_MASK
+        ZYXOR_MASK          = (1 << ZYXOR) ^ STATUS_REG_M_MASK
+        ZYXDA_MASK          = (1 << ZYXDA) ^ STATUS_REG_M_MASK
 
     OUT_X_L_M               = $28
     OUT_X_H_M               = $29
@@ -340,27 +342,27 @@ CON
 
     INT_CFG_M               = $30
     INT_CFG_M_MASK          = $E7
-        FLD_IEN             = 0
-        FLD_IEL             = 1
-        FLD_IEA             = 2
-        FLD_XYZIEN          = 5
-        BITS_XYZIEN         = %111
-        MASK_IEN            = INT_CFG_M_MASK ^ (1 << FLD_IEN)
-        MASK_IEL            = INT_CFG_M_MASK ^ (1 << FLD_IEL)
-        MASK_IEA            = INT_CFG_M_MASK ^ (1 << FLD_IEA)
-        MASK_XYZIEN         = INT_CFG_M_MASK ^ (BITS_XYZIEN << FLD_XYZIEN)
+        IEN                 = 0
+        IEL                 = 1
+        IEA                 = 2
+        XYZIEN              = 5
+        XYZIEN_BITS         = %111
+        IEN_MASK            = (1 << IEN) ^ INT_CFG_M_MASK
+        IEL_MASK            = (1 << IEL) ^ INT_CFG_M_MASK
+        IEA_MASK            = (1 << IEA) ^ INT_CFG_M_MASK
+        XYZIEN_MASK         = (XYZIEN_BITS << XYZIEN) ^ INT_CFG_M_MASK
 
     INT_SRC_M               = $31
-        FLD_PTH_X           = 7
-        FLD_PTH_Y           = 6
-        FLD_PTH_Z           = 5
-        FLD_NTH_X           = 4
-        FLD_NTH_Y           = 3
-        FLD_NTH_Z           = 2
-        FLD_MROI            = 1
-        FLD_INT             = 0
-        BITS_PTH            = %111
-        BITS_NTH            = %111
+        PTH_X               = 7
+        PTH_Y               = 6
+        PTH_Z               = 5
+        NTH_X               = 4
+        NTH_Y               = 3
+        NTH_Z               = 2
+        MROI                = 1
+        INT                 = 0
+        PTH_BITS            = %111
+        NTH_BITS            = %111
 
     INT_THS_L_M             = $32
     INT_THS_H_M             = $33
@@ -371,11 +373,8 @@ CON
     FIFO_OFF_TRIG           = 4
     FIFO_CONT               = 6
 
-#ifndef __propeller2__
-PUB Null
-'' This is not a top-level object
-#endif
-
+PUB Null{}
+' This is not a top-level object
 {
     --------------------------------------------------------------------------------------------------------
     TERMS OF USE: MIT License
@@ -396,3 +395,4 @@ PUB Null
     SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     --------------------------------------------------------------------------------------------------------
 }
+
