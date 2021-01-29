@@ -300,6 +300,9 @@ PUB CalibrateAccel() | tmpx, tmpy, tmpz, tmpbias[3], axis, nr_samples, orig_stat
     accelscale(orig_state.byte[1])
     acceldatarate(orig_state.word[1])
 
+PUB CalibrateGyro()
+' dummy method
+
 PUB CalibrateMag() | tmpx, tmpy, tmpz, tmpbias[3], axis, samples, orig_state
 ' Calibrate the magnetometer
     longfill(@tmpx, 0, 9)                       ' Initialize vars to 0
@@ -325,6 +328,9 @@ PUB CalibrateMag() | tmpx, tmpy, tmpz, tmpbias[3], axis, samples, orig_state
     magopmode(orig_state.byte[0])               ' restore user settings
     magscale(orig_state.byte[1])
     magdatarate(orig_state.byte[2])
+
+PUB CalibrateXLG()
+' dummy method
 
 PUB ClickAxisEnabled(mask=-2): curr_mask
 ' Enable click detection per axis, and per click type
@@ -542,6 +548,30 @@ PUB FIFOUnreadSamples(): nr_samples
 '   Returns: 1..32
     readreg(core.FIFO_SRC_REG, 1, @nr_samples)
     return ((nr_samples & core.FSS_BITS) + 1)
+
+PUB GyroAxisEnabled(mask)
+' dummy method
+
+PUB GyroBias(x, y, z, rw=0)
+' dummy method
+
+PUB GyroDataRate(rate=-2)
+' dummy method
+
+PUB GyroData(x, y, z)
+' dummy method
+
+PUB GyroDataOverrun()
+' dummy method
+
+PUB GyroDataReady()
+' dummy method
+
+PUB GyroDPS(x, y, z)
+' dummy method
+
+PUB GyroScale(scale=-2)
+' dummy method
 
 PUB Interrupt(): curr_state
 ' Read interrupt state

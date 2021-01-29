@@ -101,6 +101,10 @@ CON
     DATA_Z_COL  = DATA_Y_COL+12
     DATA_OVR_COL= DATA_Z_COL+12
 
+    ACCEL_YS    = 3
+    GYRO_YS     = 6
+    MAG_YS      = 9
+
     RAW         = 0
     CALC        = 1
 
@@ -361,9 +365,8 @@ PUB DisplaySettings() | axo, ayo, azo, gxo, gyo, gzo, mxo, myo, mzo
     axo := ayo := azo := 0
     mxo := myo := mzo := 0
 
-    ser.position(0, 3)
-
     if imu.ACCEL_DOF > 0
+        ser.position(0, ACCEL_YS)
         ser.strln("AccelScale:")
         ser.strln("AccelDataRate:")
         ser.strln("AccelBias:")
@@ -377,6 +380,7 @@ PUB DisplaySettings() | axo, ayo, azo, gxo, gyo, gzo, mxo, myo, mzo
         ser.printf("%d(x), %d(y), %d(z)     \n", axo, ayo, azo)
 
     if imu.GYRO_DOF > 0
+        ser.position(0, GYRO_YS)
         ser.strln("GyroScale:")
         ser.strln("GyroDataRate:")
         ser.strln("GyroBias:")
@@ -390,6 +394,7 @@ PUB DisplaySettings() | axo, ayo, azo, gxo, gyo, gzo, mxo, myo, mzo
         ser.printf("%d(x), %d(y), %d(z)     \n", gxo, gyo, gzo)
 
     if imu.MAG_DOF > 0
+        ser.position(0, MAG_YS)
         ser.strln("MagScale:")
         ser.strln("MagDataRate:")
         ser.strln("MagBias:")
@@ -522,8 +527,8 @@ PUB Setup()
         waitms(5)
         repeat
 #elseifdef LSM303DLHC_I2C
-    if imu.start(SCL_PIN, SDA_PIN, SCL_HZ)
-        imu.defaults()
+    if imu.startx(SCL_PIN, SDA_PIN, SCL_HZ)
+        imu.preset_active()
         ser.strln("LSM303DLHC driver started (I2C)")
     else
         ser.strln("LSM303DLHC driver failed to start - halting")
