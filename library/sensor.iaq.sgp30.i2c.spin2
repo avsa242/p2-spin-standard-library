@@ -1,0 +1,176 @@
+{
+    --------------------------------------------
+    Filename: sensor.iaq.sgp30.i2c.spin2
+    Author: Jesse Burt
+    Description: Driver for the Sensirion SGP30
+        Indoor Air Quality sensor (P2 version)
+    Copyright (c) 2021
+    Started Jan 30, 2021
+    Updated Jan 30, 2021
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    SLAVE_WR          = core.SLAVE_ADDR
+    SLAVE_RD          = core.SLAVE_ADDR|1
+
+    DEF_SCL           = 28
+    DEF_SDA           = 29
+    DEF_HZ            = 100_000
+    I2C_MAX_FREQ      = core.I2C_MAX_FREQ
+
+VAR
+
+
+OBJ
+
+    i2c : "com.i2c"                             ' PASM I2C engine
+    core: "core.con.sgp30.spin"
+    time: "time"                                ' basic timing functions
+
+PUB Null()
+' This is not a top-level object
+
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
+' Start using custom IO pins and I2C bus frequency
+    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
+}   I2C_HZ <= core.I2C_MAX_FREQ                 ' validate pins and bus freq
+        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+            waitms(5)'waitus(core.T_POR)             ' wait for device startup
+'            if i2c.present(SLAVE_WR)            ' test device bus presence
+                    return
+    ' if this point is reached, something above failed
+    ' Re-check I/O pin assignments, bus speed, connections, power
+    ' Lastly - make sure you have at least one free core/cog
+    return FALSE
+
+PUB Stop()
+
+    i2c.deinit()
+
+PUB Defaults()
+' Set factory defaults
+
+PUB CO2Eq(): ppm
+' CO2/Carbon Dioxide equivalent concentration
+'   Returns: parts-per-million (400..60_000)
+    readreg(core.MEAS_IAQ, 4, @ppm)
+    return (ppm & $FFFF)
+
+PUB DeviceID(): id
+' Read device identification
+    readreg(core.GET_FEATURES, 2, @id)
+
+PUB IAQData(): adc
+' Indoor air-quality data ADC words
+'   Returns: TVOC word | CO2 word (MSW|LSW)
+    readreg(core.MEAS_RAW, 4, @adc)
+
+PUB Reset()
+' Reset the device
+'   NOTE: There is a delay of approximately 15 seconds after calling
+'   this method, during which the sensor will return 400ppm CO2Eq and
+'   0ppb TVOC
+    writereg(core.IAQ_INIT, 0, 0)
+
+PUB SerialNum(ptr_buff)
+' Read device Serial Number
+'   NOTE: ptr_buff must be at least 6 bytes in length
+    readreg(core.GET_SN, 6, ptr_buff)
+
+PUB TVOC(): ppb
+' Total Volatile Organic Compounds concentration
+'   Returns: parts-per-billion (0..60_000)
+    readreg(core.MEAS_IAQ, 4, @ppb)
+    return (ppb >> 16) & $FFFF
+
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, rd_data[3], tmp
+' Read nr_bytes from the device into ptr_buff
+    cmd_pkt.byte[0] := SLAVE_WR                 ' form command packet
+    cmd_pkt.byte[1] := reg_nr.byte[1]
+    cmd_pkt.byte[2] := reg_nr.byte[0]
+
+    case reg_nr                                 ' validate command
+        core.MEAS_IAQ, core.GET_IAQ_BASE, core.MEAS_RAW:
+            i2c.start()
+            i2c.wrblock_lsbf(@cmd_pkt, 3)
+            i2c.wait(SLAVE_RD)                  ' poll the sensor for readiness
+            ' read all bytes, incl. CRC's
+            i2c.rdblock_lsbf(@rd_data, 6, i2c.NAK)
+            i2c.stop()
+
+            byte[ptr_buff][0] := rd_data.byte[1]' copy the sensor data to
+            byte[ptr_buff][1] := rd_data.byte[0]'   ptr_buff, but skip over
+            byte[ptr_buff][2] := rd_data.byte[4]'   the CRC bytes, for now
+            byte[ptr_buff][3] := rd_data.byte[3]'
+            return
+        core.MEAS_TEST, core.GET_FEATURES, core.GET_TVOC_INCBASE:
+            i2c.start()
+            i2c.wrblock_lsbf(@cmd_pkt, 3)
+            i2c.wait(SLAVE_RD)
+            i2c.rdblock_lsbf(@rd_data, 3, i2c.NAK)
+            i2c.stop()
+
+            byte[ptr_buff][0] := rd_data.byte[1]
+            byte[ptr_buff][1] := rd_data.byte[0]
+        core.GET_SN:
+            i2c.start()
+            i2c.wrblock_lsbf(@cmd_pkt, 3)
+            i2c.wait(SLAVE_RD)
+            i2c.rdblock_lsbf(@rd_data, 9, i2c.NAK)
+            i2c.stop()
+
+            byte[ptr_buff][0] := rd_data.byte[1]
+            byte[ptr_buff][1] := rd_data.byte[0]
+            byte[ptr_buff][2] := rd_data.byte[4]
+            byte[ptr_buff][3] := rd_data.byte[3]
+            byte[ptr_buff][4] := rd_data.byte[7]
+            byte[ptr_buff][5] := rd_data.byte[6]
+            return
+        other:
+            return
+
+PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2], tmp
+' Write nr_bytes to the device from ptr_buff
+    case reg_nr
+        core.IAQ_INIT:
+            cmd_pkt.byte[0] := SLAVE_WR
+            cmd_pkt.byte[1] := reg_nr.byte[1]
+            cmd_pkt.byte[2] := reg_nr.byte[0]
+            i2c.start()
+            i2c.wrblock_lsbf(@cmd_pkt, 3)
+            i2c.stop()
+        core.SET_IAQ_BASE, core.SET_ABS_HUM, core.SET_TVOC_BASE:
+            cmd_pkt.byte[0] := SLAVE_WR
+            cmd_pkt.byte[1] := reg_nr.byte[1]
+            cmd_pkt.byte[2] := reg_nr.byte[0]
+            i2c.start()
+            i2c.wrblock_lsbf(@cmd_pkt, 3)
+            i2c.wrblock_lsbf(ptr_buff, nr_bytes)
+            i2c.stop()
+        other:
+            return
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
