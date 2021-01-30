@@ -1,8 +1,8 @@
 {
     --------------------------------------------
-    Filename: display.oled.ssd1306.i2c.spin2
+    Filename: display.oled.ssd1306.spi.spin2
     Author: Jesse Burt
-    Description: Intermediate layer for SSD1306 driver (I2C enabled)
+    Description: Intermediate layer for SSD1306 driver (SPI enabled)
     Copyright (c) 2021
     Started Jan 30, 2021
     Updated Jan 30, 2021
@@ -11,11 +11,11 @@
 
     To use, do this in your top-level application:
 
-    #define SSD130X_I2C
+    #define SSD130X_SPI
 
     OBJ
 
-        disp   : "display.oled.ssd1306.i2c"     ' this file
+        disp   : "display.oled.ssd1306.spi"     ' this file
 
     PUB Main()
 
@@ -24,8 +24,8 @@
 
     PUB Setup()
 
-        disp.startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BIT, WIDTH, HEIGHT, @_framebuff)
+        disp.startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, , WIDTH, HEIGHT, @_framebuff)
 
 }
-#define SSD130X_I2C
+#define SSD130X_SPI
 #include "display.oled.ssd1306.i2cspi.spin2"

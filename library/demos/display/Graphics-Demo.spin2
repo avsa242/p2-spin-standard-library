@@ -1,22 +1,23 @@
 {
     --------------------------------------------
     Filename: Graphics-Demo.spin2
-    Description: Demo of the bitmap graphics library
+   Description: Demo of the bitmap graphics library
         (multi disp type capable)
     Author: Jesse Burt
     Copyright (c) 2021
     Started: Jun 14, 2020
-    updated: Jan 10, 2021
+    updated: Jan 30, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 ' Uncomment one of the below display types, and change the relevant I/O pin constants below
-#define VGABITMAP8BPP
+'#define VGABITMAP8BPP
 '#define ST7735
 '#define SSD1331
 '#define SSD1351
 '#define SSD1309
 '#define SSD1306_I2C
+#define SSD1306_SPI
 
 CON
 
@@ -70,9 +71,20 @@ CON
 #elseifdef SSD1306_I2C                          ' 128x64, 128x32 common
     WIDTH           = 128
     HEIGHT          = 64
-    SCL_PIN         = 24
-    SDA_PIN         = 25
-    I2C_HZ          = 1_000_000                 ' max is 1_000_000
+    SCL_PIN         = 26
+    SDA_PIN         = 28
+    RES_PIN         = -1                        ' optional (-1 to disable)
+    ADDR_BIT        = 0                         ' 0 or 1
+    I2C_HZ          = 1_000_000                 ' max is 400_000 (unenforced)
+#elseifdef SSD1306_SPI                          ' 128x64, 128x32 common
+    WIDTH           = 128
+    HEIGHT          = 64
+    CS_PIN          = 0
+    SCK_PIN         = 1
+    SDIN_PIN        = 2
+    DC_PIN          = 3
+    RES_PIN         = 4                         ' optional; -1 to disable
+    SCK_HZ          = 10_000_000                ' max: 10_000_000 (unenforced)
 #endif
 
     SER_RX          = cfg.SER_RX
@@ -121,6 +133,8 @@ OBJ
     disp        : "display.oled.ssd1309.spi"
 #elseifdef SSD1306_I2C
     disp        : "display.oled.ssd1306.i2c"
+#elseifdef SSD1306_SPI
+    disp        : "display.oled.ssd1306.spi"
 #endif
     int         : "string.integer"
     fnt         : "font.5x8"
@@ -305,6 +319,8 @@ PUB Demo_Greet()
     disp.printf("SSD1309 on the\nParallax P2X8C4M64P\n@ %dMHz\n", clkfreq/1_000_000)
 #elseifdef SSD1306_I2C
     disp.printf("SSD1306 on the\nParallax P2X8C4M64P\n@ %dMHz\n", clkfreq/1_000_000)
+#elseifdef SSD1306_SPI
+    disp.printf("SSD1306 on the\nParallax P2X8C4M64P\n@ %dMHz\n", clkfreq/1_000_000)
 #endif
     disp.printf("%dx%d", WIDTH, HEIGHT)
 #ifndef VGABITMAP8BPP
@@ -459,6 +475,8 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
     div := 3072
 #elseifdef SSD1306_I2C
     div := 3072
+#elseifdef SSD1306_SPI
+    div := 3072
 #endif
     offset := YMAX/2                            ' Offset for Y axis
 
@@ -574,7 +592,6 @@ PUB Demo_Wander(testtime) | iteration, x, y, c, d, movestep
     iteration := 0
 
     repeat while _timer_set
-        c := rnd(disp.MAX_COLOR)
         case d := rnd(4)                        ' which way to move?
             1:                                  ' wander right
                 x += movestep
@@ -592,7 +609,7 @@ PUB Demo_Wander(testtime) | iteration, x, y, c, d, movestep
                 y -= movestep
                 if y < 0
                     y := YMAX
-        disp.plot(x, y, c)
+        disp.plot(x, y, disp.MAX_COLOR)
 
 #ifdef VGABITMAP8BPP
 		disp.waitvsync()
@@ -686,14 +703,19 @@ PUB Setup()
         ser.printf("SSD1309 driver started\n")
         disp.defaults()
 #elseifdef SSD1306_I2C
-    if disp.start(WIDTH, HEIGHT, SCL_PIN, SDA_PIN, I2C_HZ, @_framebuffer)
-        ser.printf("SSD1306 driver started\n")
+    if disp.startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BIT, WIDTH, HEIGHT, @_framebuffer)
+        ser.printf("SSD1306 driver started (I2C)\n")
+        disp.reset()
         disp.defaults()
-        disp.mirrorv(true)
-        disp.mirrorh(true)
+#elseifdef SSD1306_SPI
+    if disp.startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, SCK_HZ, WIDTH, HEIGHT, @_framebuffer)
+        ser.printf("SSD1306 driver started (SPI)\n")
+        disp.reset()
+        disp.defaults()
     else
         ser.printf("SSD1306 driver failed to start - halting\n")
 #endif
+
     disp.fontaddress(fnt.baseaddr())
     disp.fontscale(1)
     disp.fontsize(6, 8)
