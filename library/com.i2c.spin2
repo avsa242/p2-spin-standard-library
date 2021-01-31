@@ -19,7 +19,11 @@ CON
 
     DEF_HZ  = 100_000
 
-    #0, ACK, NAK
+    ACK     = 0
+    NAK     = 1
+
+    LOW     = 0
+    HIGH    = 1
 
 VAR
 
@@ -104,6 +108,7 @@ PUB Read(ackbit): i2cbyte | SCL, SDA
     longmove(@SCL, @_SCL, 2)
     ackbit := (ackbit <> 0)
     pinf(SDA)                                   ' Make SDA input
+    waitclkstretch()
 
     repeat 8
         qd()
@@ -139,7 +144,7 @@ PUB Start()
 '       waits while SCL pin is held low
     pinf(_SDA)                                  ' Float pins
     pinf(_SCL)
-    repeat while (pinr(_SCL) == 0)              ' Allow "clock stretching"
+    waitclkstretch()
     hd()
     pinl(_SDA)                                  ' SDA low
     hd()
@@ -154,8 +159,9 @@ PUB Stop()
     hd()
     pinf(_SCL)                                  ' Float SCL
     hd()
-    repeat until (pinr(_SCL) == 1)              ' Hold for clock stretch
+    waitclkstretch()
     pinf(_SDA)                                  ' Float SDA
+
     hd()
 
 PUB Wait(slave_addr) | ackbit
@@ -166,6 +172,11 @@ PUB Wait(slave_addr) | ackbit
         start()
         ackbit := write(slave_addr)
     until (ackbit == ACK)
+
+PUB WaitClkStretch()
+' Wait for slave device using clock-stretching
+    pinf(_SCL)                                  ' let SCL float
+    repeat until pinr(_SCL) == HIGH             ' wait until slave releases it
 
 PUB WaitTimeout(slave_addr, usec): status
 ' Wait for I2C device to be ready for new command,
