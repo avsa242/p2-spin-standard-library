@@ -4,7 +4,7 @@
     Description: Bitbanged I2C driver for the P2X8C4M64P
     Author: Jesse Burt
     Created: Jun 15, 2019
-    Updated: Jan 25, 2021
+    Updated: Jan 31, 2021
     See end of file for terms of use.
 
     NOTE: This is based on jm_i2c.spin, by
@@ -27,42 +27,29 @@ CON
 
 VAR
 
-    long _SCL                                   ' Bus pins
-    long _SDA
-    long _delay, _hdelay, _qdelay
+    long _SCL, _SDA                             ' Bus pins
+    long _bit_lo, _bit_hi, _bittm_base
 
 PUB Init(SCL, SDA, HZ=DEF_HZ): status
 ' Initialize I2C engine using custom I2C pins
 '   SCL, SDA: 0..63 (each unique)
 '   HZ: 1..1_000_000
-    longmove(@_SCL, @SCL, 2)                    ' Copy pins
+'   NOTE: SCL duty cycle at 1MHz is approx 60-65%
+    longmove(@_SCL, @SCL, 2)                    ' copy pins to hub
 
-    _delay := (clkfreq/HZ)                      ' Calculate delays based on
-    _hdelay := _delay >> 1                      '   system clock freq
-    _qdelay := _delay >> 2
+    _bittm_base := (clkfreq / HZ) / 2           ' calculate bit time based on
+                                                '   system clock freq
+    _bit_lo := _bittm_base - 74                 ' SCL low/hi times - account
+    _bit_hi := _bittm_base + 57                 '   for overhead
 
-    pinf(_SCL)                                  ' Float pins
+    pinf(_SCL)                                  ' start with pins floating
     pinf(_SDA)
 
-    return cogid{}+1                            ' return current cog id
+    return cogid()+1                            ' return current cog id
 
-PUB DeInit
+PUB DeInit()
 ' Deinitialize - clear out hub vars
     longfill(@_SCL, 0, 2)
-
-PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000): okay
-' Define I2C SCL (clock) and SDA (data) pins
-    _delay := (clkfreq/I2C_HZ)                  ' Calculate delays based on clock freq
-    _hdelay := _delay >> 1
-    _qdelay := _delay >> 2
-
-    _SCL := I2C_SCL
-    _SDA := I2C_SDA
-    pinf(I2C_SCL)                               ' Float pins
-    pinf(I2C_SDA)
-    reset()
-    okay := cogid() + 1
-    return
 
 PUB Present(slave_addr): status
 ' Pings device, returns true if ACK
@@ -99,43 +86,42 @@ PUB RdWord_MSBF(ackbit): i2c2word
 ' Read word from I2C bus, least-significant byte first
     rdblock_msbf(@i2c2word, 2, ackbit)
 
-PUB Read(ackbit): i2cbyte | SCL, SDA
+PUB Read(ackbit): i2cbyte | SCL, SDA, bit_lo, bit_hi
 ' Read byte from I2C bus
 '   Valid values:
 '       ackbit:
-'           ACK (0): Send ACK to slave device
-'           NAK (non-zero): Send NAK to slave device
-    longmove(@SCL, @_SCL, 2)
+'           ACK (0):        Acknowledge byte
+'           NAK (non-zero): Don't acknowledge byte
+    longmove(@SCL, @_SCL, 4)
     ackbit := (ackbit <> 0)
-    pinf(SDA)                                   ' Make SDA input
+
+    pinf(SDA)                                   ' prep SDA for reading bits
     waitclkstretch()
 
     repeat 8
-        qd()
-        pinf(SCL)                               ' Float SCL
-        hd()
-        i2cbyte := (i2cbyte << 1) | pinr(SDA)   ' Read the bit
-        pinl(SCL)                               ' SCL low
-        qd()
+        i2cbyte := (i2cbyte << 1) | pinr(SDA)   ' read the bit
+        waitx(bit_hi)                           ' clock it in
+        pinl(SCL)
+        waitx(bit_lo)
+        pinf(SCL)
 
-    (ackbit) ? (pinf(SDA)) : (pinl(SDA))        ' Output ACK bit
-    qd()
-    pinf(SCL)                                   ' Float SCL
-    hd()
-    pinl(SCL)                                   ' SCL low
-    qd()
+    (ackbit) ? (pinf(SDA)) : (pinl(SDA))        ' output ACK bit
+    pinf(SCL)                                   ' clock out ACK bit
+    waitx(bit_hi)
+    pinl(SCL)
+    waitx(bit_lo)
 
     return (i2cbyte & $FF)
 
-PUB Reset() | SCL, SDA
+PUB Reset() | SCL, SDA, bit_lo, bit_hi
 ' Reset I2C bus
-    longmove(@SCL, @_SCL, 2)
+    longmove(@SCL, @_SCL, 4)
     repeat 9                                    ' send up to 9 clock pulses
         pinl(SCL)
-        hd()
+        waitx(bit_lo)
         pinf(SCL)
-        hd()
-        if (pinr(SDA))                          ' if SDA is released,
+        waitx(bit_hi)
+        if (pinr(SDA)) == HIGH                  ' if SDA is released,
             quit                                '   our work is done - return
 
 PUB Start()
@@ -145,27 +131,27 @@ PUB Start()
     pinf(_SDA)                                  ' Float pins
     pinf(_SCL)
     waitclkstretch()
-    hd()
+    waitx(_bittm_base)
     pinl(_SDA)                                  ' SDA low
-    hd()
+    waitx(_bittm_base)
     pinl(_SCL)                                  ' SCL low
-    hd()
+    waitx(_bittm_base)
 
 PUB Stop()
 ' Create I2C Stop condition (P)
 '   NOTE: This method supports clock stretching;
 '       waits while SDA pin is held low
     pinl(_SDA)                                  ' SDA low
-    hd()
+    waitx(_bittm_base)
     pinf(_SCL)                                  ' Float SCL
-    hd()
+    waitx(_bittm_base)
     waitclkstretch()
     pinf(_SDA)                                  ' Float SDA
 
-    hd()
+    waitx(_bittm_base)
 
-PUB Wait(slave_addr) | ackbit
-' Waits for I2C device to be ready for new command
+PUB Wait(slave_addr): ackbit
+' Wait for I2C device by repeatedly polling it
 '   NOTE: This method will wait indefinitely,
 '   if the device doesn't respond
     repeat
@@ -179,7 +165,7 @@ PUB WaitClkStretch()
     repeat until pinr(_SCL) == HIGH             ' wait until slave releases it
 
 PUB WaitTimeout(slave_addr, usec): status
-' Wait for I2C device to be ready for new command,
+' Wait for I2C device by repeatedly polling it,
 '   up to a maximum timeout of 'usec' microseconds
 '   Returns:
 '       ACK(0): device responded within specified time
@@ -223,32 +209,41 @@ PUB WrWord_MSBF(word2i2c): ackbit
 ' Write word to I2C bus, most-significant byte first
     return wrblock_msbf(@word2i2c, 2)
 
-PUB Write(i2cbyte): ackbit | SCL, SDA
+PUB Write(i2cbyte): ackbit | SCL, SDA, bit_lo, bit_hi
 ' Write byte to I2C bus
-' -- leaves SCL low
-    longmove(@SCL, @_SCL, 2)
-    i2cbyte := (i2cbyte ^ $FF) << 24            ' Move msb (bit7) to bit31
-    repeat 8                                    ' Output eight bits, MSB first
-        ((i2cbyte rol= 1) & %1) ? (pinl(SDA)) : (pinf(SDA))
-        hd()
-        pinf(SCL)                               ' SCL high
-        hd()
-        pinl(SCL)                               ' SCL low
-    pinf(SDA)                                   ' Release SDA to read ack bit
-    hd()
-    pinf(SCL)                                   ' SCL high
-    hd()
-    ackbit := pinr(SDA)                         ' Read ack bit
-    pinl(SCL)                                   ' SCL low
+    longmove(@SCL, @_SCL, 4)
+    i2cbyte := (i2cbyte ^ $FF) << 24            ' align byte with long bit 31
+    repeat 8                                    ' output eight bits, MSB first
+        ((i2cbyte rol= 1) & 1) ? (pinl(SDA)) : (pinf(SDA))
+        waitx(bit_lo)                           ' clock out bit
+        pinf(SCL)
+        waitx(bit_hi)
+        pinl(SCL)
+
+    pinf(SDA)                                   ' release SDA
+
+    waitx(bit_lo)
+    pinf(SCL)
+    waitx(bit_hi)
+    ackbit := pinr(SDA)                         ' read ack bit
+    pinl(SCL)
+
+    waitx(bit_lo)
     return ackbit
 
-PRI hd()
+' -- Legacy methods below
 
-    waitx (_hdelay)
+PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000): okay
+' Define I2C SCL (clock) and SDA (data) pins
+    _bittm_base := (clkfreq/I2C_HZ) >> 1        ' Calculate delays based on clock freq
 
-PRI qd()
-
-    waitx (_qdelay)
+    _SCL := I2C_SCL
+    _SDA := I2C_SDA
+    pinf(I2C_SCL)                               ' Float pins
+    pinf(I2C_SDA)
+    reset()
+    okay := cogid() + 1
+    return
 
 DAT
 {
