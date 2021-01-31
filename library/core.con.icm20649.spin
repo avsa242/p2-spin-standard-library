@@ -3,9 +3,9 @@
     Filename: core.con.icm20649.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Aug 28, 2020
-    Updated Oct 31, 2020
+    Updated Jan 30, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -18,10 +18,13 @@ CON
 
 ' SPI
     SCK_MAX_FREQ                = 7_000_000
+    SPI_MODE                    = 0
     R                           = 1 << 7        ' SPI: read reg
     W                           = 0 << 7        ' SPI: write reg
 
     TPOR                        = 5_000         ' usec
+    A_START_COLD                = 30_000        ' usec
+    G_START_COLD                = 35_000        ' usec
 
 ' ICM20649 has 4 banks of registers, numbered 0..3. Many register numbers
 '   are duplicated across banks, so to work around this (i.e. for register
@@ -60,13 +63,13 @@ CON
 
     PWR_MGMT_1                  = $006
     PWR_MGMT_1_MASK             = $EF
-        DEVICE_RESET            = 7
+        DEV_RESET               = 7
         SLEEP                   = 6
         LP_EN                   = 5
         TEMP_DIS                = 3
         CLKSEL                  = 0
         CLKSEL_BITS             = %111
-        DEVICE_RESET_MASK       = (1 << DEVICE_RESET) ^ PWR_MGMT_1_MASK
+        DEV_RESET_MASK          = (1 << DEV_RESET) ^ PWR_MGMT_1_MASK
         SLEEP_MASK              = (1 << SLEEP) ^ PWR_MGMT_1_MASK
         LP_EN_MASK              = (1 << LP_EN) ^ PWR_MGMT_1_MASK
         TEMP_DIS_MASK           = (1 << TEMP_DIS) ^ PWR_MGMT_1_MASK
@@ -74,26 +77,26 @@ CON
 
     PWR_MGMT_2                  = $007
     PWR_MGMT_2_MASK             = $3F
-        DISABLE_ACCEL           = 3
-        DISABLE_GYRO            = 0
-        DISABLE_ACCEL_BITS      = %111
-        DISABLE_GYRO_BITS       = %111
-        DISABLE_ACCEL_MASK      = (DISABLE_ACCEL_BITS << DISABLE_ACCEL) ^ PWR_MGMT_2_MASK
-        DISABLE_GYRO_MASK       = (DISABLE_GYRO_BITS << DISABLE_GYRO) ^ PWR_MGMT_2_MASK
+        DIS_ACCEL               = 3
+        DIS_GYRO                = 0
+        DIS_ACCEL_BITS          = %111
+        DIS_GYRO_BITS           = %111
+        DIS_ACCEL_MASK          = (DIS_ACCEL_BITS << DIS_ACCEL) ^ PWR_MGMT_2_MASK
+        DIS_GYRO_MASK           = (DIS_GYRO_BITS << DIS_GYRO) ^ PWR_MGMT_2_MASK
 
     INT_PIN_CFG                 = $00F
     INT_PIN_CFG_MASK            = $FE
         INT1_ACTL               = 7
         INT1_OPEN               = 6
         INT1_LATCH_EN           = 5
-        INT_ANYRD_2CLEAR        = 4
+        INT_ANYRD_2CLR          = 4
         ACTL_FSYNC              = 3
         FSYNC_INT_MODE_EN       = 2
         BYPASS_EN               = 1
         INT1_ACTL_MASK          = (1 << INT1_ACTL) ^ INT_PIN_CFG_MASK
         INT1_OPEN_MASK          = (1 << INT1_OPEN) ^ INT_PIN_CFG_MASK
         INT1_LATCH_EN_MASK      = (1 << INT1_LATCH_EN) ^ INT_PIN_CFG_MASK
-        INT_ANYRD2CLEAR_MASK    = (1 << INT_ANYRD_2CLEAR) ^ INT_PIN_CFG_MASK
+        INT_ANYRD2CLR_MASK      = (1 << INT_ANYRD_2CLR) ^ INT_PIN_CFG_MASK
         ACTL_FSYNC_MASK         = (1 << ACTL_FSYNC) ^ INT_PIN_CFG_MASK
         FSYNC_INT_MODE_EN_MASK  = (1 << FSYNC_INT_MODE_EN) ^ INT_PIN_CFG_MASK
         BYPASS_EN_MASK          = (1 << BYPASS_EN) ^ INT_PIN_CFG_MASK
@@ -126,8 +129,8 @@ CON
 
     INT_ENABLE_2                = $012
     INT_ENABLE_2_MASK           = $1F
-        FIFO_OVERFLOW_EN        = 0
-        FIFO_OVERFLOW_EN_BITS   = %11111
+        FIFO_OVRFL_EN           = 0
+        FIFO_OVRFL_EN_BITS      = %11111
 
     INT_ENABLE_3                = $013
     INT_ENABLE_3_MASK           = $1F
@@ -158,8 +161,8 @@ CON
 
     INT_STATUS_2                = $01B
     INT_STATUS_2_MASK           = $1F
-        FIFO_OVERFLOW_INT       = 0
-        FIFO_OVERFLOW_INT_BITS  = %11111
+        FIFO_OVRFL_INT          = 0
+        FIFO_OVRFL_INT_BITS     = %11111
 
     INT_STATUS_3                = $01C
     INT_STATUS_3_MASK           = $1F
@@ -271,12 +274,12 @@ CON
     GYRO_CFG1_MASK              = $3F
         GYRO_DLPFCFG            = 3
         GYRO_FS_SEL             = 1
-        GYRO_FCHOICE            = 0
+        GYRO_FCH                = 0
         GYRO_DLPFCFG_BITS       = %111
         GYRO_FS_SEL_BITS        = %11
         GYRO_DLPFCFG_MASK       = (GYRO_DLPFCFG_BITS << GYRO_DLPFCFG) ^ GYRO_CFG1_MASK
         GYRO_FS_SEL_MASK        = (GYRO_FS_SEL_BITS << GYRO_FS_SEL) ^ GYRO_CFG1_MASK
-        GYRO_FCHOICE_MASK       = 1 ^ GYRO_CFG1_MASK
+        GYRO_FCH_MASK           = 1 ^ GYRO_CFG1_MASK
 
     GYRO_CFG2                   = $202
     GYRO_CFG2_MASK              = $3F
@@ -315,12 +318,12 @@ CON
     ACCEL_CFG_MASK              = $3F
         ACCEL_DLPFCFG           = 3
         ACCEL_FS_SEL            = 1
-        ACCEL_FCHOICE           = 0
+        ACCEL_FCH               = 0
         ACCEL_DLPFCFG_BITS      = %111
         ACCEL_FS_SEL_BITS       = %11
         ACCEL_DLPFCFG_MASK      = (ACCEL_DLPFCFG_BITS << ACCEL_DLPFCFG) ^ ACCEL_CFG_MASK
         ACCEL_FS_SEL_MASK       = (ACCEL_FS_SEL_BITS << ACCEL_FS_SEL) ^ ACCEL_CFG_MASK
-        ACCEL_FCHOICE_MASK      = 1 ^ ACCEL_CFG_MASK
+        ACCEL_FCH_MASK          = 1 ^ ACCEL_CFG_MASK
 
     ACCEL_CFG_2                 = $215
     ACCEL_CFG_2_MASK            = $1F
