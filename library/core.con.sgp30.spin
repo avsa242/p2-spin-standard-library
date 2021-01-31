@@ -26,7 +26,9 @@ CON
     T_MEAS_RAW          = 25_000
     T_GET_TVOC_INCBASE  = 10_000
     T_SET_TVOC_BASE     = 10_000
-    T_GET_SN            = T_IDLE
+    T_GET_SN            = 900
+'   (^^^NOTE: Datasheet says this should be T_IDLE, but empirical testing shows
+'   this is about the minimum needed for the sensor to be ready)
 
 ' Commands
     IAQ_INIT            = $2003
