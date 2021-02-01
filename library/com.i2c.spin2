@@ -60,15 +60,63 @@ PUB Rd_Byte(ackbit): i2cbyte
 ' Read byte from I2C bus
     rdblock_lsbf(@i2cbyte, 1, ackbit)
 
-PUB RdBlock_LSBF(ptr_buff, nr_bytes, ack_last) | bytenum, i2cbyte
+PUB RdBlock_LSBF(ptr_buff, nr_bytes, ack_last) | SCL, SDA, bit_lo, bit_hi, bytenum, i2cbyte
 ' Read nr_bytes from I2C bus into ptr_buff, LSByte-first
-    repeat bytenum from 0 to nr_bytes-1
-        byte[ptr_buff][bytenum] := read(((bytenum == nr_bytes-1) & ack_last))
+'   ack_last: send ACK/NAK after last byte read
+'       (ACK will be sent for all prior bytes)
+    longmove(@SCL, @_SCL, 4)
+    ack_last := (ack_last <> 0)                     ' if <> 0, then it's a 1
 
-PUB RdBlock_MSBF(ptr_buff, nr_bytes, ack_last) | bytenum, i2cbyte
+    repeat bytenum from 0 to nr_bytes-1
+        pinf(SDA)                                   ' prep SDA for reading bits
+        waitclkstretch()
+
+        repeat 8
+            i2cbyte := (i2cbyte << 1) | pinr(SDA)   ' read the bit
+            waitx(bit_hi)                           ' clock it in
+            pinl(SCL)
+            waitx(bit_lo)
+            pinf(SCL)
+
+        ' output ACK bit:
+        '   ACK, unless it's the last byte
+        '   then, it's the user's decision
+        ((bytenum == nr_bytes-1) & ack_last) ? (pinf(SDA)) : (pinl(SDA))
+        pinf(SCL)                                   ' clock it out
+        waitx(bit_hi)
+        pinl(SCL)
+        waitx(bit_lo)
+
+        byte[ptr_buff][bytenum] := i2cbyte
+
+PUB RdBlock_MSBF(ptr_buff, nr_bytes, ack_last) | SCL, SDA, bit_lo, bit_hi, bytenum, i2cbyte
 ' Read nr_bytes from I2C bus into ptr_buff, MSByte-first
+'   ack_last: send ACK/NAK after last byte read
+'       (ACK will be sent for all prior bytes)
+    longmove(@SCL, @_SCL, 4)
+    ack_last := (ack_last <> 0)                     ' if <> 0, then it's a 1
+
     repeat bytenum from nr_bytes-1 to 0
-        byte[ptr_buff][bytenum] := read(((bytenum == 0) & ack_last))
+        pinf(SDA)                                   ' prep SDA for reading bits
+        waitclkstretch()
+
+        repeat 8
+            i2cbyte := (i2cbyte << 1) | pinr(SDA)   ' read the bit
+            waitx(bit_hi)                           ' clock it in
+            pinl(SCL)
+            waitx(bit_lo)
+            pinf(SCL)
+
+        ' output ACK bit:
+        '   ACK, unless it's the last byte
+        '   then, it's the user's decision
+        ((bytenum == 0) & ack_last) ? (pinf(SDA)) : (pinl(SDA))
+        pinf(SCL)                                   ' clock it out
+        waitx(bit_hi)
+        pinl(SCL)
+        waitx(bit_lo)
+
+        byte[ptr_buff][bytenum] := i2cbyte
 
 PUB RdLong_LSBF(ackbit): i2c2long
 ' Read long from I2C bus, least-significant byte first
@@ -86,32 +134,13 @@ PUB RdWord_MSBF(ackbit): i2c2word
 ' Read word from I2C bus, least-significant byte first
     rdblock_msbf(@i2c2word, 2, ackbit)
 
-PUB Read(ackbit): i2cbyte | SCL, SDA, bit_lo, bit_hi
+PUB Read(ackbit): i2cbyte
 ' Read byte from I2C bus
 '   Valid values:
 '       ackbit:
 '           ACK (0):        Acknowledge byte
 '           NAK (non-zero): Don't acknowledge byte
-    longmove(@SCL, @_SCL, 4)
-    ackbit := (ackbit <> 0)
-
-    pinf(SDA)                                   ' prep SDA for reading bits
-    waitclkstretch()
-
-    repeat 8
-        i2cbyte := (i2cbyte << 1) | pinr(SDA)   ' read the bit
-        waitx(bit_hi)                           ' clock it in
-        pinl(SCL)
-        waitx(bit_lo)
-        pinf(SCL)
-
-    (ackbit) ? (pinf(SDA)) : (pinl(SDA))        ' output ACK bit
-    pinf(SCL)                                   ' clock out ACK bit
-    waitx(bit_hi)
-    pinl(SCL)
-    waitx(bit_lo)
-
-    return (i2cbyte & $FF)
+    rdblock_lsbf(@i2cbyte, 1, ackbit)
 
 PUB Reset() | SCL, SDA, bit_lo, bit_hi
 ' Reset I2C bus
@@ -159,11 +188,6 @@ PUB Wait(slave_addr): ackbit
         ackbit := write(slave_addr)
     until (ackbit == ACK)
 
-PUB WaitClkStretch()
-' Wait for slave device using clock-stretching
-    pinf(_SCL)                                  ' let SCL float
-    repeat until pinr(_SCL) == HIGH             ' wait until slave releases it
-
 PUB WaitTimeout(slave_addr, usec): status
 ' Wait for I2C device by repeatedly polling it,
 '   up to a maximum timeout of 'usec' microseconds
@@ -183,15 +207,55 @@ PUB Wr_Byte(b): ackbit
 ' Write byte to I2C bus
     return wrblock_lsbf(@b, 1)
 
-PUB WrBlock_LSBF(ptr_buff, nr_bytes): ackbit | bytenum, i2cbyte
+PUB WrBlock_LSBF(ptr_buff, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, bytenum, i2cbyte
 ' Write nr_bytes to I2C bus from ptr_buff, LSByte-first
-    repeat bytenum from 0 to nr_bytes-1
-        ackbit := write(byte[ptr_buff][bytenum])
+'   Returns: ack bit of last byte written
+    longmove(@SCL, @_SCL, 4)
 
-PUB WrBlock_MSBF(ptr_buff, nr_bytes): ackbit | bytenum, i2cbyte
+    repeat bytenum from 0 to nr_bytes-1
+        ' align byte with long bit 31
+        i2cbyte := (byte[ptr_buff][bytenum] ^ $FF) << 24
+        repeat 8                                    ' output eight bits, MSB first
+            ((i2cbyte rol= 1) & 1) ? (pinl(SDA)) : (pinf(SDA))
+            waitx(bit_lo)                           ' clock out bit
+            pinf(SCL)
+            waitx(bit_hi)
+            pinl(SCL)
+
+        pinf(SDA)                                   ' release SDA
+
+        waitx(bit_lo)
+        pinf(SCL)
+        waitx(bit_hi)
+        ackbit := pinr(SDA)                         ' read ack bit
+        pinl(SCL)
+
+        waitx(bit_lo)
+
+PUB WrBlock_MSBF(ptr_buff, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, bytenum, i2cbyte
 ' Write nr_bytes to I2C bus from ptr_buff, MSByte-first
+'   Returns: ack bit of last byte written
+    longmove(@SCL, @_SCL, 4)
+
     repeat bytenum from nr_bytes-1 to 0
-        ackbit := write(byte[ptr_buff][bytenum])
+        ' align byte with long bit 31
+        i2cbyte := (byte[ptr_buff][bytenum] ^ $FF) << 24
+        repeat 8                                    ' output eight bits, MSB first
+            ((i2cbyte rol= 1) & 1) ? (pinl(SDA)) : (pinf(SDA))
+            waitx(bit_lo)                           ' clock out bit
+            pinf(SCL)
+            waitx(bit_hi)
+            pinl(SCL)
+
+        pinf(SDA)                                   ' release SDA
+
+        waitx(bit_lo)
+        pinf(SCL)
+        waitx(bit_hi)
+        ackbit := pinr(SDA)                         ' read ack bit
+        pinl(SCL)
+
+        waitx(bit_lo)
 
 PUB WrLong_LSBF(long2i2c): ackbit
 ' Write long to I2C bus, least-significant byte first
@@ -211,25 +275,12 @@ PUB WrWord_MSBF(word2i2c): ackbit
 
 PUB Write(i2cbyte): ackbit | SCL, SDA, bit_lo, bit_hi
 ' Write byte to I2C bus
-    longmove(@SCL, @_SCL, 4)
-    i2cbyte := (i2cbyte ^ $FF) << 24            ' align byte with long bit 31
-    repeat 8                                    ' output eight bits, MSB first
-        ((i2cbyte rol= 1) & 1) ? (pinl(SDA)) : (pinf(SDA))
-        waitx(bit_lo)                           ' clock out bit
-        pinf(SCL)
-        waitx(bit_hi)
-        pinl(SCL)
+    return wrblock_lsbf(@i2cbyte, 1)
 
-    pinf(SDA)                                   ' release SDA
-
-    waitx(bit_lo)
-    pinf(SCL)
-    waitx(bit_hi)
-    ackbit := pinr(SDA)                         ' read ack bit
-    pinl(SCL)
-
-    waitx(bit_lo)
-    return ackbit
+PRI WaitClkStretch()
+' Wait for slave device using clock-stretching
+    pinf(_SCL)                                  ' let SCL float
+    repeat until pinr(_SCL) == HIGH             ' wait until slave releases it
 
 ' -- Legacy methods below
 
