@@ -12,12 +12,15 @@
 
 CON
 
-    I2C_MAX_FREQ      = 400_000               'Change to your device's maximum bus rate, according to its datasheet
-    SLAVE_ADDR        = {CHANGE}$00{ME} << 1  'Change to your device's slave address, according to its datasheet
-                                            ' (7-bit format)
+' I2C Configuration
+    I2C_MAX_FREQ    = 100_000                   ' device max I2C bus freq
+    SLAVE_ADDR      = $00 << 1                  ' 7-bit format slave address
+    T_POR           = 0                         ' startup time (usecs)
 
-'' Register definitions
-    REG_NAME          = $00                   'Brief description of register
+    DEVID_RESP      = $00                       ' device ID expected response
+
+' Register definitions
+    REG_NAME        = $00
 
 PUB Null()
-'' This is not a top-level object
+' This is not a top-level object

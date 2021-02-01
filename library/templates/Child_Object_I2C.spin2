@@ -23,58 +23,84 @@ VAR
 
 OBJ
 
-    i2c : "com.i2c"                                                 ' PASM I2C Driver
-    core: "core.con.your_i2c_device_here"                           ' File containing your device's reg_nrister set
+    i2c : "com.i2c"                             ' bit-banged I2C engine (1MHz+)
+    core: "core.con.your_i2c_device_here"       ' hw-specific low-level const's
+    time: "time"                                ' basic timing functions
 
 PUB Null()
-''This is not a top-level object
+' This is not a top-level object
 
-PUB Start(SCL_PIN, SDA_PIN, I2C_HZ=100_000): okay
-
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ <= core.I2C_MAX_FREQ
-            if okay := i2c.setup (SCL_PIN, SDA_PIN, I2C_HZ)         ' I2C Object Started?
-                waitms (1)
-                if i2c.present (SLAVE_WR)                           ' Response from device?
-                    return okay
-
-    return FALSE                                                    ' If we got here, something went wrong
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
+' Start using custom IO pins and I2C bus frequency
+    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
+}   I2C_HZ <= core.I2C_MAX_FREQ                 ' validate pins and bus freq
+        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+            waitus(core.T_POR)             ' wait for device startup
+            if i2c.present(SLAVE_WR)            ' test device bus presence
+                if deviceid() == core.DEVID_RESP' validate device
+                    return
+    ' if this point is reached, something above failed
+    ' Re-check I/O pin assignments, bus speed, connections, power
+    ' Lastly - make sure you have at least one free core/cog
+    return FALSE
 
 PUB Stop()
-' Put any other housekeeping code here required/recommended by your device before shutting down
 
-PRI readReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp
-'' read num_bytes from the slave device into the address stored in buff_addr
-    case reg_nr                                                     ' Basic reg_nrister validation
-        $00..$FF:                                                   ' Consult your device's datasheet!
-            cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := reg_nr
-            i2c.start()                                             ' S
-            repeat tmp from 0 to 1
-                i2c.write (cmd_packet.byte[tmp])                    ' SL|W, reg_nr
+    i2c.deinit()
 
-            i2c.start()                                             ' Rs
-            i2c.write (SLAVE_RD)                                    ' SL|R
-            repeat tmp from 0 to nr_bytes-1
-                byte[buff_addr][tmp] := i2c.read(tmp == nr_bytes-1) ' R 0..n, NAK last byte to signal complete
-            i2c.stop()                                              ' P
-        OTHER:
+PUB Defaults()
+' Set factory defaults
+
+PUB DeviceID(): id
+' Read device identification
+
+PUB Reset()
+' Reset the device
+
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+' Read nr_bytes from the device into ptr_buff
+    case reg_nr                                 ' validate register num
+        $00..$FF:
+            cmd_pkt.byte[0] := SLAVE_WR
+            cmd_pkt.byte[1] := reg_nr
+            i2c.start()
+            i2c.wrblock_lsbf(@cmd_pkt, 2)
+            i2c.start()
+            i2c.wr_byte(SLAVE_RD)
+
+' choose the block below appropriate to your device
+    ' write LSByte to MSByte
+            i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c.NAK)
+            i2c.stop()
+    '
+
+    ' write MSByte to LSByte
+            i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c.NAK)
+            i2c.stop()
+    '
+        other:                                  ' invalid reg_nr
             return
 
-PRI writeReg(reg_nr, nr_bytes, buff_addr) | cmd_packet, tmp
-'' write num_bytes to the slave device from the address stored in buff_addr
-    case reg_nr                                                     ' Basic reg_nrister validation
-        $00..$FF:                                                   ' Consult your device's datasheet!
-            cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := reg_nr
-            i2c.start()                                             ' S
-            repeat tmp from 0 to 1
-                i2c.write(cmd_packet.byte[tmp])                     ' SL|W, reg_nr
+PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+' Write nr_bytes to the device from ptr_buff
+    case reg_nr
+        $00..$FF:
+            cmd_pkt.byte[0] := SLAVE_WR
+            cmd_pkt.byte[1] := reg_nr
+            i2c.start()
+            i2c.wrblock_lsbf(@cmd_pkt, 2)
 
-            repeat tmp from 0 to nr_bytes-1
-                i2c.write (byte[buff_addr][tmp])                    ' W 0..n
-            i2c.stop()                                              ' P
-        OTHER:
+' choose the block below appropriate to your device
+    ' write LSByte to MSByte
+            i2c.wrblock_lsbf(ptr_buff, nr_bytes)
+            i2c.stop()
+    '
+
+    ' write MSByte to LSByte
+            i2c.wrblock_msbf(ptr_buff, nr_bytes)
+            i2c.stop()
+    '
+        other:
             return
 
 

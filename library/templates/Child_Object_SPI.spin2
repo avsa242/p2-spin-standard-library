@@ -12,61 +12,97 @@
 
 CON
 
+    DEF_SCK_FREQ    = 1_000_000
+    MAX_SCK_FREQ    = core.SPI_MAX_FREQ
 
 VAR
 
-    byte _CS, _MOSI, _MISO, _SCK
+    long _CS
 
 OBJ
 
-    spi : "com.spi.bitbang-fast"                            ' PASM SPI Driver
-    core: "core.con.your_spi_device_here"                   ' File containing your device's reg_nrister set
+' choose an SPI engine below
+'    spi : "com.spi.bitbang"                     ' bit-banged SPI engine (~6.5MHz)
+'    spi : "com.spi"                             ' smart-pin SPI engine (25MHz+)
+    core: "core.con.your_spi_device_here"       ' hw-specific low-level const's
 
 PUB Null()
-''This is not a top-level object
+' This is not a top-level object
 
-PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ): okay
+PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=DEF_SCK_FREQ): status
+' Start using custom IO pins
+    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
+}   lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63)
+        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE))
+            waitms(core.T_POR)                  ' wait for device startup
+            _CS := CS_PIN                       ' copy i/o pin to hub var
+            pinh(_CS)                           ' make sure CS starts high
 
-    if SCK_DELAY >= 1
-        if okay := spi.Start (MOSI_PIN, MISO_PIN, SCK_HZ, core.SCK_CPOL)    ' SPI Object Started?
-            waitms (1)                                      ' Add startup delay appropriate to your device (consult its datasheet)
-            _CS := CS_PIN
-            _MOSI := MOSI_PIN
-            _MISO := MISO_PIN
-            _SCK := SCK_PIN
+            if deviceid() == core.DEVID_RESP    ' validate device
+                return
+    ' if this point is reached, something above failed
+    ' Re-check I/O pin assignments, bus speed, connections, power
+    ' Lastly - make sure you have at least one free core/cog
+    return FALSE
 
-            pinh(_CS)
+PUB Stop()
 
-            return okay
+    spi.deinit()
 
-    return FALSE                                            ' If we got here, something went wrong
+PUB Defaults()
+' Set factory defaults
 
-PRI readReg(reg_nr, nr_bytes, buff_addr) | i
-' Read nr_bytes from reg_nrister 'reg_nr' to address 'buf_addr'
+PUB DeviceID(): id
+' Read device identification
 
-' Handle quirky reg_nristers on a case-by-case basis
-    case reg_nr
+PUB Reset()
+' Reset the device
+
+PRI readReg(reg_nr, nr_bytes, ptr_buff)
+' Read nr_bytes from the device into ptr_buff
+    case reg_nr                                 ' validate register num
+        $00:
         core.REG_NAME:
-            'Special handling for reg_nrister REG_NAME
-        OTHER:
+            ' Special handling for register REG_NAME
+        other:                                  ' invalid reg_nr
+            return
 
     pinl(_CS)
-    spi.write(_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
+    spi.wr_byte(reg_nr)
 
-    repeat i from 0 to nr_bytes-1
-        byte[buff_addr][i] := spi.read(_MISO, _SCK, core.MISO_BITORDER, 8)
+' choose the block below appropriate to your device
+    ' read LSByte to MSByte
+    spi.rdblock_lsbf(ptr_buff, nr_bytes)
     pinh(_CS)
+    '
 
-PRI writeReg(reg_nr, nr_bytes, buff_addr) | i
-' Write nr_bytes to reg_nrister 'reg_nr' stored at buf_addr
+    ' read MSByte to LSByte
+    spi.rdblock_msbf(ptr_buff, nr_bytes)
+    pinh(_CS)
+    '
+
+PRI writeReg(reg_nr, nr_bytes, ptr_buff)
+' Write nr_bytes to the device from ptr_buff
+    case reg_nr
+        $00:
+        core.REG_NAME:
+            ' Special handling for register REG_NAME
+        other:
+            return
 
     pinl(_CS)
-    spi.write(_MOSI, _SCK, core.MOSI_BITORDER, 8, reg_nr)
+    spi.wr_byte(reg_nr)
 
-    repeat i from 0 to nr_bytes-1
-        spi.write(_MOSI, _SCK, core.MISO_BITORDER, 8, byte[buff_addr][i])
-
+' choose the block below appropriate to your device
+    ' write LSByte to MSByte
+    spi.wrblock_lsbf(ptr_buff, nr_bytes)
     pinh(_CS)
+    '
+
+    ' write MSByte to LSByte
+    spi.wrblock_msbf(ptr_buff, nr_bytes)
+    pinh(_CS)
+    '
 
 DAT
 {
