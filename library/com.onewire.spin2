@@ -1,0 +1,246 @@
+{
+    --------------------------------------------
+    Filename: com.onewire.spin2
+    Description: OneWire Bus engine
+    Author: Jesse Burt
+    Created May 31, 2020
+    Updated Feb 6, 2021
+    See end of file for terms of use.
+    --------------------------------------------
+
+    NOTE: This is based on SpinOneWire.spin,
+    originally by Micah Dowty
+}
+
+CON
+
+' 1-wire commands
+    SEARCH_ROM          = $F0
+    RD_ROM              = $33
+    MATCH_ROM           = $55
+    SKIP_ROM            = $CC
+
+' Search flags
+    CHECK_CRC           = $100
+
+    GOOD                = 0
+    PRESENCE            = TRUE
+
+OBJ
+
+    crc : "math.crc"
+
+VAR
+
+    long  _DQ
+
+PUB Init(OW_PIN): status
+' OW_PIN: OneWire bus I/O pin (DQ/DATA/OWIO)
+    if lookdown(OW_PIN: 0..63)
+        _DQ := OW_PIN
+        pinf(_DQ)
+        return cogid() + 1
+    else
+        return FALSE
+
+PUB DeInit()
+' Deinitialize
+    _DQ := 0
+
+PUB Rd_Bits(nr_bits): bits | mask
+' Read nr_bits from the bus
+    bits := 0
+    mask := 1
+
+    repeat nr_bits
+        pinl(_DQ)                               ' 6us low + 9usec high
+        waitus(6)                               ' puts bit sample approx
+        pinf(_DQ)                               ' 15us in
+        waitus(9)
+        if pinread(_DQ)                         ' sample bit
+            bits |= mask
+
+        waitus(35)                              ' wait remainder of time slot
+        mask <<= 1
+
+        waitus(10)                              ' recovery (inter-bit) time
+
+PUB Rd_Byte(): ow2byte
+' Read a byte from the bus
+    return rd_bits(8)
+
+PUB Rd_Long(): ow2long
+' Read a long from the bus
+    return rd_bits(32)
+
+PUB Rd_Word(): ow2word
+' Read a word from the bus
+    return rd_bits(16)
+
+PUB RdBlock_LSBF(ptr_buff, nr_bytes) | bytenum
+' Read block of bytes from bus, least-significant byte first
+    repeat bytenum from 0 to nr_bytes-1
+        byte[ptr_buff][bytenum] := rd_bits(8)
+
+PUB RdBlock_MSBF(ptr_buff, nr_bytes) | bytenum
+' Read block of bytes from bus, most-significant byte first
+    repeat bytenum from nr_bytes-1 to 0
+        byte[ptr_buff][bytenum] := rd_bits(8)
+
+PUB ReadAddress(ptr_addr) | ah, al
+' Read 64-bit address from the bus
+    rdblock_lsbf(ptr_addr, 8)
+
+PUB Reset(): present
+' Send Reset signal to bus
+'   Returns:
+'       TRUE (-1): a device is present
+'       FALSE (0): no device present, or bus is busy
+    if not pinr(_DQ)                            ' ensure bus is free, first
+        return FALSE
+
+    pinl(_DQ)                                   ' reset pulse
+    waitus(480)                                 ' minimum 480us
+    pinf(_DQ)                                   ' float to allow device(s)
+    waitus(70)                                  '   to respond
+
+    present := (pinr(_DQ) == 0)                 ' 0 == device present
+
+    waitus(480)                                 ' wait the rest of the timeslot
+
+PUB Search(flags, max_addrs, ptr_addr): nr_found | bit, rom[2], disc, discmark, locked
+' Search bus for devices
+'   flags:
+'       bits[7..0]: restrict search to family code
+'       bits[8]: if set, return only devices with a valid CRC
+'   max_addrs: maximum number of 64-bit addresses to find
+'   ptr_addr: pointer to buffer for storing found addresses (LSW-first)
+'       NOTE: buffer must be a minimum of (max_addrs * 8) bytes
+'
+'   Returns: number of devices found
+    rom[1] := 0
+    nr_found := 0
+    disc := 0
+    locked := 0
+
+    rom[0] := flags & $FF                       ' restrict to family code
+    if rom[0]
+        locked := 8
+
+    repeat max_addrs
+        if reset() <> PRESENCE
+            return                              ' no devices found
+
+        wr_byte(SEARCH_ROM)
+        discmark := 0
+
+        repeat bit from 0 to 63
+            if bit > locked
+                case rd_bits(2)
+                    %00:                        ' conflict
+                        if bit == disc
+                        ' We tried a zero here last time, try a one now
+                            setbit64(@rom, bit, 1)
+                        elseif bit > disc
+                            setbit64(@rom, bit, 0)
+                            discmark := bit
+                        elseif getbit64(@rom, bit) == 0
+                            discmark := bit
+                    %01:                        ' all devices read 1
+                        setbit64(@rom, bit, 1)
+                    %10:                        ' all devices read 0
+                        setbit64(@rom, bit, 0)
+                    %11:                        ' no response
+                        return
+            else
+            ' Bit is locked. Ignore the device.
+                rd_bits(2)
+            ' Reply, selecting only devices that match this bit.
+            wr_bits(getbit64(@rom, bit), 1)
+        ' At the end of every iteration, we've discovered one device's address.
+        if (flags & CHECK_CRC)                  ' check CRC?
+            if crc.dallasmaximcrc8(@rom, 8) == GOOD
+                longmove(ptr_addr, @rom, 2)
+                ptr_addr += 8
+                nr_found++
+        ' Is the search done yet?
+        disc := discmark
+        if disc == 0
+            return
+
+PUB Wr_Bits(byte2ow, nr_bits)
+' Write nr_bits of byte2ow to bus (LSB-first)
+    repeat nr_bits
+        if byte2ow & 1                          ' 1 bit
+            pinl(_DQ)                           ' 6us low + 54us high
+            waitus(6)                           '   (60us time slot)
+            pinf(_DQ)
+            waitus(54)
+        else                                    ' 0 bit
+            pinl(_DQ)                           ' 60us low
+            waitus(60)
+            pinf(_DQ)
+        waitus(10)                              ' recovery (inter-bit) time
+        byte2ow >>= 1
+
+PUB Wr_Byte(byte2ow)
+' Write byte to bus
+    wr_bits(byte2ow, 8)
+
+PUB Wr_Long(long2ow)
+' Write long to bus
+    wr_bits(long2ow, 32)
+
+PUB Wr_Word(word2ow)
+' Write word to bus
+    wr_bits(word2ow, 16)
+
+PUB WrBlock_LSBF(ptr_buff, nr_bytes) | bytenum
+' Writeblock of bytes to bus, least-significant byte first
+    repeat bytenum from 0 to nr_bytes-1
+        wr_bits(byte[ptr_buff][bytenum], 8)
+
+PUB WrBlock_MSBF(ptr_buff, nr_bytes) | bytenum
+' Write block of bytes to bus, least-significant byte first
+    repeat bytenum from nr_bytes-1 to 0
+        wr_bits(byte[ptr_buff][bytenum], 8)
+
+PUB WriteAddress(ptr_addr) | ah, al
+' Write 64-bit address to bus
+    wrblock_lsbf(ptr_addr, 8)
+
+PRI getBit64(ptr_addr, n): bit
+' Return bit 'n' in a 64-bit word at address 'ptr_addr'.
+    bit := (byte[ptr_addr + (n >> 3)] >> (n & 7)) & 1
+
+PRI setBit64(ptr_addr, n, bit)
+' Set or clear bit 'n' in a 64-bit word at address 'ptr_addr'.
+    if n >= 32
+        n -= 32
+        ptr_addr += 4
+    if bit
+        long[ptr_addr] |= decod(n)
+    else
+        long[ptr_addr] &= !decod(n)
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
