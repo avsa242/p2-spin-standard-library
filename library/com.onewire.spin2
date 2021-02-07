@@ -34,6 +34,9 @@ VAR
 
     long  _DQ
 
+PUB Null()
+' This is not a top-level object
+
 PUB Init(OW_PIN): status
 ' OW_PIN: OneWire bus I/O pin (DQ/DATA/OWIO)
     if lookdown(OW_PIN: 0..63)
