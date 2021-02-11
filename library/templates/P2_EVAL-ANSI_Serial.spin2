@@ -14,21 +14,19 @@ CON
     _xtlfreq    = cfg._xtlfreq
     _clkfreq    = cfg._clkfreq_def
 
+' -- User-modifiable constants
     LED         = cfg.LED1
-    SER_RX      = cfg.SER_RX
-    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
+
+' --
 
 OBJ
 
-    ser         : "com.serial.terminal.ansi"
-    cfg         : "core.con.boardcfg.p2eval"
-    io          : "io"
-    time        : "time"
+    ser : "com.serial.terminal.ansi"
+    cfg : "core.con.boardcfg.p2eval"
 
 VAR
 
-    long _ser_cog
 
 PUB Main()
 
@@ -38,12 +36,11 @@ PUB Main()
 '   Code
 '   Here
 
-    FlashLED(LED, 100)     ' Signal execution finished
+    repeat
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.start(SER_BAUD)
     ser.clear()
-    ser.printf("Serial terminal started\n")
+    ser.strln(string("Serial terminal started"))
 
-#include "lib.utility.spin2"
