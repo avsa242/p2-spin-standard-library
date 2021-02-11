@@ -39,8 +39,8 @@ PUB Init(SCL, SDA, HZ=DEF_HZ): status
 
     _bittm_base := (clkfreq / HZ) / 2           ' calculate bit time based on
                                                 '   system clock freq
-    _bit_lo := _bittm_base - 74                 ' SCL low/hi times - account
-    _bit_hi := _bittm_base + 57                 '   for overhead
+    _bit_lo := _bittm_base - 36                 ' SCL low/hi times - account
+    _bit_hi := _bittm_base + 19                 '   for overhead
 
     pinf(_SCL)                                  ' start with pins floating
     pinf(_SDA)
@@ -72,11 +72,11 @@ PUB RdBlock_LSBF(ptr_buff, nr_bytes, ack_last) | SCL, SDA, bit_lo, bit_hi, byten
         waitclkstretch()
 
         repeat 8
+            pinf(SCL)
             i2cbyte := (i2cbyte << 1) | pinr(SDA)   ' read the bit
-            waitx(bit_hi)                           ' clock it in
+            waitx(bit_hi)
             pinl(SCL)
             waitx(bit_lo)
-            pinf(SCL)
 
         ' output ACK bit:
         '   ACK, unless it's the last byte
@@ -101,11 +101,11 @@ PUB RdBlock_MSBF(ptr_buff, nr_bytes, ack_last) | SCL, SDA, bit_lo, bit_hi, byten
         waitclkstretch()
 
         repeat 8
+            pinf(SCL)
             i2cbyte := (i2cbyte << 1) | pinr(SDA)   ' read the bit
-            waitx(bit_hi)                           ' clock it in
+            waitx(bit_hi)
             pinl(SCL)
             waitx(bit_lo)
-            pinf(SCL)
 
         ' output ACK bit:
         '   ACK, unless it's the last byte
