@@ -6,26 +6,31 @@
         showing a scope output of the audio on an attached VGA display
     Author: Jesse Burt
     Started: May 16, 2020
-    Updated: Jul 14, 2020
+    Updated: Feb 14, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
-     _xtlfreq       = cfg._xtlfreq
-     _clkfreq       = 250_000_000                           ' Must match constant set in VGA driver (default 250MHz)
+    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = vga._clkfreq                ' Must match constant set in VGA driver (default 250MHz)
 
 ' -- User-modifiable constants
     LED             = cfg.LED1
-    SER_RX          = cfg.SER_RX
-    SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
-    VGA_BASEPIN     = 0
-    ADC_PIN         = 48
-    AUD_L           = 6
-    AUD_R           = 7
-    SAMPLE_RATE     = 16000
+' Parallax A/V Board, P/N 64006H (set AVBOARD_BASE)
+    AVBOARD_BASE    = 48
+
+    VGA_BASE        = AVBOARD_BASE+0
+    MIC_PIN         = 0'AVBOARD_BASE+5
+    SPKR_L          = AVBOARD_BASE+6
+    SPKR_R          = AVBOARD_BASE+7
+
+    SAMPLE_RATE     = 44100
+' CAUTION: Change this line with care. Test with headphones out of ears first,
+'   or with speakers set to a low volume
+    MIC_GAIN        = 1                         ' 1x, 3 (3.16), 10, 100
 ' --
 
     WIDTH           = 320
@@ -36,21 +41,16 @@ CON
     BPP             = 1
     BPL             = WIDTH * BPP
 
-    ADC_PERIOD      = _clkfreq / SAMPLE_RATE               ' XXX something isn't right here
-    AUDIO_PERIOD    = _clkfreq / SAMPLE_RATE               ' Perceived quality doesn't
-    SCOPE_FACT      = ADC_PERIOD / HEIGHT                   ' correlate with SAMPLE_RATE
+    ADC_PERIOD      = _clkfreq / SAMPLE_RATE
+    SCOPE_FACT      = ADC_PERIOD / HEIGHT
 
 OBJ
 
-    ser         : "com.serial.terminal.ansi"
-    cfg         : "core.con.boardcfg.p2eval"
-    io          : "io"
-    time        : "time"
-    sp          : "core.con.smartpins"
-    vga         : "display.vga.bitmap-8bpp"
-    fnt         : "font.5x8"
-    audio       : "signal.dac.audio"
-    mic         : "signal.adc.audio"
+    ser     : "com.serial.terminal.ansi"
+    cfg     : "core.con.boardcfg.p2eval"
+    vga     : "display.vga.bitmap-8bpp"
+    spkr    : "signal.dac.audio"
+    mic     : "signal.adc.audio"
 
 VAR
 
@@ -65,8 +65,8 @@ PUB Main() | adc_min, adc_max
     ser.hidecursor()
 
     adc_max := 0
-    repeat 500                                              ' Gather some samples to get a
-        adc_min := _adc_sample                              '   "real" minimum
+    repeat 500                                  ' Gather some samples to get a
+        adc_min := _adc_sample                  '   "real" minimum
 
     repeat
         adc_min := _adc_sample <# adc_min
@@ -74,40 +74,31 @@ PUB Main() | adc_min, adc_max
         ser.position(0, 4)
         ser.printf("ADC current: %d  \nmin: %d  \nmax: %d  ", _adc_sample, adc_min, adc_max)
 
-PUB DrawWave() | x, y, y_offset                             ' XXX Rolls - no triggering
+PUB DrawWave() | x, y, y_offset                 ' XXX Rolls - no triggering
 ' Draw scope of audio input
     vga.clear()
     repeat x from 0 to XMAX
-        y := YMAX-(_adc_sample / SCOPE_FACT)                ' XXX This Y-offset calc needs
-        vga.plot(x, y, 191)                                 '   improvement
+        y := YMAX-(_adc_sample / SCOPE_FACT)
+        vga.plot(x, y, 191)
         waitx(ADC_PERIOD)
 
 PUB cog_Audio()
 ' Sample audio and output it directly to headphones/speakers
-    mic.start(ADC_PIN, ADC_PERIOD, 1)
-    audio.start(AUD_L, AUD_R, AUDIO_PERIOD)
+    mic.start(MIC_PIN, SAMPLE_RATE, MIC_GAIN)
+    spkr.start(SPKR_L, SPKR_R, SAMPLE_RATE)
     repeat
         _adc_sample := mic.adcsample16()
-        audio.output16(_adc_sample)
+        spkr.output16(_adc_sample)
 
 PUB cog_Graphics()
 ' Run VGA driver and waveform/scope drawing loop
     vga.settimings(10, 33, 16, 96, 48, 640)
     setuppalette()
-    if vga.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
-        vga.drawto(@_offscreen)
-        vga.fontaddress(fnt.baseaddr())
-        vga.fontsize(6, 8)
-        vga.clear()
-        vga.fgcolor(vga.MAX_COLOR)
-        vga.position(5, 5)
-        vga.printf("Ready.")
-        vga.update()
-        time.sleep(5)
-    else
-        cogstop(cogid())
+    vga.start(VGA_BASE, @_framebuffer, @_palette, WIDTH, HEIGHT)
+    vga.drawto(@_offscreen)
+    vga.clear()
 
-    _vga_cog := cogid()
+    _vga_cog := cogid()                         ' signal 'started' to main cog
 
     repeat
         drawwave()
@@ -116,49 +107,55 @@ PUB cog_Graphics()
 
 PUB Setup()
 
-    repeat until _ser_cog := ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.start(SER_BAUD)
     ser.clear()
-    ser.printf("Serial terminal started\n")
+    ser.strln(string("Serial terminal started"))
 
-    cogspin(16, cog_graphics(), @_gfx_stack)
+    cogspin(NEWCOG, cog_graphics(), @_gfx_stack)
     repeat until _vga_cog
-    ser.printf("VGA 8bpp driver started\n")
+    ser.strln(string("VGA 8bpp driver started"))
 
-    cogspin(16, cog_audio(), @_audio_stack)
+    cogspin(NEWCOG, cog_audio(), @_audio_stack)
     repeat until _audio_cog
     ser.printf("Audio cog started (%dHz sample rate)\n", SAMPLE_RATE)
 
-PUB SetupPalette() | i, r, g, b, c
+PRI SetupPalette() | i, r, g, b, c
 ' Set up palette
-    r := 0
-    g := 0
-    b := 0
-
+    r := g := b := c := 0
     repeat i from 0 to 255
-        c := 0 | (r << 16) | (g << 8) | b
-        _palette[i] := c
-
         case i
-            0..63:
+            0..31:
                 r += 4
-                g := 0
-                b := 0
-            64..127:
-                r := 0
-                g += 4
-                b := 0
-            128..191:
-                r := 0
                 g := 0
                 b += 4
-            192..254:
-                r += 4
+            32..63:
+                r -= 4
+                g := 0
+                b := b
+            64..95:
+                r := 0
                 g += 4
+                b := b
+            96..127:
+                r := 0
+                g := g
+                b -= 4
+            128..159:
+                r += 4
+                g := g
+                b := b
+            160..191:
+                r := r
+                g -= 4
                 b := 0
+            192..254:
+                r := r
+                g += 4
+                b += 4
             255:
-                r := 255
-                g := 255
-                b := 255
+                r := g := b := 255
 
-#include "lib.utility.spin2"
+        c := 0 | (r << 16) | (g << 8) | b
+        _palette[i] := c
+    _palette[0] := $00_00_00_00
 
