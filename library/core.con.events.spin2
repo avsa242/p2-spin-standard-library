@@ -1,0 +1,22 @@
+{
+    --------------------------------------------
+    Filename: core.con.events.spin2
+    Description: Named constants for background events
+    Author: Jesse Burt
+    Started: Feb 14, 2021
+    Updated: Jul 14, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+}
+CON
+
+    COG_RW_LUT      = %000_00_0000
+    HUBLCK_RISES    = %000_01_0000
+    HUBLCK_FALLS    = %000_10_0000
+    HUBLCK_CHG      = %000_11_0000
+    INP_RISES       = %001_000000
+    INP_FALLS       = %010_000000
+    INP_CHANGES     = %011_000000
+    INP_ISLOW       = %100_000000
+    INP_ISHIGH      = %110_000000
+

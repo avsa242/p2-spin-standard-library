@@ -2,45 +2,47 @@
     --------------------------------------------
     Filename: Mic-to-Headphones-Demo.spin2
     Description: Demo that captures audio from a mic and
-        outputs it directly to attached headphones
+        outputs it directly to attached headphones or speakers
     Author: Jesse Burt
     Started: May 16, 2020
-    Updated: Jul 9, 2020
+    Updated: Feb 14, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
-     _xtlfreq       = cfg._xtlfreq
-     _clkfreq       = cfg._clkfreq_def
+    _xtlfreq        = cfg._xtlfreq
+    _clkfreq        = cfg._clkfreq_def
 
-' User-modifiable constants
+' -- User-modifiable constants
     LED             = cfg.LED1
-    SER_RX          = cfg.SER_RX
-    SER_TX          = cfg.SER_TX
     SER_BAUD        = 2_000_000
 
-    ADC_PIN         = 48
-    AUDIO_LPIN      = 6
-    AUDIO_RPIN      = 7
-    SAMPLE_RATE     = 8000
-' ---
+' Parallax A/V Board, P/N 64006H (set AVBOARD_BASE)
+    AVBOARD_BASE    = 48                        ' 0, 8, 16, 24, 32, 40, 48, 56
 
-    ADC_PERIOD      = _clkfreq / SAMPLE_RATE
-    AUDIO_PERIOD    = _clkfreq / SAMPLE_RATE
+    MIC_PIN         = AVBOARD_BASE+5
+    SPKR_LPIN       = AVBOARD_BASE+6
+    SPKR_RPIN       = AVBOARD_BASE+7
+
+    SAMPLE_RATE     = 44100
+
+' CAUTION: Change this line with care. Test with headphones out of ears first,
+'   or with speakers set to a low volume
+    MIC_GAIN        = 1                         ' 1x, 3 (3.16), 10, 100
+' --
 
 OBJ
 
-    ser         : "com.serial.terminal.ansi"
-    cfg         : "core.con.boardcfg.p2eval"
-    io          : "io"
-    audio       : "signal.dac.audio"
-    mic         : "signal.adc.audio"
+    ser     : "com.serial.terminal.ansi"
+    cfg     : "core.con.boardcfg.p2eval"
+    spkr    : "signal.dac.audio"
+    mic     : "signal.adc.audio"
 
 VAR
 
-    long _audio_stack[50]
-    long _audio_cog, _adc_sample
+    long _spkr_stack[50]
+    long _spkr_cog, _adc_sample
 
 PUB Main() | adc_min, adc_max
 
@@ -48,34 +50,34 @@ PUB Main() | adc_min, adc_max
     ser.hidecursor()
 
     adc_max := 0
-    repeat 500                                              ' Gather some samples to get a
-        adc_min := _adc_sample                              '   "real" minimum
+    repeat 500                                  ' Gather some samples to get a
+        adc_min := _adc_sample                  '   "real" minimum
 
     repeat
         adc_min := _adc_sample <# adc_min
         adc_max := adc_max #> _adc_sample
         ser.position(0, 4)
-        ser.printf("ADC current: %d\nmin: %d\nmax: %d", _adc_sample, adc_min, adc_max)
+        ser.printf("ADC sample: %d  \nmin: %d  \nmax: %d", _adc_sample, adc_min, adc_max)
 
 PUB cog_Audio()
-
-    mic.start(ADC_PIN, ADC_PERIOD, 1)
-    audio.start(AUDIO_LPIN, AUDIO_RPIN, AUDIO_PERIOD)
-    _audio_cog := cogid()
+' Secondary cog:
+'   Read samples from mic, and send them straight out to the headphones
+    mic.start(MIC_PIN, SAMPLE_RATE, MIC_GAIN)
+    spkr.start(SPKR_LPIN, SPKR_RPIN, SAMPLE_RATE)
+    _spkr_cog := cogid()+1                      ' signal 'started' to main cog
 
     repeat
         _adc_sample := mic.adcsample16()
-        audio.output16(_adc_sample)
+        spkr.output16(_adc_sample)
 
 PUB Setup()
 
-    repeat until ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.start(SER_BAUD)
     ser.clear()
     ser.printf("Serial terminal started (P2 @%dMHz)\n", clkfreq / 1_000_000)
 
-    cogspin(16, cog_audio(), @_audio_stack)
-    repeat until _audio_cog
-    ser.printf("Audio cog started (%dHz sample rate)\n", SAMPLE_RATE)
+    cogspin(NEWCOG, cog_audio(), @_spkr_stack)
+    repeat until _spkr_cog                      ' wait for audio cog to start
 
-#include "lib.utility.spin2"
+    ser.printf("Audio cog started (%dHz sample rate, %dx gain)\n", SAMPLE_RATE, MIC_GAIN)
 

@@ -4,14 +4,15 @@
     Description: Audio output using smart pin-based DAC (2-channel)
     Author: Jesse Burt
     Started: Mar 16, 2020
-    Updated: Jul 14, 2020
+    Updated: Feb 14, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
     DAC_INIT_VAL        = 128
-    SP_DAC_MODE         = sp.DAC_990OHM_3V3 | DAC_INIT_VAL << sp.DACLEVEL | sp.OUTPUT_ENABLED | sp.DAC16B_DITH_PWM
+    SP_DAC_MODE         = sp.DAC_990OHM_3V3 | DAC_INIT_VAL << sp.DACLEVEL | {
+}   sp.OUTPUT_ENABLED | sp.DAC16B_DITH_PWM
 
 VAR
 
@@ -19,59 +20,60 @@ VAR
 
 OBJ
 
-    sp  : "core.con.smartpins"
+    sp  : "core.con.smartpins"                  ' smart-pin modes/constants
+    evt : "core.con.events"                     ' background events/constants
 
-PUB Start(L_PIN, R_PIN, SAMPRATE_HZ) | tmp, period
+PUB Start(L_PIN, R_PIN, SAMPRATE_HZ): status | period
+' Start DAC smart-pin on L_PIN, R_PIN at SAMPRATE_HZ
+    if lookdown(L_PIN: 0..63) and lookdown(R_PIN: 0..63)
+        longmove(@_L_PIN, @L_PIN, 2)
+        period := (clkfreq / SAMPRATE_HZ)
 
-    _L_PIN := L_PIN
-    _R_PIN := R_PIN
-    tmp := (1 << 6) | L_PIN                                 ' XXX Expand on significance/meaning/function. This and the setse1 line below may look like 'magic' to the uninitiated
-    period := clkfreq / SAMPRATE_HZ
-
-    org
-        wrpin   ##SP_DAC_MODE, L_PIN                        ' Config smartpin DAC mode on "left" pin
-        wrpin   ##SP_DAC_MODE, R_PIN                        ' Config smartpin DAC mode on "right" pin
-        wxpin   period, L_PIN                               ' Set sample period for left audio channel
-        wxpin   period, R_PIN                               ' Set sample period for right audio channel
-        dirh    L_PIN                                       ' Enable smartpin DAC mode on left pin
-        dirh    R_PIN                                       ' Enable smartpin DAC mode on right pin
-        setse1  tmp                                         ' Event triggered every new sample period (when "left in pin rises")
-    end
+        org
+            wrpin   ##SP_DAC_MODE, L_PIN        ' Config left and right pins
+            wrpin   ##SP_DAC_MODE, R_PIN        '   for smart-pin DAC mode
+            wxpin   period, L_PIN               ' Set sample period for left
+            wxpin   period, R_PIN               '   and right channels
+            dirh    L_PIN                       ' Enable smart-pins
+            dirh    R_PIN                       '
+            setse1  #evt.INP_RISES              ' trigger on every new sample
+                                                '   period - on L_PIN rise
+        end
+        return cogid() + 1
+    return FALSE
 
 PUB Stop()
 
-    _dirl (_L_PIN)
-    _dirl (_R_PIN)
-    wrpin (0, _L_PIN)
-    wrpin (0, _R_PIN)
+    pinf(_L_PIN)
+    pinf(_R_PIN)
+    wrpin(0, _L_PIN)
+    wrpin(0, _R_PIN)
 
-PUB SampleRate(Hz)
-' Restart with new sample rate, in Hertz
+PUB SampleRate(rate)
+' Restart with new sample rate, in Hz
 '   NOTE: This re-starts the DAC smart pins
     stop()
-    start(_L_PIN, _R_PIN, Hz)
+    start(_L_PIN, _R_PIN, rate)
 
 PUB Output16(sample) | L_PIN, R_PIN
 ' Output an 16-bit audio sample
-    L_PIN := _L_PIN
-    R_PIN := _R_PIN
+    longmove(@L_PIN, @_L_PIN, 2)
 
     org
         xor     sample, ##$8000
-        wypin   sample, L_PIN                               ' Output sample on left channel
-        wypin   sample, R_PIN                               ' Output sample on right channel
+        wypin   sample, L_PIN                   ' Output sample on left channel
+        wypin   sample, R_PIN                   ' Output sample on right channel
         waitse1
     end
 
 PUB Output8(sample) | L_PIN, R_PIN
 ' Output an 8-bit audio sample
-    L_PIN := _L_PIN
-    R_PIN := _R_PIN
+    longmove(@L_PIN, @_L_PIN, 2)
 
     org
         xor     sample, ##$8000
         and     sample, #$FF
-        wypin   sample, L_PIN                               ' Output sample on left channel
-        wypin   sample, R_PIN                               ' Output sample on right channel
+        wypin   sample, L_PIN                   ' Output sample on left channel
+        wypin   sample, R_PIN                   ' Output sample on right channel
         waitse1
     end
