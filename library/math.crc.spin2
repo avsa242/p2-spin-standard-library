@@ -3,18 +3,18 @@
     Filename: math.crc.spin2
     Author: Jesse Burt
     Description: A collection of CRC routines
-    Copyright (c) 2019
+    Copyright (c) 2021
     Started Nov 19, 2017
-    Updated Jun 24, 2019
+    Updated Feb 7, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    POLYNOMIAL8_DALLASMAX   = $8C
-    POLYNOMIAL8_SENSIRION   = $31
-    POLYNOMIAL16_DALLASMAX  = $A001
+    POLY8_DSMAX     = $8C
+    POLY8_SENSIRION = $31
+    POLY16_DSMAX    = $A001
 
 PUB SensirionCRC8(data, len): crc | currbyte, i, j
 
@@ -25,12 +25,11 @@ PUB SensirionCRC8(data, len): crc | currbyte, i, j
 
         repeat j from 0 to 7
             if (crc & $80)
-                crc := (crc << 1) ^ POLYNOMIAL8_SENSIRION
+                crc := (crc << 1) ^ POLY8_SENSIRION
             else
                 crc := (crc << 1)
     crc ^= $00
-
-    return
+    return crc & $ff
 
 PUB DallasMaximCRC8(data, len): crc | currbyte, i, j, mix
 
@@ -41,7 +40,7 @@ PUB DallasMaximCRC8(data, len): crc | currbyte, i, j, mix
             mix := (crc ^ currbyte) & $01
             crc >>= 1
             if mix
-                crc ^= POLYNOMIAL8_DALLASMAX
+                crc ^= POLY8_DSMAX
             currbyte >>= 1
 
     return
@@ -55,7 +54,7 @@ PUB DallasMaximCRC16(data, len): crc | currbyte, i, j, mix
             mix := (crc ^ currbyte) & $01
             crc >>= 1
             if mix
-                crc ^= POLYNOMIAL16_DALLASMAX
+                crc ^= POLY16_DSMAX
             currbyte >>= 1
 
     return
