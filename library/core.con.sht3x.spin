@@ -3,18 +3,19 @@
     Filename: core.con.sht3x.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2022
     Started Nov 19, 2017
-    Updated Jul 22, 2020
+    Updated Feb 15, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    SLAVE_ADDR              = $44 << 1                  ' Default slave address
-    I2C_DEF_FREQ            = 400_000                   ' Set a reasonable default bus frequency
-    I2C_MAX_FREQ            = 1_000_000                 ' SHT3X supports I2C FM up to 1MHz
+    SLAVE_ADDR              = $44 << 1
+    I2C_MAX_FREQ            = 1_000_000
+
+    T_POR                   = 1_000             ' usec
 
     ADC_MAX                 = 65535
     ADC_MAX_X100            = ADC_MAX * 100
@@ -52,16 +53,16 @@ CON
 
 ' One-shot measurement commands (with clock-stretching)
     ART                     = $2B32
-    MEAS_HIGHREP_STRETCH    = $2C06
-    MEAS_MEDREP_STRETCH     = $2C0D
-    MEAS_LOWREP_STRETCH     = $2C10
+    MEAS_HIGHREP_CS         = $2C06
+    MEAS_MEDREP_CS          = $2C0D
+    MEAS_LOWREP_CS          = $2C10
 
-    CLEARSTATUS             = $3041
+    CLRSTATUS               = $3041
     HEATERDIS               = $3066
     HEATEREN                = $306D
     BREAK_STOP              = $3093
     SOFTRESET               = $30A2
-    READ_SERIALNUM          = $3780
+    READ_SN                 = $3780
 
     ALERTLIM_WR_LO_SET      = $6100
     ALERTLIM_WR_LO_CLR      = $610B
@@ -76,22 +77,22 @@ CON
     ALERTLIM_RD_HI_SET      = $E11F
 
     ALERTLIM_MASK           = $FFFF
-        FLD_ALERTLIM_TEMP   = 0
-        BITS_ALERTLIM_TEMP  = %111111111
-        MASK_ALERTLIM_TEMP  = ALERTLIM_MASK ^ (BITS_ALERTLIM_TEMP << FLD_ALERTLIM_TEMP)
-        FLD_ALERTLIM_RH     = 9
-        BITS_ALERTLIM_RH    = %1111111
-        MASK_ALERTLIM_RH    = ALERTLIM_MASK ^ (BITS_ALERTLIM_RH << FLD_ALERTLIM_RH)
+        ALERTLIM_RH         = 9
+        ALERTLIM_TEMP       = 0
+        ALERTLIM_RH_BITS    = %1111111
+        ALERTLIM_TEMP_BITS  = %111111111
+        ALERTLIM_RH_MASK    = (ALERTLIM_RH_BITS << ALERTLIM_RH) ^ ALERTLIM_MASK
+        ALERTLIM_TEMP_MASK  = (ALERTLIM_TEMP_BITS << ALERTLIM_TEMP) ^ ALERTLIM_MASK
 
     STATUS                  = $F32D
     STATUS_MASK             = $AC13
-        FLD_CMDCRC          = 0
-        FLD_CMDSTAT         = 1
-        FLD_RESET           = 4
-        FLD_TEMPALERT       = 10
-        FLD_RHALERT         = 11
-        FLD_HEATER          = 13
-        FLD_ALERTPENDING    = 15
+        ALERTPENDING        = 15
+        HEATER              = 13
+        RHALERT             = 11
+        TEMPALERT           = 10
+        RESET               = 4
+        CMDSTAT             = 1
+        CMDCRC              = 0
 
 #ifndef __propeller2__
 PUB Null
