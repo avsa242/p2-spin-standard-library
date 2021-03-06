@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Apr 15, 2020
-    Updated: Jan 31, 2021
+    Updated: Mar 6, 2021
     See end of file for terms of use.
     --------------------------------------------
 
@@ -170,7 +170,7 @@ PUB WrBlock_LSBF(ptr_buff, nr_bytes) | SCK, MOSI, MISO, b_num
         rdpin(SCK)
         wypin(SCK, CLKS)
         repeat until pinr(SCK)
-
+        wypin(MOSI, 0)
 
 PUB WrBlock_MSBF(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
 ' Write block of data to SPI bus from ptr_buff, most-significant byte first
@@ -204,7 +204,7 @@ PUB WrWord_MSBF(word2spi)
 
 PRI SPIClockPeriod(SCK_FREQ): bt
 ' Calculate SPI clock period
-    bt := ((clkfreq / SCK_FREQ) / 2 ) + 1       ' SPI bit time
+    bt := ((clkfreq / SCK_FREQ) / 2)            ' SPI bit time
     bt := bt #> 2                               ' Clamp to min of syclock/2
 
 ' -- Legacy methods below:
