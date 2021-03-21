@@ -6,7 +6,7 @@
         I/O base pin offset constants
     Copyright (c) 2021
     Started Mar 7, 2021
-    Updated Mar 7, 2021
+    Updated Mar 21, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,8 +19,8 @@ CON
 '   base I/O pin
 
 ' I2C
-    I2C_SDA     = CLICK_BASE + 0
-    I2C_SCL     = CLICK_BASE + 1
+    SDA_PIN     = CLICK_BASE + 0
+    SCL_PIN     = CLICK_BASE + 1
 
 ' SPI
     CS_PIN      = CLICK_BASE + 8
