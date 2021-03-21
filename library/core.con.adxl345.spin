@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started Mar 14, 2020
-    Updated Jan 1, 2021
+    Updated Mar 21, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,16 +13,14 @@
 CON
 
 ' SPI Configuration
-    CPOL                        = 1
-    CLK_DELAY                   = 1             ' P1 SPI engine
-    MOSI_BITORDER               = 5             ' MSBFIRST
-    MISO_BITORDER               = 2             ' MSBPOST
-    SCL_MAX_FREQ                = 5_000_000     ' P2 SPI engine
+    SPI_MODE                    = 3
+    SPI_MAX_FREQ                = 5_000_000
 
 ' I2C Configuration
-    SLAVE_ADDR                  = $1D << 7
+    SLAVE_ADDR                  = $53 << 1
     I2C_MAX_FREQ                = 400_000
 
+    TPOR                        = 1_400         ' uSec
     W                           = 0
     R                           = 1 << 7        ' read
     MB                          = 1 << 6        ' multiple-byte transcation

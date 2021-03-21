@@ -1,8 +1,8 @@
 {
     --------------------------------------------
-    Filename: sensor.accel.3dof.adxl345.spi.spin2
+    Filename: sensor.accel.3dof.adxl345.i2c.spin2
     Author: Jesse Burt
-    Description: Intermediate layer for ADXL345 driver (SPI enabled)
+    Description: Intermediate layer for ADXL345 driver (I2C enabled)
     Copyright (c) 2021
     Started Mar 21, 2021
     Updated Mar 21, 2021
@@ -11,21 +11,21 @@
 
     To use, do this in your top-level application:
 
-    #define ADXL345_SPI
+    #define ADXL345_I2C
 
     OBJ
 
-        accel   : "sensor.accel.3dof.adxl345.spi"
+        accel   : "sensor.accel.3dof.adxl345.i2c"
 
     PUB Main()
 
-        setup()
+        Setup()
         ' Your code here
 
     PUB Setup()
 
-        accel.start(SCL_PIN, SDA_PIN, SPI_HZ, ADDR_BITS)
+        accel.start(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS)
 
 }
-#define ADXL345_SPI
+#define ADXL345_I2C
 #include "sensor.accel.3dof.adxl345.i2cspi.spin2"
