@@ -48,31 +48,33 @@ OBJ
 PUB Null()
 ' This is not a top-level object
 
-PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, ptr_disp): okay
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT, ptr_dispbuff): status
 ' width, height: dimensions of matrix, in pixels
 ' SCL_PIN, SDA_PIN, I2C_HZ: I2C bus I/O pins and speed
 ' ADDR_BITS: specify LSBs of slave address (%000..%111)
 ' ptr_disp: pointer to display buffer, of minimum (W*H)/8 bytes
 '   (e.g., for an 8x8 matrix, 8*8=64 / 8 = 8 bytes)
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ <= core.I2C_MAX_FREQ
-            if lookdown(ADDR_BITS: %000..%111)
-                if okay := i2c.setup(SCL_PIN, SDA_PIN, I2C_HZ)
-                    waitus(core.T_POR)
-                    _addr_bits := ADDR_BITS << 1
-                    if i2c.present(SLAVE_WR | _addr_bits)
-                        defaults()
-                        _disp_width := width
-                        _disp_height := height
-                        _disp_xmax := _disp_width-1
-                        _disp_ymax := _disp_height-1
-                        _buff_sz := (_disp_width * _disp_height) / 8
-                        _bytesperln := _disp_width * BYTESPERPX
+    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
+}   I2C_HZ <= core.I2C_MAX_FREQ
+        if lookdown(ADDR_BITS: %000..%111)
+            if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+                waitus(core.T_POR)
+                _addr_bits := ADDR_BITS << 1
+                if i2c.present(SLAVE_WR | _addr_bits) ' test device presence
+                    _disp_width := width
+                    _disp_height := height
+                    _disp_xmax := _disp_width-1
+                    _disp_ymax := _disp_height-1
+                    _buff_sz := (_disp_width * _disp_height) / 8
+                    _bytesperln := _disp_width * BYTESPERPX
 
-                        address(ptr_disp)
+                    address(ptr_dispbuff)
 
-                        return okay
-    return FALSE                                ' something above failed
+                    return
+    ' if this point is reached, something above failed
+    ' Double check I/O pin assignments, connections, power
+    ' Lastly - make sure you have at least one free core/cog
+    return FALSE
 
 PUB Stop()
 
@@ -156,27 +158,25 @@ PUB Update()
 ' Write display buffer to display
     writereg(core.DISP_RAM, _ptr_drawbuffer)
 
-PRI writeReg(reg_nr, ptr_buff) | cmd_packet[2], i
+PRI writeReg(reg_nr, ptr_buff) | cmd_pkt[2], i
 ' Write reg_nr to device from ptr_buff
-    cmd_packet.byte[0] := SLAVE_WR | _addr_bits
+    cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
 
     case reg_nr
         core.DISP_RAM:                          ' Display RAM
-            cmd_packet.byte[1] := core.DISP_RAM
+            cmd_pkt.byte[1] := core.DISP_RAM
             i2c.start()
-            repeat i from 0 to 1
-                i2c.write(cmd_packet.byte[i])
+            i2c.wrblock_lsbf(@cmd_pkt, 2)
             repeat i from 0 to 7
                 i2c.write((byte[ptr_buff][i]) & $FF)
                 i2c.write($00)
             i2c.stop()
 
         core.OSCILLATOR, core.DISPSETUP, core.ROWINT, {
-        } core.BRIGHTNESS:                  ' Control registers
-            cmd_packet.byte[1] := reg_nr | ptr_buff
+        } core.BRIGHTNESS:                      ' Control registers
+            cmd_pkt.byte[1] := reg_nr | ptr_buff
             i2c.start()
-            repeat i from 0 to 1
-                i2c.write(cmd_packet.byte[i])
+            i2c.wrblock_lsbf(@cmd_pkt, 2)
             i2c.stop()
         other:
             return

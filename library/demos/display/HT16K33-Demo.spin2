@@ -21,8 +21,8 @@ CON
     SER_BAUD    = 2_000_000
     LED         = cfg.LED1
 
-    I2C_SCL     = 28
-    I2C_SDA     = 29
+    I2C_SCL     = 0
+    I2C_SDA     = 1
     I2C_HZ      = 400_000                       ' max is 400_000
     ADDR_BITS   = %000                          ' %000..%111
 
@@ -36,12 +36,11 @@ CON
 
 OBJ
 
-    cfg         : "core.con.boardcfg.p2eval"
-    ser         : "com.serial.terminal.ansi"
-    time        : "time"
-    disp        : "display.led.ht16k33.i2c"
-    int         : "string.integer"
-    fnt5x8      : "font.5x8"
+    cfg : "core.con.boardcfg.p2eval"
+    ser : "com.serial.terminal.ansi"
+    disp: "display.led.ht16k33.i2c"
+    int : "string.integer"
+    fnt : "font.5x8"
 
 VAR
 
@@ -59,7 +58,7 @@ PUB Main() | time_ms
     ser.position(0, 3)
 
     demo_greet()
-    time.sleep(5)
+    waitms(5_000)
     disp.clearall()
 
     time_ms := 5_000
@@ -101,7 +100,7 @@ PUB Main() | time_ms
 
 PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
 ' Continuously redraws bitmap at address bitmap_addr
-    ser.printf("Demo_Bitmap - ")
+    ser.str("Demo_Bitmap - ")
     _timer_set := testtime
     iteration := 0
 
@@ -115,14 +114,14 @@ PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
 
 PUB Demo_Circle(testtime) | iteration, x, y, r
 ' Draws circles at random locations
-    ser.printf("Demo_Circle - ")
+    ser.str("Demo_Circle - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
         x := rnd(XMAX)
         y := rnd(YMAX)
-        r := rnd(YMAX/2)
+        r := rnd(HEIGHT/2)
         disp.circle(x, y, r, -1, false)
         disp.update()
         iteration++
@@ -149,7 +148,7 @@ PUB Demo_Greet() | ch, idx
 
 PUB Demo_Line(testtime) | iteration
 ' Draws random lines with color -1 (invert)
-    ser.printf("Demo_Line - ")
+    ser.str("Demo_Line - ")
     _timer_set := testtime
     iteration := 0
 
@@ -166,7 +165,7 @@ PUB Demo_LineSweepX(testtime) | iteration, x
 '  from the top-down
     x := 0
 
-    ser.printf("Demo_LineSweepX - ")
+    ser.str("Demo_LineSweepX - ")
     _timer_set := testtime
     iteration := 0
 
@@ -186,7 +185,7 @@ PUB Demo_LineSweepY(testtime) | iteration, y
 '  from the top-down
     y := 0
 
-    ser.printf("Demo_LineSweepY - ")
+    ser.str("Demo_LineSweepY - ")
     _timer_set := testtime
     iteration := 0
 
@@ -205,7 +204,7 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
 ' Dumps Propeller Hub RAM (and/or ROM) to the display buffer
     pos := start_addr
 
-    ser.printf("Demo_MEMScroller - ")
+    ser.str("Demo_MEMScroller - ")
     _timer_set := testtime
     iteration := 0
 
@@ -222,7 +221,7 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
 
 PUB Demo_Plot(testtime) | iteration, x, y
 ' Draws random pixels to the screen, with color -1 (invert)
-    ser.printf("Demo_Plot - ")
+    ser.str("Demo_Plot - ")
     _timer_set := testtime
     iteration := 0
 
@@ -236,7 +235,7 @@ PUB Demo_Plot(testtime) | iteration, x, y
 
 PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 ' Draws a sine wave the length of the screen, influenced by the system counter
-    ser.printf("Demo_Sinewave - ")
+    ser.str("Demo_Sinewave - ")
 
     div := 16_384
 
@@ -266,7 +265,7 @@ PUB Demo_SeqText(testtime) | iteration, col, row, maxcol, maxrow, ch, st
     maxrow := (HEIGHT/disp.fontheight())-1
     ch := $00
 
-    ser.printf("Demo_SeqText - ")
+    ser.str("Demo_SeqText - ")
     _timer_set := testtime
     iteration := 0
 
@@ -292,7 +291,7 @@ PUB Demo_RndText(testtime) | iteration, col, row, maxcol, maxrow, ch, st
     maxrow := (HEIGHT/disp.fontheight())-1
     ch := $00
 
-    ser.printf("Demo_RndText - ")
+    ser.str("Demo_RndText - ")
     _timer_set := testtime
     iteration := 0
 
@@ -315,7 +314,7 @@ PUB Demo_TriWave(testtime) | iteration, x, y, ydir
     ydir := 1
     y := 0
 
-    ser.printf("Demo_TriWave - ")
+    ser.str("Demo_TriWave - ")
     _timer_set := testtime
     iteration := 0
 
@@ -340,7 +339,7 @@ PUB Demo_Wander(testtime) | iteration, x, y, d
     x := XMAX/2
     y := YMAX/2
 
-    ser.printf("Demo_Wander - ")
+    ser.str("Demo_Wander - ")
     _timer_set := testtime
     iteration := 0
 
@@ -382,13 +381,13 @@ PUB Sin(angle): sine | tmp
 
 PRI Report(testtime, iterations) 
 
-    ser.printf("Total iterations: ")
+    ser.str("Total iterations: ")
     ser.dec(iterations)
 
-    ser.printf(", Iterations/sec: ")
+    ser.str(", Iterations/sec: ")
     ser.dec(iterations / (testtime/1000))
 
-    ser.printf(", Iterations/ms: ")
+    ser.str(", Iterations/ms: ")
     decimal((iterations * 1_000) / testtime, 1_000)
     ser.newline()
 
@@ -428,18 +427,17 @@ PUB Setup()
     ser.start(SER_BAUD)
     waitms(100)
     ser.clear()
-    ser.printf("Serial terminal started\n")
-    if disp.start(WIDTH, HEIGHT, I2C_SCL, I2C_SDA, I2C_HZ, ADDR_BITS, @_framebuff)
-        ser.printf("HT16K33 driver started. Draw buffer @ $")
-        ser.hex(disp.address(), 8)
+    ser.strln(string("Serial terminal started"))
+    if disp.startx(I2C_SCL, I2C_SDA, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT, @_framebuff)
+        ser.strln(string("HT16K33 driver started"))
         disp.defaults()
         disp.fontsize(6, 8)
-        disp.fontaddress(fnt5x8.baseaddr())
+        disp.fontaddress(fnt.baseaddr())
     else
-        ser.printf("HT16K33 driver failed to start - halting")
+        ser.str(string("HT16K33 driver failed to start - halting"))
         stop()
 
-    _timer_cog := cogspin(16, cog_timer(), @_stack_timer)
+    _timer_cog := cogspin(NEWCOG, cog_timer(), @_stack_timer)
 
 PUB Stop()
 
