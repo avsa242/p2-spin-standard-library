@@ -4,9 +4,9 @@
     Description: Simplified Demo of the HT16K33 driver
         (P2 version)
     Author: Jesse Burt
+    Copyright (c) 2021
     Created: Nov 22, 2020
-    Updated: Nov 22, 2020
-    Copyright (c) 2020
+    Updated: Apr 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -75,7 +75,7 @@ PUB Main() | i
     time.sleep(2)
     matrix.clear()
 
-    matrix.circle(3, 3, 4, 1)                   ' x, y, radius, color
+    matrix.circle(3, 3, 4, 1, false)            ' x, y, radius, color, fill
     matrix.update()
 
     time.sleep(2)

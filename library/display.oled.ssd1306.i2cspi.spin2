@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Apr 26, 2018
-    Updated: Jan 29, 2021
+    Updated: Apr 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -45,7 +45,7 @@ VAR
     long _CS, _DC, _RES
     long _ptr_drawbuffer
     word _buff_sz
-    word bytesperln
+    word _bytesperln
     byte _disp_width, _disp_height, _disp_xmax, _disp_ymax
     byte _sa0
 
@@ -75,7 +75,7 @@ PUB Startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BIT, WIDTH, HEIGHT, ptr_dispb
                 _disp_ymax := _disp_height-1
                 ' calc display memory usage from dimensions and 1bpp depth
                 _buff_sz := (_disp_width * _disp_height) / 8
-                bytesperln := _disp_width * BYTESPERPX
+                _bytesperln := _disp_width * BYTESPERPX
 
                 address(ptr_dispbuff)           ' set display buffer address
                 return
@@ -110,7 +110,7 @@ PUB Startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, SCK_HZ, WIDTH, HEIGHT, pt
             _disp_ymax := _disp_height-1
             ' calc display memory usage from dimensions and 1bpp depth
             _buff_sz := (_disp_width * _disp_height) / 8
-            bytesperln := _disp_width * BYTESPERPX
+            _bytesperln := _disp_width * BYTESPERPX
 
             address(ptr_dispbuff)               ' set display buffer address
             return

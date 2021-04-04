@@ -3,9 +3,9 @@
     Filename: display.led.ht16k33.i2c.spin
     Description: Driver for HT16K33-based LED matrix displays
     Author: Jesse Burt
+    Copyright (c) 2021
     Created: Nov 22, 2020
-    Updated: Nov 22, 2020
-    Copyright (c) 2020
+    Updated: Apr 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -37,7 +37,7 @@ VAR
     byte _disp_buff[8]
     byte _dispsetup
     byte _addr_bits
-    byte BYTESPERLN
+    byte _bytesperln
 
 OBJ
 
@@ -67,7 +67,7 @@ PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, ptr_disp): okay
                         _disp_xmax := _disp_width-1
                         _disp_ymax := _disp_height-1
                         _buff_sz := (_disp_width * _disp_height) / 8
-                        BYTESPERLN := _disp_width * BYTESPERPX
+                        _bytesperln := _disp_width * BYTESPERPX
 
                         address(ptr_disp)
 

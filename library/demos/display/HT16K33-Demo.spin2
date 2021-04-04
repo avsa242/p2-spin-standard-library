@@ -4,9 +4,9 @@
     Description: Demo of the HT16K33 driver
         (P2 version)
     Author: Jesse Burt
-    Copyright (c) 2020
+    Copyright (c) 2021
     Created: Nov 22, 2020
-    Updated: Nov 22, 2020
+    Updated: Apr 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -123,7 +123,7 @@ PUB Demo_Circle(testtime) | iteration, x, y, r
         x := rnd(XMAX)
         y := rnd(YMAX)
         r := rnd(YMAX/2)
-        disp.circle(x, y, r, -1)
+        disp.circle(x, y, r, -1, false)
         disp.update()
         iteration++
 

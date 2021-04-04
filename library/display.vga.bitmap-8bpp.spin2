@@ -1,11 +1,11 @@
 {
     --------------------------------------------
     Filename: display.vga.bitmap-8bpp.spin2
-    Description: 8-bits per pixel bitmap VGA driver (320x200)
+    Description: 8-bits per pixel bitmap VGA driver (320x240)
     Author: Ray Allen
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Jul 14, 2020
+    Updated: Apr 4, 2021
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is a derivative of raycast5b_SpinDisplay2a.spin2,
@@ -21,7 +21,6 @@ CON
     FPIX        = 25_175_000.0/2.0
     FSET        = (FPIX / FCLK * 2.0) * float($4000_0000)
     BYTESPERPX  = 1
-    BYTESPERLN  = 320
     MAX_COLOR   = 255
     HSYNC_PAR   = 0
     RED_PAR     = 1
@@ -42,6 +41,7 @@ VAR
     long _cog, _params[6]
     long _disp_width, _disp_height, _disp_xmax, _disp_ymax, _buff_sz
     long _ptr_framebuffer, _ptr_drawbuffer
+    word _bytesperln
     byte _vsync_pin
 
 PUB Start(pinbase, ptr_framebuffer, ptr_palette, WIDTH, HEIGHT): okay
@@ -58,6 +58,7 @@ PUB Start(pinbase, ptr_framebuffer, ptr_palette, WIDTH, HEIGHT): okay
     _disp_height := HEIGHT
     _disp_xmax := _disp_width-1
     _disp_ymax := _disp_height-1
+    _bytesperln := 320
     _buff_sz := (WIDTH * HEIGHT)
     Address(ptr_framebuffer)
     _cog := okay := coginit(16, @DisplayEntry, @_params) + 1
