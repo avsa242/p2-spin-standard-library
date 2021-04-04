@@ -24,7 +24,7 @@
 
     PUB Setup()
 
-        disp.startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, , WIDTH, HEIGHT, @_framebuff)
+        disp.startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, SCK_HZ, WIDTH, HEIGHT, @_framebuff)
 
 }
 #define SSD130X_SPI

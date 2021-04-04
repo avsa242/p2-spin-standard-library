@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Started: Jun 14, 2020
-    updated: Jan 30, 2021
+    updated: Apr 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -18,6 +18,28 @@
 '#define SSD1309
 '#define SSD1306_I2C
 #define SSD1306_SPI
+
+OBJ
+
+    cfg         : "core.con.boardcfg.p2eval"
+    ser         : "com.serial.terminal.ansi"
+#ifdef VGABITMAP8BPP
+    disp        : "display.vga.bitmap-8bpp"
+#elseifdef ST7735
+    disp        : "display.lcd.st7735.spi"
+#elseifdef SSD1331
+    disp        : "display.oled.ssd1331.spi"
+#elseifdef SSD1351
+    disp        : "display.oled.ssd1351.spi"
+#elseifdef SSD1309
+    disp        : "display.oled.ssd1309.spi"
+#elseifdef SSD1306_I2C
+    disp        : "display.oled.ssd1306.i2c"
+#elseifdef SSD1306_SPI
+    disp        : "display.oled.ssd1306.spi"
+#endif
+    int         : "string.integer"
+    fnt         : "font.5x8"
 
 CON
 
@@ -116,28 +138,6 @@ VAR
 #endif
     byte _framebuffer[BUFFSZ]
     byte _timer_cog
-
-OBJ
-
-    cfg         : "core.con.boardcfg.p2eval"
-    ser         : "com.serial.terminal.ansi"
-#ifdef VGABITMAP8BPP
-    disp        : "display.vga.bitmap-8bpp"
-#elseifdef ST7735
-    disp        : "display.lcd.st7735.spi"
-#elseifdef SSD1331
-    disp        : "display.oled.ssd1331.spi"
-#elseifdef SSD1351
-    disp        : "display.oled.ssd1351.spi"
-#elseifdef SSD1309
-    disp        : "display.oled.ssd1309.spi"
-#elseifdef SSD1306_I2C
-    disp        : "display.oled.ssd1306.i2c"
-#elseifdef SSD1306_SPI
-    disp        : "display.oled.ssd1306.spi"
-#endif
-    int         : "string.integer"
-    fnt         : "font.5x8"
 
 PUB Main() | time_ms, i
 
