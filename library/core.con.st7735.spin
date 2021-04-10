@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started Mar 07, 2020
-    Updated Jan 10, 2021
+    Updated Apr 9, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,11 +13,8 @@
 CON
 
 ' SPI Configuration
-    CPOL            = 0
-    SCK_DELAY       = 1
     SCK_MAX_FREQ    = 15_151_515    ' According to datasheet; seems to work fine at 20MHz, though
-    MOSI_BITORDER   = 5             'MSBFIRST
-    MISO_BITORDER   = 0             'MSBPRE
+    SPI_MODE        = 0
 
     FOSC            = 625_000       ' Display controller oscillator freq
 
