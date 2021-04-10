@@ -90,6 +90,12 @@ PUB DrawTo(addr)
 '       once a complete frame is rendered.
     _ptr_drawbuffer := addr
 
+PUB MirrorH(state)
+' dummy method
+
+PUB MirrorV(state)
+' dummy method
+
 PUB SetTimings(vfront, vback, hfront, hsync, hback, hvisible)
 ' Set video timings
 '   vfront:     Vertical front porch
