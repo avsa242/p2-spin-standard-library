@@ -3,112 +3,112 @@
     Filename: core.con.ssd1351.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started: Mar 11, 2020
-    Updated: May 9, 2020
+    Updated: Apr 7, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    CPOL                                = 0
-    MOSI_BITORDER                       = 5             ' MSBFIRST
-    SCK_MAX_FREQ                        = 20_000_000
+    SCK_MAX_FREQ            = 20_000_000
+    SPI_MODE                = 0
 
 ' Register map
-    SETCOLUMN                           = $15
+    SETCOLUMN               = $15
 
-    WRITERAM                            = $5C
-    READRAM                             = $5D
-    SETROW                              = $75
-    MASTERCURRENT                       = $87
+    WRITERAM                = $5C
+    READRAM                 = $5D
+    SETROW                  = $75
+    MASTCURRENT             = $87
 
-    HORIZ_SCROLL                        = $96       ' 6B CMD
-    STOP_SCROLL                         = $9E
-    START_SCROLL                        = $9F
+    HORIZ_SCROLL            = $96       ' 6B CMD
+    STOP_SCROLL             = $9E
+    START_SCROLL            = $9F
 
-    SETREMAP                            = $A0
-    SETREMAP_MASK                       = $F7
-        FLD_ADDRINC                     = 0
-        FLD_SEGREMAP                    = 1
-        FLD_SUBPIX_ORDER                = 2
-        FLD_COMREMAP                    = 4
-        FLD_COMSPLIT                    = 5
-        FLD_COLORFORMAT                 = 6
-        BITS_COLORFORMAT                = %11
-        MASK_ADDRINC                    = SETREMAP_MASK ^ (1 << FLD_ADDRINC)
-        MASK_SEGREMAP                   = SETREMAP_MASK ^ (1 << FLD_SEGREMAP)
-        MASK_SUBPIX_ORDER               = SETREMAP_MASK ^ (1 << FLD_SUBPIX_ORDER)
-        MASK_COMREMAP                   = SETREMAP_MASK ^ (1 << FLD_COMREMAP)
-        MASK_COMSPLIT                   = SETREMAP_MASK ^ (1 << FLD_COMSPLIT)
-        MASK_COLORFORMAT                = SETREMAP_MASK ^ (BITS_COLORFORMAT << FLD_COLORFORMAT)
+    SETREMAP                = $A0
+    SETREMAP_MASK           = $F7
+        COLORFMT            = 6
+        COMSPLIT            = 5
+        COMREMAP            = 4
+        SUBPIX_ORDER        = 2
+        SEGREMAP            = 1
+        ADDRINC             = 0
+        COLORFMT_BITS       = %11
+        ADDRINC_MASK        = (1 << ADDRINC) ^ SETREMAP_MASK
+        SEGREMAP_MASK       = (1 << SEGREMAP) ^ SETREMAP_MASK
+        SUBPIX_ORDER_MASK   = (1 << SUBPIX_ORDER) ^ SETREMAP_MASK
+        COMREMAP_MASK       = (1 << COMREMAP) ^ SETREMAP_MASK
+        COMSPLIT_MASK       = (1 << COMSPLIT) ^ SETREMAP_MASK
+        COLORFMT_MASK       = (COLORFMT_BITS << COLORFMT) ^ SETREMAP_MASK
 
-    STARTLINE                           = $A1
-    DISPLAYOFFSET                       = $A2
+    STARTLINE               = $A1
+    DISPOFFSET              = $A2
 
-    DISPLAYALLOFF                       = $A4
-    DISPLAYALLON                        = $A5
-    NORMALDISPLAY                       = $A6
-    INVERTDISPLAY                       = $A7
+    DISPALLOFF              = $A4
+    DISPALLON               = $A5
+    NMLDISP                 = $A6
+    INVDISP                 = $A7
 
-    FUNCSEL                             = $AB
+    FUNCSEL                 = $AB
 
-    DISPLAYOFF                          = $AE
-    DISPLAYON                           = $AF
+    DISPOFF                 = $AE
+    DISPON                  = $AF
 
-    NOOP2                               = $B0
+    NOOP2                   = $B0
 
-    PRECHARGE                           = $B1
-    PRECHARGE_MASK                      = $FF
-        FLD_PHASE1                      = 0
-        FLD_PHASE2                      = 4
-        BITS_PHASE1                     = %1111
-        BITS_PHASE2                     = %1111
-        MASK_PHASE1                     = PRECHARGE_MASK ^ (BITS_PHASE1)
-        MASK_PHASE2                     = PRECHARGE_MASK ^ (BITS_PHASE2 << FLD_PHASE2)
+    PRECHG                  = $B1
+    PRECHG_MASK             = $FF
+        PHASE2              = 4
+        PHASE1              = 0
+        PHASE2_BITS         = %1111
+        PHASE1_BITS         = %1111
+        PHASE2_MASK         = (PHASE2_BITS << PHASE2) ^ PRECHG_MASK
+        PHASE1_MASK         = PHASE1_BITS ^ PRECHG_MASK
 
-    DISPENH                             = $B2       ' 4B CMD. B2 00 00 00 = NORMAL, B2 A4 00 00 = ENH PERF
+    DISPENH                 = $B2       ' 4B CMD. B2 00 00 00 = NML, B2 A4 00 00 = ENH PERF
 
-    CLOCKDIV                            = $B3       ' LOCKED BY $FD ON POR
-    CLOCKDIV_MASK                       = $FF
-        FLD_CLKDIV                      = 0
-        FLD_FOSCFREQ                    = 4
-        BITS_CLKDIV                     = %1111
-        BITS_FOSCFREQ                   = %1111
-        MASK_CLKDIV                     = CLOCKDIV_MASK ^ (BITS_CLKDIV)
-        MASK_FOSCFREQ                   = CLOCKDIV_MASK ^ (BITS_FOSCFREQ << FLD_FOSCFREQ)
+    CLKDIV                  = $B3       ' LOCKED BY $FD ON POR
+    CLKDIV_MASK             = $FF
+        FOSCFREQ            = 4
+        CLK_DIV             = 0
+        FOSCFREQ_BITS       = %1111
+        CLK_DIV_BITS        = %1111
+        FOSCFREQ_MASK       = (FOSCFREQ_BITS << FOSCFREQ) ^ CLKDIV_MASK
+        CLK_DIV_MASK        = CLK_DIV_BITS ^ CLKDIV_MASK
 
-    SETSEGLOWVOLTAGE                    = $B4       ' 4B CMD. B4 A0 B5 55 = EXTERNAL VSL (POR)
-    SETGPIO                             = $B5
-    SETGPIO_MASK                        = $0F
-        FLD_GPIO0                       = 0
-        FLD_GPIO1                       = 2
-        BITS_GPIO0                      = %11
-        BITS_GPIO1                      = %11
-        MASK_GPIO0                      = BITS_GPIO0 ^ (BITS_GPIO0 << FLD_GPIO0)
-        MASK_GPIO1                      = BITS_GPIO1 ^ (BITS_GPIO1 << FLD_GPIO1)
+    SETSEGLOWVOLTAGE        = $B4       ' 4B CMD. B4 A0 B5 55 = EXTERNAL VSL (POR)
 
-    SETSECPRECHG                        = $B6
-    SETSECPRECHG_MASK                   = $0F
+    SETGPIO                 = $B5
+    SETGPIO_MASK            = $0F
+        GPIO1               = 2
+        GPIO0               = 0
+        GPIO1_BITS          = %11
+        GPIO0_BITS          = %11
+        GPIO1_MASK          = (GPIO1_BITS << GPIO1) ^ SETGPIO_MASK
+        GPIO0_MASK          = GPIO0_BITS ^ SETGPIO_MASK
 
-    GRAYSCALE_LUT                       = $B8       ' 64B CMD. B8 [A1..A63 = 00..B4]
-    GRAYSCALE_RESET                     = $B9       ' DEFAULT LINEAR LUT (0, 2, 4, 6 .. 122, 124)
+    SETSECPRECHG            = $B6
+    SETSECPRECHG_MASK       = $0F
 
-    PRECHARGELEVEL                      = $BB
-    VCOMH                               = $BE
+    GRAYSCL_LUT             = $B8       ' 64B CMD. B8 [A1..A63 = 00..B4]
+    GRAYSCL_RESET           = $B9       ' DEFAULT LINEAR LUT (0, 2, 4, 6 .. 122, 124)
 
-    SETCONTRASTABC                      = $C1       ' 4B CMD
-    MASTERCONTRAST_CURR_CTRL            = $C7
+    PRECHGLEVEL             = $BB
+    VCOMH                   = $BE
 
-    SETMUXRATIO                         = $CA
+    SETCNTRSTABC            = $C1       ' 4B CMD
+    MASTCNTRST_CURR_CTRL    = $C7
 
-    NOOP3                               = $D1
-    NOOP4                               = $E3
+    SETMUXRATIO             = $CA
 
-    SETLOCK                             = $FD
+    NOOP3                   = $D1
+    NOOP4                   = $E3
+
+    SETLOCK                 = $FD
 ' Other constants
-    SEL_EXTERNAL_VCC                    = $8E
+    SEL_EXTERNAL_VCC        = $8E
 
-PUB Null
-'' This is not a top-level object
+PUB Null{}
+' This is not a top-level object
