@@ -6,10 +6,13 @@
         I/O base pin offset constants
     Copyright (c) 2021
     Started Mar 7, 2021
-    Updated Mar 21, 2021
+    Updated Apr 10, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
+' Tell object including this file that it's present
+#define MIKROE_CLICK
+
 CON
 ' I/O pin offsets for MIKROE Click adapter boards
 ' For use with Parallax Click Adapter #64008
