@@ -19,6 +19,7 @@ CON
 '   Usage in your application:
 '       * #include this file
 '       * define CLICK_BASE (the adapter's base/lowest I/O pin)
+'           (can be either CON or preprocessor #define)
 '   base I/O pin
 
 ' I2C
@@ -38,4 +39,8 @@ CON
     RTS         = CLICK_BASE + 1
     RX          = CLICK_BASE + 2
     TX          = CLICK_BASE + 3
+
+' Displays (OLED, LCD, etc)
+    DC_PIN      = CLICK_BASE + 5
+    RES_PIN     = CLICK_BASE + 7
 
