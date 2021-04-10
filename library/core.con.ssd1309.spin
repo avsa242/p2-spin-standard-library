@@ -1,11 +1,11 @@
 {
     --------------------------------------------
     Filename: core.con.ssd1309.spin
-    Author: Jesse Burt
     Description: SSD1309 OLED/PLED Display driver registers/command set
+    Author: Jesse Burt
     Copyright (c) 2021
     Created: Apr 26, 2019
-    Updated: Jan 2, 2021
+    Updated: Apr 6, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -18,9 +18,7 @@ CON
 
 ' SPI parameters
     SCK_MAX_FREQ    = 10_000_000
-    SCK_DELAY       = 1
-    SCK_CPOL        = 0
-    MOSI_BITORDER   = 5
+    SPI_MODE        = 0
 
     CTRLBYTE_CMD    = $00
     CTRLBYTE_DATA   = $40
