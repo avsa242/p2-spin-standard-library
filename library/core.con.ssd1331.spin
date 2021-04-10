@@ -5,18 +5,15 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started: Nov 18, 2018
-    Updated: Jan 8, 2021
+    Updated: Apr 6, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    CPOL                    = 0
-    MOSI_BITORDER           = 5                 ' MSBFIRST
     SCK_MAX_FREQ            = 6_666_666         ' According to the datasheet
-                                                ' (isn't enforced in this
-                                                '   driver - ymmv)
+    SPI_MODE                = 0
 
 ' Register map
     DRAWLINE                = $21
