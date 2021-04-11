@@ -1,0 +1,70 @@
+{
+    --------------------------------------------
+    Filename: math.int.spin
+    Author: Jesse Burt
+    Description: Basic integer math functions
+    Copyright (c) 2021
+    Started Apr 11, 2021
+    Updated Apr 11, 2021
+    See end of file for terms of use.
+    --------------------------------------------
+}
+VAR
+
+    long _rndseed
+
+PUB Null{}
+' This is not a top-level object
+
+PUB Cos(angle): cosine
+' Return the cosine of angle
+    org
+        shl     angle,      #20
+        qrotate ##100000,   angle
+        getqx   cosine
+    end
+    return
+
+PUB Log2(num): l2
+' Return base-2 logarithm of num
+    l2 := 0
+    if num > 1
+        repeat
+            num >>= 1
+            l2++
+        until num == 1
+    return
+
+PUB Pow(base, exp): r
+' Return base raised to the power of exp
+    r := base
+    exp--
+    repeat exp
+        r *= base
+    return
+
+PUB RND(maxval): ur
+' Return random unsigned number up to maxval
+    return abs(getrnd()) +// maxval
+
+PUB RNDS(maxval): sr
+' Return random signed number up to maxval
+    return getrnd() +// maxval
+
+PUB RNDi(maxval): ur
+' Return random unsigned number up to maxval, inclusive
+    return abs(getrnd()) +// (maxval+1)
+
+PUB RNDSi(maxval): sr
+' Return random signed number up to maxval, inclusive
+    return getrnd() +// (maxval+1)
+
+PUB Sin(angle): sine
+' Return the sine of angle
+    org
+        shl     angle, #20
+        qrotate ##100000, angle
+        getqy   sine
+    end
+    return
+
