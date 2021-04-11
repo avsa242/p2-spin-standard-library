@@ -165,42 +165,58 @@ PUB Main() | time_ms, sz, maxsz, iteration, bench, ch, color
             BITMAP:
                 repeat while _timer_set
                     disp.bitmap($00000, sz-1, 0)
+#ifndef VGABITMAP8BPP
                     disp.update()
+#endif
                     iteration++
             BOX:
                 repeat while _timer_set
                     disp.box(0, 0, sz-1, sz-1, color, false)
+#ifndef VGABITMAP8BPP
                     disp.update()
+#endif
                     iteration++
             BOX_F:
                 repeat while _timer_set
                     disp.box(0, 0, sz-1, sz-1, color, true)
+#ifndef VGABITMAP8BPP
                     disp.update()
+#endif
                     iteration++
             CIRCLE:
                 repeat while _timer_set
                     disp.circle(CENTERX, CENTERY, sz-1, color, false)
+#ifndef VGABITMAP8BPP
                     disp.update()
+#endif
                     iteration++
             CIRCLE_F:
                 repeat while _timer_set
                     disp.circle(CENTERX, CENTERY, sz-1, color, true)
+#ifndef VGABITMAP8BPP
                     disp.update()
+#endif
                     iteration++
             DLINE:
                 repeat while _timer_set
                     disp.line(0, 0, sz-1, sz-1, color)
+#ifndef VGABITMAP8BPP
                     disp.update()
+#endif
                     iteration++
             HLINE:
                 repeat while _timer_set
                     disp.line(0, 0, sz-1, 0, color)
+#ifndef VGABITMAP8BPP
                     disp.update()
+#endif
                     iteration++
             PLOT:
                 repeat while _timer_set
                     disp.plot(0, 0, color)
+#ifndef VGABITMAP8BPP
                     disp.update()
+#endif
                     iteration++
             TEXT:
                 disp.fontscale(lookdown(sz: 2, 4, 8, 16, 32, 64, 128))
@@ -209,12 +225,16 @@ PUB Main() | time_ms, sz, maxsz, iteration, bench, ch, color
                     ch++
                     if ch > $7F
                         ch := $20
+#ifndef VGABITMAP8BPP
                     disp.update()
+#endif
                     iteration++
             VLINE:
                 repeat while _timer_set
                     disp.line(0, 0, 0, sz-1, color)
+#ifndef VGABITMAP8BPP
                     disp.update()
+#endif
                     iteration++
             other:
                 quit
