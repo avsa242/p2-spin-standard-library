@@ -5,19 +5,26 @@
     Description: Driver for Nordic Semi. nRF24L01+ (P2 version)
     Copyright (c) 2021
     Started Nov 2, 2019
-    Updated Mar 17, 2021
+    Updated Apr 22, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    TX          = 0
-    RX          = 1
+    PAYLD_LEN_MAX   = 32
+
+    TX              = 0
+    RX              = 1
 
 ' RXAddr and TXAddr constants
-    READ        = 0
-    WRITE       = 1
+    READ            = 0
+    WRITE           = 1
+
+' Interrupt flags
+    PAYLD_RDY       = 1 << 2
+    PAYLD_SENT      = 1 << 1
+    MAX_RETRANS     = 1 << 0
 
 VAR
 
