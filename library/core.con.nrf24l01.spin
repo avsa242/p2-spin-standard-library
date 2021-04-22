@@ -5,18 +5,15 @@
     Description: nRF24L01+ Low-level constant definitions
     Copyright (c) 2021
     Started Jan 6, 2019
-    Updated Jan 2, 2021
+    Updated Mar 19, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 ' SPI Configuration
-    CPOL                    = 0
-    CLK_DELAY               = 1
+    SPI_MODE                = 0
     SCK_MAX_FREQ            = 10_000_000
-    MOSI_BITORDER           = 5             'MSBFIRST
-    MISO_BITORDER           = 0             'MSBPRE
     CE_TX                   = 0
     CE_RX                   = 1
 

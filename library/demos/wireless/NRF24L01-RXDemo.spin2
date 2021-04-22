@@ -6,7 +6,7 @@
         Will display data from all 6 data pipes
     Copyright (c) 2021
     Started Nov 23, 2019
-    Updated Jan 2, 2021
+    Updated Mar 20, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -27,10 +27,8 @@ CON
     MISO_PIN        = 17                        '   3 pins +/- of SCK
     SCK_FREQ        = 10_000_000                ' 10_000_000 max
 
-    CHANNEL         = 2                         ' 0..127
+    CHANNEL         = 2                         ' 0..125
 ' --
-
-    CLEAR           = 1
 
 OBJ
 
@@ -44,29 +42,27 @@ VAR
     byte _payld_len
     byte _addr[5]
 
-PUB Main()
+PUB Main() | i, payld_cnt, recv_pipe, pipe_nr
 
-    setup()
+    setup()                                     ' start serial term. and nRF24
 
+' -- User-modifiable settings
     nrf24.channel(CHANNEL)
 
-    receive()
-
-PUB Receive() | i, payld_cnt, recv_pipe, pipe_nr
-
-    longfill(@i, 0, 4)
     _payld_len := 8                             ' 1..32 (_must_ match TX side)
 
-    ' Set receive address (note: order is LSB, ..., MSB)
-    bytemove(@_addr, string($e7, $e7, $e7, $e7, $e7), 5)
-    nrf24.rxaddr(@_addr, 0, nrf24.WRITE)
+    ' Set receive address (note: order in string() is LSB, ..., MSB)
+    nrf24.rxaddr(string($e7, $e7, $e7, $e7, $e7), 0, nrf24#WRITE)
 
-    nrf24.rxmode()                              ' Set to receive mode
-    nrf24.flushrx()                             ' Empty the receive FIFO
-    nrf24.powered(TRUE)
-    nrf24.intclear(%111)                        ' Clear interrupt
-    nrf24.pipesenabled(%111111)                 ' Pipe enable mask (5..0)
-    nrf24.autoackenabledpipes(%000000)          ' Auto-ack/Shockburst per pipe
+    ' choose a receive mode preset (250kbps, 1Mbps, 2Mbps)
+    '   with optional Auto-Ack/ShockBurst  (power-on default)
+'    nrf24.preset_rx250k()                       ' 250kbps
+'    nrf24.preset_rx250k_noaa()                  ' 250kbps, No Auto-Ack
+'    nrf24.preset_1m()                           ' 1Mbps
+'    nrf24.preset_1m_noaa()                      ' 1Mbps, No Auto-Ack
+    nrf24.preset_rx2m()                         ' 2Mbps
+'    nrf24.preset_rx2m_noaa()                    ' 2Mbps, No Auto-Ack
+' --
 
     repeat pipe_nr from 0 to 5
         nrf24.payloadlen(_payld_len, pipe_nr)   ' Set all pipes the same len
@@ -76,6 +72,7 @@ PUB Receive() | i, payld_cnt, recv_pipe, pipe_nr
     ser.printf("Receive mode (channel %d)\n", nrf24.channel())
     ser.printf("Listening for transmitters...")
 
+    payld_cnt := 0
     repeat
         bytefill(@_payload, $00, 32)            ' Clear RX local buffer
         repeat                                  ' Wait to proceed...
@@ -84,7 +81,8 @@ PUB Receive() | i, payld_cnt, recv_pipe, pipe_nr
         until nrf24.payloadready()              ' ...until payload received
 
         recv_pipe := nrf24.rxpipepending()      ' Which pipe is the data in?
-        nrf24.rxaddr(@_addr, recv_pipe, nrf24.READ) ' Copy it into a variable
+        ' copy the address of the pipe the data was received in
+        nrf24.rxaddr(@_addr, recv_pipe, nrf24.READ)
         nrf24.rxpayload(_payld_len, @_payload)  ' Retrieve payload into hub
         payld_cnt++                             ' Received payload counter
 
