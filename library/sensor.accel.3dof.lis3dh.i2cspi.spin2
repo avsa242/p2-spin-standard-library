@@ -5,7 +5,7 @@
     Description: Driver for the ST LIS3DH 3DoF accelerometer
     Copyright (c) 2021
     Started Mar 15, 2020
-    Updated Jan 27, 2021
+    Updated Apr 29, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -79,8 +79,8 @@ PUB Startx(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_HZ=1_000_000): status
 ' Start using custom I/O pins
     if lookdown(CS_PIN: 0..63) and lookdown(SCL_PIN: 0..63) and {
 }   lookdown(SDA_PIN: 0..63) and lookdown(SDO_PIN: 0..63)
-        if status := spi.init(SCL_PIN, SDA_PIN, SDO_PIN, core.SPI_MODE, {
-}       SCL_HZ)
+        if (status := spi.init(SCL_PIN, SDA_PIN, SDO_PIN, core.SPI_MODE, {
+}       SCL_HZ))
             _CS := CS_PIN
             pinh(_CS)
             waitms(core.TPOR)

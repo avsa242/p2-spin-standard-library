@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started Mar 15, 2020
-    Updated Jan 27, 2021
+    Updated Apr 29, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -18,7 +18,6 @@ CON
 
 ' SPI Configuration
     SPI_MODE            = 0
-    SCK_DELAY           = 1             ' P1/SPIN1
     SCK_MAX_FREQ        = 10_000_000    ' P2/SPIN2
 
     W                   = 0
