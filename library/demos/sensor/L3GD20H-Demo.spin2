@@ -23,15 +23,15 @@ CON
     SER_BAUD    = 2_000_000
 
 ' I2C
-    I2C_SCL     = 1
-    I2C_SDA     = 2
+    I2C_SCL     = 0
+    I2C_SDA     = 1
     I2C_HZ      = 400_000
 
 ' SPI
     CS_PIN      = 0
     SCL_PIN     = 1
-    SDO_PIN     = 3
-    SDA_PIN     = 2
+    SDO_PIN     = 2
+    SDA_PIN     = 3
 ' --
 
     DAT_X_COL   = 20
