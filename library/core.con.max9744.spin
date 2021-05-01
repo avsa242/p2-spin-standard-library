@@ -3,9 +3,9 @@
     Filename: core.con.max9744.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Jul 7, 2018
-    Updated Nov 22, 2020
+    Updated May 1, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -21,7 +21,5 @@ CON
     MOD_FILTERLESS          = %01_000000
     MOD_CLASSICPWM          = %01_000001
 
-#ifndef __propeller2__
-PUB Null
+PUB Null{}
 ' This is not a top-level object
-#endif
