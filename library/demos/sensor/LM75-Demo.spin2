@@ -5,7 +5,7 @@
     Description: Demo of the LM75 driver (P2 version)
     Copyright (c) 2021
     Started Nov 19, 2020
-    Updated Jan 13, 2021
+    Updated May 8, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,15 +20,13 @@ CON
     SER_BAUD    = 2_000_000
 
 ' I2C:
-    SCL_PIN     = 28
-    SDA_PIN     = 29
+    SCL_PIN     = 0
+    SDA_PIN     = 1
     I2C_HZ      = 400_000
 
     ' alternate slave address bits (%000 default)
     ADDR_BITS   = %000                          ' %000..%111
 ' --
-
-    DAT_COL     = 20
 
     C           = 0
     F           = 1
@@ -40,59 +38,17 @@ OBJ
     int     : "string.integer"
     temp    : "sensor.temperature.lm75.i2c"
 
-PUB Main() | dispmode
+PUB Main() | tmp
 
     setup()
     temp.tempscale(C)                           ' C (0), F (1)
 
-    ser.hidecursor()
-    dispmode := 0
-    displaysettings()
     repeat
-        case ser.rxcheck()
-            "q", "Q":                           ' Quit the demo
-                ser.position(0, 17)
-                ser.printf("Halting")
-                temp.stop()
-                waitms(5)
-                quit
-            "r", "R":                           ' Change display mode
-                ser.position(0, 14)             '   (raw or calculated)
-                repeat 2
-                    ser.clearline()
-                    ser.newline()
-                dispmode ^= 1
-        case dispmode
-            0:
-                ser.position(0, 14)
-                tempraw()
-            1:
-                ser.position(0, 14)
-                tempcalc()
-
-    ser.showcursor()
-    repeat
-
-PUB TempCalc() | tmp
-
-    tmp := temp.temperature()
-    ser.printf("Temp deg:  ")
-    ser.position(DAT_COL, 14)
-    decimal(tmp, 100)
-    ser.clearline()
-    ser.newline()
-
-PUB TempRaw() | tmp
-
-    tmp := temp.tempdata()
-    ser.printf("Temp raw:  ")
-    ser.position(DAT_COL, 14)
-    ser.hex(tmp, 6)
-    ser.clearline()
-    ser.newline()
-
-PUB DisplaySettings()
-
+        tmp := temp.temperature()
+        ser.position(0, 3)
+        ser.str(string("Temp deg:  "))
+        decimal(tmp, 100)
+        ser.clearline()
 
 PUB Decimal(scaled, divisor) | whole[4], part[4], places, tmp, sign
 ' Display a scaled up number as a decimal
@@ -125,11 +81,11 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if temp.start(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS)
+    if temp.startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS)
         temp.defaults()
-        ser.strln(string("MS5607 driver started (I2C)"))
+        ser.strln(string("LM75 driver started (I2C)"))
     else
-        ser.strln(string("MS5607 driver failed to start - halting"))
+        ser.strln(string("LM75 driver failed to start - halting"))
         temp.stop()
         waitms(5)
         repeat
