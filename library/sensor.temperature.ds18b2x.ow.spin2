@@ -5,7 +5,7 @@
     Description: Driver for the Dallas/Maxim DS18B2x-series temperature sensors
     Copyright (c) 2021
     Started Jul 13, 2019
-    Updated Jan 8, 2021
+    Updated May 8, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,14 +20,20 @@ CON
     ONE     = 0
     MULTI   = 1
 
+    SN_LSB  = 0
+    SN_MSB  = 7
+    SPAD_LSB= 0
+    SPAD_MSB= 8
+
 OBJ
 
     core    : "core.con.ds18b2x"
     ow      : "com.onewire"
+    crc     : "math.crc"
 
 VAR
 
-    long _sel_addr[2]
+    long _sel_addr[2], _lastcrc_valid
     byte _temp_scale, _opmode
 
 PUB Null()
@@ -71,6 +77,12 @@ PUB ADCRes(bits): curr_res
             curr_res := (ow.rd_byte() >> core.R0)
             return lookupz(curr_res: 9..12)
 
+PUB LastCRCValid(): wasvalid
+' Flag indicating CRC of last data read from sensor was valid
+'   Returns: TRUE (-1) or FALSE (0)
+'   NOTE: CRC is calculated from entire DS18B20 scratchpad RAM
+    return _lastcrc_valid
+
 PUB OpMode(mode): curr_mode
 ' Set operation mode
 '   Valid values:
@@ -92,15 +104,17 @@ PUB Select(ptr_addr)
 ' Select device, by pointer to address, for subsequent operations
     longmove(@_sel_addr, ptr_addr, 2)
 
-PUB SN(ptr_buff) | tmp
+PUB SN(ptr_buff): isvalid
 ' Read 64-bit serial number of device into buffer at ptr_buff
 '   NOTE: Buffer at ptr_buff must be 8 bytes in length
 '   NOTE: Includes family code (LSB) and CRC (MSB)
+'   Returns: Flag indicating whether CRC is valid
     ow.reset()
     ow.wr_byte(ow.RD_ROM)
     ow.readaddress(ptr_buff)
+    return (crc.dallasmaximcrc8(ptr_buff, 7) == byte[ptr_buff][SN_MSB])
 
-PUB TempData(): temp_adc
+PUB TempData(): temp_adc | tmp[3], i
 ' Read temperature data
     temp_adc := 0
     polldev()
@@ -111,7 +125,11 @@ PUB TempData(): temp_adc
     polldev()
 
     ow.wr_byte(core.RD_SPAD)
-    temp_adc := ow.rd_word()
+    repeat i from 0 to 8
+        tmp.byte[i] := ow.rd_byte{}
+
+    temp_adc := tmp.word[0]
+    _lastcrc_valid := (crc.dallasmaximcrc8(@tmp, 8) == tmp.byte[SPAD_MSB])
     ow.reset()
 
 PUB Temperature(): temp
