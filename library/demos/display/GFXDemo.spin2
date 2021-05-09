@@ -132,7 +132,7 @@ PUB Main()
     _time := 5_000                              ' time each demo runs (ms)
 
     demo_greet()
-{    demo_bitmap($0000, BUFFSZ)                  ' (pointer to bitmap, size)
+    demo_bitmap($0000, BUFFSZ)                  ' (pointer to bitmap, size)
     demo_bounce()
     demo_box()
     demo_boxfilled()
@@ -140,7 +140,7 @@ PUB Main()
     demo_circlefilled()
     demo_line()
     demo_plot()
-    demo_sinewave()}
+    demo_sinewave()
     demo_text()
     demo_wander()
 
