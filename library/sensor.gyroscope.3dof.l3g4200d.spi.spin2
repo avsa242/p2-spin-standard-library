@@ -1,0 +1,31 @@
+{
+    --------------------------------------------
+    Filename: sensor.gyroscope.3dof.l3g4200d.spi.spin2
+    Author: Jesse Burt
+    Description: Intermediate layer for L3G4200D driver (SPI enabled)
+    Copyright (c) 2020
+    Started Jul 11, 2020
+    Updated Jul 12, 2020
+    See end of file for terms of use.
+    --------------------------------------------
+
+    To use, do this in your top-level application:
+
+    #define L3G4200D_SPI
+
+    OBJ
+
+        gyro   : "sensor.gyroscope.3dof.l3g4200d.spi"
+
+    PUB Main()
+
+        setup()
+        ' Your code here
+
+    PUB Setup()
+
+        gyro.start(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN)
+
+}
+#define L3G4200D_SPI
+#include "sensor.gyroscope.3dof.l3g4200d.i2cspi.spin2"
