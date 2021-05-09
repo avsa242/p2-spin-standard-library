@@ -4,7 +4,7 @@
     Description: Audio output using smart pin-based DAC (2-channel)
     Author: Jesse Burt
     Started: Mar 16, 2020
-    Updated: Feb 14, 2021
+    Updated: May 9, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -23,12 +23,13 @@ OBJ
     sp  : "core.con.smartpins"                  ' smart-pin modes/constants
     evt : "core.con.events"                     ' background events/constants
 
-PUB Start(L_PIN, R_PIN, SAMPRATE_HZ): status | period
+PUB Start(L_PIN, R_PIN, SAMPRATE_HZ): status | period, se1setup
 ' Start DAC smart-pin on L_PIN, R_PIN at SAMPRATE_HZ
     if lookdown(L_PIN: 0..63) and lookdown(R_PIN: 0..63)
         longmove(@_L_PIN, @L_PIN, 2)
         period := (clkfreq / SAMPRATE_HZ)
 
+        se1setup := evt.INP_RISES | L_PIN
         org
             wrpin   ##SP_DAC_MODE, L_PIN        ' Config left and right pins
             wrpin   ##SP_DAC_MODE, R_PIN        '   for smart-pin DAC mode
@@ -36,7 +37,7 @@ PUB Start(L_PIN, R_PIN, SAMPRATE_HZ): status | period
             wxpin   period, R_PIN               '   and right channels
             dirh    L_PIN                       ' Enable smart-pins
             dirh    R_PIN                       '
-            setse1  #evt.INP_RISES              ' trigger on every new sample
+            setse1  se1setup                    ' trigger on every new sample
                                                 '   period - on L_PIN rise
         end
         return cogid() + 1
@@ -58,7 +59,6 @@ PUB SampleRate(rate)
 PUB Output16(sample) | L_PIN, R_PIN
 ' Output an 16-bit audio sample
     longmove(@L_PIN, @_L_PIN, 2)
-
     org
         xor     sample, ##$8000
         wypin   sample, L_PIN                   ' Output sample on left channel
