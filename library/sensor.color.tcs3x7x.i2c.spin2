@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Driver for the TAOS TCS3x7x RGB color sensor
         (P2 version)
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started: Jun 24, 2018
-    Updated: Dec 24, 2020
+    Updated: May 15, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -47,22 +47,26 @@ VAR
 PUB Null()
 ' This is not a top-level object
 
-PUB Start(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): okay
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
 ' Start using custom settings
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ <= core.I2C_MAX_FREQ
-            if okay := i2c.setup(SCL_PIN, SDA_PIN, I2C_HZ)
-                waitms(1)
-                if i2c.present(SLAVE_WR)
-                    if lookdown(deviceid(): core.DEVID_3472_1_5,{
+    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
+}   I2C_HZ <= core.I2C_MAX_FREQ
+        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+            waitms(1)
+            if i2c.present(SLAVE_WR)
+                if lookdown(deviceid(): core.DEVID_3472_1_5,{
 }                   core.DEVID_3472_3_7)
-                        return okay
-    return FALSE                                ' something above failed
+                    return
+    ' if this point is reached, something above failed
+    ' Double check I/O pin assignments, connections, power
+    ' Lastly - make sure you have at least one free core/cog
+    return FALSE
 
 PUB Stop()
 
     opmode(STDBY)
     powered(FALSE)
+    i2c.deinit()
 
 PUB Defaults()
 ' Factory defaults
@@ -77,19 +81,23 @@ PUB Defaults()
     waitlongtimer(FALSE)
     gain(1)
 
-PUB Defaults_Measure()
-' Factory defaults, but enable measurements
+PUB Preset_Active()
+' Like Defaults(), but enable measurements
     defaults()
     powered(true)
     opmode(RUN)
 
 PUB BlueData(): bdata
 ' Live blue-channel data
+'   NOTE: This method also updates data retrievable with LastBlue() method
     readreg(core.BDATAL, 2, @bdata)
+    _crgb[BLUE] := bdata
 
-PUB ClearData(): bdata
+PUB ClearData(): cdata
 ' Live clear-channel data
-    readreg(core.BDATAL, 2, @bdata)
+'   NOTE: This method also updates data retrievable with LastClear() method
+    readreg(core.BDATAL, 2, @cdata)
+    _crgb[CLEAR] := cdata
 
 PUB DataReady(): flag
 ' Flag indicating new RGBC data sample ready
@@ -124,7 +132,9 @@ PUB Gain(factor=-2): curr_gain
 
 PUB GreenData(): gdata
 ' Live green-channel data
+'   NOTE: This method also updates data retrievable with LastGreen() method
     readreg(core.GDATAL, 2, @gdata)
+    _crgb[GREEN] := gdata
 
 PUB IntClear()
 ' Clears an asserted interrupt
@@ -255,7 +265,7 @@ PUB OpMode(mode=-2): curr_mode
             return (curr_mode >> core.AEN) & 1
 
     mode := ((curr_mode & core.AEN_MASK) | mode) & core.ENABLE_MASK
-    writereg(core.ENABLE, 1, @curr_mode)
+    writereg(core.ENABLE, 1, @mode)
 
 PUB Persistence(cycles=-2): curr_cyc
 ' Set number of consecutive cycles necessary to generate an interrupt
@@ -294,11 +304,13 @@ PUB Powered(state=-2): curr_state
     state := ((curr_state & core.PON_MASK) | state) & core.ENABLE_MASK
     writereg(core.ENABLE, 1, @state)
     if state
-        waitus(2400)                       'Wait 2.4ms per datasheet p.15
+        waitus(2400)                            'Wait 2.4ms per datasheet p.15
 
 PUB RedData(): rdata
 ' Live red-channel data
+'   NOTE: This method also updates data retrievable with LastRed() method
     readreg(core.RDATAL, 2, @rdata)
+    _crgb[RED] := rdata
 
 PUB RGBCData(ptr_buff)
 ' Get sensor data into ptr_buff
@@ -333,7 +345,7 @@ PUB WaitTimer(state=-2): curr_state
 '   Valid values: FALSE, TRUE or 1
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Used for power management - allows sensor to wait in between
-'       acquisition cycles. If state, use WaitTime{} to specify
+'       acquisition cycles. If state, use WaitTime() to specify
 '       number of cycles.
     curr_state := 0
     readreg(core.ENABLE, 1, @curr_state)
@@ -362,7 +374,7 @@ PUB WaitLongTimer(state=-2): curr_state
     state &= core.CONFIG_MASK
     writereg(core.CONFIG, 1, @state)
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from device into ptr_buff
     cmd_pkt.byte[0] := SLAVE_WR
     case reg_nr
@@ -376,16 +388,14 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
                 other:                          ' invalid
                     return
     i2c.start()
-    repeat tmp from 0 to 1
-        i2c.write(cmd_pkt.byte[tmp])
+    i2c.wrblock_lsbf(@cmd_pkt, 2)
 
     i2c.start()
     i2c.write(SLAVE_RD)
-    repeat tmp from 0 to nr_bytes-1
-        byte[ptr_buff][tmp] := i2c.read(tmp == nr_bytes-1)
+    i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c#NAK)
     i2c.stop()
 
-PUB writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Write nr_bytes from ptr_buff to device
     cmd_pkt.byte[0] := SLAVE_WR
     case reg_nr
@@ -399,16 +409,13 @@ PUB writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
                 other:
                     return                      ' invalid
             i2c.start()
-            repeat tmp from 0 to 1
-                i2c.write(cmd_pkt.byte[tmp])
-            repeat tmp from 0 to nr_bytes-1
-                i2c.write(byte[ptr_buff][tmp])
+            i2c.wrblock_lsbf(@cmd_pkt, 2)
+            i2c.wrblock_lsbf(ptr_buff, nr_bytes)
             i2c.stop()
         core.CMD_CLR_INT:                       ' special: clear interrupt
             cmd_pkt.byte[1] := reg_nr
             i2c.start()
-            repeat tmp from 0 to 1
-                i2c.write(cmd_pkt.byte[tmp])
+            i2c.wrblock_lsbf(@cmd_pkt, 2)
             i2c.stop()
 
 DAT
