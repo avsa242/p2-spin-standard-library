@@ -3,9 +3,9 @@
     Filename: lib.termwidgets.spin2
     Author: Jesse Burt
     Description: Library of terminal widgets (P2 version)
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Dec 14, 2019
-    Updated May 13, 2020
+    Updated May 15, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,57 +20,41 @@
 '           Hex (param, digits)
 '           Position (x, y)
 
-PUB DecimalDot(scaled, divisor) | whole[4], part[4], places, tmp
-' Display a scaled up number in its natural form - scale it back down by divisor
-    whole := scaled / divisor
-    tmp := divisor
-    places := 0
-
-    repeat
-        tmp /= 10
-        places++
-    until tmp == 1
-    part := int.DecZeroed(abs((scaled // divisor)), places)
-
-    Dec (whole)
-    Char (".")
-    Str (part)
-
-PUB HexDump(buff_addr, base_addr, nr_bytes, columns, x, y) | maxcol, maxrow, digits, hexoffset, ascoffset, offset, hexcol, asccol, row, col, currbyte
+PUB HexDump(ptr_buff, base_addr, adr_digits, nr_bytes, columns) | hex_offs, asc_offs, col
 ' Display a hexdump of a region of memory
-'   buff_addr: Start address of memory
-'   base_addr: Address used to display as base address in hex dump (affects display only)
-'   nr_bytes: Total number of bytes to display
-'   columns: Number of bytes to display on each line
-'   x, y: Terminal position to display start of hex dump
-    maxcol := columns-1
-    maxrow := nr_bytes / columns
-    digits := 8                                                 ' Number of digits used to display offset
-    hexoffset := digits + 2
-    ascoffset := hexoffset + (columns * 3)
-    offset := 0
+'   ptr_buff: pointer to location in memory to hexdump
+'   base_addr: address used to display as base address in hex dump
+'       (affects display only - useful for dumps of an EE, flash chip, etc)
+'   adr_digits: number of digits used to display address
+'   nr_bytes: total number of bytes to display
+'   columns: number of bytes to display on each line
+    col := 0
+    hex_offs := asc_offs := ptr_buff            ' initialize offsets to base
+                                                '   address
+    repeat while hex_offs < (ptr_buff + nr_bytes)
+        hex(base_addr+hex_offs, adr_digits)     ' show memory offset of line
+        str(string(": "))
 
-    repeat row from y to y+maxrow
-        Position (x, row)
-        Hex (base_addr+offset, digits)                          ' Show offset address of row in 'digits'
-        Str (string(": "))
-        repeat col from 0 to maxcol
-            currbyte := byte[buff_addr][offset]
-            offset++
-            hexcol := x + (col * 3) + hexoffset                 ' Compute the terminal X position of the hex byte
-            asccol := x + col + ascoffset                       ' and the ASCII character
+        repeat while col < columns              ' display data in hex
+            hex(byte[hex_offs], 2)
+            char(" ")                           ' space between each byte
+            col++
+            hex_offs++
 
-            Position (hexcol, row)                              ' Show the ASCII value in hex
-            Hex (currbyte, 2)                                   '   of the current byte
+        char("|")                               ' separate hex from ASCII
+        col := 0
 
-            Position (asccol, row)                              ' Show the ASCII character
-            case currbyte                                       '   of the current byte
-                32..127:                                        '   IF it's a printable character
-                    Char (currbyte)
-                OTHER:                                          '   Otherwise, just show a period
-                    Char (".")
-            if offset > nr_bytes-1
-                return
+        repeat while col < columns              ' display data in ASCII
+            if lookdown(byte[asc_offs]: 32..127)
+                char(byte[asc_offs])            ' display printable chars as-is
+            else
+                char(".")                       ' and unprintable chars as "."
+            col++
+            asc_offs++
+
+        char("|")
+        col := 0                                ' ready for next line
+        newline()
 
 DAT
 {
