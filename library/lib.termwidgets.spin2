@@ -20,7 +20,7 @@
 '           Hex (param, digits)
 '           Position (x, y)
 
-PUB HexDump(ptr_buff, base_addr, adr_digits, nr_bytes, columns) | hex_offs, asc_offs, col
+PUB HexDump(ptr_buff, base_addr, adr_digits, nr_bytes, columns) | hex_offs, asc_offs, asc_addr, col
 ' Display a hexdump of a region of memory
 '   ptr_buff: pointer to location in memory to hexdump
 '   base_addr: address used to display as base address in hex dump
@@ -29,14 +29,14 @@ PUB HexDump(ptr_buff, base_addr, adr_digits, nr_bytes, columns) | hex_offs, asc_
 '   nr_bytes: total number of bytes to display
 '   columns: number of bytes to display on each line
     col := 0
-    hex_offs := asc_offs := ptr_buff            ' initialize offsets to base
+    hex_offs := asc_offs := 0                   ' initialize offsets to base
                                                 '   address
-    repeat while hex_offs < (ptr_buff + nr_bytes)
+    repeat while hex_offs < nr_bytes
         hex(base_addr+hex_offs, adr_digits)     ' show memory offset of line
         str(string(": "))
 
         repeat while col < columns              ' display data in hex
-            hex(byte[hex_offs], 2)
+            hex(byte[ptr_buff+hex_offs], 2)
             char(" ")                           ' space between each byte
             col++
             hex_offs++
@@ -45,8 +45,9 @@ PUB HexDump(ptr_buff, base_addr, adr_digits, nr_bytes, columns) | hex_offs, asc_
         col := 0
 
         repeat while col < columns              ' display data in ASCII
-            if lookdown(byte[asc_offs]: 32..127)
-                char(byte[asc_offs])            ' display printable chars as-is
+            asc_addr := ptr_buff+asc_offs
+            if lookdown(byte[asc_addr]: 32..127)
+                char(byte[asc_addr])            ' display printable chars as-is
             else
                 char(".")                       ' and unprintable chars as "."
             col++

@@ -6,7 +6,7 @@
         Will display data from all 6 data pipes
     Copyright (c) 2021
     Started Nov 23, 2019
-    Updated Mar 20, 2021
+    Updated May 15, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -95,7 +95,8 @@ PUB Main() | i, payld_cnt, recv_pipe, pipe_nr
             ser.hex(_addr[i], 2)                ' (2..4 are only 1-byte)
         ser.char(")")
 
-        ser.hexdump(@_payload, 0, _payld_len, _payld_len, 0, 9 + (recv_pipe * 4))
+        ser.position(0, 9 + (recv_pipe * 4))
+        ser.hexdump(@_payload, 0, 4, _payld_len, _payld_len)
 
         nrf24.intclear(%100)                    ' Clear interrupt
         nrf24.flushrx()                         ' Flush FIFO

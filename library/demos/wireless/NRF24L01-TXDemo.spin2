@@ -5,7 +5,7 @@
     Description: nRF24L01+ Transmit demo
     Copyright (c) 2021
     Started Nov 23, 2019
-    Updated Mar 20, 2021
+    Updated May 15, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -112,7 +112,8 @@ PUB Main() | payld_cnt, tmp[2], i, max_retrans, pkts_retrans, lost_pkts
         ser.strln(string(")"))
 
         ' Show what will be transmitted
-        ser.hexdump(@_payload, 0, _payld_len, _payld_len, 0, 11)
+        ser.position(0, 11)
+        ser.hexdump(@_payload, 0, 4, _payld_len, _payld_len)
 
         nrf24.txpayload(_payld_len, @_payload)
 

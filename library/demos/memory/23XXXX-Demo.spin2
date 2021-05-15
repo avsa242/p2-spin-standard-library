@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2021
     Started Dec 27, 2020
-    Updated Mar 6, 2021
+    Updated May 15, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -64,7 +64,8 @@ PUB Main() | base_page, start, elapsed
         sram.readpage(base_page, PAGESIZE, @_sram_buff)
         elapsed := getct()-start
 
-        ser.hexdump(@_sram_buff, base_page << 5, PAGESIZE, 8, 0, 5)
+        ser.position(0, 5)
+        ser.hexdump(@_sram_buff, base_page << 5, 5, PAGESIZE, 8)
         ser.printf(string("\nReading done (%dus)\n"), usec(elapsed))
 
         case ser.charin()

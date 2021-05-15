@@ -5,7 +5,7 @@
     Description: Demo of the 24xxxx driver (P2 version)
     Copyright (c) 2021
     Started May 9, 2020
-    Updated Apr 27, 2021
+    Updated May 15, 2021
     See end of file for terms of use.
     --------------------------------------------
     NOTE: Use the write and erase tests with care,
@@ -59,7 +59,8 @@ PUB Main() | mem_base, stime, etime
     repeat
         readtest(mem_base)
 
-        ser.hexdump(@_buff, mem_base, _pagesize, 16, 0, 5)
+        ser.position(0, 5)
+        ser.hexdump(@_buff, mem_base, 5, _pagesize, 16)
         ser.newline()
 
         case ser.charin()                       ' wait for terminal keypress
