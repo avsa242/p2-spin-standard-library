@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started: Nov 18, 2018
-    Updated: Apr 6, 2021
+    Updated: Apr 19, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -97,6 +97,7 @@ CON
     PRECHGB                 = $8B
     PRECHGC                 = $8C
     PRECHGLVL               = $BB
+        PRECHG_LVL          = 1
     NOP1                    = $BC
     NOP2                    = $BD
     VCOMH                   = $BE
