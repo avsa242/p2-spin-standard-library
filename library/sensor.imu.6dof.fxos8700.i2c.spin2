@@ -3,9 +3,9 @@
     Filename: sensor.imu.6dof.fxos8700.i2c.spin
     Author: Jesse Burt
     Description: Driver for the FXOS8700 6DoF IMU
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Sep 19, 2020
-    Updated Sep 29, 2020
+    Updated May 16, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -68,9 +68,8 @@ CON
 
 OBJ
 
-    i2c     : "com.i2c"
-    core    : "core.con.fxos8700.spin"
-    time    : "time"
+    i2c     : "com.i2c"                         ' I2C engine
+    core    : "core.con.fxos8700"               ' HW-specific constants
 
 VAR
 
@@ -79,35 +78,64 @@ VAR
     byte _slave_addr, _temp_scale
 
 PUB Null()
-'This is not a top-level object  
+' This is not a top-level object
 
-PUB Start()
-' Start using default I2C pins @ 100kHz, default slave address
-    startx(DEF_SCL, DEF_SDA, DEF_HZ, %00)
-
-PUB Startx(SCL_PIN, SDA_PIN, SCL_HZ, SL_ADDR_BITS): okay | tmp
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, SL_ADDR_BITS): status
 ' Start using custom pins, I2C bus freq, slave address bits
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        okay := i2c.setup(SCL_PIN, SDA_PIN, SCL_HZ)
-        waitus(core.TPOR)
-' Unfortunately, the chip's mapping of SAx bits to the slave address isn't
-'   logical, so to work around it, determine it conditionally:
-        case SL_ADDR_BITS
-            %00: _slave_addr := core.SLAVE_ADDR_1E
-            %01: _slave_addr := core.SLAVE_ADDR_1D
-            %10: _slave_addr := core.SLAVE_ADDR_1C
-            %11: _slave_addr := core.SLAVE_ADDR_1F
-            other: _slave_addr := core.SLAVE_ADDR_1E
+    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
+}   I2C_HZ <= core.I2C_MAX_FREQ
+        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+            waitus(core.TPOR)
+            ' Unfortunately, the chip's mapping of SAx bits to the slave address isn't
+            '   logical, so to work around it, determine it conditionally:
+            case SL_ADDR_BITS
+                %00: _slave_addr := core.SLAVE_ADDR_1E
+                %01: _slave_addr := core.SLAVE_ADDR_1D
+                %10: _slave_addr := core.SLAVE_ADDR_1C
+                %11: _slave_addr := core.SLAVE_ADDR_1F
+                other: _slave_addr := core.SLAVE_ADDR_1E
 
-        if deviceid() == core.DEVID_RESP
-            defaults()
-            return okay
-    stop()                                          ' Something above failed
+            if deviceid() == core.DEVID_RESP
+                defaults()
+                return
+    ' if this point is reached, something above failed
+    ' Double check I/O pin assignments, connections, power
+    ' Lastly - make sure you have at least one free core/cog
     return FALSE
 
 PUB Stop()
 
+    i2c.deinit()
+
 PUB Defaults()
+' Factory default settings
+    accelopmode(STANDBY)
+    opmode(ACCEL)
+
+    acceldatarate(800)
+    accellowpassfilter(false)
+    accelscale(2)
+    fifoenabled(FALSE)
+    fifothreshold(0)
+    intmask(%00000000)
+    magdataoversampling(2)
+    'magdatarate(800)                           ' already set by acceldatarate
+    magintsenabled(FALSE)
+    magintthreshx(0)
+    magintthreshy(0)
+    magintthreshz(0)
+    magthreshdebounce(0)
+    magthreshintmask(%000)
+    magthreshintsenabled(FALSE)
+    tempscale(C)
+
+PUB Preset_Active()
+' Like factory defaults, but with the following changes:
+'   Accelerometer + Magnetometer enabled
+'   Active/measurement mode
+    defaults()
+    accelopmode(MEASURE)
+    opmode(BOTH)
 
 PUB AccelADCRes(bits): curr_res
 ' dummy method
@@ -130,29 +158,29 @@ PUB AccelBias(bias_x, bias_y, bias_z, rw=0) | tmp, opmode_orig
     case rw
         R:
             readreg(core.OFF_X, 3, @tmp)
-            long[bias_x] := ~tmp.byte[2]
+            long[bias_x] := ~tmp.byte[2]        ' signed 8-bit
             long[bias_y] := ~tmp.byte[1]
             long[bias_z] := ~tmp.byte[0]
         W:
             tmp.byte[2] := bias_x := -128 #> bias_x <# 127
             tmp.byte[1] := bias_y := -128 #> bias_y <# 127
             tmp.byte[0] := bias_z := -128 #> bias_z <# 127
-            opmode_orig := accelopmode()
-            accelopmode(STANDBY)
+            opmode_orig := accelopmode()        ' store user's opmode
+            accelopmode(STANDBY)                ' standby to set offsets
             writereg(core.OFF_X, 3, @tmp)
-            accelopmode(opmode_orig)
+            accelopmode(opmode_orig)            ' restore user's opmode
 
 PUB AccelClearInt() | tmp   ' TODO
 ' Clears out any interrupts set up on the Accelerometer
 '   and resets all Accelerometer interrupt registers to their default values.
-    tmp := $00
+    tmp := 0
 
-PUB AccelData(ax, ay, az) | tmp[2]
+PUB AccelData(ptr_x, ptr_y, ptr_z) | tmp[2]
 ' Reads the Accelerometer output registers
     readreg(core.OUT_X_MSB, 6, @tmp)
-    long[ax] := ~~tmp.word[2]
-    long[ay] := ~~tmp.word[1]
-    long[az] := ~~tmp.word[0]
+    long[ptr_x] := ~~tmp.word[2]                ' signed 16-bit
+    long[ptr_y] := ~~tmp.word[1]
+    long[ptr_z] := ~~tmp.word[0]
 
 PUB AccelDataOverrun(): flag
 ' Indicates previously acquired data has been overwritten
@@ -163,26 +191,26 @@ PUB AccelDataOverrun(): flag
     readreg(core.STATUS, 1, @flag)
     return ((flag >> 6) & core.ZYXOW_BITS) == %111
 
-PUB AccelDataRate(Hz=-2): curr_hz | opmode_orig
+PUB AccelDataRate(rate=-2): curr_rate | opmode_orig
 ' Set accelerometer output data rate, in Hz
-'   Valid values: 1(.5625), 6(.25), 12(.5), 50, 100, 200, 400, 800
+'   Valid values: 1(.5625), 6(.25), 12(.5), 50, 100, 200, 400, *800
 '   Any other value polls the chip and returns the current setting
 '   NOTE: If OpMode() is BOTH (3), the set data rate will be halved
 '       (chip limitation)
-    curr_hz := 0
-    readreg(core.CTRL_REG1, 1, @curr_hz)
-    case Hz
+    curr_rate := 0
+    readreg(core.CTRL_REG1, 1, @curr_rate)
+    case rate
         1, 6, 12, 50, 100, 200, 400, 800:
-            Hz := lookdownz(Hz: 800, 400, 200, 100, 50, 12, 6, 1) << core.DR
+            rate := lookdownz(rate: 800, 400, 200, 100, 50, 12, 6, 1) << core.DR
         other:
-            curr_hz := (curr_hz >> core.DR) & core.DR_BITS
-            return lookupz(curr_hz: 800, 400, 200, 100, 50, 12, 6, 1)
+            curr_rate := (curr_rate >> core.DR) & core.DR_BITS
+            return lookupz(curr_rate: 800, 400, 200, 100, 50, 12, 6, 1)
 
-    Hz := ((curr_hz & core.DR_MASK) | Hz) & core.CTRL_REG1_MASK
-    opmode_orig := accelopmode()
-    accelopmode(STANDBY)
-    writereg(core.CTRL_REG1, 1, @Hz)
-    accelopmode(opmode_orig)
+    rate := ((curr_rate & core.DR_MASK) | rate) & core.CTRL_REG1_MASK
+    opmode_orig := accelopmode()                ' store user's opmode
+    accelopmode(STANDBY)                        ' standby to modify settings
+    writereg(core.CTRL_REG1, 1, @rate)
+    accelopmode(opmode_orig)                    ' restore user's opmode
 
 PUB AccelDataReady(): flag
 ' Flag indicating new accelerometer data available
@@ -191,49 +219,49 @@ PUB AccelDataReady(): flag
     readreg(core.STATUS, 1, @flag)
     return (flag & core.ZYXDR_BITS) == %111
 
-PUB AccelG(ax, ay, az) | tmpx, tmpy, tmpz
+PUB AccelG(ptr_x, ptr_y, ptr_z) | tmpx, tmpy, tmpz
 ' Reads the Accelerometer output registers and scales the outputs to micro-g's (1_000_000 = 1.000000 g = 9.8 m/s/s)
     acceldata(@tmpx, @tmpy, @tmpz)
-    long[ax] := tmpx * _ares
-    long[ay] := tmpy * _ares
-    long[az] := tmpz * _ares
+    long[ptr_x] := tmpx * _ares
+    long[ptr_y] := tmpy * _ares
+    long[ptr_z] := tmpz * _ares
 
 PUB AccelInt(): flag 'TODO
 ' Flag indicating accelerometer interrupt asserted
 '   Returns TRUE if interrupt asserted, FALSE if not
-    flag := $00
+    flag := 0
 
-PUB AccelLowPassFilter(Hz=-2): curr_rate | opmode_orig
+PUB AccelLowPassFilter(state=-2): curr_state | opmode_orig
 ' Enable accelerometer data low-pass filter
-'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting
 '   NOTE: This option simply enables a reduced noise mode - it doesn't
 '       provide a LPF cutoff frequency setting, as in other IMUs
 '   NOTE: This option cannot be used in 8g scale. If the accelerometer
 '       scale is currently set to 8g, enabling this filter will be ignored
-    curr_rate := 0
-    readreg(core.CTRL_REG1, 1, @curr_rate)
-    case abs(Hz)
+    curr_state := 0
+    readreg(core.CTRL_REG1, 1, @curr_state)
+    case abs(state)
         0:
-            Hz := (curr_rate & core.LNOISE_MASK)
+            state := (curr_state & core.LNOISE_MASK)
         1:
             case accelscale()
                 2, 4:
-                    Hz := (curr_rate | (1 << core.LNOISE))
+                    state := (curr_state | (1 << core.LNOISE))
                 8:
                     return FALSE
         other:
-            return ((curr_rate >> core.LNOISE) & %1) == 1
+            return ((curr_state >> core.LNOISE) & 1) == 1
 
     opmode_orig := accelopmode()
     accelopmode(STANDBY)
-    writereg(core.CTRL_REG1, 1, @Hz)
+    writereg(core.CTRL_REG1, 1, @state)
     accelopmode(opmode_orig)
 
 PUB AccelOpMode(mode=-2): curr_mode
 ' Set accelerometer operating mode
 '   Valid values:
-'       STANDBY (0): Standby
+'      *STANDBY (0): Standby
 '       MEASURE (1): Measurement mode
 '   Any other value polls the chip and returns the current setting
     curr_mode := 0
@@ -248,7 +276,7 @@ PUB AccelOpMode(mode=-2): curr_mode
 
 PUB AccelScale(g=-2): curr_scale | opmode_orig
 ' Sets the full-scale range of the Accelerometer, in g's
-'   Valid values: 2, 4, 8
+'   Valid values: *2, 4, 8
 '   Any other value polls the chip and returns the current setting
     curr_scale := 0
     readreg(core.XYZ_DATA_CFG, 1, @curr_scale)
@@ -268,26 +296,27 @@ PUB AccelScale(g=-2): curr_scale | opmode_orig
 
 PUB CalibrateAccel() | acceltmp[3], axis, ax, ay, az, samples, scale_orig, drate_orig, fifo_orig, scl
 ' Calibrate the accelerometer
-'   NOTE: The accelerometer must be oriented with the package top facing up for this method to be successful
-    longfill(@acceltmp, 0, 11)
+'   NOTE: The accelerometer must be oriented with the package top facing up
+'       for this method to be successful
+    longfill(@acceltmp, 0, 12)
     accelbias(0, 0, 0, W)
-    scale_orig := accelscale()                      ' Preserve users' original
-    drate_orig := acceldatarate()                   '   settings
+    scale_orig := accelscale()                  ' Preserve user's original
+    drate_orig := acceldatarate()               '   settings
     fifo_orig := fifomode()
 
-    fifomode(BYPASS)                                ' Bypass FIFO, set accel
-    accelscale(2)                                   ' to most sensitive scale
-    acceldatarate(100)                              ' and 100Hz data rate
-    scl := _ares / 2                                ' Scale down to 2mg/LSB
+    fifomode(BYPASS)                            ' Bypass FIFO, set accel
+    accelscale(2)                               ' to most sensitive scale
+    acceldatarate(100)                          ' and 100Hz data rate
+    scl := _ares / 2                            ' Scale down to 2mg/LSB
     samples := 32
     repeat samples
         repeat until acceldataready()
         acceldata(@ax, @ay, @az)
-        acceltmp[X_AXIS] -= (ax / scl)              ' Accumulate samples
+        acceltmp[X_AXIS] -= (ax / scl)          ' Accumulate samples
         acceltmp[Y_AXIS] -= (ay / scl)
         acceltmp[Z_AXIS] -= (az - (1_000_000 / _ares)) / scl
 
-    repeat axis from X_AXIS to Z_AXIS               '   then average them
+    repeat axis from X_AXIS to Z_AXIS           '   then average them
         acceltmp[axis] /= samples
 
     accelbias(acceltmp[X_AXIS], acceltmp[Y_AXIS], acceltmp[Z_AXIS], W)
@@ -298,18 +327,18 @@ PUB CalibrateAccel() | acceltmp[3], axis, ax, ay, az, samples, scale_orig, drate
 
 PUB CalibrateMag() | magtmp[3], axis, mx, my, mz, samples
 ' Calibrate the magnetometer
-    longfill(@magtmp, 0, 8)                         ' Initialize vars to 0
-    magbias(0, 0, 0, W)                             ' Clear out existing bias
+    longfill(@magtmp, 0, 8)                     ' Initialize vars to 0
+    magbias(0, 0, 0, W)                         ' Clear out existing bias
 
     samples := 32
     repeat samples
         repeat until magdataready()
         magdata(@mx, @my, @mz)
-        magtmp[X_AXIS] += mx                        ' Accumulate samples
+        magtmp[X_AXIS] += mx                    ' Accumulate samples
         magtmp[Y_AXIS] += my
         magtmp[Z_AXIS] += mz
 
-    repeat axis from X_AXIS to Z_AXIS               '   then average them
+    repeat axis from X_AXIS to Z_AXIS           '   then average them
         magtmp[axis] /= samples
 
     magbias(magtmp[X_AXIS], magtmp[Y_AXIS], magtmp[Z_AXIS], W)
@@ -319,36 +348,36 @@ PUB DeviceID(): id
 '   Returns: $C7
     readreg(core.WHO_AM_I, 1, @id)
 
-PUB FIFOEnabled(enabled=-2): curr_setting
+PUB FIFOEnabled(state=-2): curr_state
 ' Enable FIFO memory
-'   Valid values: FALSE (0), TRUE(1 or -1)
+'   Valid values: *FALSE (0), TRUE(1 or -1)
 '   Any other value polls the chip and returns the current setting
-    curr_setting := $00
-    case abs(enabled)
+    case abs(state)
         0, 1:
-            fifomode(abs(enabled))
+            fifomode(abs(state))
         other:
+            curr_state := 0
             return fifomode()
 
 PUB FIFOFull(): flag
 ' Flag indicating FIFO full/overflowed
 '   Returns:
 '       FALSE (0): FIFO not full
-'       TRUE(-1): FIFO full/overflowed
-    flag := $00
+'       TRUE (-1): FIFO full/overflowed
+    flag := 0
     readreg(core.F_STATUS, 1, @flag)
     return ((flag >> core.F_OVF) & 1) == 1
 
 PUB FIFOMode(mode=-2): curr_mode | fmode_bypass
 ' Set FIFO behavior
 '   Valid values:
-'       BYPASS (0): FIFO bypassed/disabled
+'      *BYPASS (0): FIFO bypassed/disabled
 '       STREAM (1): FIFO enabled, circular buffer
 '       FIFO (2): FIFO enabled, stop sampling when FIFO full
 '       TRIGGER (3): FIFO enabled, circular buffer. Once triggered, FIFO will
 '           continue to sample until full. The newest data will be discarded.
 '   Any other value polls the chip and returns the current setting
-    curr_mode := $00
+    curr_mode := 0
     readreg(core.F_SETUP, 1, @curr_mode)
     case mode
         BYPASS, STREAM, FIFO, TRIGGER:
@@ -366,9 +395,9 @@ PUB FIFOMode(mode=-2): curr_mode | fmode_bypass
 
 PUB FIFOThreshold(level=-2): curr_lvl | opmode_orig
 ' Set FIFO watermark/threshold level
-'   Valid values:
+'   Valid values: 0..32 (default: 0)
 '   Any other value polls the chip and returns the current setting
-    curr_lvl := $00
+    curr_lvl := 0
     readreg(core.F_SETUP, 1, @curr_lvl)
     case level
         0..32:
@@ -385,11 +414,11 @@ PUB FIFOThreshold(level=-2): curr_lvl | opmode_orig
 PUB FIFOUnreadSamples(): nr_samples
 ' Number of unread samples stored in FIFO
 '   Returns: 0..32
-    nr_samples := $00
+    nr_samples := 0
     readreg(core.F_STATUS, 1, @nr_samples)
     return (nr_samples & core.F_CNT_BITS)
 
-PUB IntClear(clear_mask) | i, reg_nr
+PUB IntClear(clear_mask) | i, reg_nr, tmp
 ' Clear interrupts, per clear_mask
 '   Valid values:
 '       Bits: [5..0]: 1: clear interrupt, 0: don't clear interrupt
@@ -410,7 +439,7 @@ PUB IntClear(clear_mask) | i, reg_nr
                     reg_nr := lookdownz(i: core.A_FFMT_SRC, core.PULSE_SRC, {
                     }core.PL_STATUS, core.TRANSIENT_SRC, core.F_STATUS, {
                     }core.SYSMOD)                   ' Sweep through all, and
-                    readreg(reg_nr, 1, @result)     ' clear those with bits
+                    readreg(reg_nr, 1, @tmp)        ' clear those with bits
                                                     ' marked '1'
         other:
             return
@@ -431,7 +460,7 @@ PUB Interrupt(): int_src
 '       reading this flag
 '   NOTE: Bit 0/Data-ready interrupt is cleared by reading the acceleration
 '       data and/or magnetometer data, as applicable
-    int_src := $00
+    int_src := 0
     readreg(core.INT_SOURCE, 1, @int_src)
 
 PUB IntMask(mask=-2): curr_mask | opmode_orig
@@ -446,6 +475,7 @@ PUB IntMask(mask=-2): curr_mask | opmode_orig
 '           2: Freefall/motion interrupt
 '           1: Acceleration vector-magnitude interrupt
 '           0: Data-ready interrupt
+'           (default: %00000000)
 '   Any other value polls the chip and returns the current setting
     case mask
         0..%11111111:
@@ -486,7 +516,7 @@ PUB MagBias(bias_x, bias_y, bias_z, rw=0) | tmp[2]
 PUB MagClearInt() | tmp 'TODO
 ' Clear out any interrupts set up on the Magnetometer and
 '   resets all Magnetometer interrupt registers to their default values
-    tmp := $00
+    tmp := 0
 
 PUB MagData(mx, my, mz) | tmp[2]
 ' Read the Magnetometer output registers
@@ -509,13 +539,14 @@ PUB MagDataOverSampling(ratio=-2): curr_ratio
 ' Set oversampling ratio for magnetometer output data
 '   Valid values: (dependent upon current MagDataRate())
 '       2, 4, 8, 16, 32, 64, 128, 256, 512, 1024
+'       (default value for each data rate indicated in below tables)
 '   Any other value polls the chip and returns the current setting
     curr_ratio := 0
     readreg(core#M_CTRL_REG1, 1, @curr_ratio)
     case magdatarate()
-        1:
-            case ratio
-                16, 32, 64, 128, 256, 512, 1024:
+        1:                                      ' OSR settings available for
+            case ratio                          '   1Hz data rate:
+                {*}16, 32, 64, 128, 256, 512, 1024:
                     ratio := lookdownz(ratio: 16, 16, 32, 64, 128, 256, 512, 1024)
                     ratio <<= core.M_OS
                 other:
@@ -523,7 +554,7 @@ PUB MagDataOverSampling(ratio=-2): curr_ratio
                     return lookupz(curr_ratio: 16, 16, 32, 64, 128, 256, 512, 1024)
         6:
             case ratio
-                4, 8, 16, 32, 64, 128, 256:
+                {*}4, 8, 16, 32, 64, 128, 256:
                     ratio := lookdownz(ratio: 4, 4, 8, 16, 32, 64, 128, 256)
                     ratio <<= core.M_OS
                 other:
@@ -531,7 +562,7 @@ PUB MagDataOverSampling(ratio=-2): curr_ratio
                     return lookupz(curr_ratio: 4, 4, 8, 16, 32, 64, 128, 256)
         12:
             case ratio
-                2, 4, 8, 16, 32, 64, 128:
+                {*}2, 4, 8, 16, 32, 64, 128:
                     ratio := lookdownz(ratio: 2, 2, 4, 8, 16, 32, 64, 128)
                     ratio <<= core.M_OS
                 other:
@@ -539,7 +570,7 @@ PUB MagDataOverSampling(ratio=-2): curr_ratio
                     return lookupz(curr_ratio: 2, 2, 4, 8, 16, 32, 64, 128)
         50:
             case ratio
-                2, 4, 8, 16, 32:
+                {*}2, 4, 8, 16, 32:
                     ratio := lookdownz(ratio: 2, 2, 2, 2, 4, 8, 16, 32)
                     ratio <<= core.M_OS
                 other:
@@ -547,7 +578,7 @@ PUB MagDataOverSampling(ratio=-2): curr_ratio
                     return lookupz(curr_ratio: 2, 2, 2, 2, 4, 8, 16, 32)
         100:
             case ratio
-                2, 4, 8, 16:
+                {*}2, 4, 8, 16:
                     ratio := lookdownz(ratio: 2, 2, 2, 2, 2, 4, 8, 16)
                     ratio <<= core.M_OS
                 other:
@@ -555,7 +586,7 @@ PUB MagDataOverSampling(ratio=-2): curr_ratio
                     return lookupz(curr_ratio: 2, 2, 2, 2, 2, 4, 8, 16)
         200:
             case ratio
-                2, 4, 8:
+                {*}2, 4, 8:
                     ratio := lookdownz(ratio: 2, 2, 2, 2, 2, 2, 4, 8)
                     ratio <<= core.M_OS
                 other:
@@ -563,7 +594,7 @@ PUB MagDataOverSampling(ratio=-2): curr_ratio
                     return lookupz(curr_ratio: 2, 2, 2, 2, 2, 2, 4, 8)
         400:
             case ratio
-                2, 4:
+                {*}2, 4:
                     ratio := lookdownz(ratio: 2, 2, 2, 2, 2, 2, 2, 4)
                     ratio <<= core.M_OS
                 other:
@@ -571,20 +602,20 @@ PUB MagDataOverSampling(ratio=-2): curr_ratio
                     return lookupz(curr_ratio: 2, 2, 2, 2, 2, 2, 2, 4)
         800:
             case ratio
-                2:
+                {*}2:
                 other:
                     return 2
 
     ratio := ((curr_ratio & core.M_OS_MASK) | ratio) & core.M_CTRL_REG1_MASK
     writereg(core.M_CTRL_REG1, 1, @ratio)
 
-PUB MagDataRate(Hz=-2): curr_rate
+PUB MagDataRate(rate=-2): curr_rate
 ' Set Magnetometer Output Data Rate, in Hz
-'   Valid values: 1(.5625), 6(.25), 12(.5), 50, 100, 200, 400, 800
+'   Valid values: 1(.5625), 6(.25), 12(.5), 50, 100, 200, 400, *800
 '   Any other value polls the chip and returns the current setting
 '   NOTE: If OpMode() is BOTH (3), the set data rate will be halved
 '       (chip limitation)
-    curr_rate := acceldatarate(Hz)
+    curr_rate := acceldatarate(rate)
 
 PUB MagDataReady(): flag
 ' Flag indicating new magnetometer data available
@@ -593,12 +624,12 @@ PUB MagDataReady(): flag
     readreg(core.M_DR_STATUS, 1, @flag)
     return (flag & core.ZYXDR_BITS) == %111
 
-PUB MagGauss(mx, my, mz) | tmp[3]
+PUB MagGauss(ptr_x, ptr_y, ptr_z) | tmp[3]
 ' Magnetometer data scaled to micro-Gauss (1_000_000 = 1.000000 Gs)
     magdata(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
-    long[mx] := tmp[X_AXIS] * MRES_GAUSS
-    long[my] := tmp[Y_AXIS] * MRES_GAUSS
-    long[mz] := tmp[Z_AXIS] * MRES_GAUSS
+    long[ptr_x] := tmp[X_AXIS] * MRES_GAUSS
+    long[ptr_y] := tmp[Y_AXIS] * MRES_GAUSS
+    long[ptr_z] := tmp[Z_AXIS] * MRES_GAUSS
 
 PUB MagInt(): magintsrc
 ' Magnetometer interrupt source(s)
@@ -610,30 +641,30 @@ PUB MagInt(): magintsrc
     magintsrc := 0
     readreg(core#M_INT_SRC, 1, @magintsrc)
 
-PUB MagIntsEnabled(enabled): curr_state
+PUB MagIntsEnabled(state): curr_state
 ' Enable magnetometer data threshold interrupt
-'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting
     curr_state := 0
     readreg(core.M_THS_CFG, 1, @curr_state)
-    case abs(enabled)
+    case abs(state)
         0, 1:
-            enabled := abs(enabled) << core.THS_INT_EN
+            state := abs(state) << core.THS_INT_EN
         other:
             return ((curr_state >> core.THS_INT_EN) & 1) == 1
 
-    enabled := ((curr_state & core.THS_INT_EN_MASK) | enabled) & core.M_THS_CFG_MASK
-    writereg(core.M_THS_CFG, 1, @enabled)
+    state := ((curr_state & core.THS_INT_EN_MASK) | state) & core.M_THS_CFG_MASK
+    writereg(core.M_THS_CFG, 1, @state)
 
 PUB MagIntThresh(level): curr_thr 'TODO
 ' Set magnetometer interrupt threshold
 '   Valid values:
 '   Any other value polls the chip and returns the current setting
-    curr_thr := $00
+    curr_thr := 0
 
 PUB MagIntThreshX(thresh=-2): curr_thr
 ' Set magnetometer interrupt threshold, X-axis
-'   Valid values: 0..32767
+'   Valid values: 0..32767 (default: 0)
 '   Any other value polls the chip and returns the current setting
     case thresh
         0..32767:
@@ -644,7 +675,7 @@ PUB MagIntThreshX(thresh=-2): curr_thr
 
 PUB MagIntThreshY(thresh=-2): curr_thr
 ' Set magnetometer interrupt threshold, Y-axis
-'   Valid values: 0..32767
+'   Valid values: 0..32767 (default: 0)
 '   Any other value polls the chip and returns the current setting
     case thresh
         0..32767:
@@ -655,7 +686,7 @@ PUB MagIntThreshY(thresh=-2): curr_thr
 
 PUB MagIntThreshZ(thresh=-2): curr_thr
 ' Set magnetometer interrupt threshold, Z-axis
-'   Valid values: 0..32767
+'   Valid values: 0..32767 (default: 0)
 '   Any other value polls the chip and returns the current setting
     case thresh
         0..32767:
@@ -668,25 +699,26 @@ PUB MagOpMode(mode): curr_mode 'TODO
 ' Set magnetometer operating mode
 '   Valid values:
 '   Any other value polls the chip and returns the current setting
-    curr_mode := $00
+    curr_mode := 0
 
 PUB MagScale(scale=-2): curr_scl
 ' Set magnetometer full-scale range, in Gauss
 '   Valid values: N/A (fixed at 12Gs, 1200uT)
 '   Returns: 12
+'   NOTE: For API-compatibility only
     return 12
 
-PUB MagTesla(mx, my, mz) | tmp[3] 'XXX not overflow protected
+PUB MagTesla(ptr_x, ptr_y, ptr_z) | tmp[3] 'XXX not overflow protected
 ' Magnetometer data scaled to micro-Teslas (1_000_000 = 1.000000 uT)
     magdata(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
-    long[mx] := tmp[X_AXIS] * MRES_MICROTESLA
-    long[my] := tmp[Y_AXIS] * MRES_MICROTESLA
-    long[mz] := tmp[Z_AXIS] * MRES_MICROTESLA
+    long[ptr_x] := tmp[X_AXIS] * MRES_MICROTESLA
+    long[ptr_y] := tmp[Y_AXIS] * MRES_MICROTESLA
+    long[ptr_z] := tmp[Z_AXIS] * MRES_MICROTESLA
 
 PUB MagThreshDebounce(nr_samples=-2): curr_set
 ' Set number of debounce samples required before magnetometer threshold
 '   interrupt is triggered
-'   Valid values: 0..255
+'   Valid values: 0..255 (default: 0)
 '   Any other value polls the chip and returns the current setting
     case nr_samples
         0..255:
@@ -718,6 +750,7 @@ PUB MagThreshIntMask(mask=-2): curr_mask
 '       2: Enable Z-axis threshold interrupt
 '       1: Enable Y-axis threshold interrupt
 '       0: Enable X-axis threshold interrupt
+'       (default: %000)
 '   Any other value polls the chip and returns the current setting
     curr_mask := 0
     readreg(core.M_THS_CFG, 1, @curr_mask)
@@ -730,25 +763,25 @@ PUB MagThreshIntMask(mask=-2): curr_mask
     mask := (curr_mask & core.THS_EFE_MASK) | mask
     writereg(core.M_THS_CFG, 1, @mask)
 
-PUB MagThreshIntsEnabled(enabled): curr_state
+PUB MagThreshIntsEnabled(state): curr_state
 ' Enable magnetometer threshold interrupts
-'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting
     curr_state := 0
     readreg(core#M_THS_CFG, 1, @curr_state)
-    case abs(enabled)
+    case abs(state)
         0, 1:
-            enabled := abs(enabled) << core.THS_INT_EN
+            state := abs(state) << core.THS_INT_EN
         other:
             return ((curr_state >> core.THS_INT_EN) & 1) == 1
 
-    enabled := ((curr_state & core.THS_INT_EN_MASK) | enabled) & core.M_THS_CFG_MASK
-    writereg(core.M_THS_CFG, 1, @enabled)
+    state := ((curr_state & core.THS_INT_EN_MASK) | state) & core.M_THS_CFG_MASK
+    writereg(core.M_THS_CFG, 1, @state)
 
 PUB OpMode(mode=-2): curr_mode
 ' Set operating mode
 '   Valid values:
-'       ACCEL (0): Accelerometer only
+'      *ACCEL (0): Accelerometer only
 '       MAG (1): Magnetometer only
 '       BOTH (3): Both sensors active
 '   Any other value polls the chip and returns the current setting
@@ -771,7 +804,7 @@ PUB Temperature(): temp
 '       MagDataRate() settings
     temp := 0
     readreg(core#TEMP, 1, @temp)
-    temp *= 96                                      ' Res is 0.96C per LSB
+    temp *= 96                                  ' Res is 0.96C per LSB
     case _temp_scale
         C:
         F:
@@ -782,12 +815,13 @@ PUB Temperature(): temp
 PUB TempDataReady(): flag
 ' Flag indicating new temperature sensor data available
 '   Returns: TRUE (-1)
+'   NOTE: For API compatibility only
     return TRUE
 
 PUB TempScale(scale=-2): curr_scale
 ' Set temperature scale used by Temperature method
 '   Valid values:
-'       C (0): Celsius
+'      *C (0): Celsius
 '       F (1): Fahrenheit
 '   Any other value returns the current setting
     case scale
@@ -796,49 +830,44 @@ PUB TempScale(scale=-2): curr_scale
         other:
             return _temp_scale
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from device into ptr_buff
-    case reg_nr                                     ' Validate regs
+    case reg_nr                                 ' Validate regs
         $01, $03, $05, $33, $35, $37, $39, $3b, $3d:' Prioritize data output
             cmd_pkt.byte[0] := _slave_addr
             cmd_pkt.byte[1] := reg_nr
-            i2c.start()                             ' S
-            repeat tmp from 0 to 1
-                i2c.write(cmd_pkt.byte[tmp])
-            i2c.start()                             ' Sr
-            i2c.write(_slave_addr | 1)              ' SL|R
-            repeat tmp from nr_bytes-1 to 0
-                byte[ptr_buff][tmp] := i2c.read(tmp == 0)
-            i2c.stop()                              ' P
+            i2c.start()                         ' S
+            i2c.wrblock_lsbf(@cmd_pkt, 2)       ' SL|W, reg_nr
+            i2c.start()                         ' Sr
+            i2c.write(_slave_addr | 1)          ' SL|R
+            i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c.NAK)' R sl -> ptr_buff
+            i2c.stop()                          ' P
         $00, $02, $04, $06, $09..$18, $1d..$32, $34, $36, $38, $3a, $3e..$78:
             cmd_pkt.byte[0] := _slave_addr
             cmd_pkt.byte[1] := reg_nr
-            i2c.start()                             ' S
-            repeat tmp from 0 to 1
-                i2c.write(cmd_pkt.byte[tmp])
-            i2c.start()                             ' Sr
-            i2c.write(_slave_addr | 1)              ' SL|R
-            repeat tmp from nr_bytes-1 to 0         ' R nr_bytes-1..0
-                byte[ptr_buff][tmp] := i2c.read(tmp == 0)
-            i2c.stop()                              ' P
+            i2c.start()                         ' S
+            i2c.wrblock_lsbf(@cmd_pkt, 2)       ' SL|W, reg_nr
+            i2c.start()                         ' Sr
+            i2c.write(_slave_addr | 1)          ' SL|R
+            i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c.NAK)' R sl -> ptr_buff
+            i2c.stop()                          ' P
         other:
             return
 
-PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
-' Write nr_bytes to reg_nr
+PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+' Write nr_bytes from ptr_buff to device
     case reg_nr
         $09, $0a, $0e, $0f, $11..$15, $17..$1d, $1f..$21, $23..$31, $3f..$44,{
         } $52, $54..$5d, $5f..$78:
             cmd_pkt.byte[0] := _slave_addr
             cmd_pkt.byte[1] := reg_nr
-            i2c.start()                             ' S
-            repeat tmp from 0 to 1
-                i2c.write(cmd_pkt.byte[tmp])
-            repeat tmp from nr_bytes-1 to 0         ' W ptr_buff[nr_bytes-1..0]
-                i2c.write(byte[ptr_buff][tmp])
-            i2c.stop()                              ' P
+            i2c.start()                         ' S
+            i2c.wrblock_lsbf(@cmd_pkt, 2)       ' SL|W, reg_nr
+            i2c.wrblock_msbf(ptr_buff, nr_bytes)' W ptr_buff -> sl
+            i2c.stop()                          ' P
         other:
             return
+
 DAT
 {
     --------------------------------------------------------------------------------------------------------
