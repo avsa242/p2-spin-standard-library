@@ -52,18 +52,20 @@ OBJ
 PUB Null()
 ' This is not a top-level object
 
-PUB Start(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): okay
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
 ' Start using custom settings
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if I2C_HZ <= core.I2C_MAX_FREQ
-            if okay := i2c.setup(SCL_PIN, SDA_PIN, I2C_HZ)
-                waitms(1)
-                if i2c.present(SLAVE_WR)        ' test device bus presence
-                    reset()
-                    if deviceid() == core.DEVID_RESP
-                    return okay
-
-    return FALSE                                ' something above failed
+    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
+}   I2C_HZ <= core.I2C_MAX_FREQ
+        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+            waitms(1)
+            if i2c.present(SLAVE_WR)        ' test device bus presence
+                reset()
+                if deviceid() == core.DEVID_RESP
+                return
+    ' if this point is reached, something above failed
+    ' Double check I/O pin assignments, connections, power
+    ' Lastly - make sure you have at least one free core/cog
+    return FALSE
 
 PUB Stop()
 
@@ -277,25 +279,23 @@ PUB VoltageConvTime(ctime=-2): curr_time
     ctime := ((curr_time & core.VBUSCT_MASK) | ctime) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @ctime)
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from the slave device into ptr_buff
     case reg_nr
         $00..$03, $06, $07, $fe, $ff:
             cmd_pkt.byte[0] := SLAVE_WR
             cmd_pkt.byte[1] := reg_nr
             i2c.start()
-            repeat tmp from 0 to 1
-                i2c.write(cmd_pkt.byte[tmp])
+            i2c.wrblock_lsbf(@cmd_pkt, 2)
 
             i2c.start()
             i2c.write(SLAVE_RD)
-            repeat tmp from nr_bytes-1 to 0
-                byte[ptr_buff][tmp] := i2c.read(tmp == 0)
+            i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c.NAK)
             i2c.stop()
         other:
             return
 
-PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Write nr_bytes from ptr_buff to the slave device
     case reg_nr
         $00:
@@ -307,11 +307,8 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
     cmd_pkt.byte[0] := SLAVE_WR
     cmd_pkt.byte[1] := reg_nr
     i2c.start()
-    repeat tmp from 0 to 1
-        i2c.write(cmd_pkt.byte[tmp])
-
-    repeat tmp from nr_bytes-1 to 0
-        i2c.write(byte[ptr_buff][tmp])
+    i2c.wrblock_lsbf(@cmd_pkt, 2)
+    i2c.wrblock_msbf(ptr_buff, nr_bytes)
     i2c.stop()
 
 DAT

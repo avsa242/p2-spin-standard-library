@@ -3,9 +3,9 @@
     Filename: core.con.ina260.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Nov 13, 2019
-    Updated Dec 5, 2020
+    Updated May 16, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,6 +19,8 @@ CON
     SLAVE_ADDR          = $40 << 1
 
     DEVID_RESP          = $22705449 ' DieID << 16 | MfrID
+
+    T_POR               = 1_000                 ' usec
 
 ' Register definitions
 

@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Simple demo of the INA260 driver
         (P2 version)
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Jan 18, 2020
-    Updated Dec 5, 2020
+    Updated May 16, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -97,7 +97,7 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if ina260.start(I2C_SCL, I2C_SDA, I2C_HZ)
+    if ina260.startx(I2C_SCL, I2C_SDA, I2C_HZ)
         ser.strln(string("INA260 driver started"))
     else
         ser.strln(string("INA260 driver failed to start - halting"))
