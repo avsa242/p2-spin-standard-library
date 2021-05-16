@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started Jul 7, 2019
-    Updated Jan 10, 2021
+    Updated May 16, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,18 +13,17 @@
 CON
 
 ' SPI Configuration
-    CPOL                        = 0
-    CLK_DELAY                   = 1
     SCK_MAX_FREQ                = 6_500_000     ' No delays needed at 6.5MHz
 '   10MHz:  100ns delay between address byte and data byte (single access)
 '           or between address and data, and between each data byte (burst access)
 '   9MHz: No delay between address and data byte (single access only)
-    MOSI_BITORDER               = 5             'MSBFIRST
-    MISO_BITORDER               = 0             'MSBPRE
+    SPI_MODE                    = 0
 
     W                           = 0
     R                           = 1 << 7
     BURST                       = 1 << 6
+
+    T_POR                       = 5_000         ' usec
 
 ' Register definitions
 '   Status byte
