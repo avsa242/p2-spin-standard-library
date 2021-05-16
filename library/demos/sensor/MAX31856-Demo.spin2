@@ -20,10 +20,10 @@ CON
     LED         = cfg#LED1
     SER_BAUD    = 2_000_000
 
-    CS          = 8
-    SCK         = 9
-    SDI         = 10
-    SDO         = 11
+    CS_PIN      = 0
+    SCK_PIN     = 1
+    SDI_PIN     = 2
+    SDO_PIN     = 3
     SCK_FREQ    = 5_000_000                     ' max is 5_000_000
     SCALE       = F
 ' --
@@ -96,10 +96,10 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if max31856.start(CS, SCK, SDI, SDO, SCK_FREQ)
-        ser.strln(string("max31856 driver started"))
+    if max31856.startx(CS_PIN, SCK_PIN, SDI_PIN, SDO_PIN, SCK_FREQ)
+        ser.strln(string("MAX31856 driver started"))
     else
-        ser.strln(string("max31856 driver failed to start - halting"))
+        ser.strln(string("MAX31856 driver failed to start - halting"))
         max31856.stop()
         waitms(5)
         repeat

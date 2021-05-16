@@ -3,9 +3,9 @@
     Filename: core.con.max31856.spin
     Author: Jesse Burt
     Description: Low-level driver constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Created: Sep 30, 2018
-    Updated: Dec 6, 2020
+    Updated: May 16, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,11 +13,8 @@
 CON
 
 ' SPI Clock Polarity/Mode
-    CPOL                = 1             ' 0 or 1
-    CLK_DELAY           = 1
     SCK_MAX_FREQ        = 5_000_000
-    MOSI_BITORDER       = 5             'MSBFIRST
-    MISO_BITORDER       = 2             'MSBPOST
+    SPI_MODE            = 3
 
 ' Read register addresses ORd with $80 to form Write Addresses
     WRITE_REG           = $80
