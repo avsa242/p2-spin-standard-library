@@ -3,9 +3,9 @@
     Filename: core.con.cc1101.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Mar 25, 2019
-    Updated Nov 23, 2020
+    Updated May 16, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,15 +13,14 @@
 CON
 
 ' SPI Configuration
-    CPOL                            = 0
-    CLK_DELAY                       = 1
     SCK_MAX_FREQ                    = 20_000_000' Max freq in burst mode
-    MOSI_BITORDER                   = 5         ' MSBFIRST
-    MISO_BITORDER                   = 0         ' MSBPRE
+    SPI_MODE                        = 0
 
     W                               = 0
     R                               = 1 << 7
     BURST                           = 1 << 6
+
+    T_POR                           = 5_000     ' usec
 
 ' Register definitions
 '   Status byte
