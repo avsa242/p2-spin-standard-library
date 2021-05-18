@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Created Dec 30, 2017
-    Updated Jan 2, 2021
+    Updated May 18, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -353,7 +353,7 @@ PUB Setup()
 '    if oled.start(RESET_PIN)
 
     ' use all custom settings
-    if oled.start(SCL_PIN, SDA_PIN, RESET_PIN, I2C_HZ, SLAVE_BIT)
+    if oled.startx(SCL_PIN, SDA_PIN, RESET_PIN, I2C_HZ, SLAVE_BIT)
         ser.strln(string("US2066 driver started"))
     else
         ser.strln(string("US2066 driver failed to start - halting"))

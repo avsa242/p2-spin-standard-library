@@ -3,9 +3,9 @@
     Filename: core.con.us2066.spin
     Author: Jesse Burt
     Description: US2066 OLED Display driver registers/command set
+    Copyright (c) 2021
     Created Dec 30, 2017
-    Updated Jul 22, 2020
-    Copyright (c) 2020
+    Updated May 18, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,7 +14,10 @@ CON
 
     SLAVE_ADDR          = $3C << 1 '$3C - Default slave address of US2066
     I2C_MAX_FREQ        = 400_000  '400kHz - Max operating freq
+
     TRES                = 2        ' Reset low width (microseconds)
+    T_POR               = 1_000                 ' usec
+
     DEVID_RESP          = $21
 
     DATABIT             = $40
