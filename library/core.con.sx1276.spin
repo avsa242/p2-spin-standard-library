@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started Oct 6, 2019
-    Updated Jan 13, 2021
+    Updated May 18, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,13 +13,12 @@
 CON
 
 ' SPI Configuration
-    CPOL                        = 0
-    CLK_DELAY                   = 1
     SCK_MAX_FREQ                = 10_000_000
-    MOSI_BITORDER               = 5             ' MSBFIRST
-    MISO_BITORDER               = 0             ' MSBPRE
+    SPI_MODE                    = 0
 
     WRITE                       = 1 << 7        ' OR with reg_nr to signal write
+
+    T_POR                       = 10_000        ' usec
 
 ' General/shared functionality
     FIFO                        = $00
