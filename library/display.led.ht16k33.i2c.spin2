@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Nov 22, 2020
-    Updated: Apr 4, 2021
+    Updated: May 18, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -58,7 +58,7 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT, ptr_dispbuff): st
 }   I2C_HZ <= core.I2C_MAX_FREQ
         if lookdown(ADDR_BITS: %000..%111)
             if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
-                waitus(core.T_POR)
+                waitus(core.T_POR)              ' wait for device startup
                 _addr_bits := ADDR_BITS << 1
                 if i2c.present(SLAVE_WR | _addr_bits) ' test device presence
                     _disp_width := width
@@ -81,6 +81,7 @@ PUB Stop()
     displayvisibility(FALSE)
     oscenabled(FALSE)
     waitms(100)
+    i2c.deinit()
 
 PUB Defaults()
 
