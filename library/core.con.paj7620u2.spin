@@ -3,9 +3,9 @@
     Filename: core.con.paj7620u2.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started May 21, 2020
-    Updated Dec 29, 2020
+    Updated May 19, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,10 +15,11 @@ CON
     I2C_MAX_FREQ                    = 400_000
     SLAVE_ADDR                      = $73 << 1
 
-    SCK_MIN_FREQ                    = 22_000_000    ' Frame subtraction mode
-    SCK_MIN_FREQ_RAW                = 44_000_000    ' Raw data mode
+    SCK_MIN_FREQ                    = 22_000_000' Frame subtraction mode
+    SCK_MIN_FREQ_RAW                = 44_000_000' Raw data mode
     SCK_MAX_FREQ                    = 48_000_000
 
+    T_POR                           = 10_000    ' usec
     DEVID_RESP                      = $7620
 
 ' Register definitions
