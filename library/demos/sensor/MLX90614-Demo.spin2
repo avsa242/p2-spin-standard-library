@@ -3,9 +3,9 @@
     Filename: MLX90614-Demo.spin
     Author: Jesse Burt
     Description: Demo for the MLX90614 driver
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Mar 17, 2019
-    Updated Dec 8, 2020
+    Updated May 19, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,8 +19,8 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    I2C_SCL     = 11
-    I2C_SDA     = 10
+    I2C_SCL     = 17
+    I2C_SDA     = 16
     I2C_HZ      = 100_000                       ' max is 100_000
 
     TEMP_SCALE  = C
@@ -88,7 +88,7 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if mlx.start(I2C_SCL, I2C_SDA, I2C_HZ)
+    if mlx.startx(I2C_SCL, I2C_SDA, I2C_HZ)
         ser.strln(string("MLX90614 driver started"))
     else
         ser.strln(string("MLX90614 driver failed to start - halting"))

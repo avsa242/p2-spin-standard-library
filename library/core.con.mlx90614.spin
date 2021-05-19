@@ -3,9 +3,9 @@
     Filename: core.con.mlx90614.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Mar 17, 2019
-    Updated Dec 7, 2020
+    Updated May 19, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,7 +16,7 @@ CON
     I2C_MIN_FREQ            = 10_000
     SLAVE_ADDR              = $5A << 1
 
-    TPOR                    = 250_000           ' usec
+    T_POR                   = 250_000           ' usec
 
 ' Commands
     CMD_RAM                 = $00
