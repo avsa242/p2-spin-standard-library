@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started Feb 16, 2019
-    Updated Jan 2, 2021
+    Updated May 19, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,9 +15,11 @@ CON
     I2C_MAX_FREQ        = 400_000
     SLAVE_ADDR          = $50 << 1
 
+    T_POR               = 1_000                 ' usec
+
 ' Register definitions
     DEV_FAMILY          = $00
-        DEVID_RESP      = $70                           ' Family code
+        DEVID_RESP      = $70                   ' Family code
     SN_0_7              = $01
     SN_8_15             = $02
     SN_16_23            = $03
@@ -32,10 +34,8 @@ CON
     CM_I2C              = 0
     CM_SMBUS            = 1
 
-#ifndef __propeller2__
-PUB Null
-'' This is not a top-level object
-#endif
+PUB Null{}
+' This is not a top-level object
 
 {
     --------------------------------------------------------------------------------------------------------

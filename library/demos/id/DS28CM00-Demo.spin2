@@ -5,7 +5,7 @@
     Description: Demo of the DS28CM00 64-bit ROM ID chip (P2 version)
     Copyright (c) 2021
     Started Oct 27, 2019
-    Updated Jan 2, 2021
+    Updated May 19, 2021
     See end of file for terms of use.
     --------------------------------------------
     NOTE: If a common EEPROM (e.g. AT24Cxxxx) is on the same I2C bus as the SSN,
@@ -22,8 +22,8 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    I2C_SCL     = 24
-    I2C_SDA     = 25
+    I2C_SCL     = 16
+    I2C_SDA     = 17
     I2C_HZ      = 400_000
 ' --
 
@@ -49,10 +49,10 @@ PUB Main() | i
         ser.hex(_sn[i], 2)
     ser.printf("\nCRC: $%x, Valid: ", ssn.crc())
     case ssn.crcvalid()
-        true: ser.printf("Yes\n")
-        false: ser.printf("No\n")
+        true: ser.strln(string("Yes"))
+        false: ser.strln(string("No"))
 
-    ser.printf("Halting")
+    ser.str(string("Halting"))
     repeat
 
 PUB Setup()
@@ -61,7 +61,7 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if ssn.start(I2C_SCL, I2C_SDA, I2C_HZ)
+    if ssn.startx(I2C_SCL, I2C_SDA, I2C_HZ)
         ser.strln(string("DS28CM00 driver started"))
     else
         ser.strln(string("DS28CM00 driver failed to start - halting"))

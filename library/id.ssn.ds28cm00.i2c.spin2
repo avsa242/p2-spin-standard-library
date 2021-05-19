@@ -6,7 +6,7 @@
      64-bit I2C Silicon Serial Number (P2 version)
     Copyright (c) 2021
     Started Oct 27, 2019
-    Updated Jan 2, 2021
+    Updated May 19, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -30,20 +30,26 @@ OBJ
 PUB Null()
 ' This is not a top-level object
 
-PUB Start(SCL_PIN, SDA_PIN, SCL_HZ=100_000): okay
-
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if okay := i2c.setup(SCL_PIN, SDA_PIN, SCL_HZ)
-            waitms(1)
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
+' Start using custom settings
+    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
+}   I2C_HZ <= core.I2C_MAX_FREQ
+        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+            waitus(core.T_POR)
             if i2c.present(SLAVE_WR)            ' check device bus presence
                 if deviceid() == core.DEVID_RESP
-                    return okay
+                    return
 
-    return FALSE                                ' Something above went wrong
+    ' if this point is reached, something above failed
+    ' Double check I/O pin assignments, connections, power
+    ' Lastly - make sure you have at least one free core/cog
+    return FALSE
 
 PUB Stop()
 
-PUB CM(mode): curr_mode | cmd_pkt, tmp
+    i2c.deinit()
+
+PUB CM(mode): curr_mode | cmd_pkt
 ' Set bus mode to I2C or SMBus
 '   Valid values: BUS_I2C (0) or BUS_SMBUS(1)
 '   Any other value polls the chip and returns the current setting
@@ -57,8 +63,7 @@ PUB CM(mode): curr_mode | cmd_pkt, tmp
             return
 
     i2c.start()
-    repeat tmp from 0 to 2
-        i2c.write(cmd_pkt.byte[tmp])
+    i2c.wrblock_lsbf(@cmd_pkt, 3)
     i2c.stop()
 
 PUB CRC(): crcbyte
@@ -84,10 +89,10 @@ PUB SN(ptr_buff)
 ' NOTE: This buffer must be 8 bytes in length.
     readreg(core.DEV_FAMILY, 8, ptr_buff)
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from the slave device into ptr_buff
     case reg_nr
-        $00..$08:
+        core.DEV_FAMILY..core.CTRL_REG:
         other:
             return
 
@@ -95,13 +100,11 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
     cmd_pkt.byte[1] := reg_nr
 
     i2c.start()
-    repeat tmp from 0 to 1
-        i2c.write(cmd_pkt.byte[tmp])
+    i2c.wrblock_lsbf(@cmd_pkt, 2)
 
     i2c.start()
     i2c.write(SLAVE_RD)
-    repeat tmp from 0 to nr_bytes-1
-        byte[ptr_buff][tmp] := i2c.read(tmp == (nr_bytes-1))
+    i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c.NAK)
     i2c.stop()
 
 DAT
