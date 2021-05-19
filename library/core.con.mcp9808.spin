@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started Jul 26, 2020
-    Updated Jan 17, 2021
+    Updated May 19, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,6 +15,7 @@ CON
     I2C_MAX_FREQ    = 400_000
     SLAVE_ADDR      = $18 << 1
 
+    T_POR           = 1_000                     ' usec
 ' Register definitions
     RFU             = $00           ' R/O
 
@@ -51,10 +52,8 @@ CON
         DEVID_RESP  = $0054_0400    ' Expected response: MFR_DEV
     RESOLUTION      = $08           ' R/W
 
-#ifndef __propeller2__
 PUB Null{}
 ' This is not a top-level object
-#endif
 
 {
     --------------------------------------------------------------------------------------------------------

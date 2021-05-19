@@ -79,7 +79,7 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if mcp9808.start(I2C_SCL, I2C_SDA, I2C_HZ, ADDR_BITS)
+    if mcp9808.startx(I2C_SCL, I2C_SDA, I2C_HZ, ADDR_BITS)
         mcp9808.defaults()
         ser.strln(string("MCP9808 driver started"))
     else

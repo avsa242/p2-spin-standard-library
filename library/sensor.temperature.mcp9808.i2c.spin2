@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2021
     Started Jul 26, 2020
-    Updated Jan 17, 2021
+    Updated May 19, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -37,30 +37,32 @@ VAR
 
 OBJ
 
-    i2c : "com.i2c"                             ' PASM I2C Driver
-    core: "core.con.mcp9808.spin"
+    i2c : "com.i2c"                             ' I2C engine
+    core: "core.con.mcp9808"                    ' HW-specific constants
 
 PUB Null()
 ' This is not a top-level object
 
-PUB Start(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ, ADDR_BITS=%000): okay
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): status
 ' Start using custom I/O pins and I2C bus speed
     ' validate pins, bus freq, and optional slave address bits:
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }   I2C_HZ <= core.I2C_MAX_FREQ and lookdown(ADDR_BITS: %000..%111)
-        if okay := i2c.setup(SCL_PIN, SDA_PIN, I2C_HZ)
+        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             _addr_bits := ADDR_BITS << 1
-            waitms(1)
+            waitus(core.T_POR)
             ' check device bus presence:
             if i2c.present(SLAVE_WR | _addr_bits)
                 if deviceid() == core.DEVID_RESP
-                    return okay
+                    return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 
 PUB Stop()
+
+    i2c.deinit()
 
 PUB Defaults()
 ' Factory defaults
@@ -73,8 +75,8 @@ PUB DeviceID(): id
 '   Returns:
 '       Manufacturer ID: $0054 (MSW)
 '       Revision: $0400 (LSW)
-    readreg(core.MFR_ID, 2, @id.word[1])
-    readreg(core.DEV_ID, 2, @id.word[0])
+    readreg(core.MFR_ID, 2, @id.word[1])        ' 9808 doesn't support seq. R/W
+    readreg(core.DEV_ID, 2, @id.word[0])        '   so do discrete reads
 
 PUB IntActiveState(state=-2): curr_state
 ' Set interrupt active state
@@ -272,7 +274,7 @@ PUB TempScale(scale=-2): curr_scale
 
 PRI calcTemp(temp_word): temp_c | whole, part
 ' Calculate temperature in degrees Celsius, given ADC word
-    temp_word := (temp_word << 19) sar 19       ' Extend sign bit (#13)
+    temp_word := (temp_word << 19) sar 19       ' Extend sign bit (.13)
     whole := (temp_word / 16) * 100             ' Scale up to hundredths
     part := ((temp_word // 16) * 0_0625) / 100
     return whole+part
@@ -291,40 +293,34 @@ PRI calcTempWord(temp_c): temp_word
     if temp_c < 0
         temp_word |= $1000
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from the slave device into ptr_buff
     case reg_nr                                 ' validate reg number
         $00..$08:
             cmd_pkt.byte[0] := (SLAVE_WR | _addr_bits)
             cmd_pkt.byte[1] := reg_nr
             i2c.start()
-            repeat tmp from 0 to 1
-                i2c.write(cmd_pkt.byte[tmp])
+            i2c.wrblock_lsbf(@cmd_pkt, 2)
 
             i2c.start()
             i2c.write(SLAVE_RD | _addr_bits)
-            repeat tmp from nr_bytes-1 to 0     ' read MS byte first
-                byte[ptr_buff][tmp] := i2c.read(tmp == 0)
+            i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c.NAK)
             i2c.stop()
         other:
             return
 
-PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Write nr_bytes to the slave device from ptr_buff
     case reg_nr
         $01..$04, $08:
             cmd_pkt.byte[0] := (SLAVE_WR | _addr_bits)
             cmd_pkt.byte[1] := reg_nr & $0F
             i2c.start()
-            repeat tmp from 0 to 1
-                i2c.write(cmd_pkt.byte[tmp])
-
-            repeat tmp from nr_bytes-1 to 0
-                i2c.write(byte[ptr_buff][tmp])
+            i2c.wrblock_lsbf(@cmd_pkt, 2)
+            i2c.wrblock_msbf(ptr_buff, nr_bytes)
             i2c.stop()
         other:
             return
-
 
 DAT
 {
