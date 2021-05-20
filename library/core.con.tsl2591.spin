@@ -3,9 +3,9 @@
     Filename: core.con.tsl2591.spin
     Description: TSL2591 low-level constants
     Author: Jesse Burt
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Feb 17, 2018
-    Updated Dec 20, 2020
+    Updated May 20, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,6 +15,8 @@ CON
     I2C_MAX_FREQ    = 400_000
     SLAVE_ADDR      = $29 << 1
     DEV_ID_RESP     = $50
+
+    T_POR           = 100_000                   ' usec
 
 ' Registers (fields within registers are indented)
     ENABLE          = $00

@@ -4,9 +4,9 @@
     Description: Demo of the TSL2591 driver
         (P2 version)
     Author: Jesse Burt
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Nov 23, 2019
-    Updated Dec 20, 2020
+    Updated May 20, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,8 +20,8 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    I2C_SCL     = 8
-    I2C_SDA     = 9
+    I2C_SCL     = 16
+    I2C_SDA     = 17
     I2C_HZ      = 400_000                       ' max is 400_000
 
     GA          = 1                             ' Glass attenuation factor
@@ -78,7 +78,7 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if tsl2591.start(I2C_SCL, I2C_SDA, I2C_HZ)
+    if tsl2591.startx(I2C_SCL, I2C_SDA, I2C_HZ)
         ser.strln(string("TSL2591 driver started"))
         tsl2591.defaults_als()
     else
