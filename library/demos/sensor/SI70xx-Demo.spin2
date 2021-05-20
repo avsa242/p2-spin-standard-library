@@ -5,7 +5,7 @@
     Description: Demo of the SI70xx driver (P2 version)
     Copyright (c) 2021
     Started Aug 9, 2020
-    Updated Jan 3, 2021
+    Updated May 20, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,9 +19,9 @@ CON
     LED             = cfg.LED1
     SER_BAUD        = 2_000_000
 
-    SCL_PIN         = 28
-    SDA_PIN         = 29
-    I2C_HZ          = 100_000                   ' 400_000 max
+    SCL_PIN         = 16
+    SDA_PIN         = 17
+    I2C_HZ          = 400_000                   ' 400_000 max
 ' --
 
 ' Temperature scale
@@ -92,7 +92,7 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if si70xx.start(SCL_PIN, SDA_PIN, I2C_HZ)
+    if si70xx.startx(SCL_PIN, SDA_PIN, I2C_HZ)
         ser.strln(string("SI70xx driver started"))
     else
         ser.strln(string("SI70xx driver failed to start - halting"))

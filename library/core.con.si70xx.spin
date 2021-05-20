@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started Jul 20, 2019
-    Updated Jan 3, 2021
+    Updated May 20, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,7 +14,7 @@ CON
 
     I2C_MAX_FREQ        = 400_000
     SLAVE_ADDR          = $40 << 1
-    TPU                 = 80                    ' Powerup time
+    T_POR               = 80_000                ' usec
 
 ' Register definitions
 
