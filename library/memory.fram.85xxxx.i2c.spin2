@@ -1,0 +1,181 @@
+{
+    --------------------------------------------
+    Filename: memory.fram.85xxxx.i2c.spin2
+    Author: Jesse Burt
+    Description: Driver for 85xxxx series FRAM memories
+        (P2 version)
+    Copyright (c) 2021
+    Started Dec 28, 2020
+    Updated May 20, 2021
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    SLAVE_WR        = core.SLAVE_ADDR
+    SLAVE_RD        = core.SLAVE_ADDR|1
+
+    DEF_HZ          = 100_000
+    I2C_MAX_FREQ    = core.I2C_MAX_FREQ
+
+' Manufacturer codes
+    CYPRESS         = $004
+    FUJITSU         = $00A
+
+VAR
+
+    byte _addr_bits
+
+OBJ
+
+    i2c : "com.i2c"                             ' PASM I2C engine
+    core: "core.con.85xxxx"                     ' HW-specific constants
+
+PUB Null()
+' This is not a top-level object
+
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): status
+' Start using custom settings
+    if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) and {
+}   lookdown(ADDR_BITS: %000..%111) and I2C_HZ <= core.I2C_MAX_FREQ
+        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+            waitus(core.T_POR)
+            _addr_bits := ADDR_BITS << 1
+            ' check device bus presence
+            if i2c.present(SLAVE_WR | _addr_bits)
+                return
+    ' if this point is reached, something above failed
+    ' Double check I/O pin assignments, connections, power
+    ' Lastly - make sure you have at least one free core/cog
+    return FALSE
+
+PUB Stop()
+
+    i2c.deinit()
+
+PUB DeviceID(): id | tmp
+' Read device identification
+'   NOTE: This may not be supported by all devices
+    i2c.start()
+    i2c.write(core.RSVD_SLAVE_W)
+    i2c.write(SLAVE_WR | _addr_bits)
+
+    i2c.start()
+    i2c.write(core.RSVD_SLAVE_R)
+    i2c.rdblock_msbf(@tmp, 3, i2c.NAK)
+    i2c.stop()
+
+PUB Manufacturer(): id
+' Read manufacturer ID
+'   Known values:
+'       $004 (Cypress)
+'       $00A (Fujitsu)
+    return (deviceid() >> 12) & $FFF
+
+PUB PartSize(): size
+' Size/density of FRAM chip, in kbits
+'   Known values:
+'       When Manufacturer() == ...:
+'           CYPRESS ($004): 256, 512, 1024
+'           FUJITSU ($00A): 256, 512, 1024
+    size := (deviceid() >> 8) & %1111
+    case manufacturer()
+        CYPRESS:
+            return lookup(size: 1024, 256, 512)
+        FUJITSU:
+            return lookup(size: 0, 0, 0, 0, 256, 512, 1024)
+
+PUB ReadByte(fram_addr): f_rdbyte
+' Read one byte from FRAM
+    readreg(fram_addr, 1, @f_rdbyte)
+
+PUB ReadBytes(fram_start_addr, nr_bytes, ptr_buff)
+' Read multiple bytes from FRAM
+'   NOTE: If nr_bytes is greater than the number of bytes from the specified start address
+'       to the end of the FRAM memory, any reads past the end will wrap around to address $0000
+'       Example:
+'           A 32kByte FRAM is connected, therefore the end of its memory is $7FFF
+'           fram_start_addr is specified as $7FFE
+'           nr_bytes is specified as 4
+'           Locations actually read:
+'           $7FFE, $7FFF, $0000, $0001
+    readreg(fram_start_addr, nr_bytes, ptr_buff)
+
+PUB WriteByte(fram_addr, data)
+' Write one byte to FRAM
+    writereg(fram_addr, 1, @data)
+
+PUB WriteBytes(fram_start_addr, nr_bytes, ptr_buff)
+' Write multiple bytes to FRAM
+'   NOTE: If nr_bytes is greater than the number of bytes from the specified start address
+'       to the end of the FRAM memory, any writes past the end will wrap around to address $0000
+'       Example:
+'           A 32kByte FRAM is connected, therefore the end of its memory is $7FFF
+'           fram_start_addr is specified as $7FFE
+'           nr_bytes is specified as 4
+'           Locations actually written:
+'           $7FFE, $7FFF, $0000, $0001
+    writereg(fram_start_addr, nr_bytes, ptr_buff)
+
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+' Read nr_bytes from slave device into ptr_buff
+    case reg_nr
+        $00..$FFFF:
+            cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
+            cmd_pkt.byte[1] := reg_nr.byte[1]
+            cmd_pkt.byte[2] := reg_nr.byte[0]
+        $1_0000..$1_FFFF:                       ' upper page (for 1Mbit FRAM)
+            cmd_pkt.byte[0] := SLAVE_WR | core.PAGE_HI | _addr_bits
+            cmd_pkt.byte[1] := reg_nr.byte[1]
+            cmd_pkt.byte[2] := reg_nr.byte[0]
+        other:
+            return
+
+    i2c.start()
+    i2c.wrblock_lsbf(@cmd_pkt, 3)
+    i2c.start()
+    i2c.write(SLAVE_RD)
+    i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c.NAK)
+    i2c.stop()
+
+PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+' Write nr_bytes from ptr_buff to slave device
+    case reg_nr
+        $00..$FFFF:
+            cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
+            cmd_pkt.byte[1] := reg_nr.byte[1]
+            cmd_pkt.byte[2] := reg_nr.byte[0]
+        $1_0000..$1_FFFF:
+            cmd_pkt.byte[0] := SLAVE_WR | core.PAGE_HI | _addr_bits
+            cmd_pkt.byte[1] := reg_nr.byte[1]
+            cmd_pkt.byte[2] := reg_nr.byte[0]
+        other:
+            return
+
+    i2c.start()
+    i2c.wrblock_lsbf(@cmd_pkt, 3)
+    i2c.wrblock_lsbf(ptr_buff, nr_bytes)
+    i2c.stop()
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
