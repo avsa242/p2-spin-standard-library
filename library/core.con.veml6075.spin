@@ -3,9 +3,9 @@
     Filename: core.con.veml6075.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Aug 18, 2019
-    Updated Jul 22, 2020
+    Updated May 22, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,32 +16,34 @@ CON
     SLAVE_ADDR          = $10 << 1
     DEV_ID_RESP         = $0026
 
+    T_POR               = 100_000               ' usec
+
 ' Register definitions
     UV_CONF             = $00
     UV_CONF_MASK        = $7F
-        FLD_UV_IT       = 4
-        FLD_HD          = 3
-        FLD_UV_TRIG     = 2
-        FLD_UV_AF       = 1
-        FLD_SD          = 0
-        BITS_UV_IT      = %111
-        MASK_UV_IT      = UV_CONF_MASK ^ (BITS_UV_IT << FLD_UV_IT)
-        MASK_HD         = UV_CONF_MASK ^ (1 << FLD_HD)
-        MASK_UV_TRIG    = UV_CONF_MASK ^ (1 << FLD_UV_TRIG)
-        MASK_UV_AF      = UV_CONF_MASK ^ (1 << FLD_UV_AF)
-        MASK_SD         = UV_CONF_MASK ^ (1 << FLD_SD)
+        UV_IT           = 4
+        HD              = 3
+        UV_TRIG         = 2
+        UV_AF           = 1
+        SD              = 0
+        UV_IT_BITS      = %111
+        UV_IT_MASK      = (UV_IT_BITS << UV_IT) ^ UV_CONF_MASK
+        HD_MASK         = (1 << HD) ^ UV_CONF_MASK
+        UV_TRIG_MASK    = (1 << UV_TRIG) ^ UV_CONF_MASK
+        UV_AF_MASK      = (1 << UV_AF) ^ UV_CONF_MASK
+        SD_MASK         = (1 << SD) ^ UV_CONF_MASK
 
     UVA_DATA            = $07
     UVB_DATA            = $09
     UVCOMP1             = $0A
     UVCOMP2             = $0B
     DEV_ID              = $0C
-        FLD_COMPANY     = 6
-        FLD_SLAVE       = 4
-        FLD_VERSION     = 0
-        BITS_COMPANY    = %11
-        BITS_SLAVE      = %11
-        BITS_VERSION    = %1111
+        COMPANY         = 6
+        SLAVE           = 4
+        VERSION         = 0
+        COMPANY_BITS    = %11
+        SLAVE_BITS      = %11
+        VERSION_BITS    = %1111
 
 #ifndef __propeller2__
 PUB Null

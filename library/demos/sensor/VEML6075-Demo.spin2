@@ -2,30 +2,25 @@
     --------------------------------------------
     Filename: VEML6075-Demo.spin2
     Author: Jesse Burt
-    Description: Test of the VEML6075 driver (P2 version)
-    Copyright (c) 2020
-    Started Nov 14, 2019
-    Updated Jun 14, 2020
+    Description: Demo of the VEML6075 driver
+    Copyright (c) 2021
+    Started Aug 18, 2019
+    Updated May 22, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    _xtlfreq    = cfg._xtlfreq
     _clkfreq    = cfg._clkfreq_def
-
-    TEXT_COL    = 0
-    DATA_COL    = 9
+    _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
     LED         = cfg.LED1
-    SER_RX      = cfg.SER_RX
-    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
-    SCL_PIN     = 27
-    SDA_PIN     = 28
+    SCL_PIN     = 16
+    SDA_PIN     = 17
     I2C_HZ      = 400_000
 ' --
 
@@ -33,68 +28,58 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    uv      : "sensor.uv.veml6075.i2c.spin2"
+    veml6075: "sensor.uv.veml6075.i2c"
     int     : "string.integer"
 
-VAR
+PUB Main()
 
-    long _fails, _expanded
-    byte _row
-
-PUB Main() | uva, uvb, vis, ir, i
-
-    Setup()
-    uv.Powered (TRUE)
-    uv.Dynamic (uv.DYNAMIC_NORM)
-    uv.IntegrationTime (100)
-    uv.OpMode (uv.CONTINUOUS)
+    setup()
+    veml6075.preset_active()
 
     repeat
-        uva := uv.UVA()
-        uvb := uv.UVB()
-        vis := uv.Visible()
-        ir := uv.IR()
+        ser.position(0, 3)
+        ser.str(string("UV Index: "))
+        decimal(veml6075.uvindex(), 100)
 
-        ser.Position (TEXT_COL, 5)
-        ser.PrintF("UVA:")
-        ser.Position (DATA_COL, 5)
-        ser.Str(int.DecPadded (uva, 5))
-        ser.newline()
+PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp, sign
+' Display a scaled up number as a decimal
+'   Scale it back down by divisor (e.g., 10, 100, 1000, etc)
+    whole := scaled / divisor
+    tmp := divisor
+    places := 0
+    part := 0
+    sign := 0
+    if scaled < 0
+        sign := "-"
+    else
+        sign := " "
 
-        ser.Position (TEXT_COL, 6)
-        ser.PrintF("UVB:")
-        ser.Position (DATA_COL, 6)
-        ser.Str(int.DecPadded (uvb, 5))
-        ser.newline()
+    repeat
+        tmp /= 10
+        places++
+    until tmp == 1
+    scaled //= divisor
+    part := int.deczeroed(abs(scaled), places)
 
-        ser.Position (TEXT_COL, 7)
-        ser.PrintF("Visible:")
-        ser.Position (DATA_COL, 7)
-        ser.Str(int.DecPadded (vis, 5))
-        ser.newline()
-
-        ser.Position (TEXT_COL, 8)
-        ser.PrintF("IR:")
-        ser.Position (DATA_COL, 8)
-        ser.Str(int.DecPadded (ir, 5))
-        waitms (50)
-    FlashLED (LED, 100)
+    ser.char(sign)
+    ser.dec(abs(whole))
+    ser.char(".")
+    ser.str(part)
+    ser.chars(" ", 5)
 
 PUB Setup()
 
-    repeat until ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    ser.Clear()
-    ser.PrintF("Serial terminal started\n")
+    ser.start(SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.strln(string("Serial terminal started"))
 
-    if uv.Start (SCL_PIN, SDA_PIN, I2C_HZ)
-        ser.PrintF("VEML6075 driver started\n")
+    if veml6075.startx(SCL_PIN, SDA_PIN, I2C_HZ)
+        ser.strln(string("VEML6075 driver started"))
     else
-        ser.PrintF("VEML6075 driver failed to start - halting\n")
-        uv.Stop()
-        waitms (500)
-        FlashLED (LED, 500)
-
-#include "lib.utility.spin2"
+        ser.strln(string("VEML6075 driver failed to start - halting"))
+        waitms(30)
+        repeat
 
 DAT
 {
