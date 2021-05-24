@@ -4,17 +4,17 @@
     Author: Jesse Burt
     Description: Simple utility to scan for active slaves on an
         I2C bus
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Jun 17, 2019
-    Updated Jul 13, 2020
+    Updated May 24, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-     _xtlfreq   = cfg._xtlfreq
-     _clkfreq   = cfg._clkfreq_def
+    _xtlfreq   = cfg._xtlfreq
+    _clkfreq   = cfg._clkfreq_def
 
 ' -- User-modifiable constants
     I2C_SCL     = 39
@@ -121,7 +121,7 @@ PUB Setup()
     ser.reset()
     ser.clear()
     ser.printf("Serial terminal started\n")
-    i2c.Setup (I2C_SCL, I2C_SDA, I2C_HZ)
+    i2c.init(I2C_SCL, I2C_SDA, I2C_HZ)
     ser.printf("I2C driver started\n")
     _key_cog := cogspin(16, KeyInput(), @_keyinput_stack)
 

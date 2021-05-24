@@ -4,7 +4,7 @@
     Description: Bitbanged I2C driver for the P2X8C4M64P
     Author: Jesse Burt
     Created: Jun 15, 2019
-    Updated: Jan 31, 2021
+    Updated: May 24, 2021
     See end of file for terms of use.
 
     NOTE: This is based on jm_i2c.spin, by
@@ -281,20 +281,6 @@ PRI WaitClkStretch()
 ' Wait for slave device using clock-stretching
     pinf(_SCL)                                  ' let SCL float
     repeat until pinr(_SCL) == HIGH             ' wait until slave releases it
-
-' -- Legacy methods below
-
-PUB Setup(I2C_SCL, I2C_SDA, I2C_HZ=100_000): okay
-' Define I2C SCL (clock) and SDA (data) pins
-    _bittm_base := (clkfreq/I2C_HZ) >> 1        ' Calculate delays based on clock freq
-
-    _SCL := I2C_SCL
-    _SDA := I2C_SDA
-    pinf(I2C_SCL)                               ' Float pins
-    pinf(I2C_SDA)
-    reset()
-    okay := cogid() + 1
-    return
 
 DAT
 {
