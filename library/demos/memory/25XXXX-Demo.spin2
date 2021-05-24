@@ -1,0 +1,172 @@
+{
+    --------------------------------------------
+    Filename: 25XXXX-Demo.spin2
+    Author: Jesse Burt
+    Description: Demo app for the 25xxxx driver
+    Copyright (c) 2021
+    Started Nov 09, 2019
+    Updated May 24, 2021
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = 200_000_000
+
+    CYCLES_USEC = _clkfreq / 1_000_000
+
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_RX      = cfg.SER_RX
+    SER_TX      = cfg.SER_TX
+    SER_BAUD    = 2_000_000
+
+    CS          = 61
+    SCK         = 60
+    MOSI        = 59                            ' SCK +/- 0..3
+    MISO        = 58                            ' SCK +/- 0..3
+    SCK_FREQ    = 20_000_000
+' --
+
+    PAGE_SIZE   = 256
+    HEX_COLS    = 16
+    HEX_X       = 0
+    HEX_Y       = 10
+
+OBJ
+
+    ser         : "com.serial.terminal.ansi"
+    cfg         : "core.con.boardcfg.p2eval"
+    flash       : "memory.flash.25xxxx.spi"
+
+VAR
+
+    byte _page[PAGE_SIZE]
+
+PUB Main() | uid[2], base, seg, s, e
+
+    setup()
+
+' Read various chip IDs
+    ser.printf("Dev ID: %x\n", flash.deviceid())
+    ser.printf("Mfr ID: %x\n", flash.manufacturerid())
+    ser.printf("JEDEC ID: %x\n", flash.jedecid())
+    flash.uid(@uid)
+    ser.printf("UID: %x%x\n", uid[0], uid[1])
+
+    flash.writesenabled(FALSE)
+    messagewritesena()
+
+    seg := base := 0
+    ser.position(0, 10)
+    ser.hidecursor()
+
+' Page method
+    repeat
+        s := getct()
+        flash.readblock(base, PAGE_SIZE, @_page)
+        e := getct()-s
+        ser.position(HEX_X, HEX_Y)
+        ser.hexdump(@_page, base, 6, PAGE_SIZE, HEX_COLS)
+
+        case ser.charin()
+            "[":                                ' read previous flash page
+                base := (base - PAGE_SIZE) #> 0
+            "]":                                ' next page
+                base := (base + PAGE_SIZE) <# $FF_FF_00
+            "e":                                ' last page
+                base := $FF_FF_00
+            "s":                                ' first page
+                base := 0
+            "x":                                ' erase sector (4kBytes)
+                erasesector(base)
+            "w":                                ' write a test value to the
+                writetest(base)                 '   current page
+            "q":                                ' quit the demo (halt)
+                ser.printf("Halting\n")
+                quit
+            other:
+
+        messagewritesena()
+        ser.printf("Reading done (%d cycles/%dus).\n", e, cycles_to_us(e))
+        ser.clearline()
+
+    ser.showcursor()
+    repeat
+
+PUB EraseSector(start_addr) | s, e
+' Erase a sector starting at flash address start_addr
+    flash.writesenabled(TRUE)                   ' _required_ for any write ops
+    messagewritesena()                          ' confirm writes are enabled:
+                                                ' read state and display it
+
+    ser.printf("Erasing...")
+    s := getct()
+    flash.erase(flash.SECTOR, start_addr)       ' erase sector (4kB)
+    repeat while flash.busy()
+    e := getct()-s
+    ser.printf("done (%d cycles/%dus).\n", e, cycles_to_us(e))
+    ser.clearline()
+
+PUB WriteTest(start_addr) | s, e, tmp
+' Write a test value to flash starting at start_addr
+    tmp := string("TEST")
+    flash.writesenabled(true)
+    messagewritesena()
+
+    ser.printf("Writing test value...")
+    s := getct()
+    flash.writeblock(start_addr, strsize(tmp), tmp)
+    repeat while flash.busy()
+    e := getct()-s
+    ser.printf("done (%d cycles/%dus).\n", e, cycles_to_us(e))
+    ser.clearline()
+
+PRI Cycles_to_uS(cycles): usec
+' Convert processor cycles to microseconds
+    return cycles / CYCLES_USEC
+
+PRI MessageWritesEna()
+' Display a message indicating flash writes are enabled
+    ser.printf("\nWrites enabled? ")
+    case flash.writesenabled()
+        TRUE:
+            ser.printf("Yes\n")
+        FALSE:
+            ser.printf("No \n")
+    ser.clearline()
+
+PUB Setup()
+
+    ser.start(SER_BAUD)
+    ser.clear()
+    ser.printf("Serial terminal started (P2 @%dMHz)\n", _clkfreq / 1_000_000)
+    if flash.startx(CS, SCK, MOSI, MISO, SCK_FREQ)
+        ser.printf("25xxxx driver started (SPI @%dMHz)\n", SCK_FREQ / 1_000_000)
+    else
+        ser.printf("25xxxx driver failed to start - halting\n")
+        repeat
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}

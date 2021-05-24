@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: core.con.w25qxxx.spin2
+    Filename: core.con.25xxxx.spin2
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Nov 09, 2019
-    Updated May 15, 2020
+    Updated May 24, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,10 +13,18 @@
 CON
 
 ' SPI Configuration
-    CPOL                        = 0
     SCK_MAX_FREQ                = 104_000_000
-    MOSI_BITORDER               = 5             'MSBFIRST
-    MISO_BITORDER               = 0             'MSBPRE
+    SPI_MODE                    = 0
+
+    T_POR                       = TRST
+
+' Known device ID responses
+    W25Q128FV                   = $17
+
+' Timings (microseconds)
+    TRST                        = 1             ' time to reset
+    TVSL                        = 20            ' VCC (min) to CS low
+    TPUW                        = 5_000         ' time delay before write
 
 ' Register definitions
     WRITE_STATUS1               = $01
@@ -25,13 +33,13 @@ CON
     WRITE_DISABLE               = $04
 
     READ_STATUS1                = $05
-        FLD_SRP                 = 7
-        FLD_SEC                 = 6
-        FLD_TB                  = 5
-        FLD_BP                  = 2
-        FLD_WEL                 = 1
-        FLD_BUSY                = 0
-        BITS_BP                 = %111
+        SRP                     = 7
+        SEC                     = 6
+        TB                      = 5
+        BP                      = 2
+        WEL                     = 1
+        BUSY                    = 0
+        BP_BITS                 = %111
         FLAG_BUSY               = %1
 
     WRITE_ENABLE                = $06
@@ -42,17 +50,17 @@ CON
     WRITE_STATUS2               = $31
     QUAD_PAGE_PROG              = $32
     READ_STATUS2                = $35
-    INDIVIDUAL_BLOCK_LOCK       = $36
+    INDIV_BLK_LOCK              = $36
     ENTER_QPIMODE               = $38
-    INDIVIDUAL_BLOCK_UNLOCK     = $39
+    INDIV_BLK_UNLOCK            = $39
     FASTREAD_DUAL               = $3B
-    READ_BLOCK_LOCK             = $3D
+    READ_BLK_LOCK               = $3D
     PROG_SECURITY               = $42
     ERASE_SECURITY              = $44
     READ_SECURITY               = $48
     UNIQUE_ID                   = $4B
     VOLATILE_SR_WR_EN           = $50
-    BLOCK32_ERASE               = $52
+    BLK32_ERASE                 = $52
     READ_SFDP                   = $5A
     CHIP_ERASE                  = $60
     ENABLE_RESET                = $66
@@ -60,15 +68,15 @@ CON
     ERASE_PROG_SUSP             = $75
     BURST_WITH_WRAP             = $77
     ERASE_PROG_RESUME           = $7A
-    GLOBAL_BLOCK_LOCK           = $7E
+    GLOBAL_BLK_LOCK             = $7E
     MANUF_DEV_ID                = $90
-    GLOBAL_BLOCK_UNLOCK         = $98
+    GLOBAL_BLK_UNLOCK           = $98
     RESET_DEVICE                = $99
     JEDEC_ID                    = $9F
     RELEASE_PWRDOWN             = $AB
     POWER_DOWN                  = $B9
     CHIP_ERASE2                 = $C7
-    BLOCK64_ERASE               = $D8
+    BLK64_ERASE                 = $D8
 
 PUB Null()
 ' This is not a top-level object

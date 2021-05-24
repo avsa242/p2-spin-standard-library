@@ -1,0 +1,260 @@
+{
+    --------------------------------------------
+    Filename: memory.flash.25xxxx.spi.spin2
+    Author: Jesse Burt
+    Description: Driver for 25xxxx-series SPI flash memories
+    Copyright (c) 2021
+    Started Nov 09, 2019
+    Updated May 24, 2021
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    DEF_SPI_CLK = 1_000_000
+
+' Erase units
+    SECTOR      = 1     '4KB
+    BLK32       = 2     '32KB
+    BLK64       = 3     '64KB
+    CHIP        = 4     'Entire chip
+
+VAR
+
+    byte _CS
+
+OBJ
+
+    spi : "com.spi"                             ' smart-pin SPI engine
+    core: "core.con.25xxxx"                     ' HW-specific constants
+
+PUB Null()
+' This is not a top-level object
+
+PUB Startx(CS, SCK, MOSI, MISO, SCK_HZ=DEF_SPI_CLK): status
+' Start driver using SPI interface
+'   CS: SPI chip-select
+'   SCK: SPI SCK/clock pin
+'   MOSI: SPI MOSI/Propeller to Device
+'   MISO: SPI MISO/Device to Propeller
+'   All pin assignments must be unique and in the range 0..63
+'   SCK_FREQ: SPI bus frequency (device and SPI-engine specific)
+    if lookdown(CS: 0..63) and lookdown(SCK: 0..63) and lookdown(MOSI: 0..63) {
+}   and lookdown(MISO: 0..63) and lookdown(SCK_HZ: 1..core.SCK_MAX_FREQ)
+        if (status := spi.init(SCK, MOSI, MISO, SCK_HZ, core.SPI_MODE))
+            waitus(core.T_POR)                  ' wait for device startup
+            _CS := CS
+            pinh(_CS)
+            if deviceid() == core.W25Q128FV
+                return
+    ' if this point is reached, something above failed
+    ' Double check I/O pin assignments, connections, power
+    ' Lastly - make sure you have at least one free core/cog
+    return FALSE
+
+PUB Stop()
+
+    spi.deinit()
+
+PUB Busy(): flag
+' Flag indicating flash chip is busy executing an operation
+'   Returns:
+'       TRUE (-1) when flash chip is executing any of the following:
+'           Page program
+'           Erase
+'           Write status reg
+'           Erase/Program security reg
+'       FALSE (0) otherwise
+    return ((readstatusreg(1) & core.FLAG_BUSY)) == 1
+
+PUB DeviceID(): id
+' Read the device ID from the flash chip
+    readreg(core.MANUF_DEV_ID, 2, @id)
+    id >>= 8                                    ' grab MSByte only
+
+PUB Erase(er_sz, fl_addr)
+' Erase flash memory starting at fl_addr, of size er_sz
+'   Valid values (er_sz):
+'       SECTOR (1) - Erase 4kBytes
+'       BLK32 (2) - Erase 32kBytes
+'       BLK64 (3) - Erase 64kBytes
+'       CHIP (4) - Erase entire chip
+'   Any other value is ignored
+'   NOTE: fl_addr is ignored when er_sz is CHIP
+'   NOTE: Prior to calling this method, writes must be enabled with
+'       WritesEnabled(TRUE)
+'   NOTE: Erased state of a flash cell is $FF
+    case er_sz
+        SECTOR, BLK32, BLK64:
+            er_sz := lookup(er_sz: core.SECTOR_ERASE, core.BLK32_ERASE, {
+}           core.BLK64_ERASE)
+            er_sz |= (fl_addr << 8)
+        CHIP:
+            er_sz := core.CHIP_ERASE
+        other:
+            return
+    writereg(er_sz, 0, 0)
+
+PUB GlobalUnlock()
+
+    writereg(core.GLOBAL_BLK_UNLOCK, 0, 0)
+
+PUB JEDECID(): id
+' Read the JEDEC ID from the flash chip
+    readreg(core.JEDEC_ID, 3, @id)
+
+PUB ManufacturerID(): id
+' Read the Mfr ID from the flash chip
+'   Known values: $EF (Winbond)
+    readreg(core.MANUF_DEV_ID, 1, @id)
+
+PUB ReadBlock(fl_addr, nr_bytes, ptr_buff)
+' Read a block of bytes from the flash chip
+'   NOTE: If the operation reaches the end of the flash chip, the address will restart at 0 and continue reading
+    readmem(fl_addr, nr_bytes, ptr_buff)
+
+PUB ReadByte(fl_addr): fl_byte
+' Read a byte of data from flash
+    readmem(fl_addr, 1, @fl_byte)
+
+PUB UID(ptr_buff)
+' Read unique 64-bit ID/serial number
+'   NOTE: Buffer at ptr_buff must be at least 8 bytes in length
+    readreg(core.UNIQUE_ID, 8, ptr_buff)
+
+PUB WriteBlock(fl_addr, nr_bytes, ptr_buff)
+' Write a block of data to the flash chip
+'   Valid values:
+'       nr_bytes: 1..256
+'   Any other value will be ignored
+    if lookdown(nr_bytes: 1..256)
+        writereg(core.PAGE_PROG | (fl_addr << 8), nr_bytes, ptr_buff)
+    else
+        return
+
+PUB WriteByte(fl_addr, val)
+' Write one byte to the flash chip
+'   NOTE: WriteEnable must be called first before performing any writes
+'       The request will be ignored, otherwise
+    writereg(core.PAGE_PROG | (fl_addr << 8), 1, @val)
+
+PUB WritesEnabled(state=-2): curr_state
+' Enable writes to flash chip (page programming, sector/block/chip erase, write status reg, erase/program security registers)
+'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Any other value polls the chip and returns the current setting
+    curr_state := 0
+    readreg(core.READ_STATUS1, 1, @curr_state)
+    case_fast abs(state)
+        0, 1:
+            state := lookupz(abs(state): core.WRITE_DISABLE, core.WRITE_ENABLE)
+        other:
+            return ((curr_state >> 1) & 1) == 1
+
+    writereg(state, 0, 0)
+
+PRI readMem(addr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+
+    cmd_pkt.byte[0] := core.READ_DATA           ' Read Flash
+    cmd_pkt.byte[1] := addr.byte[2]             '   address A23..A16
+    cmd_pkt.byte[2] := addr.byte[1]             '   address A15..A8
+    cmd_pkt.byte[3] := addr.byte[0]             '   address A7..A0
+    pinl(_CS)
+    spi.wrblock_lsbf(@cmd_pkt, 4)
+    spi.rdblock_lsbf(ptr_buff, nr_bytes)
+    pinh(_CS)
+
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2], cmd_bytes
+' Read nr_bytes from device into ptr_buff
+    case_fast reg_nr.byte[0]                    ' validate reg nr
+        core.MANUF_DEV_ID:
+            cmd_bytes := 4
+            cmd_pkt.byte[0] := reg_nr
+            cmd_pkt.byte[1] := $00              ' 3 required dummy bytes
+            cmd_pkt.byte[2] := $00
+            cmd_pkt.byte[3] := $00
+        core.UNIQUE_ID:
+            cmd_bytes := 5
+            cmd_pkt.byte[0] := reg_nr
+            cmd_pkt.byte[1] := $00
+            cmd_pkt.byte[2] := $00
+            cmd_pkt.byte[3] := $00
+            cmd_pkt.byte[4] := $00
+        core.READ_STATUS1, core.READ_STATUS2, core.READ_STATUS3:
+            cmd_bytes := 1
+            cmd_pkt.byte[0] := reg_nr.byte[0]
+        other:
+            cmd_bytes := 1
+            cmd_pkt.byte[0] := reg_nr
+
+    pinl(_CS)
+    spi.wrblock_lsbf(@cmd_pkt, cmd_bytes)
+    spi.rdblock_lsbf(ptr_buff, nr_bytes)
+    pinh(_CS)
+
+PRI readStatusReg(reg_nr): status | tmp
+' Read status register
+'   Valid values: 1, 2, 3
+'   Any other value polls the chip and returns the current setting
+    case_fast reg_nr
+        1, 2, 3:
+            reg_nr := lookup(reg_nr: core.READ_STATUS1, core.READ_STATUS2, core.READ_STATUS3)
+        other:
+            return
+    readreg(reg_nr, 1, @status)
+
+PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, cmd_bytes
+' Write nr_bytes to device from ptr_buff
+    case reg_nr.byte[0]
+        core.WRITE_ENABLE, core.WRITE_DISABLE:
+            cmd_bytes := 1
+            cmd_pkt.byte[0] := reg_nr.byte[0]
+        core.PAGE_PROG:
+            cmd_bytes := 4
+            cmd_pkt.byte[0] := reg_nr.byte[0]   ' Write Flash
+            cmd_pkt.byte[1] := reg_nr.byte[3]   '   address A23..A16
+            cmd_pkt.byte[2] := reg_nr.byte[2]   '   address A15..A8
+            cmd_pkt.byte[3] := reg_nr.byte[1]   '   address A7..A0
+        core.SECTOR_ERASE, core.BLK32_ERASE, core.BLK64_ERASE,{
+        } core.CHIP_ERASE, core.CHIP_ERASE2:
+            cmd_bytes := 4
+            cmd_pkt.byte[0] := reg_nr.byte[0]   ' Erase Flash
+            cmd_pkt.byte[1] := reg_nr.byte[3]   '   address A23..A16
+            cmd_pkt.byte[2] := reg_nr.byte[2]   '   address A15..A8
+            cmd_pkt.byte[3] := reg_nr.byte[1]   '   address A7..A0
+        core.GLOBAL_BLK_UNLOCK:
+            cmd_bytes := 1
+            cmd_pkt.byte[0] := reg_nr.byte[0]
+        other:
+
+    pinl(_CS)
+    spi.wrblock_lsbf(@cmd_pkt, cmd_bytes)
+
+    if nr_bytes == 0                            ' simple command, no data,
+        pinh(_CS)                               ' so just deselect and return
+        return
+
+    spi.wrblock_lsbf(ptr_buff, nr_bytes)
+    pinh(_CS)
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
