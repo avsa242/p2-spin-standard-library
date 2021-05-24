@@ -17,17 +17,13 @@ CON
     _clkfreq   = cfg._clkfreq_def
 
 ' -- User-modifiable constants
-    I2C_SCL     = 39
-    I2C_SDA     = 38
-    I2C_HZ      = 100_000
-
     LED         = cfg.LED1
-    SER_RX      = cfg.SER_RX
-    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
-' --
 
-    ESC         = 27
+    I2C_SCL     = 0
+    I2C_SDA     = 1
+    I2C_HZ      = 100_000
+' --
 
 OBJ
 
@@ -46,13 +42,13 @@ PUB Main() | slave_addr, flag, x, y, offsetx, offsety, start, end
     ser.clear()
     ser.bold()
     ser.underline()
-    ser.printf ("I2C Scanner")
+    ser.str(string("I2C Scanner"))
     ser.underline(FALSE)
     offsetx := 3
     offsety := 3
     start := $02
     end := $FF
-    _fmt := 7                       '7 or 8 bit format Slave addresses (affects display only)
+
     ser.italic()
     ser.printf (" (%d-bit format)", _fmt)
     ser.reset()
@@ -61,15 +57,15 @@ PUB Main() | slave_addr, flag, x, y, offsetx, offsety, start, end
         ser.position(13, 0)
         ser.dec(_fmt)
         repeat slave_addr from start to end step 2
-            flag := i2c.present (slave_addr)
+            flag := i2c.present(slave_addr)
             x := ((slave_addr & $F) + (slave_addr & $F)) + offsetx
             y := (slave_addr >> 4) + offsety
-            printsa (x, y, slave_addr, flag)
-        waitms(100)
+            printsa(x, y, slave_addr, flag)
     until _key_cog == 0
 
-    stop()
-    flashled(LED, 100)
+    ser.showcursor()
+    ser.clear()
+    repeat
 
 PUB PrintSA(x, y, slave_addr, flag)            
 
@@ -77,27 +73,24 @@ PUB PrintSA(x, y, slave_addr, flag)
         7:
             case flag
                 TRUE:
-                    ser.position (x, y)
-                    ser.color (ser.BLACK, ser#GREEN)
-                    ser.hex (slave_addr >> 1, 2)
+                    ser.position(x, y)
+                    ser.color(ser.BLACK, ser.GREEN)
+                    ser.hex(slave_addr >> 1, 2)
                     ser.reset()
-
                 FALSE:
                     ser.position (x, y)
-                    ser.hex (slave_addr >> 1, 2)
-
+                    ser.hex(slave_addr >> 1, 2)
         8:
             case flag
                 TRUE:
-                    ser.position (x, y)
-                    ser.color (ser.BLACK, ser#GREEN)
-                    ser.hex (slave_addr, 2)
+                    ser.position(x, y)
+                    ser.color(ser.BLACK, ser.GREEN)
+                    ser.hex(slave_addr, 2)
                     ser.reset()
-
                 FALSE:
-                    ser.position (x, y)
-                    ser.hex (slave_addr, 2)
-        OTHER:
+                    ser.position(x, y)
+                    ser.hex(slave_addr, 2)
+        other:
 
 PUB KeyInput() | tmp
 ' Wait for keypress from user
@@ -116,23 +109,15 @@ PUB KeyInput() | tmp
 
 PUB Setup()
 
-    ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.start(SER_BAUD)
     waitms(5)
     ser.reset()
     ser.clear()
-    ser.printf("Serial terminal started\n")
+    ser.strln(string("Serial terminal started"))
     i2c.init(I2C_SCL, I2C_SDA, I2C_HZ)
-    ser.printf("I2C driver started\n")
+    ser.strln(string("I2C driver started"))
     _key_cog := cogspin(16, KeyInput(), @_keyinput_stack)
-
-PUB Stop()
-
-    ser.reset()
-    ser.showcursor()
-    ser.clear()
-    ser.printf("Stopped\n")
-
-#include "lib.utility.spin2"
+    _fmt := 7
 
 DAT
 {
