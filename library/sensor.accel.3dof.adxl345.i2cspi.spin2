@@ -5,7 +5,7 @@
     Description: Driver for the Analog Devices ADXL345 3DoF Accelerometer
     Copyright (c) 2021
     Started Mar 14, 2020
-    Updated Mar 21, 2021
+    Updated May 27, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -423,7 +423,9 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
     case reg_nr
         $00, $1D..$31, $38, $39:
         $32..$37:                               ' accel data regs; set the
+#ifdef ADXL345_SPI
             reg_nr |= core.MB                   '   multi-byte transaction bit
+#endif
         other:
             return
 
@@ -452,8 +454,6 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
             cmd_pkt.byte[1] := reg_nr
             i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 2)
-            i2c.start()
-            i2c.wr_byte(SLAVE_RD)
             i2c.wrblock_lsbf(ptr_buff, nr_bytes)
             i2c.stop()
 #elseifdef ADXL345_SPI
