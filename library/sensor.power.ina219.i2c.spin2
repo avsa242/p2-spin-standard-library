@@ -4,22 +4,40 @@
     Author: Jesse Burt
     Description: Driver of the TI INA219 current/power monitor IC
         (P2 version)
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Sep 18, 2019
-    Updated Dec 5, 2020
+    Updated May 30, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    SLAVE_WR          = core.SLAVE_ADDR
-    SLAVE_RD          = core.SLAVE_ADDR|1
+    SLAVE_WR        = core.SLAVE_ADDR
+    SLAVE_RD        = core.SLAVE_ADDR|1
 
-    DEF_SCL           = 28
-    DEF_SDA           = 29
-    DEF_HZ            = 100_000
-    I2C_MAX_FREQ      = core.I2C_MAX_FREQ
+    DEF_HZ          = 100_000
+    DEF_ADDR        = %0000
+    I2C_MAX_FREQ    = core.I2C_MAX_FREQ
+
+'   Address pins vs slave addresses
+'   A1  A0  SLAVE ADDRESS
+'   GND GND 100_0000
+'   GND VS+ 100_0001
+'   GND SDA 100_0010
+'   GND SCL 100_0011
+'   VS+ GND 100_0100
+'   VS+ VS+ 100_0101
+'   VS+ SDA 100_0110
+'   VS+ SCL 100_0111
+'   SDA GND 100_1000
+'   SDA VS+ 100_1001
+'   SDA SDA 100_1010
+'   SDA SCL 100_1011
+'   SCL GND 100_1100
+'   SCL VS+ 100_1101
+'   SCL SDA 100_1110
+'   SCL SCL 100_1111
 
 OBJ
 
@@ -32,17 +50,19 @@ VAR
     long _i_max
     long _i_lsb, _p_lsb
     long _vmax_shunt
+    long _addr_bits
 
 PUB Null()
 ' This is not a top-level object
 
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=100_000): status
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
 ' Start using custom settings
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
-}   I2C_HZ <= core.I2C_MAX_FREQ
+}   I2C_HZ <= core.I2C_MAX_FREQ and lookdown(ADDR_BITS: %0000..%1111)
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitms(1)
-            if i2c.present(SLAVE_WR)            ' check device bus presence
+            _addr_bits := ADDR_BITS << 1
+            if i2c.present(SLAVE_WR | _addr_bits)' check device bus presence
                 if deviceid() == core.CONFIG_POR
                     return
     ' if this point is reached, something above failed
@@ -95,7 +115,7 @@ PUB BusADCRes(adcres=-2): curr_res
             curr_res := (curr_res >> core.BADC) & core.BADC_BITS
             return lookupz(curr_res: 9, 10, 11, 12)
 
-    adcres := ((curr_res & core#BADC_MASK) | adcres) & core#CONFIG_MASK
+    adcres := ((curr_res & core.BADC_MASK) | adcres) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @adcres)
 
 PUB BusVoltageRange(range=-2): curr_rng
@@ -108,10 +128,10 @@ PUB BusVoltageRange(range=-2): curr_rng
         16, 32:
             range := lookdownz(range: 16, 32) << core.BRNG
         other:
-            curr_rng := (curr_rng >> core.BRNG) & %1
+            curr_rng := (curr_rng >> core.BRNG) & 1
             return lookupz(curr_rng: 16, 32)
 
-    range := ((curr_rng & core#BRNG_MASK) | range) & core#CONFIG_MASK
+    range := ((curr_rng & core.BRNG_MASK) | range) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @range)
 
 PUB CurrentBias(val=-2): curr_val
@@ -132,7 +152,7 @@ PUB CurrentBias(val=-2): curr_val
 PUB Current(): a
 ' Read current
 '   Returns: Current in milliamps
-    readreg(core#CURRENT, 2, @a)
+    readreg(core.CURRENT, 2, @a)
     return ~~a
 
 PUB DeviceID(): id
@@ -148,7 +168,7 @@ PUB PowerData(): pwr_adc
 ' Read power ADC data
 '   Returns: s16
     pwr_adc := 0
-    readreg(core#POWER, 2, @pwr_adc)
+    readreg(core.POWER, 2, @pwr_adc)
 
 PUB Power(): w
 ' Read power
@@ -173,7 +193,7 @@ PUB ShuntADCRes(adc_res=-2): curr_res
             curr_res := (curr_res >> core.SADC) & core.SADC_BITS
             return lookupz(curr_res: 9, 10, 11, 12)
 
-    adc_res := ((curr_res & core#SADC_MASK) | adc_res) & core#CONFIG_MASK
+    adc_res := ((curr_res & core.SADC_MASK) | adc_res) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @adc_res)
 
 PUB ShuntResistance(r_shunt): curr_res
@@ -196,7 +216,7 @@ PUB ShuntSamples(samples=-2): curr_smp
     case samples
         1, 2, 4, 8, 16, 32, 64, 128:
             samples := lookdownz(samples: 1, 2, 4, 8, 16, 32, 64, 128) << core.SADC
-            samples |= (1 << core#SADC_AVG)
+            samples |= (1 << core.SADC_AVG)
         other:
             curr_smp := (curr_smp >> core.SADC) & core.SADC_BITS
             if curr_smp & %1000
@@ -205,7 +225,7 @@ PUB ShuntSamples(samples=-2): curr_smp
             else
                 return 0
 
-    samples := ((curr_smp & core#SADC_MASK) | samples) & core#CONFIG_MASK
+    samples := ((curr_smp & core.SADC_MASK) | samples) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @samples)
 
 PUB ShuntVoltage(): v
@@ -228,19 +248,19 @@ PUB ShuntVoltageRange(range=-2): curr_rng
             curr_rng := (curr_rng >> core.PG) & core.PG_BITS
             return lookupz(curr_rng: 40, 80, 160, 320)
 
-    range := ((curr_rng & core#PG_MASK) | range) & core#CONFIG_MASK
+    range := ((curr_rng & core.PG_MASK) | range) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @range)
 
 PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
 ' read nr_bytes from device into ptr_buff
     case reg_nr                                    ' validate register
         core.CONFIG..core.CALIBRATION:
-            cmd_pkt.byte[0] := SLAVE_WR
+            cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
             cmd_pkt.byte[1] := reg_nr
             i2c.start{}
             i2c.wrblock_lsbf(@cmd_pkt, 2)
             i2c.start{}
-            i2c.write(SLAVE_RD)
+            i2c.write(SLAVE_RD | _addr_bits)
             i2c.rdblock_msbf(ptr_buff, 2, i2c.NAK)
             i2c.stop{}
         other:
@@ -250,7 +270,7 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
 ' write nr_bytes to device from ptr_buff
     case reg_nr
         core.CONFIG, core.CALIBRATION:
-            cmd_pkt.byte[0] := SLAVE_WR
+            cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
             cmd_pkt.byte[1] := reg_nr
             cmd_pkt.byte[2] := byte[ptr_buff][1]
             cmd_pkt.byte[3] := byte[ptr_buff][0]
