@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Driver for TI's CC1101 ISM-band transceiver
         (P2 version)
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Mar 25, 2019
-    Updated Dec 1, 2020
+    Updated May 30, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -128,6 +128,9 @@ PUB Stop()
 
 PUB Defaults()
 ' Factory default settings
+
+' This is what _would_ be called:
+{
     nodeaddress($00)
     addresscheck(ADRCHK_NONE)
     appendstatus(TRUE)
@@ -154,6 +157,9 @@ PUB Defaults()
     syncmode(SYNCMODE_1616)
     syncword($D391)
     datawhitening(TRUE)
+}
+' but to save code space, just call Reset(), instead
+    reset()
 
 PUB PresetFixedPktlen()
 ' Like PresetRobust1(), but sets packet length config mode to fixed-length
