@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started Mar 14, 2020
-    Updated Mar 21, 2021
+    Updated May 29, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,7 +20,7 @@ CON
     SLAVE_ADDR                  = $53 << 1
     I2C_MAX_FREQ                = 400_000
 
-    TPOR                        = 1_400         ' uSec
+    T_POR                       = 1_400         ' usec
     W                           = 0
     R                           = 1 << 7        ' read
     MB                          = 1 << 6        ' multiple-byte transcation
@@ -41,8 +41,29 @@ CON
     TIME_INACT                  = $26
     ACT_INACT_CTL               = $27
     THRESH_FF                   = $28
+
     TAP_AXES                    = $2A
+    TAP_AXES_MASK               = $0F
+        SUPPRESS                = 3
+        TAP_X                   = 2
+        TAP_Y                   = 1
+        TAP_Z                   = 0
+        TAPXYZ                  = 0
+        TAPXYZ_BITS             = %111
+        SUPPRESS_MASK           = (1 << SUPPRESS) ^ TAP_AXES_MASK
+        TAPXYZ_MASK             = TAPXYZ_BITS ^ TAP_AXES_MASK
+
     ACT_TAP_STATUS              = $2B
+    ACT_TAP_STATUS_MASK         = $7F
+        ACT_X_SRC               = 6
+        ACT_Y_SRC               = 5
+        ACT_Z_SRC               = 4
+        ASLEEP                  = 3
+        TAP_X_SRC               = 2
+        TAP_Y_SRC               = 1
+        TAP_Z_SRC               = 0
+        ACT_SRC_BITS            = %111
+        TAP_SRC_BITS            = %111
 
     BW_RATE                     = $2C
     BW_RATE_MASK                = $1F
@@ -71,14 +92,17 @@ CON
         DATA_RDY                = 7
         SING_TAP                = 6
         DBL_TAP                 = 5
+        TAP                     = 5
         ACTIVITY                = 4
         INACT                   = 3
         FREE_FALL               = 2
         WATERMK                 = 1
         OVERRUN                 = 0
+        TAP_BITS                = %11
         DATA_RDY_MASK           = (1 << DATA_RDY) ^ INT_MASK
         SING_TAP_MASK           = (1 << SING_TAP) ^ INT_MASK
         DBL_TAP_MASK            = (1 << DBL_TAP) ^ INT_MASK
+        TAP_MASK                = (TAP_BITS << TAP) ^ INT_MASK
         ACTIVITY_MASK           = (1 << ACTIVITY) ^ INT_MASK
         INACT_MASK              = (1 << INACT) ^ INT_MASK
         FREE_FALL_MASK          = (1 << FREE_FALL) ^ INT_MASK
@@ -129,10 +153,8 @@ CON
         ENTRIES                 = 0
         ENTRIES_BITS            = %111111
 
-#ifndef __propeller2__
 PUB Null
 ' This is not a top-level object
-#endif
 
 {
     --------------------------------------------------------------------------------------------------------

@@ -1,15 +1,16 @@
 {
     --------------------------------------------
-    Filename: ADXL345-Demo.spin2
+    Filename: ADXL345-ClickDemo.spin2
     Author: Jesse Burt
     Description: Demo of the ADXL345 driver
-        (P2 version)
+        click-detection functionality (P2 version)
     Copyright (c) 2021
-    Started Mar 14, 2020
+    Started May 30, 2021
     Updated May 30, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
+' Uncomment one of the following to choose which interface the ADXL345 is connected to
 #define ADXL345_I2C
 '#define ADXL345_SPI
 
@@ -31,98 +32,82 @@ CON
     ADDR_BITS   = 0                             ' I2C
 ' --
 
-    DAT_X_COL   = 20
-    DAT_Y_COL   = DAT_X_COL + 15
-    DAT_Z_COL   = DAT_Y_COL + 15
-
 OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
-    int     : "string.integer"
 #ifdef ADXL345_I2C
     accel   : "sensor.accel.3dof.adxl345.i2c"
 #elseifdef ADXL345_SPI
     accel   : "sensor.accel.3dof.adxl345.spi"
 #endif
 
+VAR
+
+    long _showclk_stack[60]
+    long _s_cnt, _d_cnt
+    long _click_src, _dclicked, _sclicked
+    long _dc_wind
+
 PUB Main()
 
     setup()
-    accel.preset_active()                       ' default settings, but enable
-                                                ' sensor data acquisition and
-                                                ' set scale factor
+    accel.preset_clickdet()                     ' preset settings for
+'                                               ' click-detection
+    _s_cnt := _d_cnt := 0
+    _dc_wind := accel.doubleclickwindow(-2) / 1000
+    repeat
+        repeat until _click_src := accel.clickedint()
 
+        _dclicked := (_click_src & 1)
+        _sclicked := ((_click_src >> 1) & 1)
+        if _dclicked
+            _click_src := 0
+            _d_cnt++
+            next
+        if _sclicked
+            _click_src := 0
+            _s_cnt++
+
+PRI cog_ShowClickStatus()
+' Secondary cog to display click status
     repeat
         ser.position(0, 3)
-        accelcalc()
-        if ser.rxcheck() == "c"                 ' press the 'c' key in the demo
-            calibrate()                         ' to calibrate sensor offsets
+        ser.printf(string("Double-clicked:  %s (%d)\n"), yesno(_dclicked), _d_cnt)
+        ser.printf(string("Single-clicked:  %s (%d)\n"), yesno(_sclicked), _s_cnt)
+        _dclicked := _sclicked := false
 
-PUB AccelCalc() | ax, ay, az
+        ' wait for double-click window time to elapse, so the display doesn't
+        '   update too fast to be seen
+        waitms(_dc_wind)
 
-    repeat until accel.acceldataready()
-    accel.accelg(@ax, @ay, @az)
-    ser.str(string("Accel (g): "))
-    ser.positionx(DAT_X_COL)
-    decimal(ax, 1_000_000)
-    ser.positionx(DAT_Y_COL)
-    decimal(ay, 1_000_000)
-    ser.positionx(DAT_Z_COL)
-    decimal(az, 1_000_000)
-    ser.clearline()
-    ser.newline()
-
-PUB Calibrate()
-
-    ser.position(0, 5)
-    ser.str(string("Calibrating..."))
-    accel.calibrateaccel()
-    ser.position(0, 5)
-    ser.clearline()
-
-PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp, sign
-' Display a scaled up number as a decimal
-'   Scale it back down by divisor (e.g., 10, 100, 1000, etc)
-    whole := scaled / divisor
-    tmp := divisor
-    places := 0
-    part := 0
-    sign := 0
-    if scaled < 0
-        sign := "-"
-    else
-        sign := " "
-
-    repeat
-        tmp /= 10
-        places++
-    until tmp == 1
-    scaled //= divisor
-    part := int.deczeroed(abs(scaled), places)
-
-    ser.char(sign)
-    ser.dec(abs(whole))
-    ser.char(".")
-    ser.str(part)
+PRI YesNo(val): resp
+' Return pointer to string "Yes" or "No" depending on value called with
+    case abs(val)
+        0:
+            return string("No ")
+        1:
+            return string("Yes")
 
 PUB Setup()
 
+    longfill(@_showclk_stack, 0, 65)
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-#ifdef ADXL345_I2C
-    if accel.startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS)
-        ser.strln(string("ADXL345 driver started (I2C)"))
-#elseifdef ADXL345_SPI
+#ifdef ADXL345_SPI
     if accel.startx(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SPI_HZ)
         ser.strln(string("ADXL345 driver started (SPI)"))
+#elseifdef ADXL345_I2C
+    if accel.startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS)
+        ser.strln(string("ADXL345 driver started (I2C)"))
 #endif
     else
-        ser.str(string("ADXL345 driver failed to start - halting"))
+        ser.strln(string("ADXL345 driver failed to start - halting"))
         repeat
+
+    cogspin(NEWCOG, cog_showclickstatus(), @_showclk_stack)
 
 DAT
 {
