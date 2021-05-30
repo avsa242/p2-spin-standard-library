@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2021
     Started Nov 13, 2019
-    Updated Jan 9, 2021
+    Updated May 30, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -17,7 +17,27 @@ CON
     SLAVE_RD        = core.SLAVE_ADDR|1
 
     DEF_HZ          = 100_000
+    DEF_ADDR        = %0000
     I2C_MAX_FREQ    = core.I2C_MAX_FREQ
+
+'   Address pins vs slave addresses
+'   A1  A0  SLAVE ADDRESS
+'   GND GND 100_0000
+'   GND VS+ 100_0001
+'   GND SDA 100_0010
+'   GND SCL 100_0011
+'   VS+ GND 100_0100
+'   VS+ VS+ 100_0101
+'   VS+ SDA 100_0110
+'   VS+ SCL 100_0111
+'   SDA GND 100_1000
+'   SDA VS+ 100_1001
+'   SDA SDA 100_1010
+'   SDA SCL 100_1011
+'   SCL GND 100_1100
+'   SCL VS+ 100_1101
+'   SCL SDA 100_1110
+'   SCL SCL 100_1111
 
 ' Operating modes
     POWERDN         = %000
@@ -43,6 +63,7 @@ CON
 
 VAR
 
+    long _addr_bits
 
 OBJ
 
@@ -52,13 +73,14 @@ OBJ
 PUB Null()
 ' This is not a top-level object
 
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
 ' Start using custom settings
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
-}   I2C_HZ <= core.I2C_MAX_FREQ
+}   I2C_HZ <= core.I2C_MAX_FREQ and lookdown(ADDR_BITS: %0000..%1111)
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
-            waitms(1)
-            if i2c.present(SLAVE_WR)        ' test device bus presence
+            waitus(core.T_POR)
+            _addr_bits := ADDR_BITS << 1
+            if i2c.present(SLAVE_WR | _addr_bits)' test device bus presence
                 reset()
                 if deviceid() == core.DEVID_RESP
                 return
@@ -68,6 +90,8 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
     return FALSE
 
 PUB Stop()
+
+    i2c.deinit()
 
 PUB BusVoltage(): v
 ' Read the measured bus voltage, in microvolts
@@ -255,7 +279,7 @@ PUB SamplesAveraged(samples=-2): curr_smp
             samples := lookdownz(samples: 1, 4, 16, 64, 128, 256, 512,{
 }                                           1024) << core.AVG
         other:
-            curr_smp := (curr_smp >> core#AVG) & core#AVG_BITS
+            curr_smp := (curr_smp >> core.AVG) & core.AVG_BITS
             return lookupz(curr_smp: 1, 4, 16, 64, 128, 256, 512, 1024)
 
     samples := ((curr_smp & core.AVG_MASK) | samples) & core.CONFIG_MASK
@@ -283,13 +307,13 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from the slave device into ptr_buff
     case reg_nr
         $00..$03, $06, $07, $fe, $ff:
-            cmd_pkt.byte[0] := SLAVE_WR
+            cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
             cmd_pkt.byte[1] := reg_nr
             i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 2)
 
             i2c.start()
-            i2c.write(SLAVE_RD)
+            i2c.write(SLAVE_RD | _addr_bits)
             i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c.NAK)
             i2c.stop()
         other:
@@ -304,7 +328,7 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
         other:
             return
 
-    cmd_pkt.byte[0] := SLAVE_WR
+    cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
     cmd_pkt.byte[1] := reg_nr
     i2c.start()
     i2c.wrblock_lsbf(@cmd_pkt, 2)
