@@ -5,7 +5,7 @@
     Description: Demo of the LSM9DS1 driver
     Copyright (c) 2021
     Started Aug 12, 2017
-    Updated Jan 25, 2021
+    Updated May 31, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -99,7 +99,8 @@ PUB Calibrate()
     ser.position(0, 7)
     ser.str(string("Calibrating..."))
     imu.calibratemag()
-    imu.calibratexlg()
+    imu.calibrateaccel()
+    imu.calibrategyro()
     ser.positionx(0)
     ser.clearline()
 
