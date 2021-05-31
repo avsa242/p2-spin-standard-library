@@ -101,7 +101,7 @@ VAR
 PUB Null()
 ' This is not a top-level object
 
-PUB Start(CS_AG_PIN, CS_M_PIN, SCL_PIN, SDIO_PIN, SCL_HZ): status
+PUB Startx(CS_AG_PIN, CS_M_PIN, SCL_PIN, SDIO_PIN, SCL_HZ): status
 ' Start using custom I/O pins
     if lookdown(SCL_PIN: 0..63) and lookdown(SDIO_PIN: 0..63) and {
 }   lookdown(CS_AG_PIN: 0..63) and lookdown(CS_M_PIN: 0..63)

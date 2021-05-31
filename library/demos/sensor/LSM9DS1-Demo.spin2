@@ -136,7 +136,7 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if imu.start(CS_AG_PIN, CS_M_PIN, SCL_PIN, SDIO_PIN, SCL_FREQ)
+    if imu.startx(CS_AG_PIN, CS_M_PIN, SCL_PIN, SDIO_PIN, SCL_FREQ)
         ser.strln(string("LSM9DS1 driver started"))
     else
         ser.strln(string("LSM9DS1 driver failed to start - halting"))
