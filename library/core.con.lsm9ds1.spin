@@ -5,7 +5,7 @@
     Description: LSM9DS1 low-level constants
     Copyright (c) 2021
     Started Feb 9, 2019
-    Updated Jan 26, 2021
+    Updated Jun 5, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -34,29 +34,23 @@ CON
     INT_GEN_THS_X_XL        = $07
     INT_GEN_THS_Y_XL        = $08
     INT_GEN_THS_Z_XL        = $09
+
     INT_GEN_DUR_XL          = $0A
+    INT_GEN_DUR_XL_MASK     = $FF
+        WAIT_XL             = 7
+        SAMPLES             = 0
+        SAMPLES_BITS        = %1111111
+        WAIT_XL_MASK        = (1 << WAIT_XL) ^ INT_GEN_DUR_XL_MASK
+        SAMPLES_MASK        = SAMPLES ^ INT_GEN_DUR_XL_MASK
+
     REFERENCE_G             = $0B
 
     INT1_CTRL               = $0C
     INT1_CTRL_MASK          = $FF
-        INT1_IG_G           = 7
-        INT1_IG_XL          = 6
-        INT1_FSS5           = 5
-        INT1_OVR            = 4
-        INT1_FTH            = 3
-        INT1_BOOT           = 2
-        INT1_DRDY_G         = 1
-        INT1_DRDY_XL        = 0
-        INT1_IG_G_MASK      = (1 << INT1_IG_G) ^ INT1_CTRL_MASK
-        INT1_IG_XL_MASK     = (1 << INT1_IG_XL) ^ INT1_CTRL_MASK
-        INT1_FSS5_MASK      = (1 << INT1_FSS5) ^ INT1_CTRL_MASK
-        INT1_OVR_MASK       = (1 << INT1_OVR) ^ INT1_CTRL_MASK
-        INT1_FTH_MASK       = (1 << INT1_FTH) ^ INT1_CTRL_MASK
-        INT1_BOOT_MASK      = (1 << INT1_BOOT) ^ INT1_CTRL_MASK
-        INT1_DRDY_G_MASK    = (1 << INT1_DRDY_G) ^ INT1_CTRL_MASK
-        INT1_DRDY_XL_MASK   = (1 << INT1_DRDY_XL) ^ INT1_CTRL_MASK
 
     INT2_CTRL               = $0D
+    INT2_CTRL_MASK          = $BF
+
     WHO_AM_I_XG             = $0F
 
     CTRL_REG1_G             = $10
@@ -246,17 +240,28 @@ CON
 
     FIFO_SRC                = $2F
         FTH_STAT            = 7
+        OVRN                = 6
         FSS                 = 0
         FSS_BITS            = %111111
 
     INT_GEN_CFG_G           = $30
+
     INT_GEN_THS_XH_G        = $31
     INT_GEN_THS_XL_G        = $32
     INT_GEN_THS_YH_G        = $33
     INT_GEN_THS_YL_G        = $34
     INT_GEN_THS_ZH_G        = $35
     INT_GEN_THS_ZL_G        = $36
+    INT_G_BITS              = $7FFF
+
     INT_GEN_DUR_G           = $37
+    INT_GEN_DUR_G_MASK      = $FF
+        WAIT_G              = 7
+'       SAMPLES             = 0                 ' same as INT_GEN_DUR_XL def
+'       SAMPLES_BITS        = %1111111
+        WAIT_G_MASK         = (1 << WAIT_XL) ^ INT_GEN_DUR_g_MASK
+'       SAMPLES_MASK        = SAMPLES ^ INT_GEN_DUR_g_MASK
+
     OFFSET_X_REG_L_M        = $05
     OFFSET_X_REG_H_M        = $06
     OFFSET_Y_REG_L_M        = $07
