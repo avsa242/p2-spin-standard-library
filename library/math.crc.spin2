@@ -5,7 +5,7 @@
     Description: A collection of CRC routines
     Copyright (c) 2021
     Started Nov 19, 2017
-    Updated Feb 7, 2021
+    Updated Jun 16, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,8 +13,24 @@
 CON
 
     POLY8_DSMAX     = $8C
+    POLY8_MEAS      = $31
     POLY8_SENSIRION = $31
     POLY16_DSMAX    = $A001
+
+PUB MeasCRC8(data, len): crc | currbyte, i, j
+' Measurement specialties CRC8
+    crc := $00
+    repeat i from 0 to len-1
+        currbyte := byte[data][(len-1)-i]
+        crc := crc ^ currbyte
+
+        repeat j from 0 to 7
+            if (crc & $80)
+                crc := (crc << 1) ^ POLY8_MEAS
+            else
+                crc := (crc << 1)
+    crc ^= $00
+    return crc & $FF
 
 PUB SensirionCRC8(data, len): crc | currbyte, i, j
 
