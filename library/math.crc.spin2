@@ -5,7 +5,7 @@
     Description: A collection of CRC routines
     Copyright (c) 2021
     Started Nov 19, 2017
-    Updated Jun 16, 2021
+    Updated Jun 26, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,6 +14,7 @@ CON
 
     POLY8_DSMAX     = $8C
     POLY8_MEAS      = $31
+    POLY8_SD        = $09
     POLY8_SENSIRION = $31
     POLY16_DSMAX    = $A001
 
@@ -31,6 +32,19 @@ PUB MeasCRC8(data, len): crc | currbyte, i, j
                 crc := (crc << 1)
     crc ^= $00
     return crc & $FF
+
+PUB SDCRC7(ptr_data, len): crc | byte_nr, bit_nr, curr_byte
+' MMC/SD CRC7
+    crc := $00
+    repeat byte_nr from 0 to len-1
+        curr_byte := byte[ptr_data][byte_nr]
+        repeat bit_nr from 0 to 7
+            crc <<= 1
+            if ((curr_byte & $80) ^ (crc & $80))
+                crc ^= POLY8_SD
+            curr_byte <<= 1
+
+    return ((crc << 1) | 1) & $FF
 
 PUB SensirionCRC8(data, len): crc | currbyte, i, j
 
