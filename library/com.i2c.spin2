@@ -4,7 +4,7 @@
     Description: Bitbanged I2C driver for the P2X8C4M64P
     Author: Jesse Burt
     Created: Jun 15, 2019
-    Updated: May 24, 2021
+    Updated: Jul 21, 2021
     See end of file for terms of use.
 
     NOTE: This is based on jm_i2c.spin, by
@@ -225,7 +225,7 @@ PUB WrBlock_LSBF(ptr_buff, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, bytenum
         pinf(SDA)                                   ' release SDA
 
         waitx(bit_lo)
-        pinf(SCL)
+        waitclkstretch()
         waitx(bit_hi)
         ackbit := pinr(SDA)                         ' read ack bit
         pinl(SCL)
@@ -250,7 +250,7 @@ PUB WrBlock_MSBF(ptr_buff, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, bytenum
         pinf(SDA)                                   ' release SDA
 
         waitx(bit_lo)
-        pinf(SCL)
+        waitclkstretch()
         waitx(bit_hi)
         ackbit := pinr(SDA)                         ' read ack bit
         pinl(SCL)
