@@ -1,22 +1,16 @@
 {
     --------------------------------------------
-    Filename: tiny.math.float
+    Filename: tiny.math.float.spin2
     Description: Floating-point math routines
         Single-precision, IEEE-754 (SPIN-based)
-        (based on FloatMath.spin, originally by
-        Chip Gracey)
     Started 2006
-    Updated Sep 12, 2020
+    Updated Jul 21, 2021
     See end of file for terms of use.
     --------------------------------------------
+
+    This is based on FloatMath.spin, originally
+        by Chip Gracey
 }
-'***************************************
-'*  Floating-Point Math                *
-'*  Single-precision IEEE-754          *
-'*  Author: Chip Gracey                *
-'*  Copyright (c) 2006 Parallax, Inc.  *
-'*  See end of file for terms of use.  *
-'***************************************
 
 PUB Null()
 ' This is not a top-level object
@@ -25,7 +19,7 @@ PUB FFloat(integer): single | sign, exp, mant
 ' Convert integer to float
     if mant := abs(integer)                 ' absolutize mantissa, if 0, result 0
         sign := integer >> 31               ' get sign
-        exp := encod mant - 1               ' get exponent
+        exp := encod mant                   ' get exponent
         mant <<= 31 - exp                   ' msb-justify mantissa
         mant >>= 2                          ' bit29-justify mantissa
 
@@ -56,7 +50,7 @@ PUB FSqrt(singlea): single | sign, exp, mant, root
         root := $4000_0000                  ' compute square root of mantissa
         repeat 31
             single |= root
-            if single scas single > mant
+            if single sca single > mant
                 single ^= root
             root >>= 1
         mant := single >> 1
@@ -65,6 +59,8 @@ PUB FSqrt(singlea): single | sign, exp, mant, root
 
 PUB FAdd(singlea, singleb): single | signa, expa, manta, signb, expb, mantb
 ' Add singlea and singleb
+    single := 0
+
     unpack(@signa, singlea)                 ' unpack inputs
     unpack(@signb, singleb)
 
@@ -97,12 +93,14 @@ PUB FMul(singlea, singleb): single | signa, expa, manta, signb, expb, mantb
 
     signa ^= signb                          ' xor signs
     expa += expb                            ' add exponents
-    manta := (manta scas mantb) << 3        ' multiply mantissas and justify
+    manta := (manta sca mantb) << 3         ' multiply mantissas and justify
 
     return pack(@signa)                     ' pack result
 
 PUB FDiv(singlea, singleb): single | signa, expa, manta, signb, expb, mantb
 ' Divide singlea by singleb
+    single := 0
+
     unpack(@signa, singlea)                 ' unpack inputs
     unpack(@signb, singleb)
 
@@ -141,7 +139,7 @@ PRI Unpack(pointer, single) | sign, exp, mant, tmp
     if exp                                  ' if exponent > 0,
         mant := mant << 6 | $2000_0000      ' ..bit29-justify mantissa with leading 1
     else
-        tmp := encod mant - 23              ' else, determine first 1 in mantissa
+        tmp := encod mant - 22              ' else, determine first 1 in mantissa
         exp := tmp                          ' ..adjust exponent
         mant <<= 7 - tmp                    ' ..bit29-justify mantissa
 
@@ -151,12 +149,14 @@ PRI Unpack(pointer, single) | sign, exp, mant, tmp
 
 PRI Pack(pointer): single | sign, exp, mant
 ' Pack floating-point from (sign, exponent, mantissa) at pointer
+    single := 0
+
     longmove(@sign, pointer, 3)             ' get (s,x,m) structure into locals
 
     if mant                                 ' if mantissa 0, result 0
-        result := 33 - encod mant           ' determine magnitude of mantissa
-        mant <<= result                     ' msb-justify mantissa without leading 1
-        exp += 3 - result                   ' adjust exponent
+        single := 32 - encod mant           ' determine magnitude of mantissa
+        mant <<= single                     ' msb-justify mantissa without leading 1
+        exp += 3 - single                   ' adjust exponent
 
         mant += $00000100                   ' round up mantissa by 1/2 lsb
         if not mant & $FFFFFF00             ' if rounding overflow,
