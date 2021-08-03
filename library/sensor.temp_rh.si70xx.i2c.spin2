@@ -6,7 +6,7 @@
         temperature/humidity sensors (P2 version)
     Copyright (c) 2021
     Started Jul 20, 2019
-    Updated May 20, 2021
+    Updated Aug 3, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -128,17 +128,26 @@ PUB HeaterEnabled(state): curr_state
     state := ((curr_state & core.HTRE_MASK) | state) & core.RD_RH_T_USER1_MASK
     writereg(core.WR_RH_T_USER1, 1, @state)
 
+PUB HumData(): rh_adc
+' Read relative humidity ADC data
+'   Returns: u16
+    rh_adc := 0
+    readreg(core#MEAS_RH_NOHOLD, 2, @rh_adc)
+
 PUB Humidity(): rh
 ' Read humidity
 '   Returns: Relative Humidity, in hundreths of a percent
-    rh := 0
-    readreg(core.MEAS_RH_NOHOLD, 2, @rh)
-    return ((125_00 * rh) / 65536) - 6_00
+    return rhword2percent(humdata())
 
 PUB Reset()
 ' Perform soft-reset
     writereg(core.RESET, 0, 0)
     waitms(15)
+
+PUB RHWord2Percent(rh_word): rh
+' Convert RH ADC word to percent
+'   Returns: relative humidity, in hundredths of a percent
+    return ((125_00 * rh_word) / 65536) - 6_00
 
 PUB SerialNum(ptr_buff) | sna[2], snb[2]
 ' Read the 64-bit serial number of the device
@@ -154,21 +163,17 @@ PUB SerialNum(ptr_buff) | sna[2], snb[2]
     byte[ptr_buff][1] := snb.byte[3]
     byte[ptr_buff][0] := snb.byte[4]
 
+PUB TempData(): temp_adc
+' Read temperature ADC data
+'   Returns: s16
+    temp_adc := 0
+    readreg(core.READ_PREV_TEMP, 2, @temp_adc)
+
 PUB Temperature(): temp
 ' Current Temperature, in hundredths of a degree
 '   Returns: Integer
 '   (e.g., 2105 is equivalent to 21.05 deg C)
-    temp := 0
-    readreg(core.READ_PREV_TEMP, 2, @temp)
-    temp := ((175_72 * temp) / 65536) - 46_85
-    case _temp_scale
-        F:
-            if temp > 0
-                temp := temp * 9 / 5 + 32_00
-            else
-                temp := 32_00 - (abs(temp) * 9 / 5)
-        other:
-            return
+    return tempword2deg(tempdata())
 
 PUB TempScale(temp_scale): curr_scale
 ' Set scale of temperature data returned by Temperature method
@@ -181,6 +186,18 @@ PUB TempScale(temp_scale): curr_scale
             _temp_scale := temp_scale
         other:
             return _temp_scale
+
+PUB TempWord2Deg(temp_word): temp
+' Convert thermocouple ADC word to temperature
+'   Returns: temperature, in hundredths of a degree, in chosen scale
+    temp := ((175_72 * temp_word) / 65536) - 46_85
+    case _temp_scale
+        C:
+            return temp
+        F:
+            return ((temp * 9) / 5) + 32_00
+        other:
+            return FALSE
 
 PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from the slave device into ptr_buff
