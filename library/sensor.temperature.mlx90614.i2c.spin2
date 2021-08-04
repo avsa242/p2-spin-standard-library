@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2021
     Started Mar 17, 2019
-    Updated May 19, 2021
+    Updated Aug 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -57,12 +57,16 @@ PUB Stop()
 
     i2c.deinit()
 
+PUB AmbientTempData(): temp_adc
+' Read ambient temperature ADC data
+'   Returns: s16
+    readreg(core.CMD_RAM, core.T_A, 2, @temp_adc)
+
 PUB AmbientTemp(): temp
 ' Reads the Ambient temperature
 '   Returns: Temperature in hundredths of a degree (e.g., 2135 is 21.35 deg),
 '       using the chosen scale
-    readreg(core.CMD_RAM, core.T_A, 3, @temp)
-    return calctemp(temp & $FFFF)
+    return tempword2deg(ambienttempdata())
 
 PUB DeviceID(): id
 ' Reads the sensor ID
@@ -73,6 +77,20 @@ PUB EEPROM(ptr_buff)
 '   NOTE: ptr_buff must be at least 64 bytes
     readreg(core.CMD_EEPROM, $00, 64, ptr_buff)
 
+PUB ObjTempData(channel): temp_adc
+' Read object temperature ADC data
+'   channel
+'       Valid values: 1, 2 (CH2 availability is device-dependent)
+'       Any other value is ignored
+'   Returns: s16
+    case channel
+        1, 2:
+            readreg(core.CMD_RAM, core.T_OBJ1+(channel-1), 3, @temp_adc)
+        other:
+            return
+
+    return temp_adc & $FFFF
+
 PUB ObjTemp(channel): temp
 ' Reads the Object temperature (IR temp)
 '   channel
@@ -80,15 +98,7 @@ PUB ObjTemp(channel): temp
 '       Any other value is ignored
 '   Returns: Temperature in hundredths of a degree (e.g., 2135 is 21.35 deg),
 '       using the chosen scale
-    case channel
-        1:
-            readreg(core.CMD_RAM, core.T_OBJ1, 3, @temp)
-        2:
-            readreg(core.CMD_RAM, core.T_OBJ2, 3, @temp)
-        other:
-            return
-
-    return calctemp(temp & $FFFF)
+    return tempword2deg(objtempdata(channel))
 
 PUB TempScale(scale): curr_scl
 ' Set scale of temperature data returned by AmbientTemp and ObjTemp methods
@@ -103,15 +113,15 @@ PUB TempScale(scale): curr_scl
         other:
             return _temp_scale
 
-PRI calcTemp(temp_word): temp_cal
-' Calculate temperature, using temperature word
+PUB TempWord2Deg(temp_word): temp
+' Convert temperature ADC word to temperature
 '   Returns: temperature, in hundredths of a degree, in chosen scale
     temp_word *= 2
     case _temp_scale
         C:
             return temp_word - 273_15
         F:
-            return (temp_word - 273_15) * 9_00/5_00 + 32_00
+            return (((temp_word - 273_15) * 9_00) / 5_00) + 32_00
         K:
             return
         other:
