@@ -5,7 +5,7 @@
     Description: Driver for the Dallas/Maxim DS18B2x-series temperature sensors
     Copyright (c) 2021
     Started Jul 13, 2019
-    Updated May 8, 2021
+    Updated Aug 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -134,7 +134,7 @@ PUB TempData(): temp_adc | tmp[3], i
 
 PUB Temperature(): temp
 ' Returns: Temperature in hundredths of a degree
-    return calctemp(tempdata())
+    return tempword2deg(tempdata())
 
 PUB TempScale(temp_scale): curr_scl
 ' Set scale of temperature data returned by Temperature() method
@@ -148,16 +148,15 @@ PUB TempScale(temp_scale): curr_scl
         other:
             return _temp_scale
 
-PRI calcTemp(temp_word): temp
-' Calculate temperature in hundredths of a degree in the chosen scale,
-'   given temp_word
-    temp := ~~temp_word * 5
+PUB TempWord2Deg(temp_word): temp
+' Convert temperature ADC word to temperature
+'   Returns: temperature, in hundredths of a degree, in chosen scale
+    temp := (temp_word signx 15) * 5
     case _temp_scale
+        C:
+            return temp
         F:
-            if temp > 0
-                temp := temp * 9 / 5 + 32_00
-            else
-                temp := 32_00 - (abs(temp) * 9 / 5)
+            return ((temp * 9) / 5) + 32_00
         other:
             return temp
 
