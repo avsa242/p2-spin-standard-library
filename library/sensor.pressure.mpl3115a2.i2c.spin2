@@ -1,0 +1,338 @@
+{
+    --------------------------------------------
+    Filename: sensor.baro.mpl3115a2.i2c.spin2
+    Author: Jesse Burt
+    Description: Driver for MPL3115A2 Pressure
+        sensor with altimetry
+    Copyright (c) 2021
+    Started Feb 18, 2021
+    Updated Aug 7, 2021
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    SLAVE_WR        = core.SLAVE_ADDR
+    SLAVE_RD        = core.SLAVE_ADDR|1
+
+    DEF_HZ          = 100_000
+    I2C_MAX_FREQ    = core.I2C_MAX_FREQ
+
+' Operating modes
+    SINGLE          = 0
+    CONT            = 1
+
+' Temperature scales
+    C               = 0
+    F               = 1
+
+' Barometer/altitude modes
+    BARO            = 0
+    ALT             = 1
+
+VAR
+
+    long _temp_scale
+
+OBJ
+
+' choose an I2C engine below
+    i2c : "com.i2c"                             ' I2C engine
+    core: "core.con.mpl3115a2"                  ' hw-specific low-level const's
+    time: "time"                                ' basic timing functions
+    u64 : "math.unsigned64"
+
+PUB Null()
+' This is not a top-level object
+
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
+' Start using custom IO pins and I2C bus frequency
+    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
+}   I2C_HZ <= core.I2C_MAX_FREQ                 ' validate pins and bus freq
+        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+            waitus(core.T_POR)                  ' wait for device startup
+            if i2c.present(SLAVE_WR)            ' test device bus presence
+                if deviceid() == core.DEVID_RESP' validate device 
+                    return
+    ' if this point is reached, something above failed
+    ' Re-check I/O pin assignments, bus speed, connections, power
+    ' Lastly - make sure you have at least one free core/cog 
+    return FALSE
+
+PUB Stop()
+
+    i2c.deinit()
+
+PUB Defaults()
+' Set factory defaults
+    reset()
+
+PUB Preset_Active()
+' Like Defaults(), but
+'   * continuous sensor measurement
+    reset()
+    opmode(CONT)
+
+PUB AltBaroMode(mode): curr_mode | opmd_orig
+' Set sensor to altimeter or barometer mode
+'   Valid values:
+'       BARO (0): Sensor outputs barometric pressure data
+'       ALT (1): Sensor outputs altitude data
+    curr_mode := 0
+    readreg(core.CTRL_REG1, 1, @curr_mode)
+    case mode
+        BARO, ALT:
+            mode <<= core.ALT
+        other:
+            return ((curr_mode >> core.ALT) & 1)
+
+    opmd_orig := (curr_mode & 1)                ' get current opmode
+    ' must be in standby/SINGLE mode to set certain bits in this reg, so
+    '   clear the opmode bit
+    mode := ((curr_mode & core.ALT_MASK & core.SBYB_MASK) | mode)
+    writereg(core.CTRL_REG1, 1, @mode)
+
+    if opmd_orig == CONT                        ' restore opmode, if it
+        opmode(opmd_orig)                       ' was CONT, previously
+
+PUB AltBias(offs): curr_offs
+' Set altitude bias/offset, in meters
+'   Valid values: -128..127
+'   Any other value polls the chip and returns the current setting
+    case offs
+        -128..127:                              ' LSB = 1m
+            writereg(core.OFF_H, 1, @offs)
+        other:
+            curr_offs := 0
+            readreg(core.OFF_H, 1, @curr_offs)
+            return ~curr_offs                   ' extend sign
+
+PUB AltData(): alt_adc
+' Read altimeter data
+'   NOTE: This is valid as altitude data _only_ if AltBaroMode() is
+'       set to ALT (1)
+    alt_adc := 0
+    readreg(core.OUT_P_MSB, 3, @alt_adc)
+
+PUB Altitude(): alt_cm
+' Read altitude, in centimeters
+'   NOTE: This is valid as altitude data _only_ if AltBaroMode() is
+'       set to ALT (1)
+    return altword2cm(altdata())
+
+PUB AltWord2CM(alt_adc): alt_cm
+' Convert altitude word to altitude, in centimeters
+    return u64.multdiv(alt_adc, 100_00, 65536)
+
+PUB DeviceID(): id
+' Read device identification
+'   Returns: $C4
+    readreg(core.WHO_AM_I, 1, @id)
+
+PUB Measure() | tmp, meas
+' Perform measurement
+    tmp := 0
+    readreg(core.CTRL_REG1, 1, @tmp)
+    case opmode(-2)
+        SINGLE:
+            tmp |= (1 << core.OST)              ' bit auto-clears in SINGLE
+            writereg(core.CTRL_REG1, 1, @tmp)   '   mode
+        CONT:
+            tmp |= (1 << core.OST)
+            writereg(core.CTRL_REG1, 1, @tmp)
+            tmp &= core.OST_MASK                ' bit doesn't auto-clear in
+            writereg(core.CTRL_REG1, 1, @tmp)   '   CONT mode; do it manually
+
+PUB OpMode(mode): curr_mode
+' Set operating mode
+'   Valid values:
+'       SINGLE (0): Single-shot/standby
+'       CONT (1): Continuous measurement
+    curr_mode := 0
+    readreg(core.CTRL_REG1, 1, @curr_mode)
+    case mode
+        SINGLE, CONT:
+        other:
+            return (curr_mode & 1)
+
+    mode := ((curr_mode & core.SBYB_MASK) | mode)
+    writereg(core.CTRL_REG1, 1, @mode)
+
+PUB Oversampling(ratio): curr_ratio | opmd_orig
+' Set output data ratio
+'   Valid values: 1, 2, 4, 8, 16, 32, 64, 128
+'   Any other value polls the chip and returns the current setting
+    curr_ratio := 0
+    readreg(core.CTRL_REG1, 1, @curr_ratio)
+    case ratio
+        1, 2, 4, 8, 16, 32, 64, 128:
+            ratio := lookdownz(ratio: 1, 2, 4, 8, 16, 32, 64, 128) << core.OS
+        other:
+            curr_ratio := (curr_ratio >> core.OS) & core.OS_BITS
+            return lookupz(curr_ratio: 1, 2, 4, 8, 16, 32, 64, 128)
+
+    opmd_orig := (curr_ratio & 1)               ' get current opmode
+    ' must be in standby/SINGLE mode to set certain bits in this reg, so
+    '   clear the opmode bit
+    ratio := ((curr_ratio & core.OS_MASK & core.SBYB_MASK) | ratio)
+    writereg(core.CTRL_REG1, 1, @ratio)
+    if opmd_orig == CONT                        ' restore opmode, if it
+        opmode(opmd_orig)                       ' was CONT, previously
+
+PUB PressBias(offs): curr_offs
+' Set pressure bias/offset, in Pascals
+'   Valid values: -512..508
+'   Any other value polls the chip and returns the current setting
+    case offs
+        -512..508:
+            offs /= 4                           ' LSB = 4Pa
+            writereg(core.OFF_P, 1, @offs)
+        other:
+            curr_offs := 0
+            readreg(core.OFF_P, 1, @curr_offs)
+            return (~curr_offs * 4)             ' extend sign
+
+PUB PressData(): press_adc
+' Read pressure data
+'   Returns: s20 (Q18.2 fixed-point)
+'   NOTE: This is valid as pressure data _only_ if AltBaroMode() is
+'       set to BARO (0)
+    press_adc := 0
+    readreg(core.OUT_P_MSB, 3, @press_adc)
+
+PUB PressPascals(): press
+' Read pressure data, in tenths of a Pascal
+'   NOTE: This is valid as pressure data _only_ if AltBaroMode() is
+'       set to BARO (0)
+    return pressword2pa(pressdata())
+
+PUB PressWord2Pa(p_word): p_pa
+' Convert pressure ADC word to pressure in Pascals
+    return ((p_word * 100) / 640)
+
+PUB Reset() | tmp
+' Reset the device
+    tmp := (1 << core.RST)
+    writereg(core.CTRL_REG1, 1, @tmp)
+    waitus(core.T_POR)
+
+PUB SeaLevelPress(press): curr_press
+' Set sea-level pressure for altitude calculations, in Pascals
+'   Valid values: 0..131_070
+'   Any other value polls the chip and returns the current setting
+    curr_press := 0
+    readreg(core.BAR_IN_MSB, 2, @curr_press)
+    case press
+        0..131_070:
+            press >>= 1                         ' LSB = 2Pa
+        other:
+            return curr_press << 1
+
+    writereg(core.BAR_IN_MSB, 2, @press)
+
+PUB TempBias(offs): curr_offs
+' Set temperature bias/offset, in ten-thousandths of a degree C
+'   Valid values: -8_0000..7_9375
+'   Any other value polls the chip and returns the current setting
+'   Example: -3_9375 = -3.9375C
+    case offs
+        -8_0000..7_9375:
+            offs /= 0_0625                      ' LSB = 0.0625C
+            writereg(core.OFF_T, 1, @offs)
+        other:
+            curr_offs := 0
+            readreg(core.OFF_T, 1, @curr_offs)
+            return (~curr_offs * 0_0625)        ' extend sign
+
+PUB TempData(): temp_adc
+' Read temperature data
+'   Returns: s12 (Q8.4 fixed-point)
+    temp_adc := 0
+    readreg(core.OUT_T_MSB, 2, @temp_adc)
+
+PUB Temperature(): temp
+' Current temperature, in hundredths of a degree
+'   Returns: Integer
+'   (e.g., 2105 is equivalent to 21.05 deg C)
+    return tempword2deg(tempdata())
+
+PUB TempScale(scale): curr_scale
+' Set temperature scale used by Temperature method
+'   Valid values:
+'      *C (0): Celsius
+'       F (1): Fahrenheit
+'   Any other value returns the current setting
+    case scale
+        C, F:
+            _temp_scale := scale
+        other:
+            return _temp_scale
+
+PUB TempWord2Deg(temp_word): temp
+' Calculate temperature in degrees Celsius, given ADC word
+    ' extend sign, chop off reserved LSBs, scale up to hundredths
+    '   divide down to scale to degrees C
+    temp := (((temp_word signx 15) sar 4) * 100) / 16
+    case _temp_scale
+        C:
+            return temp
+        F:
+            return ((temp * 9) / 5) + 32_00
+        other:
+            return FALSE
+
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+' Read nr_bytes from the device into ptr_buff
+    case reg_nr                                 ' validate register num
+        core.STATUS..core.OFF_H:
+            cmd_pkt.byte[0] := SLAVE_WR
+            cmd_pkt.byte[1] := reg_nr
+            i2c.start()
+            i2c.wrblock_lsbf(@cmd_pkt, 2)
+            i2c.start()
+            i2c.wr_byte(SLAVE_RD)
+
+    ' write MSByte to LSByte
+            i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c.NAK)
+            i2c.stop()
+        other:                                  ' invalid reg_nr
+            return
+
+PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+' Write nr_bytes to the device from ptr_buff
+    case reg_nr
+        core.F_SETUP, core.PT_DATA_CFG..core.OFF_H:
+            cmd_pkt.byte[0] := SLAVE_WR
+            cmd_pkt.byte[1] := reg_nr
+            i2c.start()
+            i2c.wrblock_lsbf(@cmd_pkt, 2)
+
+    ' write MSByte to LSByte
+            i2c.wrblock_msbf(ptr_buff, nr_bytes)
+            i2c.stop()
+        other:
+            return
+
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
