@@ -1,0 +1,267 @@
+{
+    --------------------------------------------
+    Filename: HT16K33-14SegDemo.spin2
+    Description: Demo of the HT16K33 14-segment driver (P2 version)
+    Author: Jesse Burt
+    Copyright (c) 2021
+    Created: Jun 22, 2021
+    Updated: Jun 22, 2021
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+
+CON
+
+    _clkfreq    = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
+
+' -- User-modifiable constants:
+    SER_BAUD    = 2_000_000
+    LED         = cfg.LED1
+
+    I2C_SCL     = 16
+    I2C_SDA     = 17
+    I2C_HZ      = 400_000                       ' max is 400_000
+    ADDR_BITS   = %000                          ' %000..%111
+
+    ' number of digits/characters width and height the display has
+    ' NOTE: The demo is written to work best with a 4x1 display
+    WIDTH       = 4
+    HEIGHT      = 1
+' --
+
+
+OBJ
+
+    cfg : "core.con.boardcfg.p2eval"
+    ser : "com.serial.terminal.ansi"
+    disp: "display.led-seg.ht16k33.i2c"
+    int : "string.integer"
+    fs  : "string.float"
+    
+PUB Main() | i, b
+
+    setup()
+
+    disp.blinkrate(2)
+    demomsg(string("DEMO"))
+    waitms(2_000)
+    disp.blinkrate(0)
+    waitms(1_000)
+
+    demomsg(string("CHAR"))
+
+    repeat i from 32 to 126
+        disp.position(0, 0)
+        disp.char(i)
+        waitms(100)
+    waitms(2_000)
+
+
+    demomsg(string("STR"))
+
+    disp.str(string("This"))
+    waitms(1_000)
+    disp.clear()
+    disp.str(string("is"))
+    waitms(1_000)
+    disp.clear()
+    disp.str(string("the"))
+    waitms(1_000)
+    disp.clear()
+    disp.str(string("STR"))
+    waitms(1_000)
+    disp.clear()
+    disp.str(string("demo"))
+    waitms(2_000)
+
+
+    demomsg(string("HEX"))
+
+    repeat i from 0 to $1ff
+        disp.position(0, 0)
+        disp.hex(i, 4)
+    waitms(2_000)
+
+    demomsg(string("BIN"))
+
+    repeat i from 0 to %1111
+        disp.position(0, 0)
+        disp.bin(i, 4)
+        waitms(200)
+    waitms(2_000)
+
+    demomsg(string("DEC"))
+
+    repeat i from 0 to 1000
+        disp.position(0, 0)
+        disp.dec(i)
+    waitms(2_000)
+
+{ ' XXX disabled, for now - floating point support isn't currently functional
+    demomsg(string("FLT"))
+
+    disp.str(fs.floattostring(3.141))
+    waitms(1_000)
+    disp.str(fs.floattostring(31.41))
+    waitms(1_000)
+    disp.str(fs.floattostring(314.1))
+    waitms(1_000)
+    disp.str(fs.floattostring(3141.0))
+    waitms(2_000)
+}
+
+    demomsg(string("TYPE"))
+
+    repeat
+        b := ser.charin
+        disp.char(b)
+
+PRI DemoMsg(ptr_str)
+' Clear the display, show a message, wait 2 seconds, then clear again
+    disp.clear()
+    disp.str(ptr_str)
+    waitms(2_000)
+    disp.clear
+
+PUB Setup()
+
+    ser.start(SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.strln(string("Serial terminal started"))
+    if disp.startx(I2C_SCL, I2C_SDA, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT)
+        ser.strln(string("HT16K33 driver started"))
+        disp.defaults()
+    else
+        ser.str(string("HT16K33 driver failed to start - halting"))
+        repeat
+
+DAT
+
+'       word    0[33]                   ' pad leading zeroes
+table   word    %0000_0000_0000_0000    ' (SP) - 32/$20
+        word    %0001_0010_0000_0000
+        word    %0000_0000_0010_0010    ' "
+        word    %0001_0010_1100_1110    ' .
+        word    %0001_0010_1110_1101    ' $
+        word    %0010_1101_1110_0100    ' %
+        word    %0010_0100_1101_1010    ' &
+        word    %0000_0100_0000_0000    ' '
+        word    %0000_0000_0011_1001    ' (
+        word    %0000_0000_0000_1111    ' )
+        word    %0011_1111_0000_0000    ' *
+        word    %0001_0010_1100_0000    ' +
+        word    %0000_1000_0000_0000    ' ,
+        word    %0000_0000_1100_0000    ' -
+        word    %0100_0000_0000_0000    ' .
+        word    %0000_1100_0000_0000    ' /
+
+        word    %0000_1100_0011_1111    ' 0 - 48/$30
+        word    %0000_0000_0000_0110    ' 1
+        word    %0000_0000_1101_1011    ' 2
+        word    %0000_0000_1100_1111    ' 3
+        word    %0000_0000_1110_0110    ' 4
+        word    %0000_0000_1110_1101    ' 5
+        word    %0000_0000_1111_1101    ' 6
+        word    %0000_0000_0000_0111    ' 7
+        word    %0000_0000_1111_1111    ' 8
+        word    %0000_0000_1110_1111    ' 9
+
+        word    %0001_0010_0000_0000    ' :
+        word    %0000_1010_0000_0000    ' ;
+        word    %0010_0100_0000_0000    ' <
+        word    %0000_0000_1100_1000    ' =
+        word    %0000_1001_0000_0000    ' >
+        word    %0001_0000_1000_0011    ' ?
+        word    %0010_0000_1011_0111    ' @
+
+        word    %0000_0000_1111_0111    ' A - 65/$41
+        word    %0001_0010_1000_1111    ' B
+        word    %0000_0000_0011_1001    ' C
+        word    %0001_0010_0000_1111    ' D
+        word    %0000_0000_1111_1001    ' E
+        word    %0000_0000_1111_0001    ' F
+        word    %0000_0000_1011_1101    ' G
+        word    %0000_0000_1111_0110    ' H
+        word    %0001_0010_0000_1001    ' I
+        word    %0000_0000_0001_1110    ' J
+        word    %0010_0100_0111_0000    ' K
+        word    %0000_0000_0011_1000    ' L
+        word    %0000_0101_0011_0110    ' M
+        word    %0010_0001_0011_0110    ' N
+        word    %0000_0000_0011_1111    ' O
+        word    %0000_0000_1111_0011    ' P
+        word    %0010_0000_0011_1111    ' Q
+        word    %0010_0000_1111_0011    ' R
+        word    %0010_0001_0000_1001    ' S
+        word    %0001_0010_0000_0001    ' T
+        word    %0000_0000_0011_1110    ' U
+        word    %0000_1100_0011_0000    ' V
+        word    %0010_1000_0011_0110    ' W
+        word    %0010_1101_0000_0000    ' X
+        word    %0001_0000_1110_0010    ' Y
+        word    %0000_1100_0000_1001    ' Z
+
+        word    %0000_0000_0011_1001    ' (
+        word    %0010_0001_0000_0000    ' \
+        word    %0000_0000_0000_1111    ' )
+        word    %0000_0100_0000_0010    ' ^
+        word    %0000_0000_0000_1000    ' _
+        word    %0000_0001_0000_0000    ' `
+
+        word    %0000_0000_1101_1111    ' a
+        word    %0000_0000_1111_1100    ' b
+        word    %0000_0000_1101_1000    ' c
+        word    %0000_0000_1101_1110    ' d
+        word    %0000_0000_0111_1001    ' e
+        word    %0000_0000_0111_0001    ' f
+        word    %0000_0001_1000_1111    ' g
+        word    %0000_0000_1111_0100    ' h
+        word    %0001_0000_0000_0000    ' i
+        word    %0000_0000_0000_1110    ' j
+        word    %0011_0110_0000_0000    ' k
+        word    %0001_0010_0000_0000    ' l
+        word    %0001_0000_1101_0100    ' m
+        word    %0000_0000_1101_0100    ' n
+        word    %0000_0000_1101_1100    ' o
+        word    %0000_0100_0111_0001    ' p
+        word    %0010_0000_1110_0011    ' q
+        word    %0000_0000_0101_0000    ' r
+        word    %0000_0001_1000_1101    ' s
+        word    %0000_0000_0111_1000    ' t
+        word    %0000_0000_0001_1100    ' u
+        word    %0000_1000_0001_0000    ' v
+        word    %0010_1000_0001_0100    ' w
+        word    %0010_1101_0000_0000    ' x
+        word    %0001_0000_1110_0010    ' y
+        word    %0000_1100_0000_1001    ' z
+
+        word    %0000_1001_0100_1001    ' {
+        word    %0001_0010_0000_0000    ' |
+        word    %0010_0100_1000_1001    ' }
+        word    %0000_0000_1100_0000    ' ~
+        word    %0000_0000_0000_0000    ' (DEL)
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
