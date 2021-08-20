@@ -2,13 +2,12 @@
     --------------------------------------------
     Filename: display.vga.bitmap-8bpp.spin2
     Description: 8-bits per pixel bitmap VGA driver (320x240)
-    Author: Ray Allen
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Apr 4, 2021
+    Updated: Aug 20, 2021
     See end of file for terms of use.
     --------------------------------------------
-    NOTE: This is a derivative of raycast5b_SpinDisplay2a.spin2,
+    NOTE: This is based on raycast5b_SpinDisplay2a.spin2,
         originally written by Rayman/Ray Allen
 }
 #define VGABITMAP8BPP
@@ -16,10 +15,7 @@
 
 CON
 
-    _CLKFREQ    = 250_000_000                               ' Must match CLOCKFREQ symbol in parent object
-    FCLK        = _CLKFREQ
-    FPIX        = 25_175_000.0/2.0
-    FSET        = (FPIX / FCLK * 2.0) * float($4000_0000)
+    PIX_CLK     = 25_175_000
     BYTESPERPX  = 1
     MAX_COLOR   = 255
     HSYNC_PAR   = 0
@@ -131,6 +127,13 @@ DisplayEntry
 '
 'l          c           i       o           e               c
 
+                        ' calculate streamer frequency
+                        rdlong  pa, #@clkfreq
+                        qfrac   ##PIX_CLK, pa
+                        getqx   pa
+                        shr     pa, #2
+                        setxfrq pa
+
                         rdfast  #0, _ptr_palette
                         rep     @.end, #$100
                         rflong  y
@@ -145,8 +148,6 @@ DisplayEntry
                         rdlong  blue_pin, ptra++
                         rdlong  vsync_pin, ptra++
                         rdlong  framebuff_addr, ptra++
-
-                        setxfrq ##round(FSET)               'set transfer frequency to 25MHz
 
 'the next 4 lines may be commented out to bypass level scaling
 
