@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Started: Apr 10, 2021
-    Updated: Apr 11, 2021
+    Updated: Aug 20, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -47,11 +47,7 @@ OBJ
 
 CON
 
-#ifdef VGABITMAP8BPP
-    _clkfreq    = disp._clkfreq                 ' for matching the VGA driver's
-#else                                           '   clock setting
-    _clkfreq    = cfg._clkfreq_def              ' can modify this for
-#endif                                          '   other drivers
+    _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants:
