@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: core.con.ina219.spin
     Author: Jesse Burt
-    Description: Low-level constants
+    Description: INA219-specific low-level constants
     Copyright (c) 2021
     Started Sep 18, 2019
-    Updated May 16, 2021
+    Updated Aug 20, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,6 +16,7 @@ CON
     SLAVE_ADDR          = $40 << 1
 
     T_POR               = 1_000                 ' usec
+    DEVID_RESP          = CONFIG_POR
 
 ' Register definitions
     CONFIG              = $00   'RW
@@ -31,10 +32,12 @@ CON
         PG_BITS         = %11
         BADC_BITS       = %1111
         SADC_BITS       = %1111
+        MODE_BITS       = %111
         BRNG_MASK       = (1 << BRNG) ^ CONFIG_MASK
         PG_MASK         = (PG_BITS << PG) ^ CONFIG_MASK
         BADC_MASK       = (BADC_BITS << BADC) ^ CONFIG_MASK
         SADC_MASK       = (SADC_BITS << SADC) ^ CONFIG_MASK
+        MODE_MASK       = MODE_BITS ^ CONFIG_MASK
 
     SHUNT_VOLTAGE       = $01   'RO
 

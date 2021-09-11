@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2021
     Started Sep 18, 2019
-    Updated May 30, 2021
+    Updated Aug 20, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -39,6 +39,17 @@ CON
 '   SCL SDA 100_1110
 '   SCL SCL 100_1111
 
+
+' Operating modes
+    SLEEP           = 0
+    SHUNTV_SNGL     = 1
+    BUSV_SNGL       = 2
+    BOTH_SNGL       = 3
+    STANDBY         = 4
+    SHUNTV_CONT     = 5
+    BUSV_CONT       = 6
+    BOTH_CONT       = 7
+
 OBJ
 
     i2c : "com.i2c"
@@ -57,13 +68,15 @@ PUB Null()
 
 PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
 ' Start using custom settings
+    ' validate I/O pins, bus speed and I2C address option bits
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }   I2C_HZ <= core.I2C_MAX_FREQ and lookdown(ADDR_BITS: %0000..%1111)
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitms(1)
             _addr_bits := ADDR_BITS << 1
-            if i2c.present(SLAVE_WR | _addr_bits)' check device bus presence
-                if deviceid() == core.CONFIG_POR
+            ' test device bus presence
+            if i2c.present(SLAVE_WR | _addr_bits)
+                if deviceid() == core.DEVID_RESP
                     return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
@@ -73,6 +86,16 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
 PUB Stop()
 
     i2c.deinit()
+
+PUB Defaults()
+' Factory default settings
+'   POR settings:
+'   BusVoltageRange(32)
+'   ShuntVoltageRange(320)
+'   BusADCRes(12)
+'   ShuntADCRes(12)
+'   OpMode(BOTH_CONT)
+    reset()
 
 PUB Preset320S_2A_100mohm()
 ' Preset:       'XXX for coming up with a value for CurrentBias()
@@ -164,6 +187,29 @@ PUB DeviceID(): id
     reset()
     readreg(core.CONFIG, 2, @id)
 
+PUB OpMode(mode): curr_mode
+' Set device operating mode
+'   Valid values:
+'       SLEEP (0): Power-down
+'       SHUNTV_SNGL (1): Shunt voltage measurement, single
+'       BUSV_SNGL (2): Bus voltage measurement, single
+'       BOTH_SNGL (3): Shunt and vus voltage measurement, single
+'       STANDBY (4): Disable ADC
+'       SHUNTV_CONT (5): Shunt voltage measurements, continuous
+'       BUSV_CONT (6): Bus voltage measurements, continuous
+'       BOTH_CONT (7): Shunt and bus voltage measurements, continuous
+'   Any other value polls the chip and returns the current setting
+    curr_mode := 0
+    readreg(core.CONFIG, 1, @curr_mode)
+    case mode
+        SLEEP, SHUNTV_SNGL, BUSV_SNGL, BOTH_SNGL, STANDBY, SHUNTV_CONT, {
+}       BUSV_CONT, BOTH_CONT:
+        other:
+            return curr_mode & core.MODE_BITS
+
+    mode := ((curr_mode & core.MODE_MASK) | mode)
+    writereg(core.CONFIG, 1, @mode)
+
 PUB PowerData(): pwr_adc
 ' Read power ADC data
 '   Returns: s16
@@ -184,6 +230,8 @@ PUB ShuntADCRes(adc_res=-2): curr_res
 ' Set shunt ADC resolution, in bits
 '   Valid values: 9, 10, 11, *12
 '   Any other value polls the chip and returns the current setting
+'   NOTE: This setting and ShuntSamples() are mutually exclusive. If both
+'       methods are called, the most recent will be the setting used.
     curr_res := 0
     readreg(core.CONFIG, 2, @curr_res)
     case adc_res
@@ -211,6 +259,8 @@ PUB ShuntSamples(samples=-2): curr_smp
 '   NOTE: All averaging modes are performed at 12-bit resolution
 '   NOTE: Conversion time is approx 532uSec * number of samples
 '   NOTE: 1 effectively disables averaging
+'   NOTE: This setting and ShuntADCRes() are mutually exclusive. If both
+'       methods are called, the most recent will be the setting used.
     curr_smp := 0
     readreg(core.CONFIG, 2, @curr_smp)
     case samples
@@ -219,7 +269,7 @@ PUB ShuntSamples(samples=-2): curr_smp
             samples |= (1 << core.SADC_AVG)
         other:
             curr_smp := (curr_smp >> core.SADC) & core.SADC_BITS
-            if curr_smp & %1000
+            if curr_smp & %1000 ' XXX briefly explain this block
                 curr_smp &= %0111
                 return lookupz(curr_smp: 1, 2, 4, 8, 16, 32, 64, 128)
             else
