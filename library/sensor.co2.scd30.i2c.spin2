@@ -5,7 +5,7 @@
     Description: Driver for the Sensirion SCD30 CO2 sensor (P2 version)
     Copyright (c) 2021
     Started Jul 21, 2021
-    Updated Jul 21, 2021
+    Updated Sep 1, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -56,7 +56,7 @@ PUB Start(): status
 
 PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 ' Start using custom IO pins and I2C bus frequency
-    if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) and {
+    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }   I2C_HZ <= core.I2C_MAX_FREQ                 ' validate pins and bus freq
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitus(core.T_POR)                  ' wait for device startup
@@ -83,7 +83,7 @@ PUB Present(): ack
     i2c.stop()                                  ' P: SCD30 doesn't support Sr
     return (ack == i2c.ACK)                     ' return TRUE if present
 
-PUB AltComp(alt): curr_alt | crc_tmp
+PUB AltComp(alt): curr_alt
 ' Compensate CO2 measurements based on altitude, in meters
 '   Valid values: 0..65535
 '   Any other value polls the chip and returns the current setting
@@ -94,18 +94,9 @@ PUB AltComp(alt): curr_alt | crc_tmp
     readreg(core.ALTITUDECOMP, 3, @curr_alt)
     case alt
         0..65535:
-            ' generate CRC of data
-            crc_tmp := crc.sensirioncrc8(@alt, 2)
-            alt <<= 8
-            alt.byte[0] := crc_tmp            ' tack it on to the data
             writereg(core.ALTITUDECOMP, 3, @alt)
         other:
-            crc_tmp := curr_alt.byte[0]
-            curr_alt >>= 8
-            if crc.sensirioncrc8(@curr_alt, 2) == crc_tmp
-                return curr_alt
-            else
-                return EBADCRC
+            return curr_alt
 
 PUB AmbPressure(press): curr_press
 ' Set ambient pressure, in millibars, for use in on-sensor compensation
@@ -120,7 +111,7 @@ PUB AmbPressure(press): curr_press
         other:
             return _presscomp
 
-PUB AutoCal(state): curr_state | crc_tmp
+PUB AutoCal(state): curr_state
 ' Enable automatic self-calibration
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting
@@ -135,21 +126,12 @@ PUB AutoCal(state): curr_state | crc_tmp
     readreg(core.AUTOSELFCAL, 3, @curr_state)
     case abs(state)
         0, 1:
-            ' generate CRC of data
             state := abs(state)
-            crc_tmp := crc.sensirioncrc8(@state, 2)
-            state <<= 8
-            state.byte[0] := crc_tmp            ' tack it on to the data
             writereg(core.AUTOSELFCAL, 3, @state)
         other:
-            crc_tmp := curr_state.byte[0]
-            curr_state >>= 8
-            if crc.sensirioncrc8(@curr_state, 2) == crc_tmp
-                return (curr_state == 1)
-            else
-                return EBADCRC
+            return (curr_state == 1)
 
-PUB CO2Bias(ppm): curr_ppm | crc_tmp
+PUB CO2Bias(ppm): curr_ppm
 ' Manually set calibration/reference level of CO2 sensor
 '   Valid values: 400..2000
 '   Any other value polls the chip and returns the current setting
@@ -159,17 +141,9 @@ PUB CO2Bias(ppm): curr_ppm | crc_tmp
     readreg(core.SETRECALVAL, 3, @curr_ppm)
     case ppm
         400..2000:
-            crc_tmp := crc.sensirioncrc8(@ppm, 2)
-            ppm <<= 8
-            ppm.byte[0] := crc_tmp            ' tack it on to the data
             writereg(core.SETRECALVAL, 3, @ppm)
         other:
-            crc_tmp := curr_ppm.byte[0]
-            curr_ppm >>= 8
-            if crc.sensirioncrc8(@curr_ppm, 2) == crc_tmp
-                return curr_ppm
-            else
-                return EBADCRC
+            return curr_ppm
 
 PUB CO2Data(): f_co2
 ' CO2 data
@@ -181,17 +155,12 @@ PUB CO2PPM(): ppm
 '   Returns: Integer
     return fm.ftrunc(fm.fmul(co2data(), 10.0))
 
-PUB DataReady(): flag | crc_tmp
+PUB DataReady(): flag
 ' Flag indicating data ready
     flag := 0
     readreg(core.GETDRDY, 3, @flag)
-    crc_tmp := flag.byte[0]
-    flag >>= 8
 
-    if crc.sensirioncrc8(@flag, 2) == crc_tmp
-        return ((flag & 1) == 1)
-    else
-        return EBADCRC
+    return ((flag & 1) == 1)
 
 PUB DeviceID(): id
 ' Read device identification
@@ -206,7 +175,7 @@ PUB HumidityData(): rh_adc
 '   Returns: IEEE-754 float
     return _rh
 
-PUB MeasInterval(t_int): curr_t | crc_tmp[2]
+PUB MeasInterval(t_int): curr_t
 ' Set measurement interval, in seconds
 '   Valid values: 2..1800
 '   Any other value returns the current setting
@@ -214,18 +183,9 @@ PUB MeasInterval(t_int): curr_t | crc_tmp[2]
     readreg(core.SETMEASINTERV, 3, @curr_t)
     case t_int
         2..1800:
-            ' generate CRC of data
-            crc_tmp := crc.sensirioncrc8(@t_int, 2)
-            t_int <<= 8
-            t_int.byte[0] := crc_tmp            ' tack it on to the data
             writereg(core.SETMEASINTERV, 3, @t_int)
         other:
-            crc_tmp := curr_t.byte[0]
-            curr_t >>= 8
-            if crc.sensirioncrc8(@curr_t, 2) == crc_tmp
-                return curr_t
-            else
-                return EBADCRC
+            return curr_t
 
 PUB Measure() | meas_tmp[5], crc_tmp
 ' Read measurement data
@@ -307,19 +267,14 @@ PUB Temperature(): deg
 '   (e.g., 2105 is equivalent to 21.05 deg C)
     return calctemp(tempdata())
 
-PUB Version(): ver | crc_tmp
+PUB Version(): ver
 ' Firmware version
 '   Returns: word [MSB:major..LSB:minor]
 '   Known values: $03_42
     ver := 0
     readreg(core.FWVER, 3, @ver)
-    crc_tmp := ver.byte[0]
-    ver >>= 8
 
-    if crc.sensirioncrc8(@ver, 2) == crc_tmp
-        return ver
-    else
-        return EBADCRC
+    return ver
 
 PRI calcTemp(temp_adc): temp
 ' Calculate temperature, given raw temperature data
@@ -331,12 +286,36 @@ PRI calcTemp(temp_adc): temp
         other:
             return FALSE
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp_buff, crc_tmp
 ' Read nr_bytes from the device into ptr_buff
     case reg_nr                                 ' validate register num
-        core.GETDRDY, core.READMEAS, core.FWVER, core.SETMEASINTERV, {
+        core.GETDRDY, core.FWVER, core.SETMEASINTERV, {
 }       core.AUTOSELFCAL, core.SETRECALVAL, core.SETTEMPOFFS, {
 }       core.ALTITUDECOMP:
+            cmd_pkt.byte[0] := SLAVE_WR
+            cmd_pkt.byte[1] := reg_nr.byte[1]
+            cmd_pkt.byte[2] := reg_nr.byte[0]
+            i2c.start()
+            i2c.wrblock_lsbf(@cmd_pkt, 3)
+            i2c.stop()                          ' P: SCD30 doesn't support Sr
+
+            waitus(core.T_WRRD)                 ' wait between write and read
+
+            i2c.start()
+            i2c.wr_byte(SLAVE_RD)
+
+            ' read MSByte to LSByte
+            i2c.rdblock_msbf(@tmp_buff, nr_bytes, i2c.NAK)
+            i2c.stop()
+
+            crc_tmp := tmp_buff.byte[0]
+            tmp_buff >>= 8
+            if crc.sensirioncrc8(@tmp_buff, 2) == crc_tmp
+                bytemove(ptr_buff, @tmp_buff, 2)
+                return
+            else
+                return
+        core.READMEAS:
             cmd_pkt.byte[0] := SLAVE_WR
             cmd_pkt.byte[1] := reg_nr.byte[1]
             cmd_pkt.byte[2] := reg_nr.byte[0]
@@ -355,7 +334,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
         other:                                  ' invalid reg_nr
             return
 
-PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, dat_tmp
 ' Write nr_bytes to the device from ptr_buff
     cmd_pkt.byte[0] := SLAVE_WR
     cmd_pkt.byte[1] := reg_nr.byte[1]
@@ -363,11 +342,14 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
     case reg_nr
         core.CONTMEAS, core.STOPMEAS, core.SETMEASINTERV, core.ALTITUDECOMP, {
 }       core.SETRECALVAL, core.AUTOSELFCAL, core.SETTEMPOFFS:
+            dat_tmp := long[ptr_buff]
+            dat_tmp <<= 8
+            dat_tmp.byte[0] := crc.sensirioncrc8(@dat_tmp.byte[1], 2)
             i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 3)
 
             ' write MSByte to LSByte
-            i2c.wrblock_msbf(ptr_buff, nr_bytes)
+            i2c.wrblock_msbf(@dat_tmp, nr_bytes)
             i2c.stop()
         core.STOPMEAS, core.SOFTRESET:
             i2c.start()
