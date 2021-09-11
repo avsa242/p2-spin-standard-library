@@ -1,0 +1,146 @@
+{
+    --------------------------------------------
+    Filename: LSM6DSL-ClickDemo.spin
+    Author: Jesse Burt
+    Description: Demo of the LSM6DSL driver
+        click-detection functionality
+    Copyright (c) 2021
+    Started Mar 7, 2021
+    Updated Mar 7, 2021
+    See end of file for terms of use.
+    --------------------------------------------
+}
+' Uncomment one of the following to choose which interface the LSM6DSL is connected to
+'#define LSM6DSL_I2C
+#define LSM6DSL_SPI
+
+CON
+
+    _clkfreq    = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
+
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_BAUD    = 2_000_000
+
+#ifdef LSM6DSL_I2C
+' I2C configuration
+'    I2C_SCL     = 28
+'    I2C_SDA     = 29
+' Alternate constants for use if you have a MikroBus Click adapter board
+'   (Parallax #64008)
+'   - just specify the P2 base I/O pin (0, 16, 32, 48)
+    CLICK_BASE  = 0                             ' basepin for Click adapter
+    I2C_SCL     = CLICK_BASE + 1
+    I2C_SDA     = CLICK_BASE + 0                ' leave these as-is
+    INT_PIN     = CLICK_BASE + 4
+
+    I2C_HZ      = 400_000                       ' max is 400_000
+    ADDR_BITS   = 0                             ' 0, 1
+
+#elseifdef LSM6DSL_SPI
+
+' SPI configuration
+'    CS_PIN      = 0
+'    SCK_PIN     = 1
+'    MOSI_PIN    = 2
+'    MISO_PIN    = 3
+' Alternate constants for use if you have a MikroBus Click adapter board
+'   (Parallax #64008)
+'   - just specify the P2 base I/O pin (0, 16, 32, 48)
+    CLICK_BASE  = 0                             ' basepin for Click adapter
+    CS_PIN      = CLICK_BASE + 8
+    SCK_PIN     = CLICK_BASE + 9                ' leave these as-is
+    MOSI_PIN    = CLICK_BASE + 11
+    MISO_PIN    = CLICK_BASE + 10
+
+    SCK_FREQ    = 10_000_000                    ' max is 10_000_000
+#endif
+' --
+
+OBJ
+
+    cfg     : "core.con.boardcfg.p2eval"
+    ser     : "com.serial.terminal.ansi"
+    time    : "time"
+#ifdef LSM6DSL_I2C
+    imu     : "sensor.imu.6dof.lsm6dsl.i2c"
+#elseifdef LSM6DSL_SPI
+    imu     : "sensor.imu.6dof.lsm6dsl.spi"
+#endif
+
+PUB Main() | click_src, int_act, dclicked, sclicked, z_clicked, y_clicked, x_clicked
+
+    setup()
+    imu.preset_clickdet()                     ' preset settings for
+                                                ' click-detection
+
+    ser.hidecursor()                            ' hide terminal cursor
+
+    repeat until ser.rxcheck() == "q"           ' press q to quit
+        click_src := imu.clickedint()
+        int_act := ((click_src >> 6) & 1)
+        dclicked := ((click_src >> 4) & 1)
+        sclicked := ((click_src >> 5) & 1)
+        z_clicked := ((click_src >> 0) & 1)
+        y_clicked := ((click_src >> 1) & 1)
+        x_clicked := (click_src & 2)
+        ser.position(0, 3)
+        ser.printf(string("Click interrupt: %s (%d)\n"), yesno(int_act))
+        ser.printf(string("Double-clicked:  %s (%d)\n"), yesno(dclicked))
+        ser.printf(string("Single-clicked:  %s (%d)\n"), yesno(sclicked))
+        ser.printf(string("Z-axis clicked:  %s\n"), yesno(z_clicked))
+        ser.printf(string("Y-axis clicked:  %s\n"), yesno(y_clicked))
+        ser.printf(string("X-axis clicked:  %s\n"), yesno(x_clicked))
+
+    ser.showcursor()                            ' restore terminal cursor
+    repeat
+
+PRI YesNo(val): resp
+' Return pointer to string "Yes" or "No" depending on value called with
+    case val
+        0:
+            return string("No ")
+        1:
+            return string("Yes")
+
+PUB Setup()
+
+    ser.start(SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.strln(string("Serial terminal started"))
+#ifdef LSM6DSL_SPI
+    if imu.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
+        ser.strln(string("LSM6DSL driver started (SPI)"))
+#elseifdef LSM6DSL_I2C
+    if imu.startx(I2C_SCL, I2C_SDA, I2C_HZ, SLAVE_OPT)
+        ser.strln(string("LSM6DSL driver started (I2C)"))
+#endif
+    else
+        ser.strln(string("LSM6DSL driver failed to start - halting"))
+        waitms(5)
+        
+        repeat
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}

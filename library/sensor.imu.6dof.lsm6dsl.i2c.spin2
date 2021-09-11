@@ -1,0 +1,38 @@
+{
+    --------------------------------------------
+    Filename: sensor.imu.6dof.lsm6dsl.i2c.spin2
+    Author: Jesse Burt
+    Description: Intermediate layer for LSM6DSL driver (I2C enabled)
+    Copyright (c) 2021
+    Started Mar 6, 2021
+    Updated Mar 6, 2021
+    See end of file for terms of use.
+    --------------------------------------------
+
+    To use, do this in your top-level application:
+
+    #define LSM6DSL_I2C
+
+    CON
+
+        SCL_PIN     = 2
+        SDA_PIN     = 3
+        SCK_HZ      = 400_000
+        SLAVE_OPT   = 0
+
+    OBJ
+
+        imu : "sensor.imu.6dof.lsm6dsl.i2c"
+
+    PUB Main()
+
+        setup()
+        ' Your code here
+
+    PUB Setup()
+
+        imu.startx(SCL_PIN, SDA_PIN, I2C_HZ, SLAVE_OPT)
+
+}
+#define LSM6DSL_I2C
+#include "sensor.imu.6dof.lsm6dsl.i2cspi.spin2"
