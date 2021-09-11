@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2021
     Started Mar 14, 2020
-    Updated May 30, 2021
+    Updated Aug 9, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -39,7 +39,6 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
     int     : "string.integer"
 #ifdef ADXL345_I2C
     accel   : "sensor.accel.3dof.adxl345.i2c"

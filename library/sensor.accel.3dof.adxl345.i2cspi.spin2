@@ -3,9 +3,10 @@
     Filename: sensor.accel.3dof.adxl345.i2cspi.spin2
     Author: Jesse Burt
     Description: Driver for the Analog Devices ADXL345 3DoF Accelerometer
+        (P2 version)
     Copyright (c) 2021
     Started Mar 14, 2020
-    Updated May 30, 2021
+    Updated Aug 31, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -47,6 +48,7 @@ CON
 ' Operating modes
     STANDBY         = 0
     MEAS            = 1
+    LOWPWR          = 3
 
 ' FIFO modes
     BYPASS          = %00
@@ -267,22 +269,29 @@ PUB AccelG(ptr_x, ptr_y, ptr_z) | tmpx, tmpy, tmpz
     long[ptr_y] := tmpy * _ares
     long[ptr_z] := tmpz * _ares
 
-PUB AccelOpMode(mode): curr_mode
+PUB AccelOpMode(mode): curr_mode | curr_lp, lpwr
 ' Set operating mode
 '   Valid values:
 '       STANDBY (0): Standby
 '       MEAS (1): Measurement mode
+'       LOWPWR (3): Low-power measurement mode
+'   NOTE: LOWPWR reduces power consumption, but has somewhat higher noise
 '   Any other value polls the chip and returns the current setting
-    curr_mode := 0
+    curr_mode := curr_lp := 0
     readreg(core.PWR_CTL, 1, @curr_mode)
+    readreg(core.BW_RATE, 1, @curr_lp)          ' read current LOW_POWER bit
     case mode
-        STANDBY, MEAS:
-            mode <<= core.MEAS
+        STANDBY, MEAS, LOWPWR:
+            lpwr := ((mode & 2) >> 1) << core.LOW_PWR
+            mode := (mode & 1) << core.MEAS     ' only LSB used in PWR_CTRL
         other:
-            return ((curr_mode >> core.MEAS) & 1)
+            curr_lp := (curr_lp >> core.LOW_PWR) & 1
+            return ((curr_mode >> core.MEAS) & 1) | (curr_lp << 1)
 
     mode := ((curr_mode & core.MEAS_MASK) | mode)
+    lpwr := ((curr_lp & core.LOW_PWR_MASK) | lpwr)
     writereg(core.PWR_CTL, 1, @mode)
+    writereg(core.BW_RATE, 1, @lpwr)
 
 PUB AccelScale(scale): curr_scl
 ' Set measurement range of the accelerometer, in g's
@@ -318,6 +327,87 @@ PUB AccelSelfTest(state): curr_state
 
     state := ((curr_state & core.SELF_TEST_MASK) | state)
     writereg(core.DATA_FORMAT, 1, @state)
+
+PUB ActAxisEnabled(mask): curr_mask
+' Enable activity threshold interrupt per axis, using bitmask
+'   Valid values:
+'       Bits 2..0 (%XYZ):
+'           1: axis enabled
+'           0: axis disabled
+'   Any other value polls the chip and returns the current setting
+'   NOTE: Functionally, enabled axes are logically OR'd (i.e., the interrupt
+'       will trigger when _any_ of the axes exceeds the ActThresh() setting)
+    curr_mask := 0
+    readreg(core.ACT_INACT_CTL, 1, @curr_mask)
+    case mask
+        %000..%111:
+            mask <<= core.ACT_EN
+        other:
+            return ((curr_mask >> core.ACT_EN) & core.ACT_EN_BITS)
+
+    mask := ((curr_mask & core.ACT_EN_MASK) | mask)
+    writereg(core.ACT_INACT_CTL, 1, @mask)
+
+PUB ActInactLink(state): curr_state | opmode_orig
+' Serially link activity and inactivity functions
+'   Valid values:
+'       FALSE (0): inactivity and activity functions operate concurrently
+'       TRUE (-1 or 1): activity function delayed until inactivity is detected
+'           Once activity is detected, inactivity detection begins again
+'   Any other value polls the chip and returns the current setting
+    curr_state := 0
+    readreg(core.PWR_CTL, 1, @curr_state)
+    case abs(state)
+        0, 1:
+            state := abs(state) << core.LINK
+        other:
+            return (((curr_state >> core.LINK) & 1) == 1)
+
+    opmode_orig := accelopmode(-2)              ' cache user's operating mode
+
+    state := ((curr_state & core.LINK_MASK) | state)
+    writereg(core.PWR_CTL, 1, @state)
+
+    accelopmode(STANDBY)                        ' set to standby temporarily
+    accelopmode(opmode_orig)                    ' restore user's operating mode
+
+PUB ActThresh(thresh): curr_thr
+' Set activity threshold, in micro-g's
+'   Valid values: 0..15_937500 (15.9375g)
+'   Any other value polls the chip and returns the current setting
+'   NOTE: If the activity interrupt is enabled, setting this to 0 may
+'       result in undesirable behavior.
+    case thresh
+        0..15_937500:
+            thresh /= 62_500                    ' 62.5mg per LSB
+            writereg(core.THRESH_ACT, 1, @thresh)
+        other:
+            curr_thr := 0
+            readreg(core.THRESH_ACT, 1, @curr_thr)
+            return (curr_thr * 62_500)
+
+PUB AutoSleep(state): curr_state | opmode_orig
+' Enable automatic transition to sleep state when inactive
+'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Any other value polls the chip and returns the current setting
+'   NOTE: ActInactLink() must be set to TRUE for this to function
+'   NOTE: Transition back to normal operating mode will also occur
+'       if the activity interrupt is also set
+    curr_state := 0
+    readreg(core.PWR_CTL, 1, @curr_state)
+    case abs(state)
+        0, 1:
+            state := abs(state) << core.AUTO_SLP
+        other:
+            return (((curr_state >> core.AUTO_SLP) & 1) == 1)
+
+    opmode_orig := accelopmode(-2)              ' cache user's operating mode
+
+    state := ((curr_state & core.AUTO_SLP_MASK) | state)
+    writereg(core.PWR_CTL, 1, @state)
+
+    accelopmode(STANDBY)                        ' set to standby temporarily
+    accelopmode(opmode_orig)                    ' restore user's operating mode
 
 PUB CalibrateAccel() | axis, orig_res, orig_scl, orig_drate, tmp[3], tmpx, tmpy, tmpz, samples, scale
 ' Calibrate the accelerometer
@@ -503,6 +593,8 @@ PUB FIFOMode(mode): curr_mode
 '       TRIGGER (%11): FIFO enabled (holds latest 32 samples. When trigger event occurs, the last n samples,
 '           set by FIFOSamples(), are kept. The FIFO then collects samples as long as it isn't full.
 '   Any other value polls the chip and returns the current setting
+'   NOTE: FIFO data is read by reading AccelData(), or any scaled unit method
+'       A complete dataset (x, y, z) is equivalent to one FIFO sample
     curr_mode := 0
     readreg(core.FIFO_CTL, 1, @curr_mode)
     case mode
@@ -513,6 +605,48 @@ PUB FIFOMode(mode): curr_mode
 
     mode := ((curr_mode & core.FIFO_MODE_MASK) | mode)
     writereg(core.FIFO_CTL, 1, @mode)
+
+PUB FIFOThreshold(level): curr_lvl
+' Set FIFO watermark/threshold level
+'   Valid values: 0..31
+    curr_lvl := 0
+    readreg(core.FIFO_CTL, 1, @curr_lvl)
+    case level
+        0..31:
+        other:
+            return (curr_lvl & core.SAMPLES_BITS)
+
+    level := ((curr_lvl & core.SAMPLES_MASK) | level)
+    writereg(core.FIFO_CTL, 1, @level)
+
+PUB FIFOTriggered(): flag   ' XXX tentatively named
+' Flag indicating FIFO trigger interrupt asserted
+'   Returns: TRUE (-1) or FALSE (0)
+    flag := 0
+    readreg(core.FIFO_STATUS, 1, @flag)
+    return (((flag >> core.FIFO_TRIG) & 1) == 1)
+
+PUB FIFOTrigIntRouting(pin): curr_pin   ' XXX tentatively named
+' Set routing of FIFO Trigger interrupt to INT1 or INT2 pin
+'   Valid values: INT1 (1), INT2 (2)
+'   Any other value polls the chip and returns the current setting
+    curr_pin := 0
+    readreg(core.FIFO_CTL, 1, @curr_pin)
+    case pin
+        1, 2:
+            pin := (pin -1) << core.TRIGGER
+        other:
+            return (((curr_pin >> core.TRIGGER) & 1) + 1)
+
+    pin := ((curr_pin & core.TRIGGER_MASK) | pin)
+    writereg(core.FIFO_CTL, 1, @pin)
+
+PUB FIFOUnreadSamples(): nr_samples
+' Number of unread samples stored in FIFO
+'   Returns: 0..32
+    nr_samples := 0
+    readreg(core.FIFO_STATUS, 1, @nr_samples)
+    nr_samples &= core.ENTRIES_BITS
 
 PUB GyroAxisEnabled(xyzmask)
 ' Dummy method
@@ -531,6 +665,56 @@ PUB GyroDPS(x, y, z)
 
 PUB GyroScale(scale)
 ' Dummy method
+
+PUB InactAxisEnabled(mask): curr_mask
+' Enable inactivity threshold interrupt per axis, using bitmask
+'   Valid values:
+'       Bits 2..0 (%XYZ):
+'           1: axis enabled
+'           0: axis disabled
+'   Any other value polls the chip and returns the current setting
+'   NOTE: Functionally, enabled axes are logically AND'd (i.e., the interrupt
+'       will trigger only when _all_ of the axes falls below the InactThresh()
+'       setting for the time set by InactTime())
+    curr_mask := 0
+    readreg(core.ACT_INACT_CTL, 1, @curr_mask)
+    case mask
+        %000..%111:
+            mask <<= core.INACT_EN
+        other:
+            return ((curr_mask >> core.INACT_EN) & core.INACT_EN_BITS)
+
+    mask := ((curr_mask & core.INACT_EN_MASK) | mask)
+    writereg(core.ACT_INACT_CTL, 1, @mask)
+
+PUB InactThresh(thresh): curr_thr
+' Set inactivity threshold, in micro-g's
+'   Valid values: 0..15_937500 (15.9375g)
+'   Any other value polls the chip and returns the current setting
+'   NOTE: If the inactivity interrupt is enabled, setting this to 0 may
+'       result in undesirable behavior.
+    case thresh
+        0..15_937500:
+            thresh /= 62_500                    ' 62.5mg per LSB
+            writereg(core.THRESH_INACT, 1, @thresh)
+        other:
+            curr_thr := 0
+            readreg(core.THRESH_INACT, 1, @curr_thr)
+            return (curr_thr * 62_500)
+
+PUB InactTime(itime): curr_time
+' Set inactivity time, in seconds
+'   Valid values: 0..255
+'   Any other value polls the chip and returns the current setting
+'   NOTE: Setting this to 0 will generate an interrupt when the acceleration
+'       measures less than that set with InactThresh()
+    case itime
+        0..255:
+            writereg(core.TIME_INACT, 1, @itime)
+        other:
+            curr_time := 0
+            readreg(core.TIME_INACT, 1, @curr_time)
+            return
 
 PUB Interrupt(): int_src
 ' Flag indicating interrupt(s) asserted
@@ -565,6 +749,28 @@ PUB IntMask(mask): curr_mask
         other:
             curr_mask := 0
             readreg(core.INT_ENABLE, 1, @curr_mask)
+            return curr_mask
+
+PUB IntRouting(mask): curr_mask
+' Set interrupt pin routing mask
+'   Bit clear (0): route to INT1 pin, set (1): route to INT2 pin
+'   Bits: 76543210
+'       7: Data Ready
+'       6: Single-tap
+'       5: Double-tap
+'       4: Activity
+'       3: Inactivity
+'       2: Free-fall
+'       1: Watermark
+'       0: Overrun
+'   Valid values: %00000000..%11111111
+'   Any other value polls the chip and returns the current setting
+    case mask
+        %0000_0000..%1111_1111:
+            writereg(core.INT_MAP, 1, @mask)
+        other:
+            curr_mask := 0
+            readreg(core.INT_MAP, 1, @curr_mask)
             return curr_mask
 
 PUB MagBias(x, y, z, rw)

@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: core.con.adxl345.spin
     Author: Jesse Burt
-    Description: Low-level constants
+    Description: ADXL345-specific low-level constants
     Copyright (c) 2021
     Started Mar 14, 2020
-    Updated May 29, 2021
+    Updated Aug 29, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -39,7 +39,27 @@ CON
     THRESH_ACT                  = $24
     THRESH_INACT                = $25
     TIME_INACT                  = $26
+
     ACT_INACT_CTL               = $27
+    ACT_INACT_CTL_MASK          = $FF
+        ACTACDC                 = 7
+        ACTX_EN                 = 6
+        ACTY_EN                 = 5
+        ACTZ_EN                 = 4
+        ACT_EN                  = 4             ' pseudo-field, for XYZ
+        INACTACDC               = 3
+        INACTX_EN               = 2
+        INACTY_EN               = 1
+        INACTZ_EN               = 0
+        INACT_EN                = 0             ' pseudo-field, for XYZ
+        ACT_EN_BITS             = %111
+        INACT_EN_BITS           = %111
+        ACTACDC_MASK            = (1 << ACTACDC) ^ ACT_INACT_CTL_MASK
+        ACT_EN_MASK             = (ACT_EN_BITS << ACT_EN) ^ ACT_INACT_CTL_MASK
+        INACTACDC_MASK          = (1 << INACTACDC) ^ ACT_INACT_CTL_MASK
+        INACT_EN_MASK           = INACT_EN_BITS ^ ACT_INACT_CTL_MASK
+
+
     THRESH_FF                   = $28
 
     TAP_AXES                    = $2A
