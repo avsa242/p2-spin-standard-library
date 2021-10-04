@@ -27,6 +27,10 @@ pub get_debug2
 '' used to export intermediate results of computations for debugging.
   result := debug2    '}
                       '
+
+' Comment this out if your version of FlexSpin doesn't have FAbs() builtin:
+#define HAS_FABS
+
 con
   nan_con_mask = %0111_1111_1000_0000__0000_0000_0000_0000   'exponent is $FF signaling that the result is something special.
   plus_inf = nan_con_mask
@@ -592,10 +596,11 @@ PUB FNeg(singleA): single
   return singleA ^ $8000_0000   'toggle sign bit
   
 
+#ifndef HAS_FABS
 PUB FAbs(singleA): single
 ''Absolute singleA
   return singleA & $7FFF_FFFF   'clear sign bit
-
+#endif
 
 PUB FAbsNeg(singleA): single
 ''ABS singleA then Negate singleA
