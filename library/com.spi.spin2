@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Apr 15, 2020
-    Updated: Mar 6, 2021
+    Updated: Oct 3, 2021
     See end of file for terms of use.
     --------------------------------------------
 
@@ -186,6 +186,17 @@ PUB Wr_Byte(byte2spi)
 ' Write byte to SPI bus
     wrblock_lsbf(@byte2spi, 1)
 
+PUB WrByteX(byte2spi, nr_bytes) | SCK, MOSI, MISO
+' Repeatedly write byte2spi to SPI bus, nr_bytes times
+    longmove(@SCK, @_SCK, 3)                    ' copy hub vars to locals
+
+    repeat nr_words
+        wypin(MOSI, (word2spi << 24) rev 31)    ' move LSB into position
+        rdpin(SCK)                              '   and write it
+        wypin(SCK, CLKS)
+        repeat until pinr(SCK)
+        wypin(MOSI, 0)
+
 PUB WrLong_LSBF(long2spi)
 ' Write long to SPI bus, least-significant byte first
     wrblock_lsbf(@long2spi, 4)
@@ -201,6 +212,23 @@ PUB WrWord_LSBF(word2spi)
 PUB WrWord_MSBF(word2spi)
 ' Write word to SPI bus, most-significant byte first
     wrblock_msbf(@word2spi, 2)
+
+PUB WrWordX_MSBF(word2spi, nr_words) | SCK, MOSI, MISO
+' Repeatedly write word2spi to SPI bus, nr_words times
+    longmove(@SCK, @_SCK, 3)                    ' copy hub vars to locals
+
+    repeat nr_words
+        wypin(MOSI, (word2spi << 16) rev 31)    ' move MSB into position
+        rdpin(SCK)                              '   and write it
+        wypin(SCK, CLKS)
+        repeat until pinr(SCK)
+        wypin(MOSI, 0)
+
+        wypin(MOSI, (word2spi << 24) rev 31)    ' move LSB into position
+        rdpin(SCK)                              '   and write it
+        wypin(SCK, CLKS)
+        repeat until pinr(SCK)
+        wypin(MOSI, 0)
 
 PRI SPIClockPeriod(SCK_FREQ): bt
 ' Calculate SPI clock period
