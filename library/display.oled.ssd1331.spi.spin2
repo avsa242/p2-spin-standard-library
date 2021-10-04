@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2021
     Started: Apr 28, 2019
-    Updated: May 15, 2021
+    Updated: Oct 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -74,7 +74,7 @@ PUB Startx(CS_PIN, CLK_PIN, DIN_PIN, DC_PIN, RES_PIN, CLK_FREQ, WIDTH, HEIGHT, p
 '   RES_PIN optional, but recommended (pin # only validated in Reset())
     if lookdown(CS_PIN: 0..63) and lookdown(DC_PIN: 0..63) and {
 }   lookdown(DIN_PIN: 0..63) and lookdown(CLK_PIN: 0..63)
-        if (status := spi.init(CLK_PIN, DIN_PIN, -1, CLK_FREQ, core.SPI_MODE))
+        if (status := spi.init(CLK_PIN, DIN_PIN, -1, core.SPI_MODE, CLK_FREQ))
             _CS := CS_PIN
             _DC := DC_PIN
             _RES := RES_PIN
