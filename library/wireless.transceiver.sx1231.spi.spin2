@@ -5,7 +5,7 @@
     Description: Driver for the Semtech SX1231 UHF Transceiver IC (P2 version)
     Copyright (c) 2021
     Started Apr 19, 2019
-    Updated Aug 22, 2021
+    Updated Oct 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -188,8 +188,8 @@ PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, RESET_PIN, SCK_FREQ=10_000_000):
     if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
 }   lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) and {
 }   SCK_FREQ <= core.SCK_MAX_FREQ
-        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ, {
-}       core.SPI_MODE))
+        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, {
+}       SCK_FREQ))
             _CS := CS_PIN
             _RST := RESET_PIN
             pinh(_CS)
