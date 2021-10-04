@@ -6,7 +6,7 @@
         RX Mode (P2 version)
     Copyright (c) 2021
     Started Apr 30, 2020
-    Updated Jan 2, 2021
+    Updated Sep 29, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -59,7 +59,7 @@ PUB Main() | i, iteration, testtime, pipe_nr
 
 ' Experiment with these to observe effect on throughput
 '   NOTE: The transmitter's settings _must_ match these
-    nrf24.datarate(2000)                        ' 250, 1000, 2000
+    nrf24.datarate(2_000_000)                   ' 250_000, 1_000_000, 2_000_000
     nrf24.autoackenabledpipes(%000011)
     nrf24.txpower(0)                            ' -18, -12, -6, 0 (dBm)
                                                 ' (for auto-ack, if enabled)
@@ -118,7 +118,7 @@ PUB Setup()
     ser.clear()
     ser.strln("Serial terminal started")
 
-    if nrf24.start(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
+    if nrf24.startx(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
         ser.strln("nRF24L01+ driver started")
     else
         ser.strln("nRF24L01+ driver failed to start - halting")

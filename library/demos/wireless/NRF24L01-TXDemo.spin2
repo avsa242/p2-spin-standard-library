@@ -5,7 +5,7 @@
     Description: nRF24L01+ Transmit demo
     Copyright (c) 2021
     Started Nov 23, 2019
-    Updated May 15, 2021
+    Updated Sep 29, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -125,7 +125,7 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.printf("Serial terminal started\n")
-    if nrf24.start(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
+    if nrf24.startx(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
         ser.printf("NRF24L01+ driver started\n")
     else
         ser.printf("NRF24L01+ driver failed to start - halting\n")
