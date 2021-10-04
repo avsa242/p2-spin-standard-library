@@ -109,7 +109,7 @@ PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=6_500_000): status
 '   (default to 6.5MHz, if speed is unspecified)
     if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
     } lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63)
-        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE {
+        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, {
 }       SCK_FREQ))
             waitus(core.T_POR)
             _CS := CS_PIN
