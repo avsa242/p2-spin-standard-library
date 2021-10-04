@@ -4,13 +4,17 @@
     Description: Floating-point math routines
         Single-precision, IEEE-754 (SPIN-based)
     Started 2006
-    Updated Jul 21, 2021
+    Updated Oct 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 
     This is based on FloatMath.spin, originally
         by Chip Gracey
 }
+' Comment these out for older versions of FlexSpin
+'   (FAbs() and FSqrt() are reserved words in newer versions)
+#define HAS_FABS
+#define HAS_FSQRT
 
 PUB Null()
 ' This is not a top-level object
@@ -37,10 +41,13 @@ PUB FNeg(singlea): single
 ' Negate singlea
     return singlea ^ $8000_0000             ' toggle sign bit
 
+#ifndef HAS_FABS
 PUB FAbs(singlea): single
 ' Absolute singlea
     return singlea & $7FFF_FFFF             ' clear sign bit
+#endif
 
+#ifndef HAS_FSQRT
 PUB FSqrt(singlea): single | sign, exp, mant, root
 ' Compute square root of singlea
     if singlea > 0                          ' if a <= 0, result 0
@@ -56,6 +63,7 @@ PUB FSqrt(singlea): single | sign, exp, mant, root
         mant := single >> 1
 
         return pack(@sign)                  ' pack result
+#endif
 
 PUB FAdd(singlea, singleb): single | signa, expa, manta, signb, expb, mantb
 ' Add singlea and singleb

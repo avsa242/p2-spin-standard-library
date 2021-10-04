@@ -1,5 +1,7 @@
 #!/bin/bash
 
+OPTS="-q -2 -L ./library"
+
 if [ -z "$SPINC" ]
 then
     SPINC="fastspin"
@@ -13,12 +15,12 @@ fi
 
 while read line
 do
-    ${SPINC} -Wall -q -2 -L "./library" "$line" >/dev/null
+    ${SPINC} $OPTS "$line" >/dev/null
     if [ $? != 0 ]
     then 
         echo
-        echo "${SPINC} -Wall -q -2 -L ./library $line"
-        ${SPINC} -Wall -q -2 -L ./library "$line"
+        echo "${SPINC} $OPTS $line"
+        ${SPINC} $OPTS "$line"
         echo
     fi
 done < <(cat MANIFEST|grep spin2)
