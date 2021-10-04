@@ -5,7 +5,7 @@
     Modified by: Jesse Burt
     Description: Tiling VGA text driver
     Started Nov 13, 2019
-    Updated Oct 3, 2020
+    Updated Oct 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -171,7 +171,7 @@ PUB Char(c): result | fg, bg
         elseif (c == 13)                        ' carriage return
             _curx := 0
         elseif (c == 20)                        ' tab
-            position((_curx + 8) & ~7, _cury)
+            position((_curx + 8) & 7, _cury)
         elseif (c == 27)
             _state := STATE_ESCAPE
         else
