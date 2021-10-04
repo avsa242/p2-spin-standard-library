@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Apr 15, 2020
-    Updated: Oct 3, 2021
+    Updated: Oct 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 
@@ -34,16 +34,16 @@ OBJ
 
     sp      : "core.con.smartpins"
 
-PUB Init(SCK, MOSI, MISO, SCK_FREQ, SPI_MODE=0): okay | MISO_rel, MOSI_rel
+PUB Init(SCK, MOSI, MISO, SPI_MODE=0, SCK_FREQ=1_000_000): status | MISO_rel, MOSI_rel
 ' SCK: SPI Clock
 ' MOSI: Master Out Slave In
 ' MISO: Master In Slave Out
-' SCK_FREQ: SPI bus clock frequency
 '   NOTE: MOSI and MISO must be within +/- 3 pins of SCK
 '   Example:
 '       If SCK is pin 10,
 '       MOSI and MISO can (uniquely) be 7, 8, 9, 11, 12, or 13
 ' SPI_MODE: 0..3 (* not functional, yet)
+' SCK_FREQ: SPI bus clock frequency
     longmove(@_SCK, @SCK, 3)
 
     pinstart(SCK, sp.TRANSITION_OUT | sp.SMART_OUT_DRIVE | sp.OUTPUT_ENABLED,{
