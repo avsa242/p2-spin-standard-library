@@ -9,18 +9,10 @@
     See end of file for terms of use.
     --------------------------------------------
 
-    NOTE: This is an excerpt of XPT2046.spin2, by Cheezus Slice, translated to SPIN2 (FastSpin). The original
-        header is preserved below.
+    NOTE: This is based on XPT2046.spin2,
+        by Cheezus Slice
 }
 
-{{  =============================================================
-        Basic X-Y driver for XPT 2046 Touch Screen Controller
-        Inline Smartpin SPI v0.5       -       11-26-19
-        Cheezus Slice - Cheezusslicedj@gmail.com
-        This driver uses hard-coded pins but should be easy to
-        make dynamic if you wish. Only reads X-Y
-    =============================================================
-}}
 CON
 
     CLKS        = NUMBITS * 2                   ' XXX hardcoded as original, for now
@@ -38,12 +30,14 @@ PUB Init(SCK, MOSI, MISO, SPI_MODE=0, SCK_FREQ=1_000_000): status | MISO_rel, MO
 ' SCK: SPI Clock
 ' MOSI: Master Out Slave In
 ' MISO: Master In Slave Out
+' SPI_MODE: 0..3 (* not functional, yet)
+' SCK_FREQ: SPI bus clock frequency
 '   NOTE: MOSI and MISO must be within +/- 3 pins of SCK
 '   Example:
 '       If SCK is pin 10,
 '       MOSI and MISO can (uniquely) be 7, 8, 9, 11, 12, or 13
-' SPI_MODE: 0..3 (* not functional, yet)
-' SCK_FREQ: SPI bus clock frequency
+'   NOTE: This engine isn't suitable for 3-wire SPI, since the
+'   pin inputs/outputs are set once, when initializing the engine
     longmove(@_SCK, @SCK, 3)
 
     pinstart(SCK, sp.TRANSITION_OUT | sp.SMART_OUT_DRIVE | sp.OUTPUT_ENABLED,{
