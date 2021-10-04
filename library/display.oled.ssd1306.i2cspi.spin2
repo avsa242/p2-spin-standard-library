@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Apr 26, 2018
-    Updated: Apr 4, 2021
+    Updated: Oct 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -102,7 +102,8 @@ PUB Startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, SCK_HZ, WIDTH, HEIGHT, pt
 '   HEIGHT: 32, 64
     if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
 }   lookdown(SDIN_PIN: 0..63) and lookdown(DC_PIN: 0..63)
-        if (status := spi.init(SCK_PIN, SDIN_PIN, -1, SCK_HZ))
+        if (status := spi.init(SCK_PIN, SDIN_PIN, -1, core.SPI_MODE, {
+}       SCK_HZ))
             waitus(core.TPOR)                   ' wait for device startup
             _CS := CS_PIN
             _DC := DC_PIN
