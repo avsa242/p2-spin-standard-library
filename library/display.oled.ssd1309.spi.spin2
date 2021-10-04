@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Dec 27, 2019
-    Updated: Apr 6, 2021
+    Updated: Oct 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -52,7 +52,8 @@ PUB Startx(CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RES_PIN,{
 '       CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RES_PIN: 0..63
     if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
 }   lookdown(SDA_PIN: 0..63) and lookdown(DC_PIN: 0..63)
-        if (status := spi.start(SCK_PIN, SDA_PIN, -1, SCK_FREQ))
+        if (status := spi.init(SCK_PIN, SDA_PIN, -1, core.SPI_MODE, {
+}       SCK_FREQ))
             _CS := CS_PIN
             _DC := DC_PIN
             _RES := RES_PIN
