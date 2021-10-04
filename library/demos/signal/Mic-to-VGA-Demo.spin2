@@ -6,14 +6,14 @@
         showing a scope output of the audio on an attached VGA display
     Author: Jesse Burt
     Started: May 16, 2020
-    Updated: Feb 14, 2021
+    Updated: Oct 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
     _xtlfreq        = cfg._xtlfreq
-    _clkfreq        = vga._clkfreq                ' Must match constant set in VGA driver (default 250MHz)
+    _clkfreq        = cfg._clkfreq_def          ' Must match constant set in VGA driver (default 250MHz)
 
 ' -- User-modifiable constants
     LED             = cfg.LED1
