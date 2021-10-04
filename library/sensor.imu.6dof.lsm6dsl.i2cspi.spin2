@@ -5,7 +5,7 @@
     Description: Driver for the ST LSM6DSL 6DoF IMU (P2 version)
     Copyright (c) 2021
     Started Mar 6, 2021
-    Updated Sep 6, 2021
+    Updated Oct 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -130,8 +130,8 @@ PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=1_000_000): status
     if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
 }   lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63)
         _CS := CS_PIN
-        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ, {
-}       core.SPI_MODE))
+        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, {
+}       SCK_FREQ))
             waitus(core.T_POR)             ' wait for device startup
             if deviceid() == core.DEVID_RESP    ' validate device
                 return
