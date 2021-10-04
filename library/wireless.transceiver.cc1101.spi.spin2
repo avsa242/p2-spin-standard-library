@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2021
     Started Mar 25, 2019
-    Updated May 30, 2021
+    Updated Oct 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -108,8 +108,8 @@ PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=6_500_000): status
     if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
 }   lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) and {
 }   SCK_FREQ <= core.SCK_MAX_FREQ
-        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ, {
-}       core.SPI_MODE))
+        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, {
+}       SCK_FREQ))
             waitus(core.T_POR)
             _CS := CS_PIN
 
