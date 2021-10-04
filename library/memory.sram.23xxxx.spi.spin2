@@ -6,7 +6,7 @@
         SPI SRAM (P2 version)
     Copyright (c) 2021
     Started Dec 27, 2020
-    Updated Mar 6, 2021
+    Updated Oct 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -36,8 +36,8 @@ PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=20_000_000): status
 }   lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) and {
 }   SCK_FREQ >= 1 and SCK_FREQ <= core.SCK_MAX_FREQ
         _CS := CS_PIN
-        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ, {
-}       core.SPI_MODE))
+        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, {
+}       SCK_FREQ))
             waitms(1)
             return status
     ' if this point is reached, something above failed
