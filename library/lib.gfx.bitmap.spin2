@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2021
     Started May 19, 2019
-    Updated Apr 10, 2021
+    Updated Oct 3, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,8 +15,16 @@ CON
 
 VAR
 
-    long _row, _col, _row_max, _col_max
+    ' font-related
+    long _char_attrs
     long _font_width, _font_height, _font_addr, _fnt_scl
+    word _charpx_xmax, _charpx_ymax
+    word _charpx_x, _charpx_y
+    byte _charcell_w, _charcell_h
+    byte _charcell_xmax, _charcell_ymax
+    byte _char_hspace, _char_vspace
+
+    ' current draw color
     long _fgcolor, _bgcolor
 
 PUB BGColor(col): curr_clr
@@ -32,6 +40,7 @@ PUB Bitmap(bitmap_addr, bitmap_size, offset=0)
     bytemove(_ptr_drawbuffer + offset, bitmap_addr, bitmap_size)
 #endif
 
+#ifndef GFX_DIRECT
 PUB Box(x0, y0, x1, y1, color, filled=0) | x, y
 ' Draw a box
 '   x0, y0: Start coordinates x0, y0
@@ -66,6 +75,11 @@ PUB Box(x0, y0, x1, y1, color, filled=0) | x, y
 #else
             if x0 >= 0 and x0 <= _disp_xmax and y0 >= 0 and y0 <= _disp_ymax {
 }           and x1 >= 0 and x1 <= _disp_xmax and y1 >= 0 and y1 <= _disp_ymax
+#ifdef GFX_DIRECT
+            repeat y from y0 to y1
+                repeat x from x0 to x1
+                    plot(x, y, color)
+#else
                 x := abs(x1-x0)
                 if x1 < x0
                     repeat y from y0 to y1
@@ -76,63 +90,67 @@ PUB Box(x0, y0, x1, y1, color, filled=0) | x, y
             else
                 return FALSE
 #endif
+#endif
+#endif
 
+#ifndef GFX_DIRECT
 PUB Char(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_row, glyph, char_ht, char_wid
 ' Write a character to the display
     last_glyph_col := _font_width-1             ' last column of pixels in font
     last_glyph_row := _font_height-1            '   definition
-    char_wid := _font_width * _fnt_scl          ' scaled character dimensions
-    char_ht := _font_height * _fnt_scl          '
+    char_wid := _charcell_w * _fnt_scl          ' scaled character dimensions
+    char_ht := _charcell_h * _fnt_scl           '
 
     case ch
         LF:                                     ' line feed
-            _row += char_ht                     ' increment row by one char
-            if _row > _disp_height-char_ht      ' if last row reached,
-                _row -= char_ht                 '   don't go further; instead,
+            _charpx_y += char_ht                ' increment row by one char
+            if _charpx_y > _charpx_ymax         ' if last row reached,
+                _charpx_y -= char_ht            '   don't go further; instead,
                 repeat char_ht                  '   scroll up one text row
                     scrollup(0, 0, _disp_xmax, _disp_ymax)
         CR:                                     ' carriage return
-            _col := 0
-
+            _charpx_x := 0
         32..127:                                ' printable characters
             ch <<= 3                            ' char position in font table
             case _fnt_scl
                 0, 1:                           ' no scaling applied
                     repeat glyph_col from 0 to last_glyph_col
-                        xs := _col + glyph_col  ' x-coord to draw dot from font
+                        xs := _charpx_x + glyph_col  ' x-coord to draw dot from font
                         glyph := ch + glyph_col ' point to current glyph data
                         repeat glyph_row from 0 to last_glyph_row
                             if byte[_font_addr][glyph] & decod(glyph_row)
-                                plot(xs, _row + glyph_row, _fgcolor)
+                                plot(xs, _charpx_y + glyph_row, _fgcolor)
                             else
-                                plot(xs, _row + glyph_row, _bgcolor)
+                                plot(xs, _charpx_y + glyph_row, _bgcolor)
                 2..8:                           ' scale 2..8x
                     repeat glyph_col from 0 to last_glyph_col
-                        xs := _col + (glyph_col * _fnt_scl)
+                        xs := _charpx_x + (glyph_col * _fnt_scl)
                         xe := xs + _fnt_scl
                         glyph := ch + glyph_col ' offs. in glyph definition
                         repeat glyph_row from 0 to last_glyph_row
-                            ys := _row + (glyph_row * _fnt_scl)
+                            ys := _charpx_y + (glyph_row * _fnt_scl)
                             ye := ys + _fnt_scl
                             if byte[_font_addr][glyph] & decod(glyph_row)
                                 box(xs, ys, xe, ye, _fgcolor, true)
                             else
                                 box(xs, ys, xe, ye, _bgcolor, true)
 
-            _col += char_wid                    ' inc column after rendering
-            if _col > _disp_xmax-char_wid       ' if last column reached,
-                _col := 0                       '   return to col 0 and go to
-                _row += char_ht                 '   the next row
-            if _row > _disp_height-char_ht      ' if last row is reached,
-                _row -= char_ht                 '   stay there and scroll up
+            _charpx_x += char_wid               ' inc column after rendering
+            if _charpx_x > _charpx_xmax         ' if last column reached,
+                _charpx_x := 0                  '   return to col 0 and go to
+                _charpx_y += char_ht            '   the next row
+            if _charpx_y > _charpx_ymax         ' if last row is reached,
+                _charpx_y -= char_ht            '   stay there and scroll up
                 repeat char_ht                  '   the display
                     scrollup(0, 0, _disp_xmax, _disp_ymax)
+#endif
 
 PUB Circle(x0, y0, radius, color, filled=FALSE) | x, y, err, cdx, cdy, ht
 ' Draw a circle
 '   x0, y0: Coordinates
 '   radius: Circle radius
 '   color: Color to draw circle
+'   filled: Whether or not to draw a filled circle (0: no, nonzero: yes)
     case filled
         FALSE:
             x := radius - 1
@@ -165,13 +183,6 @@ PUB Circle(x0, y0, radius, color, filled=FALSE) | x, y, err, cdx, cdy, ht
                 ht := sqrt((radius * radius) - (x * x))
                 repeat y from -ht to ht-1
                     plot(x0 + x, y0 + y, color)
-
-PUB CircleF(x, y, r, c) | xt, yt, height
-
-    repeat xt from (r*-1) to r
-        height := sqrt((r * r) - (x * x))
-        repeat yt from (height*-1) to height-1
-            plot(xt+x, yt+y, c)
 
 #ifndef GFX_DIRECT
 PUB Clear()
@@ -252,20 +263,23 @@ PUB FontSize(width, height)
 '       This will affect the number of text columns
     _font_width := width
     _font_height := height
-    if _disp_width // _font_width                           ' Ended up with a remainder of a column,
-        _col_max := (_disp_width/_font_width) - 1           '   so subtract it out
-    else
-        _col_max := _disp_height/_font_width
+    _charcell_w := (_font_width + _char_hspace) ' calc overall character cell
+    _charcell_h := (_font_height + _char_vspace)'   dims (font size + spacing)
+    _charpx_xmax := (_disp_width - _charcell_w) ' calc maximum x, y character
+    _charpx_ymax := (_disp_height - _charcell_h)'   pixel position
+    _charcell_xmax := (_disp_width / _charcell_w)
+    _charcell_ymax := (_disp_height / _charcell_h)
 
-    if _disp_height // _font_height
-        _row_max := (_disp_height/_font_height) - 1
-    else
-        _row_max := _disp_height/_font_height
+PUB FontSpacing(h, v)
+' Set spacing between character cells (horizontally, vertically)
+    _char_hspace := h
+    _char_vspace := v
 
 PUB FontWidth(): curr_wid
 ' Return the set font width
     return _font_width
 
+#ifndef GFX_DIRECT
 PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 ' Draw line from x1, y1 to x2, y2, in color c
     case x1 == x2 or y1 == y2
@@ -300,6 +314,8 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
                 if e2 < ddx
                     err += ddx
                     y1 += sy
+#endif
+
 #ifndef GFX_DIRECT
 PUB Plot(x, y, color)
 ' Plot pixel at x, y, color c
@@ -344,7 +360,7 @@ PUB Plot(x, y, color)
             return
 
 #elseifdef ST7735
-    word[_ptr_drawbuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+    word[_ptr_drawbuffer][x + (y * _disp_width)] := color
 #elseifdef SSD1351
     word[_ptr_drawbuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #elseifdef VGABITMAP8BPP
@@ -393,12 +409,12 @@ PUB Point(x, y): pix_clr
 #warning "No supported display types defined!"
 #endif
 
-PUB Position(col, row)
+PUB Position(x, y)
 ' Set text draw position, in character-cell col and row
-    col := 0 #> col <# _col_max
-    row := 0 #> row <# _row_max
-    _col := col * (_font_width * _fnt_scl)
-    _row := row * (_font_height * _fnt_scl)
+    x := 0 #> x <# _charcell_xmax               ' clamp to min/max coordinates
+    y := 0 #> y <# _charcell_ymax
+    _charpx_x := (x * _charcell_w) * _fnt_scl   ' calc pixel position:
+    _charpx_y := (y * _charcell_h) * _fnt_scl   ' char cell coords * font dims
 
 PUB RGBW8888_RGB32(r, g, b, w): rgb32
 ' Return 32-bit long from discrete Red, Green, Blue, White color components (values 0..255)
@@ -595,11 +611,11 @@ PUB ScrollUp(sx, sy, ex, ey) | scr_width, src, dest, x, y
 
 PUB TextCols(): cols
 ' Returns number of displayable text columns, based on set display width, font width, and scale
-    return (_disp_width / _font_width) / _fnt_scl
+    return (_disp_width / _charcell_w) / _fnt_scl
 
 PUB TextRows(): rows
 ' Returns number of displayable text rows, based on set display height, font height, and scale
-    return (_disp_height / _font_height) / _fnt_scl
+    return (_disp_height / _charcell_h) / _fnt_scl
 
 PRI memFill(xs, ys, val, count)
 ' Fill region of display buffer memory
@@ -617,7 +633,7 @@ PRI memFill(xs, ys, val, count)
 #elseifdef HT16K33-ADAFRUIT
     bytefill(_ptr_drawbuffer + (xs + (ys * _bytesperln)), val, count)
 #elseifdef ST7735
-    wordfill(_ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
+    wordfill(_ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), val, count)
 #elseifdef SSD1351
     wordfill(_ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
 #elseifdef LEDMATRIX_CHARLIEPLEXED
