@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Started: Apr 11, 2021
-    Updated: Aug 20, 2021
+    Updated: Oct 11, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -259,7 +259,7 @@ PUB Demo_Plot() | x, y
 #endif
     waitclear()
 
-PUB Demo_Sinewave() | x, y, modifier, offset, div
+PUB Demo_Sinewave() | x, y, m, offset, div
 ' Draw a sine wave the length of the screen, influenced by the system counter
     case HEIGHT
         32:
@@ -274,9 +274,12 @@ PUB Demo_Sinewave() | x, y, modifier, offset, div
     _timer_set := _time
     repeat while _timer_set
         repeat x from 0 to XMAX
-            modifier := (abs(getct()) / 1_000_000)   ' system counter as modifier
-            y := offset + math.sin(x * modifier) / div
+            m := (abs(getct()) / 1_000_000)     ' system counter as modifier
+            y := offset + math.sin(x * m) / div
             disp.plot(x, y, disp.MAX_COLOR)
+#ifdef VGABITMAP8BPP
+        disp.waitvsync()
+#endif
 #ifndef VGABITMAP8BPP
         disp.update()
 #endif
@@ -308,7 +311,7 @@ PUB Demo_Wander() | x, y, d
 
     _timer_set := _time
     repeat while _timer_set
-        case d := math.rndi(4)                        ' which way to move?
+        case d := math.rndi(4)                  ' which way to move?
             1:                                  ' wander right
                 x += 2
                 if x > XMAX                     ' wrap around at the edge
@@ -379,8 +382,9 @@ PUB Setup()
     if disp.startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, SCK_FREQ, WIDTH, HEIGHT, @_framebuff)
         disp.preset_greentab128x128()
 #endif
+        disp.fontspacing(1, 1)
         disp.fontscale(1)
-        disp.fontsize(6, 8)
+        disp.fontsize(5, 8)
         disp.fontaddress(fnt.baseaddr())
         ser.printf(string("%s driver started\n"), @_drv_name)
     else
