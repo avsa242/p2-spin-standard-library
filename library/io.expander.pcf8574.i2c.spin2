@@ -5,38 +5,41 @@
     Description: Driver for the PCF8574 I2C I/O expander (P2 version)
     Copyright (c) 2021
     Started Sep 11, 2021
-    Updated Sep 11, 2021
+    Updated Oct 12, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    SLAVE_WR          = core.SLAVE_ADDR
-    SLAVE_RD          = core.SLAVE_ADDR|1
+    SLAVE_WR        = core.SLAVE_ADDR
+    SLAVE_RD        = core.SLAVE_ADDR|1
 
-    DEF_HZ            = 100_000
-    I2C_MAX_FREQ      = core.I2C_MAX_FREQ
+    DEF_HZ          = 100_000
+    DEF_ADDR        = %000
+    I2C_MAX_FREQ    = core.I2C_MAX_FREQ
 
 OBJ
 
     i2c : "com.i2c"                             ' I2C engine (up to 1MHz)
     core: "core.con.pcf8574"                    ' hw-specific low-level const's
 
+VAR
+
+    byte _addr_bits
+
 PUB Null()
 ' This is not a top-level object
 
-PUB Start(): status
-' Start using "standard" Propeller I2C pins and 100kHz
-    return startx(DEF_SCL, DEF_SDA, DEF_HZ)
-
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
 ' Start using custom IO pins and I2C bus frequency
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
-}   I2C_HZ <= core.I2C_MAX_FREQ                 ' validate pins and bus freq
+}   I2C_HZ <= core.I2C_MAX_FREQ and lookdown(ADDR_BITS: %000..%111)
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
-            waitus(core.T_POR)             ' wait for device startup
-            if i2c.present(SLAVE_WR)            ' test device bus presence
+            waitus(core.T_POR)                  ' wait for device startup
+            _addr_bits := ADDR_BITS << 1
+            ' test device bus presence
+            if i2c.present(SLAVE_WR | _addr_bits)
                 return
     ' if this point is reached, something above failed
     ' Re-check I/O pin assignments, bus speed, connections, power
@@ -50,10 +53,10 @@ PUB Stop()
 PUB Rd_Byte(): rd_b
 ' Read I/O expander P0..7 as byte rd_b
 '   Example:
-'       P7..0 state is: %1010_1010
+'       PCF8574 P7..0 state is: %1010_1010
 '       rd_b returns $AA
     i2c.start()
-    i2c.write(SLAVE_RD)
+    i2c.write(SLAVE_RD | _addr_bits)
     rd_b := i2c.rd_byte(i2c.NAK)
     i2c.stop()
 
@@ -63,7 +66,7 @@ PUB Wr_byte(wr_b)
 '       Wr_Byte("A")
 '       PCF8574 P7..0 state will be: %0010_0001
     i2c.start()
-    i2c.write(SLAVE_WR)
+    i2c.write(SLAVE_WR | _addr_bits)
     i2c.wr_byte(wr_b)
     i2c.stop()
 
