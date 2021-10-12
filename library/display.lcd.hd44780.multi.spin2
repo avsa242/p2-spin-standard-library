@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: display.lcd.hd44780.multi.spin2
     Author: Jesse Burt
-    Description: Driver for HD44780 alphanumeric LCDs (P2 version
+    Description: Driver for HD44780 alphanumeric LCDs (P2 version)
     Copyright (c) 2021
     Started Sep 11, 2021
-    Updated Sep 11, 2021
+    Updated Oct 12, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,6 +16,7 @@ CON
 
 ' I2C defaults
     DEF_HZ      = 100_000
+    DEF_ADDR    = %000
 
 ' HD44780 control signals
     BL          = 1 << 3                        ' backlight
@@ -41,15 +42,11 @@ OBJ
 PUB Null()
 ' This is not a top-level object
 
-PUB Start(): status
-' Start using "standard" Propeller I2C pins and 100kHz
-    return startx(DEF_SCL, DEF_SDA, DEF_HZ)
-
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
 ' Start using custom IO pins and I2C bus frequency
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }   I2C_HZ <= ioexp.I2C_MAX_FREQ                ' validate pins and bus freq
-        if (status := ioexp.startx(SCL_PIN, SDA_PIN, I2C_HZ))
+        if (status := ioexp.startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS))
             waitus(core.T_POR)                  ' wait for device startup
                 return
     ' if this point is reached, something above failed
