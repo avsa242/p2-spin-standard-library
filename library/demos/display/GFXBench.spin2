@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Started: Apr 10, 2021
-    Updated: Aug 20, 2021
+    Updated: Oct 16, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,10 +13,10 @@
 '#define SSD1306_I2C
 '#define SSD1306_SPI
 '#define SSD1309
-'#define SSD1331
+#define SSD1331
 '#define SSD1351
 '#define ST7735
-#define VGABITMAP8BPP
+'#define VGABITMAP8BPP
 
 ' Comment out this line to define custom I/O pins below
 ' or, uncomment to use MikroE Click I/O pin offset definitions
@@ -54,8 +54,8 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    WIDTH       = 320                           ' change these for your
-    HEIGHT      = 240                           '   display
+    WIDTH       = 96                            ' change these for your
+    HEIGHT      = 64                            '   display
 
 #ifdef MIKROE_CLICK
     CLICK_BASE  = 0                             ' MikroE Click adaptor basepin
@@ -78,7 +78,7 @@ CON
 #endif
 
 ' VGA
-    VGA_BASEPIN = 32
+    VGA_BASEPIN = 40
 ' --
 
     BPP         = disp.BYTESPERPX
@@ -92,7 +92,7 @@ CON
 #elseifdef VGABITMAP8BPP
     BUFFSZ      = (WIDTH * HEIGHT)
 #else
-    BUFFSZ      = ((WIDTH * HEIGHT) * BPP) / 2
+    BUFFSZ      = (WIDTH * HEIGHT)
 #endif
     XMAX        = WIDTH - 1
     YMAX        = HEIGHT - 1
@@ -160,7 +160,7 @@ PUB Main() | time_ms, sz, maxsz, iteration, bench, ch, color
         case bench
             BITMAP:
                 repeat while _timer_set
-                    disp.bitmap($00000, sz-1, 0)
+                    disp.bitmap(0, 0, 0, sz-1, sz-1)
 #ifndef VGABITMAP8BPP
                     disp.update()
 #endif
@@ -318,8 +318,9 @@ PUB Setup()
     if disp.startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, SCK_FREQ, WIDTH, HEIGHT, @_framebuff)
         disp.preset_greentab128x128()
 #endif
+        disp.fontspacing(1, 1)
         disp.fontscale(1)
-        disp.fontsize(6, 8)
+        disp.fontsize(5, 8)
         disp.fontaddress(fnt.baseaddr())
         ser.printf(string("%s driver started\n"), @_drv_name)
     else
