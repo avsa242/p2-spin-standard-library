@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2021
     Started May 19, 2019
-    Updated Oct 3, 2021
+    Updated Oct 16, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -32,12 +32,19 @@ PUB BGColor(col): curr_clr
     return _bgcolor := col
 
 #ifndef GFX_DIRECT
-PUB Bitmap(bitmap_addr, bitmap_size, offset=0)
+PUB Bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs
 ' Copy a bitmap to the display buffer
-'   bitmap_addr:    Address of bitmap to copy
-'   bitmap_size:    Number of bytes to copy
-'   offset:         Offset within the display buffer to copy to
-    bytemove(_ptr_drawbuffer + offset, bitmap_addr, bitmap_size)
+'   ptr_bmap: pointer to bitmap data
+'   (xs, ys): upper-left corner of bitmap
+'   bm_wid: width of bitmap, in pixels
+'   bm_lns: number of lines in bitmap
+    repeat
+        ' calc offset from framebuffer and bitmap start,
+        '   then copy the bitmap one line at a time,
+        '   using the display's defined native word size
+        offs := ((ys++ * _bytesperln) + xs)     ' increment Y start
+        MEMMV_NATIVE(_ptr_drawbuffer+offs, ptr_bmap+offs, bm_wid)
+    while bm_lns--                              ' loop if there're more lines
 #endif
 
 #ifndef GFX_DIRECT
