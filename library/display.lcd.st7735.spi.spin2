@@ -193,7 +193,24 @@ PUB Address(addr=-2): curr_addr
             return _ptr_drawbuffer
 
 #ifdef GFX_DIRECT
-PUB Bitmap(a, b, c)
+PUB Bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs, nr_pix
+' Display bitmap
+'   ptr_bmap: pointer to bitmap data
+'   (xs, ys): upper-left corner of bitmap
+'   bm_wid: width of bitmap, in pixels
+'   bm_lns: number of lines in bitmap
+    displaybounds(xs, ys, xs+(bm_wid-1), ys+(bm_lns-1))
+    pinl(_CS)
+    pinw(_DC, core.CMD)
+    spi.wr_byte(core.RAMWR)
+
+    ' calc total number of pixels to write, based on dims and color depth
+    ' clamp to a minimum of 1 to avoid odd behavior
+    nr_pix := 1 #> ((xs + bm_wid-1) * (ys + bm_lns-1) * BYTESPERPX)
+
+    pinw(_DC, core.DATA)
+    spi.wrblock_lsbf(ptr_bmap, nr_pix)
+    pinh(_CS)
 #endif
 
 #ifdef GFX_DIRECT
