@@ -15,8 +15,8 @@
 '#define SSD1306_SPI
 '#define SSD1309
 '#define SSD1331
-#define SSD1351
-'#define ST7735
+'#define SSD1351
+#define ST7735
 '#define VGABITMAP8BPP
 
 ' Comment out this line to define custom I/O pins below
@@ -73,11 +73,11 @@ CON
     SCL_FREQ    = 1_000_000
 
 ' SPI-connected displays
-    CS_PIN      = 0
-    SCK_PIN     = 1
-    MOSI_PIN    = 2
-    DC_PIN      = 3
-    RES_PIN     = 4
+    CS_PIN      = 8
+    SCK_PIN     = 9
+    MOSI_PIN    = 10
+    DC_PIN      = 11
+    RES_PIN     = 12
     SCK_FREQ    = 10_000_000
 #endif
 

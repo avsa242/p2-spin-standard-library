@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started Mar 07, 2020
-    Updated Apr 9, 2021
+    Updated Oct 11, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,10 +13,14 @@
 CON
 
 ' SPI Configuration
-    SCK_MAX_FREQ    = 15_151_515    ' According to datasheet; seems to work fine at 20MHz, though
+    SCK_MAX_FREQ    = 15_151_515                ' datasheet max (YMMV)
     SPI_MODE        = 0
 
-    FOSC            = 625_000       ' Display controller oscillator freq
+    FOSC            = 625_000                   ' Display controller osc. freq
+
+' D/C pin states
+    CMD             = 0
+    DATA            = 1
 
 ' Register definitions
     NOOP            = $00
