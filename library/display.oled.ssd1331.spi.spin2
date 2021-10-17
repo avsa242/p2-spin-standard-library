@@ -526,7 +526,7 @@ PUB ExtSupply() | tmp
     writereg(core.SETMASTER, 1, @tmp)
 
 PUB FillAccelEnabled(state): curr_state
-' Enable the display's native/accelerated fill function, when using BoxAccel()
+' Enable the display's native/accelerated fill function, when using Box()
     curr_state := _sh_FILL
     case abs(state)
         0, 1:

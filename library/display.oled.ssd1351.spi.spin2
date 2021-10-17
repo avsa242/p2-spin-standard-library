@@ -2,15 +2,15 @@
     --------------------------------------------
     Filename: display.oled.ssd1351.spi.spin2
     Author: Jesse Burt
-    Description: Driver for Solomon Systech SSD1351 RGB OLED displays
-        (P2 version)
+    Description: Driver for Solomon Systech SSD1351 RGB OLED displays (P2 version)
     Copyright (c) 2021
     Started: Mar 11, 2020
-    Updated: Apr 8, 2021
+    Updated: Oct 17, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 #define SSD1351
+#define MEMMV_NATIVE wordmove
 #include "lib.gfx.bitmap.spin2"
 
 CON
@@ -32,6 +32,7 @@ CON
     COLOR_65K       = %00   ' or %01
     COLOR_262K      = %10
     COLOR_262K65K2  = %11
+
 ' Address increment mode
     ADDR_HORIZ      = 0
     ADDR_VERT       = 1
@@ -45,6 +46,9 @@ CON
     ALL_LOCK        = $16
     CFG_LOCK        = $B0
     CFG_UNLOCK      = $B1
+
+' Character attributes
+    DRAWBG          = 1 << 0
 
 OBJ
 
@@ -67,15 +71,13 @@ PUB Null()
 PUB Startx(CS_PIN, CLK_PIN, DIN_PIN, DC_PIN, RES_PIN, SCK_FREQ, WIDTH, HEIGHT, ptr_dispbuff): status
 ' Start driver using custom I/O settings
     if lookdown(CS_PIN: 0..63) and lookdown(DC_PIN: 0..63) {
-}   and lookdown(DIN_PIN: 0..63) and lookdown(CLK_PIN: 0..63) {
-}   and lookdown(RES_PIN: 0..63)
-        if (status := spi.init(CLK_PIN, DIN_PIN, -1, SCK_FREQ, core.SPI_MODE))
+}   and lookdown(DIN_PIN: 0..63) and lookdown(CLK_PIN: 0..63)
+        if (status := spi.init(CLK_PIN, DIN_PIN, -1, core.SPI_MODE, SCK_FREQ))
             _DC := DC_PIN
             _RES := RES_PIN
             _CS := CS_PIN
             pinh(_CS)
             pinh(_DC)
-            pinh(_RES)
             _disp_width := WIDTH
             _disp_height := HEIGHT
             _disp_xmax := _disp_width - 1
@@ -85,8 +87,7 @@ PUB Startx(CS_PIN, CLK_PIN, DIN_PIN, DC_PIN, RES_PIN, SCK_FREQ, WIDTH, HEIGHT, p
 
             address(ptr_dispbuff)
             reset()
-            powered(TRUE)
-            waitms(300)
+            waitus(core.T_POR)
             lockdisplay(ALL_UNLOCK)
             lockdisplay(CFG_UNLOCK)
             return
@@ -111,7 +112,7 @@ PUB Defaults()
     contrastabc(138, 81, 138)
     powered(TRUE)
     displaybounds(0, 0, 127, 127)
-    clearaccel()
+    clear()
     displayvisibility(NORMAL)
 
 PUB Preset_OLED_C_Click_96x96()
@@ -152,7 +153,7 @@ PUB Preset_128x()
     displayvisibility(NORMAL)
 
 PUB Preset_128x128()
-' Preset: 128px wide, 128px height
+' Preset: 128px wide, 128px high
     displaybounds(0, 0, 127, 127)
     addrmode(ADDR_HORIZ)
     subpixelorder(RGB)
@@ -208,11 +209,136 @@ PUB AddrMode(mode): curr_mode
     _sh_REMAPCOLOR := ((_sh_REMAPCOLOR & core.SEGREMAP_MASK) | mode)
     writereg(core.SETREMAP, 1, @_sh_REMAPCOLOR)
 
-PUB ClearAccel() | tmp
+#ifdef GFX_DIRECT
+PUB Bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs, nr_pix
+' Display bitmap
+'   ptr_bmap: pointer to bitmap data
+'   (xs, ys): upper-left corner of bitmap
+'   bm_wid: width of bitmap, in pixels
+'   bm_lns: number of lines in bitmap
+    displaybounds(xs, ys, xs+(bm_wid-1), ys+(bm_lns-1))
+    pinl(_CS)
+    pinw(_DC, core.CMD)
+    spi.wr_byte(core.WRITERAM)
+
+    ' calc total number of pixels to write, based on dims and color depth
+    ' clamp to a minimum of 1 to avoid odd behavior
+    nr_pix := 1 #> ((xs + bm_wid-1) * (ys + bm_lns-1) * BYTESPERPX)
+
+    pinw(_DC, core.DATA)
+    spi.wrblock_lsbf(ptr_bmap, nr_pix)
+    pinh(_CS)
+#endif
+
+#ifdef GFX_DIRECT
+PUB Box(x1, y1, x2, y2, c, f) | cmd_pkt[2]
+' Draw a box
+'   (x1, y1): upper-left corner of box
+'   (x2, y2): lower-right corner of box
+'   c: color
+'   f: filled flag (0: no fill, nonzero: fill)
+    if (x2 < x1) or (y2 < y1)
+        return
+    if f
+        cmd_pkt.byte[0] := core.SETCOLUMN       ' D/C L
+        cmd_pkt.byte[1] := x1                   ' D/C H
+        cmd_pkt.byte[2] := x2
+        cmd_pkt.byte[3] := core.SETROW          ' D/C L
+        cmd_pkt.byte[4] := y1                   ' D/C H
+        cmd_pkt.byte[5] := y2
+
+        pinw(_DC, core.CMD)
+        pinl(_CS)
+        spi.wr_byte(cmd_pkt.byte[0])            ' column cmd
+        pinw(_DC, core.DATA)
+        spi.wrblock_lsbf(@cmd_pkt.byte[1], 2)   ' x0, x1
+
+        pinw(_DC, core.CMD)
+        spi.wr_byte(cmd_pkt.byte[3])            ' row cmd
+        pinw(_DC, core.DATA)
+        spi.wrblock_lsbf(@cmd_pkt.byte[4], 2)   ' y0, y1
+
+        pinw(_DC, core.CMD)
+        spi.wr_byte(core.WRITERAM)
+        pinw(_DC, core.DATA)
+        spi.wrwordx_msbf(c, ((y2-y1)+1) * ((x2-x1)+1))
+    else
+        displaybounds(x1, y1, x2, y1)           ' top
+        pinl(_CS)
+        pinw(_DC, core.CMD)
+        spi.wr_byte(core.WRITERAM)
+        pinw(_DC, core.DATA)
+        spi.wrwordx_msbf(c, (x2-x1)+1)
+
+        displaybounds(x1, y2, x2, y2)           ' bottom
+        pinl(_CS)
+        pinw(_DC, core.CMD)
+        spi.wr_byte(core.WRITERAM)
+        pinw(_DC, core.DATA)
+        spi.wrwordx_msbf(c, (x2-x1)+1)
+
+        displaybounds(x1, y1, x1, y2)           ' left
+        pinl(_CS)
+        pinw(_DC, core.CMD)
+        spi.wr_byte(core.WRITERAM)
+        pinw(_DC, core.DATA)
+        spi.wrwordx_msbf(c, (y2-y1)+1)
+
+        displaybounds(x2, y1, x2, y2)           ' right
+        pinl(_CS)
+        pinw(_DC, core.CMD)
+        spi.wr_byte(core.WRITERAM)
+        pinw(_DC, core.DATA)
+        spi.wrwordx_msbf(c, (y2-y1)+1)
+    pinh(_CS)
+#endif
+
+#ifdef GFX_DIRECT
+PUB Char(ch) | gl_c, gl_r, lastgl_c, lastgl_r
+' Draw character from currently loaded font
+    lastgl_c := _font_width-1
+    lastgl_r := _font_height-1
+    case ch
+        CR:
+            _charpx_x := 0
+        LF:
+            _charpx_y += _charcell_h
+            if _charpx_y > _charpx_xmax
+                _charpx_y := 0
+        0..127:                                 ' validate ASCII code
+            ' walk through font glyph data
+            repeat gl_c from 0 to lastgl_c      ' column
+                repeat gl_r from 0 to lastgl_r  ' row
+                    ' if the current offset in the glyph is a set bit, draw it
+                    if byte[_font_addr][(ch << 3) + gl_c] & (decod gl_r)
+                        plot((_charpx_x + gl_c), (_charpx_y + gl_r), _fgcolor)
+                    else
+                    ' otherwise, draw the background color, if enabled
+                        if _char_attrs & DRAWBG
+                            plot((_charpx_x + gl_c), (_charpx_y + gl_r), _bgcolor)
+            ' move the cursor to the next column, wrapping around to the left,
+            ' and wrap around to the top of the display if the bottom is reached
+            _charpx_x += _charcell_w
+            if _charpx_x > _charpx_xmax
+                _charpx_x := 0
+                _charpx_y += _charcell_h
+            if _charpx_y > _charpx_ymax
+                _charpx_y := 0
+        other:
+            return
+#endif
+
+#ifdef GFX_DIRECT
+PUB Clear()
 ' Clear the display directly, bypassing the display buffer
-    tmp := 0
-    repeat _buff_sz/4
-        writereg(core.WRITERAM, 4, @tmp)
+    displaybounds(0, 0, _disp_xmax, _disp_ymax)
+    pinw(_DC, core.CMD)
+    pinl(_CS)
+    spi.wr_byte(core.WRITERAM)
+    pinw(_DC, core.DATA)
+    spi.wrwordx_msbf(_bgcolor, _buff_sz/2)
+    pinh(_CS)
+#endif
 
 PUB ClockDiv(divider): curr_div
 ' Set clock frequency divider used by the display controller
@@ -318,6 +444,17 @@ PUB DisplayBounds(sx, sy, ex, ey) | tmpx, tmpy
     tmpx.byte[1] := ex
     tmpy.byte[0] := sy
     tmpy.byte[1] := ey
+
+    ' the SSD1351 requires (ex, ey) be greater than (sx, ey)
+    ' if they're not, swap them
+    if ex < sx
+        tmpx.byte[2] := tmpx.byte[0]            ' use byte 2 as a temp var
+        tmpx.byte[0] := tmpx.byte[1]            ' since it's otherwise unused
+        tmpx.byte[1] := tmpx.byte[2]
+    if ey < sy
+        tmpy.byte[2] := tmpy.byte[0]
+        tmpy.byte[0] := tmpy.byte[1]
+        tmpy.byte[1] := tmpy.byte[2]
     writereg(core.SETCOLUMN, 2, @tmpx)
     writereg(core.SETROW, 2, @tmpy)
 
@@ -394,6 +531,53 @@ PUB Interlaced(state): curr_state
 
     _sh_REMAPCOLOR := ((curr_state & core.COMSPLIT_MASK) | state)
     writereg(core.SETREMAP, 1, @_sh_REMAPCOLOR)
+
+#ifdef GFX_DIRECT
+PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
+' Draw line from x1, y1 to x2, y2, in color c
+    if (x1 == x2)
+        displaybounds(x1, y1, x1, y2)           ' vertical
+        pinl(_CS)
+        pinw(_DC, core.CMD)
+        spi.wr_byte(core.WRITERAM)
+        pinw(_DC, core.DATA)
+        spi.wrwordx_msbf(c, (abs(y2-y1))+1)
+        pinh(_CS)
+        return
+    if (y1 == y2)
+        displaybounds(x1, y1, x2, y1)           ' horizontal
+        pinl(_CS)
+        pinw(_DC, core.CMD)
+        spi.wr_byte(core.WRITERAM)
+        pinw(_DC, core.DATA)
+        spi.wrwordx_msbf(c, (abs(x2-x1))+1)
+        pinh(_CS)
+        return
+
+    ddx := abs(x2-x1)
+    ddy := abs(y2-y1)
+    err := ddx-ddy
+
+    sx := -1
+    if (x1 < x2)
+        sx := 1
+
+    sy := -1
+    if (y1 < y2)
+        sy := 1
+
+    repeat until ((x1 == x2) and (y1 == y2))
+        plot(x1, y1, c)
+        e2 := err << 1
+
+        if e2 > -ddy
+            err -= ddy
+            x1 += sx
+
+        if e2 < ddx
+            err += ddx
+            y1 += sy
+#endif
 
 PUB LockDisplay(mode)
 ' Lock the display controller from executing commands
@@ -477,13 +661,34 @@ PUB Phase3Period(clks)
     writereg(core.SETSECPRECHG, 1, @clks)
 
 #ifdef GFX_DIRECT
-PUB Plot(x, y, c)
+PUB Plot(x, y, c) | cmd_pkt[3]
 ' Draw a pixel, using the display's native/accelerated plot/pixel function
-    x := 0 #> x <# _disp_width-1
-    y := 0 #> y <# _disp_height-1
+    if (x >= 0 and x <= _disp_xmax) and (y >= 0 and y <= _disp_ymax)
+        cmd_pkt.byte[0] := core.SETCOLUMN       ' D/C L
+        cmd_pkt.byte[1] := x                    ' D/C H
+        cmd_pkt.byte[2] := x
+        cmd_pkt.byte[3] := core.SETROW          ' D/C L
+        cmd_pkt.byte[4] := y                    ' D/C H
+        cmd_pkt.byte[5] := y
+        cmd_pkt.byte[6] := core.WRITERAM        ' D/C L
+        cmd_pkt.byte[7] := c.byte[1]            ' D/C H
+        cmd_pkt.byte[8] := c.byte[0]
+        pinw(_DC, core.CMD)
+        pinl(_CS)
+        spi.wr_byte(cmd_pkt.byte[0])
+        pinw(_DC, core.DATA)
+        spi.wrblock_lsbf(@cmd_pkt.byte[1], 2)
 
-    displaybounds(x, y, x, y)
-    writereg(core.WRITERAM, 2, @c)
+        pinw(_DC, core.CMD)
+        spi.wr_byte(cmd_pkt.byte[3])
+        pinw(_DC, core.DATA)
+        spi.wrblock_lsbf(@cmd_pkt.byte[4], 2)
+
+        pinw(_DC, core.CMD)
+        spi.wr_byte(cmd_pkt.byte[6])
+        pinw(_DC, core.DATA)
+        spi.wrblock_lsbf(@cmd_pkt.byte[7], 2)
+        pinh(_CS)
 #endif
 
 PUB Powered(state)
@@ -530,14 +735,23 @@ PUB SubpixelOrder(order): curr_ord
 
 PUB Reset()
 ' Reset the display controller
-    pinh(_RES)
-    pinl(_RES)
-    waitus(2)
-    pinh(_RES)
+    if lookdown(_RES: 0..63)
+        pinh(_RES)
+        pinl(_RES)
+        waitus(2)
+        pinh(_RES)
 
 PUB Update()
 ' Send the draw buffer to the display
-    writereg(core.WRITERAM, _buff_sz, _ptr_drawbuffer)
+#ifndef GFX_DIRECT
+    pinw(_DC, core.CMD)
+    pinl(_CS)
+    spi.wr_byte(core.WRITERAM)
+    pinw(_DC, core.DATA)
+    spi.wrblock_lsbf(_ptr_drawbuffer, _buff_sz)
+    pinh(_CS)
+#endif
+
 
 PRI writeReg(reg_nr, nr_bytes, ptr_buff) | tmp
 ' Write nr_bytes to device from ptr_buff

@@ -2,18 +2,25 @@
     --------------------------------------------
     Filename: core.con.ssd1351.spin
     Author: Jesse Burt
-    Description: Low-level constants
+    Description: SSD1351-specific constants
     Copyright (c) 2021
     Started: Mar 11, 2020
-    Updated: Apr 7, 2021
+    Updated: Oct 17, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
+' SPI configuration
     SCK_MAX_FREQ            = 20_000_000
     SPI_MODE                = 0
+
+    T_POR                   = 300_000           ' uSec
+
+' D/C states
+    CMD                     = 0                 ' D/C low
+    DATA                    = 1                 ' D/C high
 
 ' Register map
     SETCOLUMN               = $15
