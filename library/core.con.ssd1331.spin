@@ -5,15 +5,20 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started: Nov 18, 2018
-    Updated: Apr 19, 2021
+    Updated: Oct 17, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
+' SPI configuration
     SCK_MAX_FREQ            = 6_666_666         ' According to the datasheet
     SPI_MODE                = 0
+
+' D/C states
+    CMD                     = 0
+    DATA                    = 1
 
 ' Register map
     DRAWLINE                = $21

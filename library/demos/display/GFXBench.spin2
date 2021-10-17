@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Started: Apr 10, 2021
-    Updated: Oct 16, 2021
+    Updated: Oct 17, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -26,7 +26,6 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
     int     : "string.integer"
     fnt     : "font.5x8"
 #ifdef SSD1306_I2C
@@ -114,6 +113,7 @@ VAR
 
     long _stack_timer[50]
     long _timer_set
+#ifndef GFX_DIRECT
 #ifdef SSD1306_I2C
     byte _framebuff[BUFFSZ]                     ' 1bpp
 #elseifdef SSD1306_SPI
@@ -123,6 +123,9 @@ VAR
     byte _framebuff[BUFFSZ]                     ' 8bpp
 #else
     word _framebuff[BUFFSZ]                     ' 16bpp
+#endif
+#else
+    byte _framebuff                             ' dummy var, for GFX_DIRECT
 #endif
 
 PUB Main() | time_ms, sz, maxsz, iteration, bench, ch, color
@@ -140,7 +143,7 @@ PUB Main() | time_ms, sz, maxsz, iteration, bench, ch, color
     disp.printf(string("P2X8C4M64P\n @%dMHz\n"), clkfreq/1_000_000)
     disp.printf(string("%dx%d"), WIDTH, HEIGHT)
     disp.update()
-    time.sleep(5)
+    waitms(5_000)
     disp.clearall()
 
     maxsz := WIDTH <# HEIGHT                    ' find smallest disp. dimension
@@ -247,6 +250,7 @@ PUB Main() | time_ms, sz, maxsz, iteration, bench, ch, color
             quit
 
     ser.strln(string("COMPLETE"))
+    disp.stop()
     repeat
 
 PRI Report(testtime, iterations)
