@@ -1,0 +1,323 @@
+{
+    --------------------------------------------
+    Filename: display.led.smart.spin2
+    Author: Jesse Burt
+    Description: Driver for various smart LED arrays
+    Copyright (c) 2021
+    Started Jun 13, 2021
+    Updated Oct 18, 2021
+    See end of file for terms of use.
+    --------------------------------------------
+}
+#define NEOPIXEL
+#define MEMMV_NATIVE longmove
+#include "lib.gfx.bitmap.spin2"
+
+CON
+
+    BYTESPERPX      = 4
+    MAX_COLOR       = 16_777_215
+
+    ' TH+TL should be 1250ns +/- 600ns
+    ' TH and TL each should be within 150ns of spec
+    WS2811          = $2811
+    WS2811_BITPER   = 1_250                     ' nsec
+
+    WS2811_T0H      = 250_000 -20_000           ' nsec
+    WS2811_T0L      = 1000_000 -120_000          '   (adjusted for overhead)
+    WS2811_T1H      = 600_000 -20_000
+    WS2811_T1L      = 650_000 -130_000
+    WS2811_TRES     = 50
+
+    ' TH+TL should be 1250ns +/- 600ns
+    ' TH and TL each should be within 150ns of spec
+    WS2812          = $2812
+    WS2812_BITPER   = 1_250                     ' nsec
+
+    WS2812_T0H      = 350_000 -20_000           ' nsec
+    WS2812_T0L      = 800_000 -120_000          '   (adjusted for overhead)
+    WS2812_T1H      = 700_000 -20_000
+    WS2812_T1L      = 600_000 -130_000
+    WS2812_TRES     = 50
+
+    ' TH+TL should be 1250ns +/- 600ns
+    ' TH and TL each should be within 150ns of spec
+    WS2812B         = $2812B
+    WS2812B_BITPER  = 1_250                     ' nsec
+
+    WS2812B_T0H     = 400_000 -20_000           ' nsec
+    WS2812B_T0L     = 850_000 -120_000          '   (adjusted for overhead)
+    WS2812B_T1H     = 800_000 -20_000
+    WS2812B_T1L     = 450_000 -130_000
+    WS2812B_TRES    = 50
+
+    ' TH+TL should be 1250ns +/- 300ns
+    ' TH and TL each should be within 150ns of spec
+    WS2813          = $2813
+    WS2813_BITPER   = 1_250                     ' nsec
+
+    WS2813_T0H      = 375_000 -20_000           ' nsec
+    WS2813_T0L      = 875_000 -120_000          '   (adjusted for overhead)
+    WS2813_T1H      = 875_000 -20_000
+    WS2813_T1L      = 375_000 -130_000
+    WS2813_TRES     = 300                       ' usec
+
+    ' TH+TL should be 1250ns +/- 600ns
+    ' TH and TL each should be within 150ns of spec
+    SK6812_24       = $6812_24
+    SK6812_32       = $6812_32
+    SK6812_BITPER   = 1_250                     ' nsec
+
+    SK6812_T0H      = 300_000 -20_000           ' nsec
+    SK6812_T0L      = 950_000 -120_000          '   (adjusted for overhead)
+    SK6812_T1H      = 600_000 -20_000
+    SK6812_T1L      = 650_000 -130_000
+    SK6812_TRES     = 80                        ' usec
+
+    ' TH+TL should be 1250ns +/- 600ns
+    ' TH and TL each should be within 150ns of spec
+    TM1803          = $1803
+    TM1803_BITPER   = 2_330                     ' nsec
+
+    TM1803_T0H      = 680_000 -20_000           ' nsec
+    TM1803_T0L      = 1360_000 -120_000         '   (adjusted for overhead)
+    TM1803_T1H      = 1360_000 -20_000
+    TM1803_T1L      = 680_000 -130_000
+    TM1803_TRES     = 24                        ' usec
+
+VAR
+
+    long _cog
+    long _ptr_drawbuffer, _buff_sz
+    long _disp_width, _disp_height, _disp_xmax, _disp_ymax
+    long _nr_pix
+    long _bytesperln
+    long _mdl_t0h, _mdl_t0l, _mdl_t1h, _mdl_t1l, _mdl_per, _mptr_update, _model
+    long _t0h, _t0l, _t1h, _t1l, _smled_pin, _tres
+
+PUB Startx(SMLED_PIN, WIDTH, HEIGHT, MODEL, PTR_DISP)
+' Start smart-LED engine
+'   Valid values:
+'       SMLED_PIN: I/O pin connected to smart-LED strip/array (0..63)
+'       WIDTH: strip/array width, in pixels (1..1024)
+'       HEIGHT: strip/array height, in pixels (1..1024)
+'       MODEL: See SetModel()
+'       PTR_DISP: pointer to display buffer
+'   NOTE: (WIDTH * HEIGHT) must be <= 1024
+'   NOTE: Minimum Fsys = 16MHz
+    if lookdown(SMLED_PIN: 0..63) and setmodel(MODEL) and {
+}   (WIDTH * HEIGHT) <= 1024
+        _smled_pin := SMLED_PIN
+        setmodel(MODEL)
+        address(PTR_DISP)
+        _disp_width := width
+        _disp_height := height
+        _disp_xmax := _disp_width - 1
+        _disp_ymax := _disp_height - 1
+        _buff_sz := _nr_pix := (WIDTH * HEIGHT)
+        _bytesperln := _disp_width * BYTESPERPX
+
+        pinl(_smled_pin)
+        return _cog := (cogid() + 1)
+    return FALSE
+
+PUB Stop()
+' Deinitialize engine
+    pinf(_smled_pin)
+    longfill(@_ptr_drawbuffer, 0, 22)
+
+PUB Address(addr)
+' Set address of display buffer
+    case addr
+        0..$7ffff:
+            _ptr_drawbuffer := addr
+        other:
+            return _ptr_drawbuffer
+
+PUB SetClock(freq) | bitper
+' Set clock frequency used to calculate timings
+'   Most strips operate at 800_000 (800kHz)
+    bitper := clkfreq / freq                    ' get bit period for freq
+    ' calculate T0 and T1 high and low periods
+    _t0h := (((_mdl_t0h / _mdl_per) * bitper) / 1_000)
+    _t0l := (((_mdl_t0l / _mdl_per) * bitper) / 1_000)
+    _t1h := (((_mdl_t1h / _mdl_per) * bitper) / 1_000)
+    _t1l := (((_mdl_t1l / _mdl_per) * bitper) / 1_000)
+
+PUB SetModel(model): curr_model
+' Set model of smart-LED array
+'   Valid values:
+'       WS2811 ($2811)
+'       WS2812 ($2812)
+'       WS2812B ($2812B)
+'       WS2813 ($2813)
+'       SK6812_24 ($6812_24)
+'       SK6812_32 ($6812_32)
+'       TM1803 ($1803)
+    case model
+        WS2811:
+            _mdl_t0h := WS2811_T0H
+            _mdl_t0l := WS2811_T0L
+            _mdl_t1h := WS2811_T1H
+            _mdl_t1l := WS2811_T1L
+            _mdl_per := WS2811_BITPER
+            _tres := WS2811_TRES
+            _mptr_update := @updatergb24
+        WS2812:
+            _mdl_t0h := WS2812_T0H
+            _mdl_t0l := WS2812_T0L
+            _mdl_t1h := WS2812_T1H
+            _mdl_t1l := WS2812_T1L
+            _mdl_per := WS2812_BITPER
+            _tres := WS2812_TRES
+            _mptr_update := @updategrb24
+        WS2812B:
+            _mdl_t0h := WS2812B_T0H
+            _mdl_t0l := WS2812B_T0L
+            _mdl_t1h := WS2812B_T1H
+            _mdl_t1l := WS2812B_T1L
+            _mdl_per := WS2812B_BITPER
+            _tres := WS2812B_TRES
+            _mptr_update := @updategrb24
+        WS2813:
+            _mdl_t0h := WS2813_T0H
+            _mdl_t0l := WS2813_T0L
+            _mdl_t1h := WS2813_T1H
+            _mdl_t1l := WS2813_T1L
+            _mdl_per := WS2813_BITPER
+            _tres := WS2813_TRES
+            _mptr_update := @updatergb24
+        SK6812_24:
+            _mdl_t0h := SK6812_T0H
+            _mdl_t0l := SK6812_T0L
+            _mdl_t1h := SK6812_T1H
+            _mdl_t1l := SK6812_T1L
+            _mdl_per := SK6812_BITPER
+            _tres := SK6812_TRES
+            _mptr_update := @updategrb24
+        SK6812_32:
+            _mdl_t0h := SK6812_T0H
+            _mdl_t0l := SK6812_T0L
+            _mdl_t1h := SK6812_T1H
+            _mdl_t1l := SK6812_T1L
+            _mdl_per := SK6812_BITPER
+            _tres := SK6812_TRES
+            _mptr_update := @updategrb32
+        TM1803:
+            _mdl_t0h := TM1803_T0H
+            _mdl_t0l := TM1803_T0L
+            _mdl_t1h := TM1803_T1H
+            _mdl_t1l := TM1803_T1L
+            _mdl_per := TM1803_BITPER
+            _tres := TM1803_TRES
+            _mptr_update := @updatergb24
+        other:
+            return _model
+    setclock(800_000)
+    return model
+
+PUB Update()
+' Send display buffer to smart-LED array
+'   Call method pointed to, set by SetModel()
+    _mptr_update()
+
+PUB UpdateGRB24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
+' Update G-R-B 24bpp smart-LED array
+    longmove(@t0h, @_t0h, 6)                    ' copy timings to local vars
+
+    repeat pix_nr from 0 to _nr_pix-1
+        color := long[_ptr_drawbuffer][pix_nr]  ' get current pixel color data
+        tmp := color.byte[3]
+        color.byte[3] := color.byte[2]          ' swap red, green bytes
+        color.byte[2] := tmp
+        repeat bit from 0 to 23
+            if (color rol= 1) & 1               ' move msb to lsb and isolate
+                asm
+                    drvh    smled_pin           ' 1-bit
+                    waitx   t1h
+                    drvl    smled_pin
+                    waitx   t1l
+                endasm
+            else
+                asm
+                    drvh    smled_pin           ' 0-bit
+                    waitx   t0h
+                    drvl    smled_pin
+                    waitx   t0l
+                endasm
+    pinl(smled_pin)                             ' reset code (end of array)
+    waitus(tres)
+
+PUB UpdateGRB32() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
+' Update G-R-B 32bpp smart-LED array
+    longmove(@t0h, @_t0h, 6)                    ' copy timings to local vars
+
+    repeat pix_nr from 0 to _nr_pix-1
+        color := long[_ptr_drawbuffer][pix_nr]  ' get current pixel color data
+        tmp := color.byte[3]
+        color.byte[3] := color.byte[2]          ' swap red, green bytes
+        color.byte[2] := tmp
+        repeat bit from 0 to 31
+            if (color rol= 1) & 1               ' move msb to lsb and isolate
+                asm
+                    drvh    smled_pin           ' 1-bit
+                    waitx   t1h
+                    drvl    smled_pin
+                    waitx   t1l
+                endasm
+            else
+                asm
+                    drvh    smled_pin           ' 0-bit
+                    waitx   t0h
+                    drvl    smled_pin
+                    waitx   t0l
+                endasm
+    pinl(smled_pin)                             ' reset code (end of array)
+    waitus(tres)
+
+PUB UpdateRGB24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit
+' Update R-G-B 24bpp smart-LED array
+    longmove(@t0h, @_t0h, 6)                    ' copy timings to local vars
+
+    repeat pix_nr from 0 to _nr_pix-1
+        color := long[_ptr_drawbuffer][pix_nr]  ' get current pixel color data
+        repeat bit from 0 to 23
+            if (color rol= 1) & 1               ' move msb to lsb and isolate
+                asm
+                    drvh    smled_pin           ' 1-bit
+                    waitx   t1h
+                    drvl    smled_pin
+                    waitx   t1l
+                endasm
+            else
+                asm
+                    drvh    smled_pin           ' 0-bit
+                    waitx   t0h
+                    drvl    smled_pin
+                    waitx   t0l
+                endasm
+    pinl(smled_pin)                             ' reset code (end of array)
+    waitus(tres)
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
+
