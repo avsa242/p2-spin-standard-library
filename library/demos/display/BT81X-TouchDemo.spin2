@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Demo of the BT81x driver touchscreen functionality
         (P2 version)
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Dec 31, 2020
-    Updated Dec 31, 2020
+    Updated Oct 18, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -187,12 +187,10 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if eve.start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
+    if eve.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
         ser.strln(string("BT81x driver started"))
     else
         ser.str(string("BT81x driver failed to start - halting"))
-        eve.stop()
-        waitms(500)
         repeat
 
 DAT
