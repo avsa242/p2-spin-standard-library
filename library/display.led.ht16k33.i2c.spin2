@@ -1,16 +1,17 @@
 {
     --------------------------------------------
-    Filename: display.led.ht16k33.i2c.spin
-    Description: Driver for HT16K33-based LED matrix displays
+    Filename: display.led.ht16k33.i2c.spin2
+    Description: Driver for HT16K33-based LED matrix displays (P2 version)
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Nov 22, 2020
-    Updated: May 18, 2021
+    Updated: Oct 18, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 #define HT16K33-ADAFRUIT
+#define MEMMV_NATIVE bytemove
 #include "lib.gfx.bitmap.spin2"
 
 CON

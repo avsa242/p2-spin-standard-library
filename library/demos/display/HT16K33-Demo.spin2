@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Nov 22, 2020
-    Updated: Apr 4, 2021
+    Updated: Oct 18, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -105,7 +105,7 @@ PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
     iteration := 0
 
     repeat while _timer_set
-        disp.bitmap(bitmap_addr, BUFFSZ, 0)
+        disp.bitmap(bitmap_addr, 0, 0, XMAX, YMAX)
         disp.update()
         iteration++
 
@@ -212,7 +212,7 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
         pos += 128
         if pos >end_addr
             pos := start_addr
-        disp.bitmap(pos, BUFFSZ, 0)
+        disp.bitmap(pos, 0, 0, XMAX, YMAX)
         disp.update()
         iteration++
 
