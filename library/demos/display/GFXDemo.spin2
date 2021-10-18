@@ -16,8 +16,8 @@
 '#define SSD1309
 '#define SSD1331
 '#define SSD1351
-#define ST7735
-'#define VGABITMAP8BPP
+'#define ST7735
+#define VGABITMAP8BPP
 
 ' Comment out this line to define custom I/O pins below
 ' or, uncomment to use MikroE Click I/O pin offset definitions

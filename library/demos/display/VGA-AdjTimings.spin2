@@ -13,7 +13,7 @@
 CON
 
     _xtlfreq        = cfg._xtlfreq
-    _clkfreq        = 250_000_000                           ' XXX Must be the same as that defined in the VGA driver (default 250MHz)
+    _clkfreq        = 250_000_000
 
     WIDTH           = 320
     HEIGHT          = 240

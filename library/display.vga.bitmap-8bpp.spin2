@@ -4,13 +4,14 @@
     Description: 8-bits per pixel bitmap VGA driver (320x240)
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Aug 20, 2021
+    Updated: Oct 18, 2021
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is based on raycast5b_SpinDisplay2a.spin2,
         originally written by Rayman/Ray Allen
 }
 #define VGABITMAP8BPP
+#define MEMMV_NATIVE bytemove
 #include "lib.gfx.bitmap.spin2"
 
 CON
