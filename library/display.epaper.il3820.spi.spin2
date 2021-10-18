@@ -1,0 +1,340 @@
+{
+    --------------------------------------------
+    Filename: display.electrophoretic.il3820.spi.spin2
+    Author: Jesse Burt
+    Description: Driver for the IL3820 electrophoretic display controller
+        (P2 version
+    Copyright (c) 2021
+    Started Jan 27, 2021
+    Updated Oct 18, 2021
+    See end of file for terms of use.
+    --------------------------------------------
+}
+#define IL38xx
+#define MEMMV_NATIVE bytemove
+#include "lib.gfx.bitmap.spin2"
+
+CON
+
+' Colors
+    BLACK       = 0
+    WHITE       = $FF
+    INVERT      = -1
+
+    MAX_COLOR   = 1
+    BYTESPERPX  = 1
+
+    MSB         = 1
+    LSB         = 0
+
+VAR
+
+    long _ptr_drawbuffer, _buff_sz
+    long _disp_width, _disp_height, _disp_xmax, _disp_ymax
+    word _bytesperln
+    byte _CS, _DC, _RESET, _BUSY
+    byte _shadow_regs[40]
+
+OBJ
+
+    spi : "com.spi.bitbang-fast"
+    core: "core.con.il3820"
+
+PUB Null()
+' This is not a top-level object
+
+PUB Startx(CS_PIN, CLK_PIN, DIN_PIN, DC_PIN, RST_PIN, BUSY_PIN, WIDTH, HEIGHT,{
+}   ptr_dispbuff, CLK_FREQ=1_000_000): status
+' Start using custom I/O pins
+    if lookdown(CS_PIN: 0..63) and lookdown(CLK_PIN: 0..63) and {
+}   lookdown(DIN_PIN: 0..63) and lookdown(DC_PIN: 0..63) and {
+}   lookdown(RST_PIN: 0..63) and lookdown(BUSY_PIN: 0..63)
+        if (status := spi.init(CLK_PIN, DIN_PIN, DIN_PIN, core.SPI_MODE, {
+}       CLK_FREQ))
+            _CS := CS_PIN
+            _DC := DC_PIN
+            _RESET := RST_PIN
+            _BUSY := BUSY_PIN
+
+            pinf(_BUSY)
+            pinh(_CS)
+            pinl(_DC)
+            pinh(_RESET)
+
+            _disp_width := WIDTH
+            _disp_height := HEIGHT
+            _disp_xmax := _disp_width-1
+            _disp_ymax := _disp_height-1
+            _buff_sz := _disp_width * ((_disp_height + 7) / 8)
+            _bytesperln := _disp_width * BYTESPERPX
+            address(ptr_dispbuff)
+            reset()
+            clearaccel()
+            return status
+    ' if this point is reached, something above failed
+    ' Double check I/O pin assignments, connections, power
+    ' Lastly - make sure you have at least one free core/cog
+    return FALSE
+
+PUB Stop()
+
+    spi.deinit()
+
+PUB Defaults()
+' Factory defaults
+    gatehighvoltage(22_000)
+    gatelowvoltage(-20_000)
+
+PUB Address(addr=-2)
+' Set framebuffer address
+    case addr
+        $0004..$7FFFF-_buff_sz:
+            _ptr_drawbuffer := addr
+        other:
+            return _ptr_drawbuffer
+
+PUB ClearAccel()
+' Clear the display immediately
+    bytefill(_ptr_drawbuffer, $FF, _buff_sz)
+    update()
+
+PUB DataEntryMode(mode)
+' Define data entry sequence
+'   Valid values:
+'       Bit %2_10
+'           2: Address counter update direction
+'              *0: X direction
+'               1: Y direction
+'           10: Increment/decrement address counter:
+'               00: Y dec, X dec
+'               01: Y dec, X inc
+'               10: Y inc, X dec
+'              *11: Y inc, X inc
+'   Any other value is ignored
+    case mode
+        %0_00..%1_11:
+        other:
+            return
+    writereg(core.DATA_ENT_MD, 1, @mode)
+
+PUB DisplayBounds(sx, sy, ex, ey) | x, y
+' Set drawable display region for subsequent drawing operations
+    x.byte[1] := ex >> 3
+    x.byte[0] := sx >> 3
+
+    y.byte[3] := ey.byte[1]
+    y.byte[2] := ey.byte[0]
+    y.byte[1] := sy.byte[1]
+    y.byte[0] := sy.byte[0]
+
+    writereg(core.RAM_X_ST_END, 2, @x)
+    writereg(core.RAM_Y_ST_END, 4, @y)
+
+PUB DisplayLines(lines) | tmp
+' Set total number of display lines
+    tmp.byte[0] := lines.byte[LSB]
+    tmp.byte[1] := lines.byte[MSB]
+    tmp.byte[2] := %000             ' 1=Interlaced LSB=MirrorV
+    writereg(core.DRIVER_OUT_CTRL, 3, @tmp)
+
+PUB DisplayReady(): flag
+' Flag indicating display is ready to accept commands
+'   Returns: TRUE (-1) if display is ready, FALSE (0) otherwise
+    return ((pinr(_BUSY) ^ 1) == 1)
+
+PUB DummyLinePeriod(period): curr_per
+' Set dummy line period, in units TGate (1 TGate = line width in uSec)
+    curr_per := 0
+    readreg(core.DUMMY_LINE_PER, 1, @curr_per)
+    case period
+        0..127:
+        other:
+            return curr_per
+
+    writereg(core.DUMMY_LINE_PER, 1, @period)
+
+PUB GateHighVoltage(voltage): curr_vlt
+' Set gate driving voltage (high level), in millivolts
+'   Valid values: 15_000..22_000 (default 22_000)
+'   Any other value returns the current setting
+    curr_vlt := 0
+    readreg(core.GATEDRV_VOLT_CTRL, 1, @curr_vlt)
+    case voltage
+        15_000..22_000:
+            voltage := ((voltage / 500) - 30) << core.VGH
+        other:
+            curr_vlt := (curr_vlt >> core.VGH) & core.VGH_BITS
+            return ((curr_vlt + 30) * 500)
+
+    voltage := ((curr_vlt & core.VGH_MASK) | voltage)
+    writereg(core.GATEDRV_VOLT_CTRL, 1, @voltage)
+
+PUB GateLineWidth(usec)
+' Set gate line width, in microseconds (figure TGate)
+'   Valid values: 30, 34, 38, 40, 44, 46, 52, 56, 62, 68, 78, 88, 104, 125, 156, 208
+'   Any other value is ignored
+    case usec
+        30, 34, 38, 40, 44, 46, 52, 56, 62, 68, 78, 88, 104, 125, 156, 208:
+            usec := lookdownz(usec: 30, 34, 38, 40, 44, 46, 52, 56, 62, 68, {
+}           78, 88, 104, 125, 156, 208)
+        other:
+            return
+
+    writereg(core.GATE_LINE_WIDTH, 1, @usec)
+
+PUB GateLowVoltage(voltage) | curr_vlt
+' Set gate driving voltage (low level), in millivolts
+'   Valid values: -20_000..-15_000 (default: -20_000)
+'   Any other value returns the current setting
+    curr_vlt := 0
+    readreg(core.GATEDRV_VOLT_CTRL, 1, @curr_vlt)
+    case voltage
+        -20_000..-15_000:
+            voltage := (abs(voltage) / 500) - 30
+        other:
+            curr_vlt &= core.VGL_BITS
+            return ((curr_vlt + 30) * 500) * -1
+
+    voltage := ((curr_vlt & core.VGL_MASK) | voltage)
+    writereg(core.GATEDRV_VOLT_CTRL, 1, @voltage)
+
+PUB Powered(state)
+' Enable display power
+'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Any other value is ignored
+    case abs(state)
+        0:
+            state := 0
+        1:
+            state := $FF
+        other:
+            return
+
+    writereg(core.DISP_UPDT_CTRL2, 1, @state)
+
+PUB Reset() | tmp
+' Reset the display controller
+'   2 HW Reset
+    pinl(_RESET)
+    waitms(200)
+    pinh(_RESET)
+    waitms(200)
+
+'   3
+    displaylines(_disp_height)                  ' MUX
+    gatehighvoltage(22_000)                     ' VGH
+    gatelowvoltage(-20_000)                     ' VGL
+    sourcevoltage(15_000)                       ' VSH/VSL
+    dummylineperiod(26)         
+    gatelinewidth(62)           
+    tmp.byte[0] := $D7
+    tmp.byte[1] := $D6
+    tmp.byte[2] := $9D
+    writereg(core.BOOST_SOFTST_CTRL, 3, @tmp)
+
+    tmp := $A8
+    writereg(core.WRITE_VCOM_REG, 1, @tmp)
+
+    dataentrymode(%0_11)
+
+    writelut(@lut_update)
+    repeat until displayready()
+    displaybounds(0, 0, _disp_width-1, _disp_height-1)
+    setxy(0, 0)
+
+PUB SetXY(x, y)
+' Set x, y coordinate for subsequent drawing operations
+    writereg(core.RAM_X_ADDR_AC, 1, @x)
+    writereg(core.RAM_Y_ADDR_AC, 2, @y)
+
+PUB SourceVoltage(voltage)
+' Set source drive level, in millivolts
+'   Valid values: 10_000..17_000
+'   Any other value is ignored
+    case voltage
+        10_000..17_000:
+            voltage := (voltage / 500) - 20
+        other:
+            return
+
+    writereg(core.SRCDRV_VOLT_CTRL, 1, @voltage)
+
+PUB Update() | tmp
+' Send the draw buffer to the display
+    displaybounds(0, 0, _disp_width-1, _disp_height-1)
+    setxy(0, 0)
+
+    repeat until displayready()
+
+    writereg(core.WRITE_RAM, _buff_sz, _ptr_drawbuffer)
+
+    tmp := core.SEQ_CLK_CP_EN | core.SEQ_PATT_DISP
+    writereg(core.DISP_UPDT_CTRL2, 1, @tmp)
+    writereg($20, 0, 0)
+    writereg(core.NOOP, 0, 0)
+
+    repeat until displayready()
+
+PUB WriteLUT(ptr_lut)
+' Write display-specific pixel waveform LookUp Table
+    writereg(core.WRITE_LUT_REG, 30, ptr_lut)
+
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | tmp
+' Read nr_bytes from shadow register to ptr_buff
+    case reg_nr
+        core.GATEDRV_VOLT_CTRL:
+            byte[ptr_buff][0] := _shadow_regs[core.SH_GATEDRV_VOLT_CTRL]
+        core.DUMMY_LINE_PER:
+            byte[ptr_buff][0] := _shadow_regs[core.SH_DUMMY_LINE_PER]
+        core.BOOST_SOFTST_CTRL:
+            repeat tmp from 0 to nr_bytes-1
+                byte[ptr_buff][tmp] := _shadow_regs[core.SH_BOOST_SOFTST_CTRL+tmp]
+        other:
+            return
+
+PRI writeReg(reg_nr, nr_bytes, ptr_buff)
+' Write nr_bytes from ptr_buff to device
+    case reg_nr
+        $01, $03, $04, $0C, $10, $11, $1A, $21, $22, $24, $2C, $32, $3A..$3C, {
+}       $44, $45, $4E, $4F:                     ' Commands w/data bytes
+            pinl(_CS)
+            pinl(_DC)                           ' D/C low = command
+            spi.wr_byte(reg_nr)
+            pinh(_DC)                           ' D/C high = data
+            spi.wrblock_lsbf(ptr_buff, nr_bytes)
+            pinh(_CS)
+        core.SWRESET, core.MASTER_ACT, core.NOOP:' Simple commands
+            pinl(_CS)
+            pinl(_DC)
+            spi.wr_byte(reg_nr)
+            pinh(_CS)
+        other:
+            return
+
+DAT
+
+    lut_update  byte    $02, $02, $01, $11, $12, $12, $22, $22, $66, $69
+                byte    $69, $59, $58, $99, $99, $88, $00, $00, $00, $00
+                byte    $F8, $B4, $13, $51, $35, $51, $51, $19, $01, $00
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
