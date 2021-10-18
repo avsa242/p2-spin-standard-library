@@ -5,11 +5,12 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Apr 26, 2018
-    Updated: Oct 4, 2021
+    Updated: Oct 18, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 #define SSD130X
+#define MEMMV_NATIVE bytemove
 #include "lib.gfx.bitmap.spin2"
 
 CON
