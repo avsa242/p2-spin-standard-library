@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: sensor.gyroscope.l3gd20h.i2c.spin
+    Filename: sensor.gyroscope.l3gd20h.i2c.spin2
     Author: Jesse Burt
-    Description: Driver for the ST L3GD20H 3DoF gyroscope
+    Description: Driver for the ST L3GD20H 3DoF gyroscope (P2 version)
     Copyright (c) 2021
     Started Jul 11, 2020
-    Updated Apr 29, 2021
+    Updated Oct 23, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,6 +15,7 @@ CON
     SLAVE_RD            = core.SLAVE_ADDR|1
 
     DEF_HZ              = 100_000
+    DEF_ADDR            = 0
     I2C_MAX_FREQ        = core.I2C_MAX_FREQ
 
 ' Indicate to user apps how many Degrees of Freedom each sub-sensor has
@@ -24,6 +25,14 @@ CON
     MAG_DOF             = 0
     BARO_DOF            = 0
     DOF                 = ACCEL_DOF + GYRO_DOF + MAG_DOF + BARO_DOF
+
+' Scales and data rates used during calibration/bias/offset process
+    CAL_XL_SCL          = 0
+    CAL_G_SCL           = 245
+    CAL_M_SCL           = 0
+    CAL_XL_DR           = 0
+    CAL_G_DR            = 100
+    CAL_M_DR            = 0
 
 ' Axis-specific constants
     X_AXIS              = 0
@@ -61,13 +70,14 @@ VAR
     long _CS
     long _gyro_cnts_per_lsb
     long _gbiasraw[3]
+    byte _addr_bits
 
 OBJ
 
 #ifdef L3GD20H_I2C
-    i2c : "com.i2c"                             ' I2C engine
+    i2c : "com.i2c"                             ' bitbanged I2C engine
 #elseifdef L3GD20H_SPI
-    spi : "com.spi.bitbang-fast"                ' SPI engine
+    spi : "com.spi.bitbang-fast"                ' bitbanged SPI engine
 #else
 #error "One of L3GD20H_I2C or L3GD20H_SPI must be defined"
 #endif
@@ -78,13 +88,14 @@ PUB Null()
 ' This is not a top-level object
 
 #ifdef L3GD20H_I2C
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=0): status
 ' Start using custom I/O pins and I2C bus speed (defaults to 100kHz)
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
-}       I2C_HZ <= core.I2C_MAX_FREQ
+}       I2C_HZ <= core.I2C_MAX_FREQ and lookdown(ADDR_BITS: 0, 1)
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitms(1)                           ' wait for device startup
-            if i2c.present(SLAVE_WR)            ' check device bus presence
+            _addr_bits := ADDR_BITS << 1
+            if i2c.present(SLAVE_WR | _addr_bits)' check device bus presence
                 if deviceid() == core.DEVID_RESP' validate device
                     return status
     ' if this point is reached, something above failed
@@ -146,31 +157,31 @@ PUB Preset_Normal()
                                                 ' needs to be called to set
                                                 ' scaling value hub var
 
-PUB AccelAxisEnabled(axis_mask)
+PUB AccelAxisEnabled(axis_mask=-2)
 ' Dummy method
 
-PUB AccelBias(x, y, z, rw)
+PUB AccelBias(x, y, z, rw=R)
 ' Dummy method
 
 PUB AccelData(x, y, z)
 ' Dummy method
 
-PUB AccelDataRate(Hz)
+PUB AccelDataRate(Hz=-2)
 ' Dummy method
 
 PUB AccelDataReady()
 ' Dummy method
 
-PUB AccelDataOverrun
+PUB AccelDataOverrun()
 ' Dummy method
 
 PUB AccelG(x, y, z)
 ' Dummy method
 
-PUB AccelScale(scale)
+PUB AccelScale(scale=-2)
 ' Dummy method
 
-PUB BlockUpdateEnabled(state): curr_state
+PUB BlockUpdateEnabled(state=-2): curr_state
 ' Enable block updates
 '   Valid values:
 '      *FALSE (0): Update gyro data outputs continuously
@@ -190,38 +201,43 @@ PUB BlockUpdateEnabled(state): curr_state
 PUB Calibrate()
 ' Dummy method
 
-PUB CalibrateGyro() | gbiasrawtmp[3], axis, gx, gy, gz, nr_samples
-' Calibrate the Gyroscope
-' Turn on FIFO and set threshold to 31 samples
-    fifoenabled(true)
-    fifomode(FIFO)
-    fifothreshold(31)                           ' set, confirm setting and use
-    nr_samples := fifothreshold(-2)             ' as number of samples to avg
-    repeat until fifofull()                     ' wait until FIFO filled
-    longfill(@gbiasrawtmp, 0, 3)                ' initialize temp vars to 0
-    gyrobias(0, 0, 0, W)                        ' Clear out the existing bias;
-                                                '   otherwise it accumulates
+PUB CalibrateGyro() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[GYRO_DOF], samples
+' Calibrate the gyroscope
+    longfill(@axis, 0, 10)                      ' initialize vars to 0
+    orig_scl := gyroscale(-2)                   ' save user's current settings
+    orig_dr := gyrodatarate(-2)
+    gyrobias(0, 0, 0, W)                        ' clear existing bias
 
-    repeat nr_samples                           ' Read FIFO samples
-        gyrodata(@gx, @gy, @gz)
-        gbiasrawtmp[X_AXIS] += gx               ' Accumulate, for each axis
-        gbiasrawtmp[Y_AXIS] += gy
-        gbiasrawtmp[Z_AXIS] += gz
+    ' set sensor to CAL_G_SCL range, CAL_G_DR Hz data rate
+    gyroscale(CAL_G_SCL)
+    gyrodatarate(CAL_G_DR)
+    samples := CAL_G_DR                         ' samples = DR, for 1 sec time
 
-    ' average the sample data for each axis and update the offsets
-    gyrobias(gbiasrawtmp[X_AXIS]/nr_samples, gbiasrawtmp[Y_AXIS]/nr_samples, {
-}   gbiasrawtmp[Z_AXIS]/nr_samples, W)
-    fifoenabled(false)                          ' Turn the FIFO back off
-    fifomode(BYPASS)
+    ' accumulate and average approx. 1sec worth of samples
+    repeat samples
+        repeat until gyrodataready()
+        gyrodata(@tmpx, @tmpy, @tmpz)
+        tmp[X_AXIS] += tmpx
+        tmp[Y_AXIS] += tmpy
+        tmp[Z_AXIS] += tmpz
 
-PUB CalibrateMag(samples)
+    repeat axis from X_AXIS to Z_AXIS           ' calc avg
+        tmp[axis] /= samples
+
+    ' update offsets
+    gyrobias(tmp[X_AXIS], tmp[Y_AXIS], tmp[Z_AXIS], W)
+
+    gyroscale(orig_scl)                         ' restore user's settings
+    gyrodatarate(orig_dr)
+
+PUB CalibrateMag()
 ' Dummy method
 
 PUB CalibrateXLG()
 
     calibrategyro()
 
-PUB DataByteOrder(order): curr_ord
+PUB DataByteOrder(order=-2): curr_ord
 ' Set byte order of gyro data
 '   Valid values:
 '      *LSBFIRST (0), MSBFIRST (1)
@@ -243,7 +259,7 @@ PUB DeviceID(): id
 ' Read device identification
     readreg(core.WHO_AM_I, 1, @id)
 
-PUB FIFOEnabled(state): curr_state
+PUB FIFOEnabled(state=-2): curr_state
 ' Enable FIFO for gyro data
 '   Valid values:
 '      *FALSE (0): FIFO disabled
@@ -272,7 +288,7 @@ PUB FIFOFull(): flag
     readreg(core.FIFO_SRC, 1, @flag)
     return (((flag >> core.FTH) & 1) == 1)
 
-PUB FIFOMode(mode): curr_mode
+PUB FIFOMode(mode=-2): curr_mode
 ' Set FIFO operation mode
 '   Valid values:
 '      *BYPASS (0)
@@ -293,7 +309,7 @@ PUB FIFOMode(mode): curr_mode
     mode := ((curr_mode & core.FM_MASK) | mode)
     writereg(core.FIFO_CTRL, 1, @mode)
 
-PUB FIFOThreshold(level): curr_lvl
+PUB FIFOThreshold(level=-2): curr_lvl
 ' Set FIFO threshold level
 '   Valid values: 0..31
 '   Any other value polls the chip and returns the current setting
@@ -312,7 +328,7 @@ PUB FIFOUnreadSamples(): nr_samples
     readreg(core.FIFO_SRC, 1, @nr_samples)
     return nr_samples & core.FSS_BITS
 
-PUB GyroAxisEnabled(mask): curr_mask
+PUB GyroAxisEnabled(mask=-2): curr_mask
 ' Enable gyroscope individual axes, by mask
 '   Valid values:
 '       0: Disable axis, 1: Enable axis
@@ -329,7 +345,7 @@ PUB GyroAxisEnabled(mask): curr_mask
     mask := ((curr_mask & core.XYZEN_MASK) | mask)
     writereg(core.CTRL1, 1, @mask)
 
-PUB GyroBias(gxbias, gybias, gzbias, rw)
+PUB GyroBias(gxbias, gybias, gzbias, rw=R)
 ' Read or write/manually set Gyroscope calibration offset values
 '   Valid values:
 '       rw:
@@ -364,9 +380,9 @@ PUB GyroData(ptr_x, ptr_y, ptr_z) | tmp[2]
     bytefill(@tmp, 0, 8)
     readreg(core.OUT_X_L, 6, @tmp)
 
-    long[ptr_x] := (~~tmp.word[X_AXIS]) - _gbiasraw[X_AXIS]
-    long[ptr_y] := (~~tmp.word[Y_AXIS]) - _gbiasraw[Y_AXIS]
-    long[ptr_z] := (~~tmp.word[Z_AXIS]) - _gbiasraw[Z_AXIS]
+    long[ptr_x] := (tmp.word[X_AXIS] signx 15) - _gbiasraw[X_AXIS]
+    long[ptr_y] := (tmp.word[Y_AXIS] signx 15) - _gbiasraw[Y_AXIS]
+    long[ptr_z] := (tmp.word[Z_AXIS] signx 15) - _gbiasraw[Z_AXIS]
 
 PUB GyroDataOverrun(): flag
 ' Indicates previously acquired data has been overwritten
@@ -375,7 +391,7 @@ PUB GyroDataOverrun(): flag
     readreg(core.STATUS, 1, @flag)
     flag := (((flag >> core.ZYXOR) & 1) == 1)
 
-PUB GyroDataRate(rate): curr_rate
+PUB GyroDataRate(rate=-2): curr_rate
 ' Set rate of data output, in rate
 '   Valid values: *100, 200, 400, 800
 '   Any other value polls the chip and returns the current setting
@@ -403,11 +419,14 @@ PUB GyroDPS(ptr_x, ptr_y, ptr_z) | tmp[2]
 '   Returns: Angular rate in millionths of a degree per second
     bytefill(@tmp, 0, 8)
     readreg(core.OUT_X_L, 6, @tmp)
-    long[ptr_x] := (~~tmp.word[X_AXIS] - _gbiasraw[X_AXIS]) * _gyro_cnts_per_lsb
-    long[ptr_y] := (~~tmp.word[Y_AXIS] - _gbiasraw[Y_AXIS]) * _gyro_cnts_per_lsb
-    long[ptr_z] := (~~tmp.word[Z_AXIS] - _gbiasraw[Z_AXIS]) * _gyro_cnts_per_lsb
+    long[ptr_x] := ((tmp.word[X_AXIS] signx 15) - _gbiasraw[X_AXIS]) {
+}   * _gyro_cnts_per_lsb
+    long[ptr_y] := ((tmp.word[Y_AXIS] signx 15) - _gbiasraw[Y_AXIS]) {
+}   * _gyro_cnts_per_lsb
+    long[ptr_z] := ((tmp.word[Z_AXIS] signx 15) - _gbiasraw[Z_AXIS]) {
+}   * _gyro_cnts_per_lsb
 
-PUB GyroOpMode(mode): curr_mode | tmp_xyz
+PUB GyroOpMode(mode=-2): curr_mode | tmp_xyz
 ' Set operation mode
 '   Valid values:
 '      *POWERDOWN (0): Power down - lowest power state
@@ -437,7 +456,7 @@ PUB GyroOpMode(mode): curr_mode | tmp_xyz
 
     writereg(core.CTRL1, 1, @mode)
 
-PUB GyroScale(scale): curr_scale
+PUB GyroScale(scale=-2): curr_scale
 ' Set gyro full-scale range, in degrees per second
 '   Valid values: *245, 500, 2000
 '   Any other value polls the chip and returns the current setting
@@ -454,7 +473,7 @@ PUB GyroScale(scale): curr_scale
     scale := ((curr_scale & core.FS_MASK) | scale)
     writereg(core.CTRL4, 1, @scale)
 
-PUB HighPassFilterEnabled(state): curr_state
+PUB HighPassFilterEnabled(state=-2): curr_state
 ' Enable high-pass filter for gyro data
 '   Valid values:
 '      *FALSE (0): High-pass filter disabled
@@ -471,7 +490,7 @@ PUB HighPassFilterEnabled(state): curr_state
     state := ((curr_state & core.HPEN_MASK) | state)
     writereg(core.CTRL5, 1, @state)
 
-PUB HighPassFilterFreq(freq): curr_freq
+PUB HighPassFilterFreq(freq=-2): curr_freq
 ' Set high-pass filter frequency, in Hz
 '    Valid values:
 '       If ODR=100Hz: *8_00, 4_00, 2_00, 1_00, 0_50, 0_20, 0_10, 0_05, 0_02, 0_01
@@ -523,7 +542,7 @@ PUB HighPassFilterFreq(freq): curr_freq
     freq := ((curr_freq & core.HPCF_MASK) | freq)
     writereg(core.CTRL2, 1, @freq)
 
-PUB HighPassFilterMode(mode): curr_mode
+PUB HighPassFilterMode(mode=-2): curr_mode
 ' Set data output high pass filter mode
 '   Valid values:
 '      *HPF_NORMAL_RES (0): Normal mode (reset reading HP_RESET_FILTER) XXX - clarify/expand
@@ -542,7 +561,7 @@ PUB HighPassFilterMode(mode): curr_mode
     mode := ((curr_mode & core.HPM_MASK) | mode)
     writereg(core.CTRL2, 1, @mode)
 
-PUB Int1Mask(mask): curr_mask
+PUB Int1Mask(mask=-2): curr_mask
 ' Set interrupt mask for INT1 pin
 '   Valid values:
 '       Bit 10   10
@@ -561,7 +580,7 @@ PUB Int1Mask(mask): curr_mask
     mask := ((curr_mask & core.INT1_MASK) | mask)
     writereg(core.CTRL3, 1, @mask)
 
-PUB Int2Mask(mask): curr_mask
+PUB Int2Mask(mask=-2): curr_mask
 ' Set interrupt/function mask for INT2 pin
 '   Valid values:
 '       Bit 3210   3210
@@ -581,7 +600,7 @@ PUB Int2Mask(mask): curr_mask
     mask := ((curr_mask & core.INT2_MASK) | mask)
     writereg(core.CTRL3, 1, @mask)
 
-PUB IntActiveState(state): curr_state
+PUB IntActiveState(state=-2): curr_state
 ' Set active state for interrupts
 '   Valid values: *INTLVL_LOW (0), INTLVL_HIGH (1)
 '   Any other value polls the chip and returns the current setting
@@ -599,10 +618,10 @@ PUB IntActiveState(state): curr_state
 PUB Interrupt()
 ' Dummy method
 
-PUB IntMask(func_mask)
+PUB IntMask(func_mask=-2)
 ' Dummy method
 
-PUB IntOutputType(type): curr_type
+PUB IntOutputType(type=-2): curr_type
 ' Set interrupt pin output type
 '   Valid values:
 '      *INT_PP (0): Push-pull
@@ -619,13 +638,13 @@ PUB IntOutputType(type): curr_type
     type := ((curr_type & core.PP_OD_MASK) | type)
     writereg(core.CTRL3, 1, @type)
 
-PUB MagBias(x, y, z, rw)
+PUB MagBias(x, y, z, rw=R)
 ' Dummy method
 
 PUB MagData(x, y, z)
 ' Dummy method
 
-PUB MagDataRate(hz)
+PUB MagDataRate(hz=-2)
 ' Dummy method
 
 PUB MagDataReady()
@@ -634,10 +653,10 @@ PUB MagDataReady()
 PUB MagGauss(x, y, z)
 ' Dummy method
 
-PUB MagScale(scale)
+PUB MagScale(scale=-2)
 ' Dummy method
 
-PUB OpMode(mode)
+PUB OpMode(mode=-2)
 ' Dummy method
 
 PUB Reset() | tmp
@@ -649,7 +668,7 @@ PUB Temperature(): temp_adc
 ' Read device temperature
     readreg(core.OUT_TEMP, 1, @temp_adc)
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from the slave device into ptr_buff
     case reg_nr                                 ' validate reg #
         $0F, $20..$27, $2E..$39:
@@ -670,17 +689,17 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
     spi.rdblock_lsbf(ptr_buff, nr_bytes)
     pinh(_CS)
 #elseifdef L3GD20H_I2C
-    cmd_pkt.byte[0] := SLAVE_WR
+    cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
     cmd_pkt.byte[1] := reg_nr
     i2c.start()
     i2c.wrblock_lsbf(@cmd_pkt, 2)
     i2c.start()
-    i2c.wr_byte(SLAVE_RD)
+    i2c.wr_byte(SLAVE_RD | _addr_bits)
     i2c.rdblock_lsbf(ptr_buff, nr_bytes, TRUE)
     i2c.stop()
 #endif
 
-PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Write num_bytes to the slave device from the address stored in ptr_buff
     case reg_nr                                 ' validate reg #
         $20..$25, $2E, $30, $32..$39:
@@ -691,7 +710,7 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
             spi.wrblock_lsbf(ptr_buff, nr_bytes)
             pinh(_CS)
 #elseifdef L3GD20H_I2C
-            cmd_pkt.byte[0] := SLAVE_WR
+            cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
             cmd_pkt.byte[1] := reg_nr
             i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 2)
