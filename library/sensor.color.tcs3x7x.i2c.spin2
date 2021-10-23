@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2021
     Started: Jun 24, 2018
-    Updated: May 15, 2021
+    Updated: Oct 23, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -76,7 +76,7 @@ PUB Defaults()
     powered(FALSE)
     integrationtime(2_400)
     waittime(2_400)
-    intthreshold(0, 0)
+    intthresh(0, 0)
     persistence(0)
     waitlongtimer(FALSE)
     gain(1)
@@ -197,7 +197,7 @@ PUB IntsEnabled(state=-2): curr_state
     state := ((curr_state & core.AIEN_MASK) | state) & core.ENABLE_MASK
     writereg(core.ENABLE, 1, @state)
 
-PUB IntThreshold(low, high): curr_thr | tmp
+PUB IntThresh(low, high): curr_thr | tmp
 ' Sets low and high thresholds for triggering an interrupt
 '   Valid values: 0..65535 for both low and high thresholds
 '   Any other value polls the chip and returns the current setting
