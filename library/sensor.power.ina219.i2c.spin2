@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2021
     Started Sep 18, 2019
-    Updated Aug 20, 2021
+    Updated Oct 23, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -157,8 +157,14 @@ PUB BusVoltageRange(range=-2): curr_rng
     range := ((curr_rng & core.BRNG_MASK) | range) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @range)
 
-PUB CurrentBias(val=-2): curr_val
-' Set calibration value, used in current calculation
+PUB Current(): a
+' Read current
+'   Returns: Current in milliamps
+    readreg(core.CURRENT, 2, @a)
+    return (a signx 15)
+
+PUB CurrentScale(val=-2): curr_val
+' Set current scale, in LSBs
 '   Valid values: *0..65534 (even numbers only)
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Current and power readings will always be 0,
@@ -171,12 +177,6 @@ PUB CurrentBias(val=-2): curr_val
             curr_val := 0
             readreg(core.CALIBRATION, 2, @curr_val)
             return
-
-PUB Current(): a
-' Read current
-'   Returns: Current in milliamps
-    readreg(core.CURRENT, 2, @a)
-    return ~~a
 
 PUB DeviceID(): id
 ' Read device ID
