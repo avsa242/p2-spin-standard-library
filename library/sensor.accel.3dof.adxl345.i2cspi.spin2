@@ -6,11 +6,19 @@
         (P2 version)
     Copyright (c) 2021
     Started Mar 14, 2020
-    Updated Aug 31, 2021
+    Updated Oct 23, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
-
+' preprocessor doesn't support AND/OR, so workaround this by defining an SPI
+'   symbol generic to either the 3-wire or 4-wire variant, to simplify the
+'   #ifdef'd code in the driver
+#ifdef ADXL345_SPI3W
+#define ADXL345_SPI
+#endif
+#ifdef ADXL345_SPI4W
+#define ADXL345_SPI
+#endif
 CON
 
 ' Constants used for I2C mode only
@@ -109,9 +117,27 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): status
     ' Double check I/O pin assignments, connections, power
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
-#elseifdef ADXL345_SPI
+#elseifdef ADXL345_SPI3W
+PUB Startx(CS_PIN, SCL_PIN, SDIO_PIN, SCL_FREQ=1_000_000): status
+' Start using custom I/O pin settings (SPI-3 wire, default 1MHz)
+    if lookdown(CS_PIN: 0..63) and lookdown(SCL_PIN: 0..63) and {
+}   lookdown(SDIO_PIN: 0..63) and SCL_FREQ <= core.SPI_MAX_FREQ
+        if (status := spi.init(SCL_PIN, SDIO_PIN, SDIO_PIN, core.SPI_MODE, {
+}       SCL_FREQ))
+            waitus(core.T_POR)
+            _CS := CS_PIN
+
+            pinh(_CS)                           ' ensure CS starts high
+            spimode(3)
+            if deviceid() == core.DEVID_RESP
+                return status
+    ' if this point is reached, something above failed
+    ' Double check I/O pin assignments, connections, power
+    ' Lastly - make sure you have at least one free core/cog
+    return FALSE
+#elseifdef ADXL345_SPI4W
 PUB Startx(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_FREQ=1_000_000): status
-' Start using custom I/O pin settings (SPI, default 1MHz)
+' Start using custom I/O pin settings (SPI-4 wire, default 1MHz)
     if lookdown(CS_PIN: 0..63) and lookdown(SCL_PIN: 0..63) and {
 }   lookdown(SDA_PIN: 0..63) and lookdown(SDO_PIN: 0..63) and {
 }   SCL_FREQ <= core.SPI_MAX_FREQ
@@ -121,6 +147,7 @@ PUB Startx(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SCL_FREQ=1_000_000): status
             _CS := CS_PIN
 
             pinh(_CS)                           ' ensure CS starts high
+            spimode(4)
             if deviceid() == core.DEVID_RESP
                 return status
     ' if this point is reached, something above failed
@@ -208,12 +235,15 @@ PUB AccelBias(bias_x, bias_y, bias_z, rw=R) | tmp
             case bias_x
                 -128..127:
                 other:
+                    return                      ' out of range
             case bias_y
                 -128..127:
                 other:
+                    return                      ' out of range
             case bias_z
                 -128..127:
                 other:
+                    return                      ' out of range
             writereg(core.OFSX, 1, @bias_x)
             writereg(core.OFSY, 1, @bias_y)
             writereg(core.OFSZ, 1, @bias_z)
@@ -817,6 +847,21 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
     spi.rdblock_lsbf(ptr_buff, nr_bytes)
     pinh(_CS)
 #endif
+
+PRI spiMode(mode): curr_mode
+' Set SPI interface mode
+'   Valid values:
+'       3: 3-wire SPI
+'       4: 4-wire SPI
+    case mode
+        3:
+            mode := 1 << core#SPI
+        4:
+            mode := 0
+        other:
+            return
+    writereg(core#DATA_FORMAT, 1, @mode)
+
 
 PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Write nr_bytes from ptr_buff to slave device

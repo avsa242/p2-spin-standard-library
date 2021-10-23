@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: ADXL345-ClickDemo.spin2
+    Filename: ADXL345-InactivityDemo.spin2
     Author: Jesse Burt
     Description: Demo of the ADXL345 driver
-        click-detection functionality (P2 version)
+        Inactivity interrupt functionality (P2 version)
     Copyright (c) 2021
-    Started May 30, 2021
+    Started Aug 29, 2021
     Updated Sep 28, 2021
     See end of file for terms of use.
     --------------------------------------------
@@ -23,11 +23,15 @@ CON
     CS_PIN      = 8                             ' SPI
     SCL_PIN     = 9                             ' SPI, I2C
     SDA_PIN     = 10                            ' SPI, I2C
-    SDO_PIN     = 11                            ' SPI
+    SDO_PIN     = 11                            ' SPI (4-wire only)
     I2C_HZ      = 400_000                       ' I2C (max: 400_000)
     SPI_HZ      = 5_000_000                     ' SPI (max: 5_000_000)
     ADDR_BITS   = 0                             ' I2C
 ' --
+
+    DAT_X_COL   = 20
+    DAT_Y_COL   = DAT_X_COL + 15
+    DAT_Z_COL   = DAT_Y_COL + 15
 
 OBJ
 
@@ -35,56 +39,44 @@ OBJ
     ser     : "com.serial.terminal.ansi"
     accel   : "sensor.accel.3dof.adxl345.i2cspi"
 
-VAR
-
-    long _showclk_stack[60]
-    long _s_cnt, _d_cnt
-    long _click_src, _dclicked, _sclicked
-    long _dc_wind
-
-PUB Main()
+PUB Main() | i, x, y, z
 
     setup()
-    accel.preset_clickdet()                     ' preset settings for
-'                                               ' click-detection
-    _s_cnt := _d_cnt := 0
-    _dc_wind := accel.doubleclickwindow(-2) / 1000
+    accel.preset_active()                       ' default settings, but enable
+                                                ' sensor data acquisition and
+                                                ' set scale factor
+    accel.actinactlink(TRUE)
+    accel.actthresh(0_500000)
+    accel.inactthresh(0_125000)
+    accel.inacttime(3)
+    accel.actaxisenabled(%110)
+    accel.inactaxisenabled(%110)
+    accel.intmask(accel.ACTIVITY | accel.INACTIVITY)
+    accel.autosleep(TRUE)
+    accel.calibrateaccel()
+
+    ser.printf(string("ActThresh(): %d\n"), accel.actthresh(-2))
+    ser.printf(string("InactThresh(): %d\n"), accel.inactthresh(-2))
+    ser.printf(string("InactTime(): %d\n"), accel.inacttime(-2))
+    ser.printf(string("AutoSleep(): %d\n"), accel.autosleep(-2))
+    ser.str(string("ActAxisEnabled() (%XYZ): %"))
+    ser.bin(accel.actaxisenabled(-2), 3)
+    ser.newline()
+    ser.str(string("InactAxisEnabled() (%XYZ): %"))
+    ser.bin(accel.inactaxisenabled(-2), 3)
+    ser.newline()
+    ser.strln(string("Move the sensor to awaken it."))
+    ser.strln(string("This can be done again, once it reports INACTIVE."))
+
     repeat
-        repeat until _click_src := accel.clickedint()
-
-        _dclicked := (_click_src & 1)
-        _sclicked := ((_click_src >> 1) & 1)
-        if _dclicked
-            _click_src := 0
-            _d_cnt++
-            next
-        if _sclicked
-            _click_src := 0
-            _s_cnt++
-
-PRI cog_ShowClickStatus()
-' Secondary cog to display click status
-    repeat
-        ser.position(0, 3)
-        ser.printf(string("Double-clicked:  %s (%d)\n"), yesno(_dclicked), _d_cnt)
-        ser.printf(string("Single-clicked:  %s (%d)\n"), yesno(_sclicked), _s_cnt)
-        _dclicked := _sclicked := false
-
-        ' wait for double-click window time to elapse, so the display doesn't
-        '   update too fast to be seen
-        waitms(_dc_wind)
-
-PRI YesNo(val): resp
-' Return pointer to string "Yes" or "No" depending on value called with
-    case abs(val)
-        0:
-            return string("No ")
-        1:
-            return string("Yes")
+        i := accel.interrupt()
+        if i & accel.INACTIVITY
+            ser.strln(string("INACTIVE"))
+        if i & accel.ACTIVITY
+            ser.strln(string("ACTIVE"))
 
 PUB Setup()
 
-    longfill(@_showclk_stack, 0, 65)
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
@@ -103,8 +95,6 @@ PUB Setup()
     else
         ser.strln(string("ADXL345 driver failed to start - halting"))
         repeat
-
-    cogspin(NEWCOG, cog_showclickstatus(), @_showclk_stack)
 
 DAT
 {

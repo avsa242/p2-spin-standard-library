@@ -6,12 +6,10 @@
         (P2 version)
     Copyright (c) 2021
     Started Mar 14, 2020
-    Updated Aug 9, 2021
+    Updated Sep 28, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
-#define ADXL345_I2C
-'#define ADXL345_SPI
 
 CON
 
@@ -22,10 +20,10 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    CS_PIN      = 0                             ' SPI
-    SCL_PIN     = 1                             ' SPI, I2C
-    SDA_PIN     = 2                             ' SPI, I2C
-    SDO_PIN     = 3                             ' SPI
+    CS_PIN      = 8                             ' SPI
+    SCL_PIN     = 9                             ' SPI, I2C
+    SDA_PIN     = 10                            ' SPI, I2C
+    SDO_PIN     = 11                            ' SPI (4-wire only)
     I2C_HZ      = 400_000                       ' I2C (max: 400_000)
     SPI_HZ      = 5_000_000                     ' SPI (max: 5_000_000)
     ADDR_BITS   = 0                             ' I2C
@@ -40,11 +38,7 @@ OBJ
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     int     : "string.integer"
-#ifdef ADXL345_I2C
-    accel   : "sensor.accel.3dof.adxl345.i2c"
-#elseifdef ADXL345_SPI
-    accel   : "sensor.accel.3dof.adxl345.spi"
-#endif
+    accel   : "sensor.accel.3dof.adxl345.i2cspi"
 
 PUB Main()
 
@@ -115,12 +109,15 @@ PUB Setup()
 #ifdef ADXL345_I2C
     if accel.startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS)
         ser.strln(string("ADXL345 driver started (I2C)"))
-#elseifdef ADXL345_SPI
+#elseifdef ADXL345_SPI3W
+    if accel.startx(CS_PIN, SCL_PIN, SDA_PIN, SPI_HZ)
+        ser.strln(string("ADXL345 driver started (SPI-3 wire)"))
+#elseifdef ADXL345_SPI4W
     if accel.startx(CS_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SPI_HZ)
-        ser.strln(string("ADXL345 driver started (SPI)"))
+        ser.strln(string("ADXL345 driver started (SPI-4 wire)"))
 #endif
     else
-        ser.str(string("ADXL345 driver failed to start - halting"))
+        ser.strln(string("ADXL345 driver failed to start - halting"))
         repeat
 
 DAT
