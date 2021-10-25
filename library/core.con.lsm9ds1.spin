@@ -5,17 +5,26 @@
     Description: LSM9DS1 low-level constants
     Copyright (c) 2021
     Started Feb 9, 2019
-    Updated Jun 5, 2021
+    Updated Oct 2, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
+' I2C Configuration
+    I2C_MAX_FREQ            = 400_000                   ' device max I2C bus freq
+    SLAVE_ADDR_XLG          = $6A << 1                  ' 7-bit format slave address
+    SLAVE_ADDR_MAG          = $1C << 1
+    T_POR                   = 1_000                     ' startup time (usecs)
+    MB_I2C                  = 1 << 7
+
 ' SPI Configuration
     SPI_MODE                = 3
-    SCK_MAX_FREQ            = 10_000_000
+    SPI_MAX_FREQ            = 10_000_000
 
     TPOR                    = 110_000           ' usec
+    MS_SPI                  = 1 << 6
+
     WHOAMI_AG_RESP          = $68
     WHOAMI_M_RESP           = $3D
     WHOAMI_BOTH_RESP        = (WHOAMI_AG_RESP << 8) | WHOAMI_M_RESP
@@ -123,14 +132,14 @@ CON
 
     CTRL_REG5_XL            = $1F
     CTRL_REG5_XL_MASK       = $F8
-        DEC_1               = 7
+        DEC_1               = 7 'xxx combine
         DEC_0               = 6
         ZEN_XL              = 5
         YEN_XL              = 4
         XEN_XL              = 3
         EN_XL               = 3
         EN_XL_BITS          = %111
-        DEC_1_MASK          = (1 << DEC_1) ^ CTRL_REG5_XL_MASK
+        DEC_1_MASK          = (1 << DEC_1) ^ CTRL_REG5_XL_MASK  'xxx combine
         DEC_0_MASK          = (1 << DEC_0) ^ CTRL_REG5_XL_MASK
         ZEN_XL_MASK         = (1 << ZEN_XL) ^ CTRL_REG5_XL_MASK
         YEN_XL_MASK         = (1 << YEN_XL) ^ CTRL_REG5_XL_MASK
@@ -222,6 +231,7 @@ CON
 
 
     STATUS_REG_1            = $27
+
     OUT_X_L_XL              = $28
     OUT_X_H_XL              = $29
     OUT_Y_L_XL              = $2A
