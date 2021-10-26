@@ -43,12 +43,12 @@ CON
         SEGREMAP            = 1
         ADDRINC             = 0
         COLORFMT_BITS       = %11
-        ADDRINC_MASK        = (1 << ADDRINC) ^ SETREMAP_MASK
-        SEGREMAP_MASK       = (1 << SEGREMAP) ^ SETREMAP_MASK
-        SUBPIX_ORDER_MASK   = (1 << SUBPIX_ORDER) ^ SETREMAP_MASK
-        COMREMAP_MASK       = (1 << COMREMAP) ^ SETREMAP_MASK
-        COMSPLIT_MASK       = (1 << COMSPLIT) ^ SETREMAP_MASK
         COLORFMT_MASK       = (COLORFMT_BITS << COLORFMT) ^ SETREMAP_MASK
+        COMSPLIT_MASK       = (1 << COMSPLIT) ^ SETREMAP_MASK
+        COMREMAP_MASK       = (1 << COMREMAP) ^ SETREMAP_MASK
+        SUBPIX_ORDER_MASK   = (1 << SUBPIX_ORDER) ^ SETREMAP_MASK
+        SEGREMAP_MASK       = (1 << SEGREMAP) ^ SETREMAP_MASK
+        ADDRINC_MASK        = 1 ^ SETREMAP_MASK
 
     STARTLINE               = $A1
     DISPOFFSET              = $A2
