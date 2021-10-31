@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Started: Apr 11, 2021
-    Updated: Oct 26, 2021
+    Updated: Oct 31, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -17,7 +17,8 @@
 '#define SSD1331
 '#define SSD1351
 '#define ST7735
-#define VGABITMAP8BPP
+#define HUB75
+'#define VGABITMAP8BPP
 
 ' Comment out this line to define custom I/O pins below
 ' or, uncomment to use MikroE Click I/O pin offset definitions
@@ -49,6 +50,8 @@ OBJ
     disp    : "display.lcd.st7735.spi"
 #elseifdef VGABITMAP8BPP
     disp    : "display.vga.bitmap-8bpp"
+#elseifdef HUB75
+    disp    : "display.led.hub75"
 #endif
 
 CON
@@ -61,8 +64,8 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    WIDTH       = 128                            ' change these for your
-    HEIGHT      = 128                            '   display
+    WIDTH       = 64                            ' change these for your
+    HEIGHT      = 32                            '   display
 
 #ifdef MIKROE_CLICK
     CLICK_BASE  = 0                             ' MikroE Click adaptor basepin
@@ -86,6 +89,13 @@ CON
 
 ' VGA
     VGA_BASEPIN  = 32                             ' 0, 8, 16, 24, 32, 40, 48
+
+' HUB75
+    CLKPIN      = 0
+    BLPIN       = 1
+    LATPIN      = 2
+    ADDR_BASEPIN= 3
+    RGB_BASEPIN = 8
 ' --
 
     BPP         = disp.BYTESPERPX
@@ -118,6 +128,8 @@ VAR
 #elseifdef VGABITMAP8BPP
     long _palette[256]
     byte _framebuff[BUFFSZ]                     ' 8bpp
+#elseifdef HUB75
+    byte _framebuff[BUFFSZ]                     ' 3bpp
 #else
     word _framebuff[BUFFSZ]                     ' 16bpp
 #endif
@@ -167,6 +179,7 @@ PUB Demo_Bounce() | bx, by, dx, dy, radius
 
     _timer_set := _time
     repeat while _timer_set
+        disp.clear()
         bx += dx
         by += dy
 
@@ -183,7 +196,7 @@ PUB Demo_Bounce() | bx, by, dx, dy, radius
 #ifndef VGABITMAP8BPP
         disp.update()
 #endif
-        disp.clear()
+        waitus(1666)
     waitclear()
 
 PUB Demo_Box() | c
@@ -240,7 +253,7 @@ PUB Demo_Greet()
     disp.bgcolor(0)
     disp.position(0, 0)
     disp.printf(string("%s\n"), @_drv_name)
-    disp.printf(string("Parallax P2X8C4M64P\n%dMHz\n"), clkfreq/1_000_000)
+    disp.printf(string("Parallax\nP2@%dMHz\n"), clkfreq/1_000_000)
     disp.printf(string("%dx%d"), WIDTH, HEIGHT)
 #ifndef VGABITMAP8BPP
     disp.update()
@@ -271,7 +284,7 @@ PUB Demo_Sinewave() | x, y, m, offset, div
 ' Draw a sine wave the length of the screen, influenced by the system counter
     case HEIGHT
         32:
-            div := 4096
+            div := 6144
         64:
             div := 2048
         other:
@@ -281,6 +294,7 @@ PUB Demo_Sinewave() | x, y, m, offset, div
 
     _timer_set := _time
     repeat while _timer_set
+        disp.clear()
         repeat x from 0 to XMAX
             m := (abs(getct()) / 1_000_000)     ' system counter as modifier
             y := offset + math.sin(x * m) / div
@@ -291,7 +305,7 @@ PUB Demo_Sinewave() | x, y, m, offset, div
 #ifndef VGABITMAP8BPP
         disp.update()
 #endif
-        disp.clear()
+        waitus(1666)
     waitclear()
 
 PUB Demo_Text() | ch
@@ -340,6 +354,7 @@ PUB Demo_Wander() | x, y, d
 #ifndef VGABITMAP8BPP
         disp.update()
 #endif
+        waitus(1666)
     waitclear()
 
 PRI waitClear()
@@ -392,6 +407,8 @@ PUB Setup()
 #elseifdef ST7735
     if disp.startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, SCK_FREQ, WIDTH, HEIGHT, @_framebuff)
         disp.preset_greentab128x128()
+#elseifdef HUB75
+    if disp.startx(RGB_BASEPIN, ADDR_BASEPIN, BLPIN, CLKPIN, LATPIN, WIDTH, HEIGHT, @_framebuff)
 #endif
         disp.fontspacing(1, 1)
         disp.fontscale(1)
@@ -454,6 +471,8 @@ DAT
     _drv_name   byte "ST7735", 0
 #elseifdef VGABITMAP8BPP
     _drv_name   byte "VGA8BPP", 0
+#elseifdef HUB75
+    _drv_name   byte "HUB75", 0
 #endif
 
 {
