@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Apr 15, 2020
-    Updated: Oct 4, 2021
+    Updated: Nov 12, 2021
     See end of file for terms of use.
     --------------------------------------------
 
@@ -20,6 +20,7 @@ CON
 
 VAR
 
+    long _cpol, _spi_mode
     long _SCK, _MOSI, _MISO
 
 OBJ
