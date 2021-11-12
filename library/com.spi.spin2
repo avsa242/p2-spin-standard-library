@@ -185,7 +185,7 @@ PUB WrByteX(byte2spi, nr_bytes) | SCK, MOSI, MISO
 ' Repeatedly write byte2spi to SPI bus, nr_bytes times
     longmove(@SCK, @_SCK, 3)                    ' copy hub vars to locals
 
-    repeat nr_words
+    repeat nr_bytes
         wypin(MOSI, (byte2spi << 24) rev 31)    ' move LSB into position
         rdpin(SCK)                              '   and write it
         wypin(SCK, CLKS)
