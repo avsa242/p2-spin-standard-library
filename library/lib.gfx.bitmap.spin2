@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2021
     Started May 19, 2019
-    Updated Oct 31, 2021
+    Updated Nov 14, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -474,6 +474,7 @@ PUB Scale(sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
             dy := offsy + (y*size)-(sy*size)
             Box(dx, dy, dx + size, dy + size, in, TRUE)
 
+#ifndef GFX_DIRECT
 PUB ScrollDown(sx, sy, ex, ey) | scr_width, src, dest, x, y
 ' Scroll a region of the display down by 1 pixel
     scr_width := ex-sx
@@ -546,6 +547,7 @@ PUB ScrollUp(sx, sy, ex, ey) | scr_width, src, dest, x, y
         src := sx + (y * _disp_width) * BYTESPERPX
         dest := sx + ((y-1) * _disp_width) * BYTESPERPX
         MEMMV_NATIVE(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
+#endif
 #endif
 
 PUB TextCols(): cols
