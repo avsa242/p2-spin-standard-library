@@ -2,10 +2,10 @@
     -------------------------------------------
     Filename: core.con.ads1115.spin
     Author: Jesse Burt
-    Description: Low-level constants
+    Description: ADS1115-specific constants
     Copyright (c) 2021
     Started Dec 29, 2019
-    Updated Apr 2, 2021
+    Updated Nov 13, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,6 +16,8 @@ CON
     I2C_MAX_FREQ_HS     = 3_400_000
 
     SLAVE_ADDR          = $48 << 1
+
+    T_POR               = 1_000                 ' uSec
 
 ' Register definitions
     CONVERSION          = $00

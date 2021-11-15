@@ -5,7 +5,7 @@
     Description: Demo of the ADS1115 driver (P2 version)
     Copyright (c) 2021
     Started Apr 2, 2021
-    Updated Apr 2, 2021
+    Updated Nov 14, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -57,7 +57,7 @@ PUB ADCCalc(ch) | uvolts
     ads1115.adcchannelenabled(ch)
     ads1115.measure()
     repeat until ads1115.adcdataready()
-    uvolts := ads1115.voltage(ch)
+    uvolts := ads1115.voltage()
 
     ser.position(DAT_COL, DAT_ROW+ch)
     ser.str(string("Ch"))
