@@ -5,7 +5,7 @@
     Description: A collection of CRC routines
     Copyright (c) 2021
     Started Nov 19, 2017
-    Updated Jun 26, 2021
+    Updated Dec 19, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -17,6 +17,8 @@ CON
     POLY8_SD        = $09
     POLY8_SENSIRION = $31
     POLY16_DSMAX    = $A001
+    POLY16_XYZMODEM = $1021
+    POLY32_ZMODEM   = $EDB88320
 
 PUB MeasCRC8(data, len): crc | currbyte, i, j
 ' Measurement specialties CRC8
@@ -88,6 +90,68 @@ PUB DallasMaximCRC16(data, len): crc | currbyte, i, j, mix
             currbyte >>= 1
 
     return
+
+PUB XYZMCRC16(ptr_data, len): crc
+' X/Y/ZModem 16bit CRC
+'   ptr_data: pointer to data
+'   data_len: length of data, in bytes
+    return crc16(ptr_data, len, $0000, 0, POLY16_XYZMODEM, false, false)
+
+PUB ZMCRC32(ptr_data, len): crc
+' ZModem 32bit CRC
+'   ptr_data: pointer to data
+'   data_len: length of data, in bytes
+    return crc32(ptr_data, len, $FFFFFFFF, true, POLY32_ZMODEM, false, false)
+
+PUB CRC16(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr_byte, bit
+' Calculate CRC16
+'   ptr_data: pointer to data
+'   data_len: length of data, in bytes
+'   init: value to initialize CRC with
+'   poly: polynomial to use in CRC calculation
+'   reflect: whether to bitwise-reverse data bytes read
+    crc := init                                 ' initialize CRC
+    if ireflect                                 ' reflect initial value?
+        crc rev= 15
+
+    repeat curr_byte from 0 to data_len-1
+        crc ^= (byte[ptr_data][curr_byte] << 8)
+        repeat bit from 7 to 0
+            if (crc & $8000)
+                crc := (crc << 1) ^ poly
+            else
+                crc := (crc << 1)
+
+    if oreflect                                 ' reflect final value?
+        crc ><= 16
+
+    return ((crc ^ xorout) & $ffff)
+
+PUB CRC32(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr_byte, bit
+' Calculate CRC32
+'   ptr_data: pointer to data
+'   data_len: length of data, in bytes (u31)
+'   init: value to initialize CRC with (u32)
+'   xorout: value to XOR final CRC with (u32)
+'   poly: polynomial to use in CRC calculation (u32)
+'   ireflect: bitwise reverse initial value? (bool)
+'   oreflect: bitwise reverse final value? (bool)
+    crc := init                                 ' initialize CRC
+    if ireflect                                 ' reflect initial value?
+        crc rev= 31
+    data_len--                                  ' pre-calc for loop
+    repeat curr_byte from 0 to data_len
+        crc ^= byte[ptr_data][curr_byte]
+        repeat bit from 7 to 0
+            if (crc & $01)
+                crc := (crc >> 1) ^ poly
+            else
+                crc := (crc >> 1)
+
+    if oreflect                                 ' reflect final value?
+        crc ><= 32
+
+    return crc ^ xorout
 
 DAT
 {
