@@ -94,6 +94,11 @@ PUB Hex(value, digits): result
     ClearStr(@nstr, MAX_LEN)
     return HexToStr(value, digits)
 
+PUB HexL(value, digits): ptr_str
+' Returns: pointer to a digits-wide hexadecimal string (lower-case digits)
+    clearstr(@nstr, MAX_LEN)
+    return hextostrl(value, digits)
+
 PUB HexIndicated(value, digits): result
 {{
     Returns pointer to a digits-wide, indicated (with $) hexadecimal string
@@ -166,6 +171,19 @@ PRI HexToStr(value, digits): result
     value <<= (8 - digits) << 2                           ' prep most significant digit
     repeat digits
         nstr[idx++] := lookupz((value rol= 4) & $F : "0".."9", "A".."F")
+
+    return @nstr
+
+PRI HexToStrL(value, digits)
+' Converts value to digits-wide hexadecimal string equivalent
+'   NOTE: Hex characters are lower-case digits
+'   NOTE: Characters are written to current position of idx
+'   Returns: pointer to nstr
+
+    digits := 1 #> digits <# 8                            ' qualify digits
+    value <<= (8 - digits) << 2                           ' prep most significant digit
+    repeat digits
+        nstr[idx++] := lookupz((value <-= 4) & $F : "0".."9", "a".."f")
 
     return @nstr
 
