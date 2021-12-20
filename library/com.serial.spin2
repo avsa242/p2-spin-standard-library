@@ -27,16 +27,20 @@ VAR
 
     long _rx_pin, _tx_pin
 
-PUB Start(baudrate=-1): okay
-' Start with default serial pins and mode
-    return startrxtx(63, 62, 0, baudrate)
+PUB Start(bps=-1): status
+' Start using P2 default serial pins
+    return startrxtx(63, 62, 0, bps)
 
-PUB StartRxTx(rxpin, txpin, mode, baudrate=-1): okay | bitperiod, bit_mode
-
-    if baudrate == -1
+PUB StartRxTx(rxpin, txpin, mode, bps=-1): status | bitperiod, bit_mode
+' Start using custom I/O pins and configuration
+'   rxpin: receive pin
+'   txpin: transmit pin
+'   mode: unused; currently for compatibility only
+'   bps: bits per second/baud (-1 to attempt auto-baud)
+    if bps == -1
         bitperiod := autobaud(rxpin)
     else
-        bitperiod := (clkfreq / baudrate)
+        bitperiod := (clkfreq / bps)
 
     _rx_pin := rxpin
     _tx_pin := txpin
