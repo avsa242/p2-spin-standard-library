@@ -4,9 +4,9 @@
     Author: Eric Smith
     Modified by: Jesse Burt
     Description: Low-level UART serial driver
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Jun 28, 2019
-    Updated Jul 23, 2020
+    Updated Dec 20, 2021
     See end of file for terms of use.
     --------------------------------------------
 
@@ -21,12 +21,7 @@
 '
 CON
 
-    TXMODE = sp.ASYNCSERIAL_TX | sp.OUTPUT_ENABLED
-    RXMODE = sp.ASYNCSERIAL_RX
-
-OBJ
-
-    sp  : "core.con.smartpins"
+    WORDLEN = 8-1                               ' serial word length, in bits-1
 
 VAR
 
@@ -46,16 +41,16 @@ PUB StartRxTx(rxpin, txpin, mode, baudrate=-1): okay | bitperiod, bit_mode
     _rx_pin := rxpin
     _tx_pin := txpin
 
-    bit_mode := 7 + (bitperiod << 16)
+    bit_mode := (bitperiod << 16) + WORDLEN
 
     pinf(txpin)
-    wrpin(txpin, TXMODE)
+    wrpin(txpin, P_ASYNC_TX | P_OE)
     wxpin(txpin, bit_mode)
     pinl(txpin)
 
     if lookdown(rxpin: 0..63)
         pinf(rxpin)
-        wrpin(rxpin, RXMODE)
+        wrpin(rxpin, P_ASYNC_RX)
         wxpin(rxpin, bit_mode)
         pinl(rxpin)
 
@@ -66,21 +61,17 @@ PUB Char(val)
     wypin(_tx_pin, val)
     txflush()
 
-PUB TXFlush() | z
+PUB TXFlush()
 ' Flush transmit buffer
-    repeat
-        z := pinr(_tx_pin)
-    while z == 0
+    repeat until pinr(_tx_pin)
 
-PUB RXCheck(): rxbyte | rxpin, z
+PUB RXCheck(): rxbyte
 ' Check if byte received (never waits)
 '   Returns:
 '       -1 if no byte, otherwise byte
     rxbyte := -1
-    rxpin := _rx_pin
-    z := pinr(rxpin)
-    if z
-        rxbyte := rdpin(rxpin) >> 24
+    if pinr(_rx_pin)
+        return (rdpin(_rx_pin) >> 24)
 
 PUB CharIn(): rxbyte
 ' Receive a byte (waits until one ready)
