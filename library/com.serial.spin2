@@ -43,10 +43,11 @@ PUB StartRxTx(rxpin, txpin, mode, baudrate=-1): okay | bitperiod, bit_mode
 
     bit_mode := (bitperiod << 16) + WORDLEN
 
-    pinf(txpin)
-    wrpin(txpin, P_ASYNC_TX | P_OE)
-    wxpin(txpin, bit_mode)
-    pinl(txpin)
+    if lookdown(txpin: 0..63)
+        pinf(txpin)
+        wrpin(txpin, P_ASYNC_TX | P_OE)
+        wxpin(txpin, bit_mode)
+        pinl(txpin)
 
     if lookdown(rxpin: 0..63)
         pinf(rxpin)
