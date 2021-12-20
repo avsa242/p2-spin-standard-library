@@ -61,9 +61,11 @@ PUB Char(val)
     wypin(_tx_pin, val)
     txflush()
 
-PUB TXFlush()
-' Flush transmit buffer
-    repeat until pinr(_tx_pin)
+PUB CharIn(): rxbyte
+' Receive a byte (waits until one ready)
+    repeat
+        rxbyte := rxcheck()
+    while rxbyte == -1
 
 PUB RXCheck(): rxbyte
 ' Check if byte received (never waits)
@@ -73,11 +75,9 @@ PUB RXCheck(): rxbyte
     if pinr(_rx_pin)
         return (rdpin(_rx_pin) >> 24)
 
-PUB CharIn(): rxbyte
-' Receive a byte (waits until one ready)
-    repeat
-        rxbyte := rxcheck()
-    while rxbyte == -1
+PUB TXFlush()
+' Flush transmit buffer
+    repeat until pinr(_tx_pin)
 
 PRI autobaud(pin): bitperiod | a, b, c, port, mask
 
