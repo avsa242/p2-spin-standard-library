@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started Mar 15, 2020
-    Updated Apr 29, 2021
+    Updated Dec 23, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -105,6 +105,20 @@ CON
         D4D_INT2_MASK   = (1 << D4D_INT2) ^ CTRL_REG5_MASK
 
     CTRL_REG6           = $25
+    CTRL_REG6_MASK      = $FA
+        I2_CLICK        = 7
+        I2_IA1          = 6
+        I2_IA2          = 5
+        I2_BOOT         = 4
+        I2_ACT          = 3
+        INT_POL         = 1
+        I2_CLICK_MASK   = (1 << I2_CLICK) ^ CTRL_REG6_MASK
+        I2_IA1_MASK     = (1 << I2_IA1) ^ CTRL_REG6_MASK
+        I2_IA2_MASK     = (1 << I2_IA2) ^ CTRL_REG6_MASK
+        I2_BOOT_MASK    = (1 << I2_BOOT) ^ CTRL_REG6_MASK
+        I2_ACT_MASK     = (1 << I2_ACT) ^ CTRL_REG6_MASK
+        INT_POL_MASK    = (1 << INT_POL) ^ CTRL_REG6_MASK
+
     REFERENCE           = $26
 
     STATUS_REG          = $27
@@ -148,6 +162,26 @@ CON
         FSS_MASK        = (FSS_BITS << FSS) ^ FIFO_SRC_REG_MASK
 
     INT1_CFG            = $30
+    INT1_CFG_MASK       = $FF
+        AOI             = 7
+        SIXD            = 6
+        ZHIE            = 5
+        ZLIE            = 4
+        YHIE            = 3
+        YLIE            = 2
+        XHIE            = 1
+        XLIE            = 0
+        IE_BITS         = %111111
+        AOI_MASK        = (1 << AOI) ^ INT1_CFG_MASK
+        SIXD_MASK       = (1 << SIXD) ^ INT1_CFG_MASK
+        ZHIE_MASK       = (1 << ZHIE) ^ INT1_CFG_MASK
+        ZLIE_MASK       = (1 << ZLIE) ^ INT1_CFG_MASK
+        YHIE_MASK       = (1 << YHIE) ^ INT1_CFG_MASK
+        YLIE_MASK       = (1 << YLIE) ^ INT1_CFG_MASK
+        XHIE_MASK       = (1 << XHIE) ^ INT1_CFG_MASK
+        XLIE_MASK       = (1 << XLIE) ^ INT1_CFG_MASK
+        FFALL           = (1 << AOI)
+        WKUP            = (0 << AOI)
 
     INT1_SRC            = $31
     INT1_SRC_MASK       = $7F
@@ -161,11 +195,11 @@ CON
         XYZ_BITS        = %111111
 
     INT1_THS            = $32
-    INT1_DURATION       = $33
+    INT1_DUR            = $33
     INT2_CFG            = $34
     INT2_SRC            = $35
     INT2_THS            = $36
-    INT2_DURATION       = $37
+    INT2_DUR            = $37
 
     CLICK_CFG           = $38
 
