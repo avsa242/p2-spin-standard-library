@@ -5,7 +5,7 @@
     Description: Driver for the ST LSM6DSL 6DoF IMU (P2 version)
     Copyright (c) 2021
     Started Mar 6, 2021
-    Updated Oct 4, 2021
+    Updated Dec 27, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -61,6 +61,12 @@ CON
 ' Gyroscope operating modes
     NORM                    = 0
     SLEEP                   = 1
+
+' Accel/Gyro sleep power modes
+    NORMAL                  = 0
+    LOPWR                   = 1
+    LOPWR_GSLEEP            = 2
+    LOPWR_GPWROFF           = 3
 
 ' Accelerometer operating modes
     XL_HIPERF               = 0
@@ -132,7 +138,7 @@ PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=1_000_000): status
         _CS := CS_PIN
         if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, {
 }       SCK_FREQ))
-            waitus(core.T_POR)             ' wait for device startup
+            waitus(core.T_POR)                  ' wait for device startup
             if deviceid() == core.DEVID_RESP    ' validate device
                 return
     ' if this point is reached, something above failed
@@ -170,7 +176,7 @@ PUB Preset_FreeFall()
     freefallthresh(312)
     clickintenabled(TRUE)
 
-PUB Preset_IMUActive()
+PUB Preset_Active()
 ' Like Defaults(), but sets:
 '   * Sensor powered up/actively measuring
 '   * Accelerometer: 2g, 52Hz
@@ -349,6 +355,32 @@ PUB AccelScale(scale): curr_scl
             return lookupz(curr_scl: 2, 16, 4, 8)
     scale := ((curr_scl & core.FS_XL_MASK) | scale)
     writereg(core.CTRL1_XL, 1, @scale)
+
+PUB AccelSleepPwrMode(mode): curr_mode
+' Set accelerometer power mode/oversampling mode, when sleeping
+'   Valid values:
+'       NORMAL (0): Normal
+'       LOPWR (1): Accel Low power, gyro normal
+'       LOPWR_GSLEEP (2): Accel Low power, gyro sleeps
+'       LOPWR_GPWROFF (3): Accel Low power, gyro power off
+'   Any other value polls the chip and returns the current setting
+    curr_mode := 0
+    readreg(core.TAP_CFG, 1, @curr_mode)
+    case mode
+        0..3:
+            mode <<= core.INACT_EN
+            mode |= core.INTS_ENA
+        other:
+            return ((curr_mode >> core.INACT_EN) & core.INACT_EN_BITS)
+
+    mode := ((curr_mode & core.INACT_EN_MASK) | mode)
+    writereg(core.TAP_CFG, 1, @mode)
+
+PUB AutoSleepDataRate(rate): curr_rate
+' Set accelerometer output data rate, in Hz, when in sleep mode
+'   NOTE: Read-only; provided for API-compatibility only
+'   Returns: 12
+    return 12
 
 PUB CalibrateAccel() | axis, scl_orig, dr_orig, tmpx, tmpy, tmpz, tmp[ACCEL_DOF], samples, scale
 ' Calibrate the accelerometer
@@ -891,11 +923,11 @@ PUB GyroOpMode(mode): curr_mode
     readreg(core.CTRL4_C, 1, @curr_mode)
     case mode
         NORM, SLEEP:
-            mode <<= core.SLEEP
+            mode <<= core.SLP
         other:
-            return (curr_mode >> core.SLEEP) & 1
+            return (curr_mode >> core.SLP) & 1
 
-    mode := ((curr_mode & core.SLEEP_MASK) | mode)
+    mode := ((curr_mode & core.SLP_MASK) | mode)
     writereg(core.CTRL4_C, 1, @mode)
 
 PUB GyroScale(scale): curr_scl
@@ -917,6 +949,41 @@ PUB GyroScale(scale): curr_scl
 
     scale := ((curr_scl & core.FS_G_MASK) | scale)
     writereg(core.CTRL2_G, 1, @scale)
+
+PUB InactThresh(thresh): curr_thr | thr_res, thr_max
+' Set inactivity threshold, in micro-g's
+'   Valid values: TBD
+'   Any other value polls the chip and returns the current setting
+    thr_res := ((accelscale(-2) * 1_000_000) / 64)
+    thr_max := (thr_res * core.WK_THS_MAX)
+    curr_thr := 0
+    readreg(core.WAKEUP_THS, 1, @curr_thr)
+    case thresh
+        0..thr_max:
+            thresh /= thr_res
+        other:
+            return ((curr_thr & core.WK_THS_BITS) * thr_res)
+
+    thresh := ((curr_thr & core.WK_THS_MASK) | thresh)
+    writereg(core.WAKEUP_THS, 1, @thresh)
+
+PUB InactTime(itime): curr_itime | time_res, dur_max
+' Set inactivity time, in milliseconds
+'   Valid values:
+'   Any other value polls the chip and returns the current setting
+'   NOTE: Setting this to 0 will generate an interrupt when the acceleration
+'       measures less than that set with InactThresh()
+    time_res := (512_000 / acceldatarate(-2))
+    dur_max := (time_res * core.SLP_DUR_MAX)
+    curr_itime := 0
+    readreg(core.WAKEUP_DUR, 1, @curr_itime)
+    case itime
+        0..dur_max:
+            itime /= time_res
+        other:
+            return ((curr_itime & core.SLP_DUR_BITS) * time_res)
+
+    writereg(core.WAKEUP_DUR, 1, @itime)
 
 PUB InFreeFall(): flag
 ' Flag indicating device is in free-fall
@@ -941,6 +1008,9 @@ PUB Interrupt(): src
 
 PUB IntInactivity(): flag
 ' Flag indicating inactivity interrupt asserted
+    flag := 0
+    readreg(core.WAKEUP_SRC, 1, @flag)
+    return (((flag >> core.SLPST_IA) & 1) == 1)
 
 PUB IntLatchEnabled(state): curr_state
 ' Latch interrupt pin when interrupt asserted

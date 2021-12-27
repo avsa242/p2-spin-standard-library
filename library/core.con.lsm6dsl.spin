@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: core.con.lsm6dsl.spin
     Author: Jesse Burt
-    Description: Low-level constants
+    Description: LSM6DSL-specific constants
     Copyright (c) 2021
     Started Feb 18, 2021
-    Updated Sep 6, 2021
+    Updated Dec 27, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -112,14 +112,14 @@ CON
     CTRL4_C             = $13
     CTRL4_C_MASK        = $FE
         DEN_XL_EN       = 7
-        SLEEP           = 6
+        SLP             = 6
         INT2ONINT1      = 5
         DEN_DRDY_I1     = 4
         DRDY_DA         = 3
         I2C_DIS         = 2
         LPF1_SEL_G      = 1
         DEN_XL_EN_MASK  = (1 << DEN_XL_EN) ^ CTRL4_C_MASK
-        SLEEP_MASK      = (1 << SLEEP) ^ CTRL4_C_MASK
+        SLP_MASK        = (1 << SLP) ^ CTRL4_C_MASK
         INT2ONINT1_MASK = (1 << INT2ONINT1) ^ CTRL4_C_MASK
         DEN_DRDY_I1_MASK= (1 << DEN_DRDY_I1) ^ CTRL4_C_MASK
         DRDY_DA_MASK    = (1 << DRDY_DA) ^ CTRL4_C_MASK
@@ -159,7 +159,7 @@ CON
         Y_WU            = 1
         Z_WU            = 0
         FREEFALL        = (1 << FF_IA)
-        SLEEPING        = (1 << SLPST_IA)
+        SLPING          = (1 << SLPST_IA)
         AWOKEN          = (1 << WU_IA)
 
     TAP_SRC             = $1C
@@ -259,24 +259,24 @@ CON
     TAP_CFG             = $58
     TAP_CFG_MASK        = $FF
         INTS_EN         = 7
-        INACT_EN1       = 6
-        INACT_END       = 5
+        INACT_EN        = 5
         SLOPE_FDS       = 4
         TAP_X_EN        = 3
         TAP_Y_EN        = 2
         TAP_Z_EN        = 1
         TAP_EN          = 1
         LIR             = 0
+        INACT_EN_BITS   = %11
         TAP_EN_BITS     = %111
         INTS_EN_MASK    = (1 << INTS_EN) ^ TAP_CFG_MASK
-        INACT_EN1_MASK  = (1 << INACT_EN1) ^ TAP_CFG_MASK
-        INACT_END_MASK  = (1 << INACT_END) ^ TAP_CFG_MASK
+        INACT_EN_MASK   = (INACT_EN_BITS << INACT_EN) ^ TAP_CFG_MASK
         SLOPE_FDS_MASK  = (1 << SLOPE_FDS) ^ TAP_CFG_MASK
         TAP_X_EN_MASK   = (1 << TAP_X_EN) ^ TAP_CFG_MASK
         TAP_Y_EN_MASK   = (1 << TAP_Y_EN) ^ TAP_CFG_MASK
         TAP_Z_EN_MASK   = (1 << TAP_Z_EN) ^ TAP_CFG_MASK
         TAP_EN_MASK     = (TAP_EN_BITS << TAP_EN) ^ TAP_CFG_MASK
         LIR_MASK        = 1 ^ TAP_CFG_MASK
+        INTS_ENA        = (1 << INTS_EN)
 
     TAP_THS_6D          = $59
     TAP_THS_6D_MASK     = $FF
@@ -302,13 +302,25 @@ CON
         SHOCK_MASK      = SHOCK_BITS ^ INT_DUR2_MASK
 
     WAKEUP_THS          = $5B
+    WAKEUP_THS_MASK     = $BF
+        SNGL_DBLTAP     = 7
+        WK_THS          = 0
+        WK_THS_BITS     = %111111
+        SNGL_DBLTAP_MASK= (1 << SNGL_DBLTAP) ^ WAKEUP_THS_MASK
+        WK_THS_MASK     = WK_THS_BITS ^ WAKEUP_THS_MASK
+        WK_THS_MAX      = WK_THS_BITS
 
     WAKEUP_DUR          = $5C
     WAKEUP_DUR_MASK     = $FF
         FF_DUR_M        = 7
         WAKE_DUR        = 5
         TIMER_HR        = 4
-        SLEEP_DUR       = 0
+        SLP_DUR         = 0
+        WAKE_DUR_BITS   = %11
+        SLP_DUR_BITS    = %1111
+        WAKE_DUR_MASK   = (WAKE_DUR_BITS << WAKE_DUR) ^ WAKEUP_DUR_MASK
+        SLP_DUR_MASK    = (SLP_DUR_BITS << SLP_DUR) ^ WAKEUP_DUR_MASK
+        SLP_DUR_MAX     = SLP_DUR_BITS
 
     FREE_FALL           = $5D
     FREE_FALL_MASK      = $FF
@@ -322,6 +334,16 @@ CON
         FF_THS_MASK     = FF_THS_BITS ^ FREE_FALL_MASK
 
     MD1_CFG             = $5E
+    MD1_CFG_MASK        = $FF
+        INT1_INACT_ST   = 7
+        INT1_SNGL_TAP   = 6
+        INT1_WU         = 5
+        INT1_FF         = 4
+        INT1_DBLTAP     = 3
+        INT1_6D         = 2
+        INT1_TILT       = 1
+        INT1_TMR        = 0
+
     MD2_CFG             = $5F
     MAST_CMD_CODE       = $60
     SENS_SYNC_SPI_ERR   = $61
