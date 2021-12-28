@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: core.con.max31856.spin
     Author: Jesse Burt
-    Description: Low-level driver constants
+    Description: MAX31856-specific constants
     Copyright (c) 2021
     Created: Sep 30, 2018
-    Updated: May 16, 2021
+    Updated: Dec 28, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
