@@ -3,9 +3,9 @@ i{
     Filename: SGP30-Demo.spin
     Author: Jesse Burt
     Description: Demo of the SGP30 driver (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Jan 30, 2021
-    Updated Jan 30, 2021
+    Updated Jan 2, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -28,13 +28,12 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
     iaq     : "sensor.iaq.sgp30.i2c"
     int     : "string.integer"
 
 VAR
 
-    byte _sn[6]
+    word _sn[3]
     byte _tmp[6]
 
 PUB Main() | i, tmp
@@ -46,10 +45,10 @@ PUB Main() | i, tmp
     iaq.serialnum(@_sn)
 
     ser.str(string("SN: "))
-    repeat i from 0 to 5
-        ser.hex(_sn[i], 2)
+    repeat i from 0 to 2
+        ser.hex(_sn[i], 4)
 
-    ser.newline
+    ser.newline()
 
     repeat
         ser.position(0, 5)

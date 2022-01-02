@@ -2,7 +2,7 @@
     --------------------------------------------
     Filename: core.con.sgp30.spin
     Author: Jesse Burt
-    Description: Low-level constants
+    Description: SGP30-specific constants
     Copyright (c) 2020
     Started Nov 20, 2020
     Updated Nov 20, 2020

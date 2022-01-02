@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Driver for the Sensirion SGP30
         Indoor Air Quality sensor (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Jan 30, 2021
-    Updated Jan 30, 2021
+    Updated Jan 2, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,8 +16,6 @@ CON
     SLAVE_WR          = core.SLAVE_ADDR
     SLAVE_RD          = core.SLAVE_ADDR|1
 
-    DEF_SCL           = 28
-    DEF_SDA           = 29
     DEF_HZ            = 100_000
     I2C_MAX_FREQ      = core.I2C_MAX_FREQ
 
@@ -27,8 +25,8 @@ VAR
 OBJ
 
     i2c : "com.i2c"                             ' PASM I2C engine
-    core: "core.con.sgp30.spin"
-    time: "time"                                ' basic timing functions
+    core: "core.con.sgp30.spin"                 ' HW-specific constants
+    crc : "math.crc"                            ' CRC routines
 
 PUB Null()
 ' This is not a top-level object
@@ -38,8 +36,8 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }   I2C_HZ <= core.I2C_MAX_FREQ                 ' validate pins and bus freq
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
-            waitms(5)'waitus(core.T_POR)             ' wait for device startup
-'            if i2c.present(SLAVE_WR)            ' test device bus presence
+            waitus(core.T_POR)                  ' wait for device startup
+            if i2c.present(SLAVE_WR)            ' test device bus presence
                     return
     ' if this point is reached, something above failed
     ' Re-check I/O pin assignments, bus speed, connections, power
@@ -54,10 +52,15 @@ PUB Defaults()
 ' Set factory defaults
 
 PUB CO2Eq(): ppm
-' CO2/Carbon Dioxide equivalent concentration
-'   Returns: parts-per-million (400..60_000)
-    readreg(core.MEAS_IAQ, 4, @ppm)
-    return (ppm & $FFFF)
+' CO2/Carbon Dioxide equivalent concentration, in parts-per-million/ppm
+'   Returns:
+'       u16: 400..60_000
+'       or -1, if data failed CRC check
+    ppm := 0
+    if (readreg(core.MEAS_IAQ, 2, @ppm) == 0)
+        return (ppm & $FFFF)
+    else
+        return -1
 
 PUB DeviceID(): id
 ' Read device identification
@@ -75,18 +78,30 @@ PUB Reset()
 '   0ppb TVOC
     writereg(core.IAQ_INIT, 0, 0)
 
-PUB SerialNum(ptr_buff)
+PUB SerialNum(ptr_buff): status
 ' Read device Serial Number
 '   NOTE: ptr_buff must be at least 6 bytes in length
-    readreg(core.GET_SN, 6, ptr_buff)
+'   Returns:
+'       0 on success
+'       or -1, if data failed CRC
+'           (data copied to buffer should not be trusted in this case)
+    if (readreg(core.GET_SN, 6, ptr_buff) == 0)
+        return
+    else
+        return -1
 
 PUB TVOC(): ppb
-' Total Volatile Organic Compounds concentration
-'   Returns: parts-per-billion (0..60_000)
-    readreg(core.MEAS_IAQ, 4, @ppb)
-    return (ppb >> 16) & $FFFF
+' Total Volatile Organic Compounds concentration, in parts-per-billion/ppb
+'   Returns:
+'       u16 (0..60_000)
+'       or -1, if data failed CRC
+    ppb := 0
+    if (readreg(core.MEAS_IAQ, 2, @ppb) == 0)
+        return ((ppb >> 16) & $FFFF)
+    else
+        return -1
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, rd_data[3], tmp
+PRI readReg(reg_nr, nr_bytes, ptr_buff): status | cmd_pkt, tmp, crcrd, rdcnt
 ' Read nr_bytes from the device into ptr_buff
     cmd_pkt.byte[0] := SLAVE_WR                 ' form command packet
     cmd_pkt.byte[1] := reg_nr.byte[1]
@@ -97,39 +112,53 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, rd_data[3], tmp
             i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 3)
             i2c.wait(SLAVE_RD)                  ' poll the sensor for readiness
-            ' read all bytes, incl. CRC's
-            i2c.rdblock_lsbf(@rd_data, 6, i2c.NAK)
-            i2c.stop()
 
-            byte[ptr_buff][0] := rd_data.byte[1]' copy the sensor data to
-            byte[ptr_buff][1] := rd_data.byte[0]'   ptr_buff, but skip over
-            byte[ptr_buff][2] := rd_data.byte[4]'   the CRC bytes, for now
-            byte[ptr_buff][3] := rd_data.byte[3]'
-            return
+            rdcnt := 0
+            status := 0
+            repeat 2
+                tmp := i2c.rdword_msbf(i2c.ACK)
+                crcrd := i2c.rd_byte(rdcnt == 1)' read CRC; NAK if last byte
+                if (crcrd == crc.sensirioncrc8(@tmp, 2))
+                    word[ptr_buff][rdcnt++] := tmp
+                    next
+                else
+                    status := -1                ' CRC error
+                    quit
+            i2c.stop()
+            return status
         core.MEAS_TEST, core.GET_FEATURES, core.GET_TVOC_INCBASE:
             i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 3)
             i2c.wait(SLAVE_RD)
-            i2c.rdblock_lsbf(@rd_data, 3, i2c.NAK)
-            i2c.stop()
 
-            byte[ptr_buff][0] := rd_data.byte[1]
-            byte[ptr_buff][1] := rd_data.byte[0]
+            tmp := i2c.rdword_msbf(i2c.ACK)
+            crcrd := i2c.rd_byte(i2c.NAK)
+            status := 0
+            if (crcrd == crc.sensirioncrc8(@tmp, 2))
+                word[ptr_buff][0] := tmp
+            else
+                status := -1
+            i2c.stop()
+            return status
         core.GET_SN:
             i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 3)
             waitus(core.T_GET_SN)
             i2c.wait(SLAVE_RD)
-            i2c.rdblock_lsbf(@rd_data, 9, i2c.NAK)
-            i2c.stop()
 
-            byte[ptr_buff][0] := rd_data.byte[0]
-            byte[ptr_buff][1] := rd_data.byte[1]
-            byte[ptr_buff][2] := rd_data.byte[3]
-            byte[ptr_buff][3] := rd_data.byte[4]
-            byte[ptr_buff][4] := rd_data.byte[6]
-            byte[ptr_buff][5] := rd_data.byte[7]
-            return
+            rdcnt := 0
+            status := 0
+            repeat 3
+                tmp := i2c.rdword_msbf(i2c.ACK)
+                crcrd := i2c.rd_byte(rdcnt == 2)' read CRC; NAK if last byte
+                if (crcrd == crc.sensirioncrc8(@tmp, 2))
+                    word[ptr_buff][rdcnt++] := tmp
+                    next
+                else
+                    status := -1                ' CRC error
+                    quit
+            i2c.stop()
+            return status
         other:
             return
 
