@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: core.con.sx1231.spin
     Author: Jesse Burt
-    Description: Low-level constants
-    Copyright (c) 2021
+    Description: SX1231-specific constants
+    Copyright (c) 2022
     Started Apr 19, 2019
-    Updated Aug 22, 2021
+    Updated Jan 4, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -198,6 +198,15 @@ CON
         CLKOUT_MASK             = CLKOUT_BITS ^ DIOMAP2_MASK
 
     IRQFLAGS1                   = $27
+    IRQFLAGS1_MASK              = $FF
+        MODERDY                 = 7
+        RXRDY                   = 6
+        TXRDY                   = 5
+        PLLLOCK                 = 4
+        RSSI                    = 3
+        TMOUT                   = 2
+        AUTOMD                  = 1
+        SYNCADDRMATCH           = 0
 
     IRQFLAGS2                   = $28
     IRQFLAGS2_MASK              = $FF

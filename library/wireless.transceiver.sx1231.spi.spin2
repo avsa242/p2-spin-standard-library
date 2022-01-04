@@ -3,9 +3,9 @@
     Filename: wireless.transceiver.sx1231.spi.spin2
     Author: Jesse Burt
     Description: Driver for the Semtech SX1231 UHF Transceiver IC (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Apr 19, 2019
-    Updated Oct 4, 2021
+    Updated Jan 4, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -1181,6 +1181,13 @@ PUB PayloadSent(): flag
     flag := 0
     readreg(core.IRQFLAGS2, 1, @flag)
     return (((flag >> core.PKTSENT) & 1) == 1)
+
+PUB PLLLocked(): flag
+' Flag indicating PLL is locked
+'   Returns: TRUE (-1) or FALSE (0)
+    flag := 0
+    readreg(core.IRQFLAGS1, 1, @flag)
+    return (((flag >> core.PLLLOCK) & 1) == 1)
 
 PUB PreambleLen(length=-2): curr_len
 ' Set length of preamble, in bytes
