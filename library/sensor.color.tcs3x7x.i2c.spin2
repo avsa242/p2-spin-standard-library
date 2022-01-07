@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Driver for the TAOS TCS3x7x RGB color sensor
         (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started: Jun 24, 2018
-    Updated: Oct 23, 2021
+    Updated: Jan 6, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -96,7 +96,7 @@ PUB BlueData(): bdata
 PUB ClearData(): cdata
 ' Live clear-channel data
 '   NOTE: This method also updates data retrievable with LastClear() method
-    readreg(core.BDATAL, 2, @cdata)
+    readreg(core.CDATAL, 2, @cdata)
     _crgb[CLEAR] := cdata
 
 PUB DataReady(): flag
