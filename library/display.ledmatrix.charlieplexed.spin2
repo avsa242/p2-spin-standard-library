@@ -4,13 +4,14 @@
     Author: Jesse Burt
     Description: Driver to write a buffer to an 8x7 charlieplexed LED matrix
     Started Jun 16, 2019
-    Updated Aug 1, 2020
+    Updated Jan 24, 2022
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This was written specifically for the Parallax P2-EVAL add-on board #64006-ES(c),
         but may work with other charlieplexed LED boards.
     NOTE: This code uses excerpts from localroger's Conway's Game of Life demo for the same board.
 }
+#define MEMMV_NATIVE bytemove
 #define LEDMATRIX_CHARLIEPLEXED
 #include "lib.gfx.bitmap.spin2"
 
@@ -56,7 +57,23 @@ PUB Address(addr=-2): fb_addr
         OTHER:
             return _ptr_drawbuffer
 
-PUB ClearAccel()
+PUB Plot(x, y, color)
+' Draw pixel at (x, y) in color (buffered)
+    ifnot (x >= 0 and x <= _disp_xmax) and (y >= 0 and y <= _disp_ymax)
+        return
+    case color
+        1:
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] |= (|< (y&7))
+        0:
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] &= !(|< (y&7))
+        -1:
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] ^= (|< (y&7))
+        other:
+            return
+
+PUB Point(x, y): pc
+' Get color of pixel at x, y
+    return (byte[_ptr_drawbuffer][(x + (y >> 3) * _disp_width)] & (1 << (y & 7)) <> 0) * -1
 
 PUB Update()
 ' Send the display buffer to the display
@@ -82,6 +99,13 @@ PUB WriteBuffer(buff_addr) | row, outmask, dirmask, mask_matrix
             dirb := dirmask << (_basepin & $1F)
             time.USleep (1000)
             dirb &= mask_matrix
+
+PRI memFill(xs, ys, val, count)
+' Fill region of display buffer memory
+'   xs, ys: Start of region
+'   val: Color
+'   count: Number of consecutive memory locations to write
+    bytefill(ptr_start, val, count)
 
 DAT
 {
