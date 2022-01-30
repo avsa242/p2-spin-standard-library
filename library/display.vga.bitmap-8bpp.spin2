@@ -4,13 +4,12 @@
     Description: 8-bits per pixel bitmap VGA driver (320x240)
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Oct 18, 2021
+    Updated: Jan 30, 2022
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is based on raycast5b_SpinDisplay2a.spin2,
         originally written by Rayman/Ray Allen
 }
-#define VGABITMAP8BPP
 #define MEMMV_NATIVE bytemove
 #include "lib.gfx.bitmap.spin2"
 
@@ -36,9 +35,6 @@ OBJ
 VAR
 
     long _cog, _params[6]
-    long _disp_width, _disp_height, _disp_xmax, _disp_ymax, _buff_sz
-    long _ptr_framebuffer, _ptr_drawbuffer
-    word _bytesperln
     byte _vsync_pin
 
 PUB Start(pinbase, ptr_framebuffer, ptr_palette, WIDTH, HEIGHT): okay
@@ -76,7 +72,7 @@ PUB Address(addr)
     _ptr_framebuffer := addr
     _ptr_drawbuffer := addr
 
-PUB ClearAccel()
+PUB Clear()
 ' Clear the display
     longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 
@@ -92,6 +88,26 @@ PUB MirrorH(state)
 
 PUB MirrorV(state)
 ' dummy method
+
+#ifdef GFX_DIRECT
+PUB Plot(x, y, color)
+' Draw a pixel at (x, y) in color (direct to display)
+
+#else
+
+PUB Plot(x, y, color)
+' Draw a pixel at (x, y) in color (buffered)
+    byte[_ptr_drawbuffer][x + (y * _disp_width)] := color
+#endif
+
+#ifndef GFX_DIRECT
+PUB Point(x, y): pix_clr
+' Get color of pixel at x, y
+    x := 0 #> x <# _disp_xmax
+    y := 0 #> y <# _disp_ymax
+
+    return byte[_ptr_drawbuffer][x + (y * _disp_width)]
+#endif
 
 PUB SetTimings(vfront, vback, hfront, hsync, hback, hvisible)
 ' Set video timings
@@ -117,6 +133,15 @@ PUB WaitVSync()
 ' Wait for vertical sync signal to be high
     repeat until _pinr(_params[VSYNC_PAR]) == 0
     repeat until _pinr(_params[VSYNC_PAR]) == 1
+
+#ifndef GFX_DIRECT
+PRI memFill(xs, ys, val, count)
+' Fill region of display buffer memory
+'   xs, ys: Start of region
+'   val: Color
+'   count: Number of consecutive memory locations to write
+    bytefill(_ptr_drawbuffer + (xs + (ys * _bytesperln)), val, count)
+#endif
 
 DAT
                         orgh
