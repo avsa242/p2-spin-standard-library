@@ -1,6 +1,6 @@
 {
     --------------------------------------------
-    Filename: memory.fram.85xxxx.i2c.spin2
+    Filename: memory.fram.85xxxx.spin2
     Author: Jesse Burt
     Description: Driver for 85xxxx series FRAM memories
         (P2 version)
