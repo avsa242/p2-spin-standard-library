@@ -31,7 +31,7 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    ssn     : "id.ssn.ds28cm00.i2c"
+    ssn     : "id.ssn.ds28cm00"
 
 VAR
 
