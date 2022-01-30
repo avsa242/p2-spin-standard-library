@@ -3,13 +3,12 @@
     Filename: display.led.smart.spin2
     Author: Jesse Burt
     Description: Driver for various smart LED arrays
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Jun 13, 2021
-    Updated Oct 18, 2021
+    Updated Jan 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
-#define NEOPIXEL
 #define MEMMV_NATIVE longmove
 #include "lib.gfx.bitmap.spin2"
 
@@ -88,10 +87,7 @@ CON
 VAR
 
     long _cog
-    long _ptr_drawbuffer, _buff_sz
-    long _disp_width, _disp_height, _disp_xmax, _disp_ymax
     long _nr_pix
-    long _bytesperln
     long _mdl_t0h, _mdl_t0l, _mdl_t1h, _mdl_t1l, _mdl_per, _mptr_update, _model
     long _t0h, _t0l, _t1h, _t1l, _smled_pin, _tres
 
@@ -133,6 +129,30 @@ PUB Address(addr)
             _ptr_drawbuffer := addr
         other:
             return _ptr_drawbuffer
+
+PUB Clear()
+' Clear the display buffer
+    longfill(_ptr_drawbuffer, _bgcolor, _nr_pix)
+
+#ifdef GFX_DIRECT
+PUB Plot(x, y, color)
+' Draw a pixel at (x, y) in color (direct to display)
+
+#else
+
+PUB Plot(x, y, color)
+' Draw a pixel at (x, y) in color (buffered)
+    long[_ptr_drawbuffer][x + (y * _disp_width)] := color
+#endif
+
+#ifndef GFX_DIRECT
+PUB Point(x, y): pix_clr
+' Get color of pixel at x, y
+    x := 0 #> x <# _disp_xmax
+    y := 0 #> y <# _disp_ymax
+
+    return long[_ptr_drawbuffer][x + (y * _disp_width)]
+#endif
 
 PUB SetClock(freq) | bitper
 ' Set clock frequency used to calculate timings
@@ -298,6 +318,15 @@ PUB UpdateRGB24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit
                 endasm
     pinl(smled_pin)                             ' reset code (end of array)
     waitus(tres)
+
+#ifndef GFX_DIRECT
+PRI memFill(xs, ys, val, count)
+' Fill region of display buffer memory
+'   xs, ys: Start of region
+'   val: Color
+'   count: Number of consecutive memory locations to write
+    longfill(_ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
+#endif
 
 DAT
 {
