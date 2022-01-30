@@ -39,7 +39,7 @@ OBJ
 
     cfg : "core.con.boardcfg.p2eval"
     time: "time"
-    oled: "display.oled.us2066.i2c"
+    oled: "display.oled-alpha.us2066"
     ser : "com.serial.terminal.ansi"
 
 PUB Main()
@@ -353,7 +353,7 @@ PUB Setup()
 '    if oled.start(RESET_PIN)
 
     ' use all custom settings
-    if oled.startx(SCL_PIN, SDA_PIN, RESET_PIN, I2C_HZ, SLAVE_BIT)
+    if oled.startx(SCL_PIN, SDA_PIN, RESET_PIN, I2C_HZ, SLAVE_BIT, HEIGHT)
         ser.strln(string("US2066 driver started"))
     else
         ser.strln(string("US2066 driver failed to start - halting"))
