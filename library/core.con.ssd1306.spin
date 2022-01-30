@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: core.con.ssd1306.spin
     Author: Jesse Burt
-    Description: SSD1306 OLED/PLED Display driver registers/command set
+    Description: SSD1306-specific constants
     Copyright (c) 2021
     Created: Apr 26, 2018
-    Updated: Jan 30, 2021
+    Updated: Jan 1, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -64,7 +64,12 @@ CON
         OSCFREQ_BITS= %1111
         CLKDIV_BITS = %1111
 
-    CHARGEPUMP      = $8D
+    CHGPUMP         = $8D
+        CHGP_OFF    = %0000_0000
+        CHGP_7500   = %0000_0100
+        CHGP_6000   = %0000_0101
+        CHGP_8500   = %1000_0100
+        CHGP_9000   = %1000_0101
 
 'TIMING & DRIVING SCHEME
     SETPRECHARGE    = $D9 '- 2 byte command - send phase 1 period and phase 2 period after this byte
