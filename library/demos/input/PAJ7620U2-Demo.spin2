@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Demo of the PAJ7620U2 driver
         (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started May 21, 2020
-    Updated May 19, 2021
+    Updated Jan 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -29,7 +29,7 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    gesture : "input.gesture.paj7620u2.i2c"
+    gesture : "input.gesture.paj7620u2"
 
 PUB Main() | gest, gestct
 
@@ -64,7 +64,6 @@ PUB Setup()
         ser.strln(string("PAJ7620U2 driver started"))
     else
         ser.strln(string("PAJ7620U2 driver failed to start - halting"))
-        waitms(5)
         repeat
 
 DAT
