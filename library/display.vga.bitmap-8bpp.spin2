@@ -35,6 +35,7 @@ OBJ
 VAR
 
     long _cog, _params[6]
+    long _ptr_framebuffer
     byte _vsync_pin
 
 PUB Start(pinbase, ptr_framebuffer, ptr_palette, WIDTH, HEIGHT): okay
