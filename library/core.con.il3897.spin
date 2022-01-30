@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: core.con.il3897.spin
     Author: Jesse Burt
-    Description: Low-level constants
-    Copyright (c) 2021
+    Description: IL3897-specific Low-level constants
+    Copyright (c) 2022
     Started Feb 21, 2021
-    Updated Feb 21, 2021
+    Updated Jan 21, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -21,6 +21,13 @@ CON
 
 ' Register definitions
     DRV_OUT_CTRL    = $01
+    DRVOUT_CTRL_MASK= $07                       ' param 'B' only
+        GD          = 2
+        SM          = 1
+        TB          = 0
+        GD_MASK     = (1 << GD) ^ DRVOUT_CTRL_MASK
+        SM_MASK     = (1 << SM) ^ DRVOUT_CTRL_MASK
+        TB_MASK     = 1 ^ DRVOUT_CTRL_MASK
 
     GATE_DRV_CTRL   = $03
 
@@ -33,6 +40,12 @@ CON
     DEEP_SLP        = $10
 
     DATA_ENT_MD     = $11
+    DATA_ENT_MD_MASK= $07
+        AM          = 2
+        ID          = 0
+        ID_BITS     = %11
+        AM_MASK     = (1 << AM) ^ DATA_ENT_MD_MASK
+        ID_MASK     = 1 ^ DATA_ENT_MD_MASK
 
     SWRESET         = $12
 
@@ -84,7 +97,19 @@ CON
 
     GATE_LN_WID     = $3B
 
-    BRD_WAVE_CTRL   = $3C
+    BRD_WV_CTRL     = $3C
+    BRD_WV_CTRL_MASK= $F7
+        VBDOPT      = 6
+        VBDLVL      = 4
+        GSTRC       = 2
+        GSTRS       = 0
+        VBDOPT_BITS = %11
+        VBDLVL_BITS = %11
+        GSTRS_BITS  = %11
+        VBDOPT_MASK = (VBDOPT_BITS << VBDOPT) ^ BRD_WV_CTRL_MASK
+        VBDLVL_MASK = (VBDLVL_BITS << VBDLVL) ^ BRD_WV_CTRL_MASK
+        GSTRC_MASK  = (1 << GSTRC) ^ BRD_WV_CTRL_MASK
+        GSTRS_MASK  = 1 ^ BRD_WV_CTRL_MASK
 
     RD_RAM_OPT      = $41
 
