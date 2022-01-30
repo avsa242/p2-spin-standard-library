@@ -38,7 +38,7 @@ OBJ
 
     ser : "com.serial.terminal.ansi"
     cfg : "core.con.boardcfg.p2eval"
-    mem : "memory.eeprom.24xxxx.i2c"
+    mem : "memory.eeprom.24xxxx"
 
 VAR
 
