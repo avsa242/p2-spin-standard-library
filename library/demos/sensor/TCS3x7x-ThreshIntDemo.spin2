@@ -34,7 +34,7 @@ OBJ
 
     cfg : "core.con.boardcfg.p2eval"
     ser : "com.serial.terminal.ansi"
-    rgb : "sensor.color.tcs3x7x.i2c"
+    rgb : "sensor.color.tcs3x7x"
 
 VAR
 

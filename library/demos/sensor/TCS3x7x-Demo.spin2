@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Demo of the TCS3x7x driver
         (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started: Jun 24, 2018
-    Updated: May 15, 2021
+    Updated: Jan 31, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -33,7 +33,7 @@ OBJ
 
     cfg : "core.con.boardcfg.p2eval"
     ser : "com.serial.terminal.ansi"
-    rgb : "sensor.color.tcs3x7x.i2c"
+    rgb : "sensor.color.tcs3x7x"
 
 PUB Main()
 
@@ -71,8 +71,6 @@ PUB Setup()
         ser.strln(string("TCS3X7X driver started"))
     else
         ser.strln(string("TCS3X7X driver failed to start - halting"))
-        rgb.stop()
-        waitms(500)
         repeat
 
 DAT
