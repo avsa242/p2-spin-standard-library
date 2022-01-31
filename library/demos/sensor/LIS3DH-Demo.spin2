@@ -10,9 +10,6 @@
     See end of file for terms of use.
     --------------------------------------------
 }
-' Uncomment one of the following to choose which interface the LIS3DH is connected to
-#define LIS3DH_I2C
-'#define LIS3DH_SPI
 
 CON
 
@@ -40,13 +37,8 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
     int     : "string.integer"
-#ifdef LIS3DH_I2C
-    accel   : "sensor.accel.3dof.lis3dh.i2c"
-#elseifdef LIS3DH_SPI
-    accel   : "sensor.accel.3dof.lis3dh.spi"
-#endif
+    accel   : "sensor.accel.3dof.lis3dh"
 
 PUB Main()
 
@@ -123,8 +115,6 @@ PUB Setup()
 #endif
     else
         ser.strln(string("LIS3DH driver failed to start - halting"))
-        accel.stop()
-        waitms(5)
         repeat
 
 DAT

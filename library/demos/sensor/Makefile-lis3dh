@@ -25,8 +25,8 @@ SPIN2_LIB_PATH=-L ../../
 
 
 # -- Internal --
-SPIN1_DRIVER_FN=../../sensor.accel.3dof.lis3dh.i2cspi.spin
-SPIN2_DRIVER_FN=../../sensor.accel.3dof.lis3dh.i2cspi.spin2
+SPIN1_DRIVER_FN=../../sensor.accel.3dof.lis3dh.spin
+SPIN2_DRIVER_FN=../../sensor.accel.3dof.lis3dh.spin2
 CORE_FN=../../core.con.lis3dh.spin
 # --
 
