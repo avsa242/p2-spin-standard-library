@@ -5,7 +5,7 @@
     Description: ADXL345-specific low-level constants
     Copyright (c) 2021
     Started Mar 14, 2020
-    Updated Aug 29, 2021
+    Updated Nov 13, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -61,6 +61,8 @@ CON
 
 
     THRESH_FF                   = $28
+
+    TIME_FF                     = $29
 
     TAP_AXES                    = $2A
     TAP_AXES_MASK               = $0F

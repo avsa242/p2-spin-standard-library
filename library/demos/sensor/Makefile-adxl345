@@ -25,8 +25,8 @@ SPIN2_LIB_PATH=-L ../p2-spin-standard-library/library
 
 
 # -- Internal --
-SPIN1_DRIVER_FN=sensor.accel.3dof.adxl345.i2cspi.spin
-SPIN2_DRIVER_FN=sensor.accel.3dof.adxl345.i2cspi.spin2
+SPIN1_DRIVER_FN=sensor.accel.3dof.adxl345.spin
+SPIN2_DRIVER_FN=sensor.accel.3dof.adxl345.spin2
 CORE_FN=core.con.adxl345.spin
 # --
 

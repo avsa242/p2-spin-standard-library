@@ -33,7 +33,7 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    accel   : "sensor.accel.3dof.adxl345.i2cspi"
+    accel   : "sensor.accel.3dof.adxl345"
 
 VAR
 
