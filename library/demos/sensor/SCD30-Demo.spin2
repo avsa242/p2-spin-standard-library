@@ -32,7 +32,7 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    env     : "sensor.co2.scd30.i2c"
+    env     : "sensor.co2.scd30"
     int     : "string.integer"
     sf      : "string.format"
 
