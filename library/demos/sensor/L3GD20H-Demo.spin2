@@ -23,8 +23,8 @@ CON
     SER_BAUD    = 2_000_000
 
 ' I2C
-    I2C_SCL     = 16
-    I2C_SDA     = 17
+    I2C_SCL     = 9
+    I2C_SDA     = 10
     I2C_HZ      = 400_000                       ' 400_000 max
     I2C_ADDR    = 0                             ' 0, 1
 
@@ -44,15 +44,8 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
     int     : "string.integer"
-#ifdef L3GD20H_I2C
-    gyro    : "sensor.gyroscope.3dof.l3gd20h.i2c"
-#elseifdef L3GD20H_SPI
-    gyro    : "sensor.gyroscope.3dof.l3gd20h.spi"
-#else
-#error "One of L3GD20H_I2C or L3GD20H_SPI must be defined"
-#endif
+    gyro    : "sensor.gyroscope.3dof.l3gd20h"
 
 PUB Main()
 
@@ -132,8 +125,6 @@ PUB Setup()
     else
 #endif
         ser.strln(string("L3GD20H driver failed to start - halting"))
-        gyro.stop()
-        waitms(5)
         repeat
 
 DAT
