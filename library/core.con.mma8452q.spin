@@ -38,6 +38,7 @@ CON
     OUT_Y_LSB           = $04
     OUT_Z_MSB           = $05
     OUT_Z_LSB           = $06
+
     SYSMOD              = $0B
     INT_SOURCE          = $0C
     WHO_AM_I            = $0D

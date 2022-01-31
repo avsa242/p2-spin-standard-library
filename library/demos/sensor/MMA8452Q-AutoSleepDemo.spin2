@@ -38,7 +38,7 @@ OBJ
     ser     : "com.serial.terminal.ansi"
     time    : "time"
     int     : "string.integer"
-    accel   : "sensor.accel.3dof.mma8452q.i2c"
+    accel   : "sensor.accel.3dof.mma8452q"
     core    : "core.con.mma8452q"
 
 VAR
