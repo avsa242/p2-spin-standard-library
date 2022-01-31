@@ -28,7 +28,7 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    iaq     : "sensor.iaq.sgp30.i2c"
+    iaq     : "sensor.iaq.sgp30"
     int     : "string.integer"
 
 VAR
