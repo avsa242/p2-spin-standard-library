@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Simple demo of the 23XXXX driver
         (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Dec 27, 2020
-    Updated May 15, 2021
+    Updated Jan 31, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -42,7 +42,7 @@ OBJ
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     int     : "string.integer"
-    sram    : "memory.sram.23xxxx.spi"
+    sram    : "memory.sram.23xxxx"
 
 VAR
 
@@ -87,7 +87,6 @@ PUB Main() | base_page, start, elapsed
                 erasepage(base_page)
             "q":                                ' Quit the demo and halt
                 ser.strln(string("Halting"))
-                stop()
                 quit
             other:
 
@@ -107,7 +106,7 @@ PRI usec(ticks): usecs
 ' Convert system clock ticks to microseconds
     return ticks / TICKS_USEC
 
-PUB Setup
+PUB Setup()
 
     ser.start(SER_BAUD)
     waitms(30)
@@ -117,12 +116,7 @@ PUB Setup
         ser.strln(string("23XXXX driver started"))
     else
         ser.strln(string("23XXXX driver failed to start - halting"))
-        stop()
-
-PUB Stop()
-
-    waitms(5)
-    sram.stop()
+        repeat
 
 DAT
 {
