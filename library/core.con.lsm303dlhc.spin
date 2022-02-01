@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: core.con.lsm303dlhc.spin
     Author: Jesse Burt
-    Description: Low-level constants
+    Description: LSM303DLHC-specific low-level constants
     Copyright (c) 2021
     Started Jul 29, 2020
-    Updated Jan 28, 2021
+    Updated Sep 22, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -98,6 +98,7 @@ CON
         ZDA             = 2
         YDA             = 1
         XDA             = 0
+        OR_BITS         = %1111
         DA_BITS         = %1111
 
     OUT_X_L             = $3228
@@ -150,6 +151,7 @@ CON
         Z               = 2
         Y               = 1
         X               = 0
+        CLICK_BITS      = %11
 
     CLICK_THS           = $323A
 
