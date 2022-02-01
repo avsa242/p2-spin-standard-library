@@ -1,2 +1,0 @@
-#define ICM20649_SPI
-#include "sensor.imu.6dof.icm20649.i2cspi.spin2"
