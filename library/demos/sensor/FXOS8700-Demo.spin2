@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: FXOS8700-Demo.spin
+    Filename: FXOS8700-Demo.spin2
     Author: Jesse Burt
-    Description: Demo of the FXOS8700 driver
+    Description: Demo of the FXOS8700 driver (P2 version)
     Copyright (c) 2021
     Started Sep 19, 2020
-    Updated May 16, 2021
+    Updated Nov 20, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -22,7 +22,9 @@ CON
     I2C_SCL     = 0
     I2C_SDA     = 1
     I2C_HZ      = 400_000
-    SL_ADDR_BITS= %11                   ' %00..11 ($1E, 1D, 1C, 1F)
+    ADDR_BITS   = %11                           ' %00..%11 ($1E, 1D, 1C, 1F)
+
+    RES_PIN     = -1                            ' reset optional: -1 to disable
 ' --
 
     DATA_X_COL  = 10
@@ -38,7 +40,7 @@ OBJ
 
     cfg : "core.con.boardcfg.p2eval"
     ser : "com.serial.terminal.ansi"
-    imu : "sensor.imu.6dof.fxos8700.i2c"
+    imu : "sensor.imu.6dof.fxos8700"
     int : "string.integer"
 
 PUB Main()
@@ -141,11 +143,10 @@ PUB Setup()
     ser.clear()
     ser.strln(string("Serial terminal started"))
 
-    if imu.startx(I2C_SCL, I2C_SDA, I2C_HZ, SL_ADDR_BITS)
+    if imu.startx(I2C_SCL, I2C_SDA, I2C_HZ, ADDR_BITS, RES_PIN)
         ser.strln(string("FXOS8700 driver started"))
     else
         ser.strln(string("FXOS8700 driver failed to start - halting"))
-        waitms(50)
         repeat
 
 DAT
