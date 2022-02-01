@@ -55,7 +55,7 @@ OBJ
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     int     : "string.integer"
-    imu     : "sensor.imu.6dof.lsm6dsl.i2cspi"
+    imu     : "sensor.imu.6dof.lsm6dsl"
     core    : "core.con.lsm6dsl"
 
 VAR

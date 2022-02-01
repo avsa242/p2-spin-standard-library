@@ -1,6 +1,6 @@
 # lsm6dsl-spin Makefile - requires GNU Make, or compatible
 # Variables below can be overridden on the command line
-#	e.g. make IFACE=LSM6DSL_SPI p2demo
+#	e.g. make IFACE=LSM6DSL_SPI LSM6DSL-Demo.spin
 
 # P1, P2 device nodes and baudrates
 #P1DEV=
@@ -24,8 +24,8 @@ SPIN2_LIB_PATH=-L ../../
 
 
 # -- Internal --
-SPIN1_DRIVER_FN=../../sensor.imu.6dof.lsm6dsl.i2cspi.spin
-SPIN2_DRIVER_FN=../../sensor.imu.6dof.lsm6dsl.i2cspi.spin2
+SPIN1_DRIVER_FN=../../sensor.imu.6dof.lsm6dsl.spin
+SPIN2_DRIVER_FN=../../sensor.imu.6dof.lsm6dsl.spin2
 CORE_FN=../../core.con.lsm6dsl.spin
 # --
 
