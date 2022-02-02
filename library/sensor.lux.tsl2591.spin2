@@ -3,9 +3,9 @@
     Filename: sensor.lux.tsl2591.spin
     Description: Driver for the TSL2591 I2C Light/lux sensor
     Author: Jesse Burt
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Nov 23, 2019
-    Updated May 20, 2021
+    Updated Jan 15, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -53,6 +53,8 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 }   I2C_HZ <= core.I2C_MAX_FREQ
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitus(core.T_POR)
+            i2c.reset()                         ' attempt to make startup
+            i2c.write($ff)                      '   more reliable
             if deviceid() == core.DEV_ID_RESP
                 reset()
                 return
