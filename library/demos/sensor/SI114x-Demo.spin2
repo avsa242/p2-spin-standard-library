@@ -38,7 +38,7 @@ OBJ
     int     : "string.integer"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
-    si      : "sensor.light.si114x.i2c"
+    si      : "sensor.light.si114x"
 
 PUB Main()
 
