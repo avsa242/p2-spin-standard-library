@@ -39,7 +39,7 @@ OBJ
     ser     : "com.serial.terminal.ansi"
     time    : "time"
     int     : "string.integer"
-    baro    : "sensor.pressure.mpl3115a2.i2c"
+    baro    : "sensor.pressure.mpl3115a2"
 
 PUB Main()
 
