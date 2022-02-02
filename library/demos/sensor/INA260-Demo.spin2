@@ -34,7 +34,7 @@ OBJ
 
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
-    ina260      : "sensor.power.ina260.i2c"
+    ina260      : "sensor.power.ina260"
     int         : "string.integer"
 
 PUB Main() | vbus, i, p
