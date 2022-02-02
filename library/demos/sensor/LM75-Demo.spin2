@@ -36,7 +36,7 @@ OBJ
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     int     : "string.integer"
-    temp    : "sensor.temperature.lm75.i2c"
+    temp    : "sensor.temperature.lm75"
 
 PUB Main() | tmp
 
