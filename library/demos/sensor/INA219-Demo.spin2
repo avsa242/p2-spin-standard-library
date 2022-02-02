@@ -34,7 +34,7 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    ina219  : "sensor.power.ina219.i2c"
+    ina219  : "sensor.power.ina219"
     int     : "string.integer"
 
 PUB Main() | vbus, vshunt, i, p
