@@ -33,7 +33,7 @@ OBJ
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     int     : "string.integer"
-    sens    : "sensor.temp_rh.htu21d.i2c"
+    sens    : "sensor.temp_rh.htu21d"
 
 PUB Main()
 
