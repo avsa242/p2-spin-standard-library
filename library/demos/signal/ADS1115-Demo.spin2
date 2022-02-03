@@ -3,9 +3,9 @@
     Filename: ADS1115-Demo.spin2
     Author: Jesse Burt
     Description: Demo of the ADS1115 driver (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Apr 2, 2021
-    Updated Nov 14, 2021
+    Updated Feb 3, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -34,7 +34,7 @@ OBJ
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     int     : "string.integer"
-    ads1115 : "signal.adc.ads1115.i2c"
+    ads1115 : "signal.adc.ads1115"
 
 PUB Main() | ch
 
@@ -101,8 +101,6 @@ PRI Setup()
         ser.strln(string("ADS1115 driver started"))
     else
         ser.strln(string("ADS1115 driver failed to start - halting"))
-        ads1115.stop()
-        waitms(5)
         repeat
 
 DAT
