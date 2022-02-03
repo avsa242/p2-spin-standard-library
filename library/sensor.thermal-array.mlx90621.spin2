@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Driver for the Melexis MLX90621
         16x4 IR array (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     started: Dec 2, 2019
-    Updated: May 22, 2021
+    Updated: Jan 1, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -84,14 +84,15 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 }   I2C_HZ <= core.I2C_MAX_FREQ
         if (status := i2c.init(SCL_PIN, SDA_PIN, core.EE_MAX_FREQ))
             waitus(core.T_POR)
-            if i2c.present(core.EE_SLAVE_ADDR)      ' first start I2C engine
-                readeeprom()                        '   to read the EEPROM
-                waitms(5)
-                i2c.deinit()
-                i2c.init(SCL_PIN, SDA_PIN, I2C_HZ)  ' This time re-setup for the sensor
-                waitms(5)
-                if i2c.present(SLAVE_WR)            ' check device bus presence
-                    return
+            if i2c.present(core.EE_SLAVE_ADDR)  ' first start I2C engine
+                if readeeprom()                 '   to read the EEPROM
+                    waitms(5)
+                    i2c.deinit()
+                                                ' now re-setup for the sensor
+                    i2c.init(SCL_PIN, SDA_PIN, I2C_HZ)
+                    waitms(5)
+                    if i2c.present(SLAVE_WR)    ' check device bus presence
+                        return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
     ' Lastly - make sure you have at least one free core/cog
@@ -196,21 +197,21 @@ PUB GetColumn(ptr_buff, col) | tmpframe[2], tmp, offs, line
     readreg(col * 4, 4, 1, @tmpframe)
     repeat line from 0 to YMAX
         offs := (col * 4) + line
-        long[ptr_buff][tmp] := ~~tmpframe.word[offs]
+        long[ptr_buff][tmp] := tmpframe.word[offs] signx 15
 
 PUB GetFrame(ptr_buff) | tmpframe[32], offs
 ' Read entire frame from sensor and store it in buffer at ptr_buff
 '   NOTE: This buffer must be at least 64 words
     readreg(0, 64, 1, @tmpframe)
     repeat offs from 0 to 63
-        long[ptr_buff][offs] := ~~tmpframe.word[offs]
+        long[ptr_buff][offs] := tmpframe.word[offs] signx 15
 
 PUB GetFrameExt(ptr_buff) | tmpframe[33], offs, line, col
 ' Read entire frame, as well as PTAT and compensation pixel data from sensor and stores it in buffer at ptr_buff
 '   NOTE: This buffer must be at least 66 words
     readreg(0, 66, 1, @tmpframe)
     repeat offs from 0 to 65
-        long[ptr_buff][offs] := ~~tmpframe.word[offs]
+        long[ptr_buff][offs] := tmpframe.word[offs] signx 15
     _PTAT := tmpframe[RAM_OFFS_PTAT]            ' Get PTAT data
 
 PUB GetLine(ptr_buff, line) | tmpframe[8], offs, col
@@ -221,7 +222,7 @@ PUB GetLine(ptr_buff, line) | tmpframe[8], offs, col
     readreg(line, 16, 4, @tmpframe)
     repeat col from 0 to XMAX
         offs := (col * 4) + line
-        long[ptr_buff][offs] := ~~tmpframe.word[offs]
+        long[ptr_buff][offs] := tmpframe.word[offs] signx 15
 
 PUB GetPixel(ptr_buff, col, line): pix_word | tmpframe, offs
 ' Read a single pixel from the sensor into ptr_buff
@@ -240,25 +241,7 @@ PUB GetPixel(ptr_buff, col, line): pix_word | tmpframe, offs
     offs := (col * 4) + line                    ' offset within array image
 
     readreg(offs, 1, 0, @tmpframe)
-    long[ptr_buff][offs] := pix_word := ~~tmpframe.word[0]
-
-PUB I2CFM(mode=-2): curr_mode
-' Enable I2C Fast Mode+
-'   Valid values:
-'     *TRUE (-1 or 1): Max I2C bus speed 1000kbit/sec
-'      FALSE (0): Max I2C bus speed 400kbit/sec
-'   NOTE: This is independent of, and has no effect on what speed the driver
-'   was started with.
-'   Any other value polls the chip and returns the current setting
-    readreg(core.CONFIG, 2, 0, @curr_mode)
-    case abs(mode)
-        0, 1:
-            mode := (1-(abs(mode))) << core.I2CFMP
-        other:
-            return (1-((curr_mode >> core.I2CFMP) & 1)) == 1
-
-    mode := ((curr_mode & core.I2CFMP_MASK) | mode)
-    writereg(core.CONFIG, curr_mode)
+    long[ptr_buff][offs] := pix_word := tmpframe.word[0] signx 15
 
 PUB Measure()
 ' Perform measurement, when OpMode is set to SINGLE
@@ -322,18 +305,33 @@ PUB Powered(state=-2): curr_state
     state := ((curr_state & core.OPMODE_MASK) | state)
     writereg(core.CONFIG, state)
 
-PUB ReadEEPROM() | tmp
+PUB ReadEEPROM(): status | ackbit, tries
 ' Read sensor EEPROM contents into RAM
-    bytefill(@_ee_data, $00, EE_SIZE)           ' clear RAM copy of EEPROM
+'   Returns:
+'       TRUE (-1): success
+'       FALSE (0): failure
+    bytefill(@_ee_data, 0, EE_SIZE)             ' clear RAM copy of EEPROM
+    tries := 0
 
-    i2c.start()
-    i2c.write(core.EE_SLAVE_ADDR)
+    i2c.start()                                 ' try to talk to the EEPROM
+    repeat
+        ackbit := i2c.write(core.EE_SLAVE_ADDR)
+        if (++tries > 3)                        ' give up after 3 tries
+            i2c.stop()
+            return FALSE
+    until (ackbit == i2c.ACK)
     i2c.write($00)
 
     i2c.start()                                 ' Read in the EEPROM
-    i2c.write(core.EE_SLAVE_ADDR|1)
+    repeat
+        ackbit := i2c.write(core.EE_SLAVE_ADDR|1)
+        if (++tries > 3)
+            i2c.stop()
+            return FALSE
+    until (ackbit == i2c.ACK)
     i2c.rdblock_lsbf(@_ee_data, EE_SIZE, i2c.NAK)
     i2c.stop()
+    return TRUE
 
 PUB RefreshRate(rate=-2): curr_rate
 ' Set sensor refresh rate
@@ -368,6 +366,24 @@ PUB Reset(set=-2): flag
 
     set := ((flag & core.RESET_MASK) | set)
     writereg(core.CONFIG, set)
+
+PRI I2CFM(mode=-2): curr_mode
+' Enable I2C Fast Mode+
+'   Valid values:
+'     *TRUE (-1 or 1): Max I2C bus speed 1000kbit/sec
+'      FALSE (0): Max I2C bus speed 400kbit/sec
+'   NOTE: This is independent of, and has no effect on what speed the driver
+'   was started with.
+'   Any other value polls the chip and returns the current setting
+    readreg(core.CONFIG, 2, 0, @curr_mode)
+    case abs(mode)
+        0, 1:
+            mode := (1-(abs(mode))) << core.I2CFMP
+        other:
+            return (1-((curr_mode >> core.I2CFMP) & 1)) == 1
+
+    mode := ((curr_mode & core.I2CFMP_MASK) | mode)
+    writereg(core.CONFIG, curr_mode)
 
 PRI readReg(reg_nr, nr_reads, rd_step, ptr_buff) | cmd_pkt[2]
 ' Read nr_reads from device into ptr_buff
