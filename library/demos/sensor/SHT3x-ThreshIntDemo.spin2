@@ -1,11 +1,12 @@
 {
     --------------------------------------------
-    Filename: SHT3x-Demo.spin2
+    Filename: SHT3x-ThreshIntDemo.spin2
     Author: Jesse Burt
-    Description: Demo of the SHT3x driver (P2 version)
+    Description: Demo of the SHT3x driver
+        Threshold interrupt functionality (P2 version)
     Copyright (c) 2022
-    Started Nov 3, 2019
-    Updated Feb 3, 2022
+    Started Jan 8, 2022
+    Updated Jan 9, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -21,9 +22,11 @@ CON
 
     SCL_PIN         = 0
     SDA_PIN         = 1
-    ADDR_BIT        = 0                         ' 0, 1: opt. slave address
+    RESET_PIN       = 2                         ' optional (-1 to disable)
+    INT1            = 3                         ' ALERT pin (active high)
+
+    ADDR_BIT        = 0                         ' 0, 1: opt. I2C address bit
     I2C_HZ          = 1_000_000                 ' max is 1_000_000
-    RESET_PIN       = -1                        ' optional
 ' --
 
 ' Temperature scale
@@ -37,24 +40,61 @@ OBJ
     sht3x   : "sensor.temp_rh.sht3x"
     int     : "string.integer"
 
-PUB Main() | temp, rh
+VAR
+
+    long _isr_stack[50]                         ' stack for ISR core
+    long _intflag                               ' interrupt flag
+
+PUB Main() | dr
 
     setup()
 
+    dr := 2                                     ' data rate: 0 (0.5), 1, 2, 4, 10Hz
+    sht3x.repeatability(0)
+    sht3x.datarate(dr)
+    sht3x.opmode(sht3x.CONT)
+
     sht3x.tempscale(C)
+    sht3x.intrhhithresh(25)                     ' RH hi/lo thresholds
+    sht3x.intrhlothresh(5)
+    sht3x.intrhhiclear(24)                      ' hi/lo thresh hysteresis
+    sht3x.intrhloclear(6)
+
+    sht3x.inttemphithresh(30)                   ' temp hi/lo thresholds
+    sht3x.inttemplothresh(10)
+    sht3x.inttemphiclear(29)                    ' hi/lo thresh hysteresis
+    sht3x.inttemploclear(7)
+
+    ser.strln(string("Set thresholds:"))
+    ser.printf(string("RH Set low: %d  hi: %d\n"), sht3x.intrhlothresh(-2), {
+}   sht3x.intrhhithresh(-2))
+    ser.printf(string("RH Clear low: %d  hi: %d\n"), sht3x.intrhloclear(-2), {
+}   sht3x.intrhhiclear(-2))
+    ser.printf(string("Temp Set low: %d  hi: %d\n"), sht3x.inttemplothresh(-256), {
+}   sht3x.inttemphithresh(-256))
+    ser.printf(string("Temp Clear low: %d  hi: %d\n"), sht3x.inttemploclear(-256), {
+}   sht3x.inttemphiclear(-256))
 
     repeat
-        ser.position(0, 3)
+        if (dr > 0)
+            waitms(1000/dr)
+        else
+            waitms(2000)
+        ser.position(0, 10)
 
         ser.str(string("Temperature: "))
         decimal(sht3x.temperature(), 100)
         ser.newline()
 
         ser.str(string("Relative humidity: "))
-        decimal(sht3x.humidity(), 100)
+        decimal(sht3x.lasthumidity(), 100)
         ser.newline()
-
-        waitms (1000)
+        if _intflag
+            ser.position(0, 12)
+            ser.str(string("Interrupt"))
+        else
+            ser.position(0, 12)
+            ser.clearline()
 
 PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp, sign
 ' Display a scaled up number as a decimal
@@ -81,6 +121,15 @@ PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp, sign
     ser.char(".")
     ser.str(part)
 
+PRI ISR()
+' Interrupt service routine
+    pinf(INT1)                                  ' INT1 as input
+    repeat
+        repeat until pinr(INT1) == 1            ' wait for INT1 (active high)
+        _intflag := 1                           '   set flag
+        repeat until pinr(INT1) == 0            ' now wait for it to clear
+        _intflag := 0                           '   clear flag
+
 PUB Setup()
 
     ser.start(SER_BAUD)
@@ -93,6 +142,8 @@ PUB Setup()
     else
         ser.strln(string("SHT3x driver failed to start - halting"))
         repeat
+
+    cogspin(NEWCOG, isr, @_isr_stack)                    ' start ISR in another core
 
 DAT
 {

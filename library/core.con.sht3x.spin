@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: core.con.sht3x.spin
     Author: Jesse Burt
-    Description: Low-level constants
+    Description: SHT3x-specific constants
     Copyright (c) 2022
     Started Nov 19, 2017
-    Updated Feb 15, 2021
+    Updated Jan 8, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -21,30 +21,45 @@ CON
     ADC_MAX_X100            = ADC_MAX * 100
 
 ' Periodic measurement commands
-    MEAS_PERIODIC_0_5       = $2000 ' MSB |
+    MEAS_PER_0_5            = $2000 ' MSB |
         RPT_HI_0_5          = $0032 '       LSB
         RPT_MED_0_5         = $0024 '       LSB
         RPT_LO_0_5          = $002F '       LSB
+        MEAS_P_HI_0_5       = MEAS_PER_0_5 | RPT_HI_0_5
+        MEAS_P_MED_0_5      = MEAS_PER_0_5 | RPT_MED_0_5
+        MEAS_P_LO_0_5       = MEAS_PER_0_5 | RPT_LO_0_5
 
-    MEAS_PERIODIC_1         = $2100 ' MSB |
+    MEAS_PER_1              = $2100 ' MSB |
         RPT_HI_1            = $0030 '       LSB
         RPT_MED_1           = $0026 '       LSB
         RPT_LO_1            = $002D '       LSB
+        MEAS_P_HI_1         = MEAS_PER_1 | RPT_HI_1
+        MEAS_P_MED_1        = MEAS_PER_1 | RPT_MED_1
+        MEAS_P_LO_1         = MEAS_PER_1 | RPT_LO_1
 
-    MEAS_PERIODIC_2         = $2200 ' MSB |
+    MEAS_PER_2              = $2200 ' MSB |
         RPT_HI_2            = $0036 '       LSB
         RPT_MED_2           = $0020 '       LSB
         RPT_LO_2            = $002B '       LSB
+        MEAS_P_HI_2         = MEAS_PER_2 | RPT_HI_2
+        MEAS_P_MED_2        = MEAS_PER_2 | RPT_MED_2
+        MEAS_P_LO_2         = MEAS_PER_2 | RPT_LO_2
 
-    MEAS_PERIODIC_4         = $2300 ' MSB |
+    MEAS_PER_4              = $2300 ' MSB |
         RPT_HI_4            = $0034 '       LSB
         RPT_MED_4           = $0022 '       LSB
         RPT_LO_4            = $0029 '       LSB
+        MEAS_P_HI_4         = MEAS_PER_4 | RPT_HI_4
+        MEAS_P_MED_4        = MEAS_PER_4 | RPT_MED_4
+        MEAS_P_LO_4         = MEAS_PER_4 | RPT_LO_4
 
-    MEAS_PERIODIC_10        = $2700 ' MSB |
+    MEAS_PER_10             = $2700 ' MSB |
         RPT_HI_10           = $0037 '       LSB
         RPT_MED_10          = $0021 '       LSB
         RPT_LO_10           = $002A '       LSB
+        MEAS_P_HI_10        = MEAS_PER_10 | RPT_HI_10
+        MEAS_P_MED_10       = MEAS_PER_10 | RPT_MED_10
+        MEAS_P_LO_10        = MEAS_PER_10 | RPT_LO_10
 
 ' One-shot measurement commands (without clock-stretching)
     MEAS_HIGHREP            = $2400
