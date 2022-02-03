@@ -33,7 +33,7 @@ OBJ
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     int     : "string.integer"
-    si70xx  : "sensor.temp_rh.si70xx.i2c"
+    si70xx  : "sensor.temp_rh.si70xx"
 
 VAR
 
