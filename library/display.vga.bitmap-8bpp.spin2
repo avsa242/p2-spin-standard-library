@@ -4,7 +4,7 @@
     Description: 8-bits per pixel bitmap VGA driver (320x240)
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Jan 30, 2022
+    Updated: Feb 3, 2022
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is based on raycast5b_SpinDisplay2a.spin2,
@@ -98,7 +98,8 @@ PUB Plot(x, y, color)
 
 PUB Plot(x, y, color)
 ' Draw a pixel at (x, y) in color (buffered)
-    byte[_ptr_drawbuffer][x + (y * _disp_width)] := color
+    if (x >= 0 and x <= _disp_xmax) and (y >= 0 and y <= _disp_ymax)
+        byte[_ptr_drawbuffer][x + (y * _disp_width)] := color
 #endif
 
 #ifndef GFX_DIRECT
