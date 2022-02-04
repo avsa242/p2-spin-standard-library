@@ -16,6 +16,8 @@ CON
     SLAVE_WR            = core.SLAVE_ADDR
     SLAVE_RD            = core.SLAVE_ADDR|1
 
+    DEF_SCL             = 28
+    DEF_SDA             = 29
     DEF_HZ              = 100_000
     I2C_MAX_FREQ        = core.I2C_MAX_FREQ
 
@@ -67,7 +69,7 @@ PUB ClockDataOk(): flag
     pollrtc()
     return _clkdata_ok == 0
 
-PUB ClockOutFreq(freq=-2): curr_freq
+PUB ClockOutFreq(freq): curr_freq
 ' Set frequency of CLKOUT pin, in Hz
 '   Valid values: 0, 1, 32, 1024, 32768
 '   Any other value polls the chip and returns the current setting
