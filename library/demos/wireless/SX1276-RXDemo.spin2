@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Receive demo of the SX1276 driver (LoRa mode)
         (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Dec 12, 2020
-    Updated May 18, 2021
+    Updated Feb 4, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,10 +20,12 @@ CON
     SER_BAUD        = 2_000_000
     LED             = cfg.LED1
 
-    CS_PIN          = 16
-    SCK_PIN         = 17
-    MOSI_PIN        = 18
-    MISO_PIN        = 19
+    CS_PIN          = 8
+    SCK_PIN         = 9
+    MOSI_PIN        = 10
+    MISO_PIN        = 11
+    RESET_PIN       = 12                        ' use is recommended
+                                                '   (-1 to disable)
     SCK_FREQ        = 10_000_000                ' max is 10_000_000
 ' --
 
@@ -31,7 +33,7 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    lora    : "wireless.transceiver.sx1276.spi"
+    lora    : "wireless.transceiver.sx1276-lora"
     int     : "string.integer"
 
 VAR
@@ -83,11 +85,10 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if lora.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
+    if lora.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, RESET_PIN, SCK_FREQ)
         ser.str(string("SX1276 driver started"))
     else
         ser.strln(string("SX1276 driver failed to start - halting"))
-        waitms(500)
         repeat
 
 DAT

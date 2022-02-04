@@ -5,7 +5,7 @@
     Description: Low-level constants
     Copyright (c) 2021
     Started Oct 6, 2019
-    Updated May 18, 2021
+    Updated Aug 22, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,21 +19,35 @@ CON
     WRITE                       = 1 << 7        ' OR with reg_nr to signal write
 
     T_POR                       = 10_000        ' usec
+    T_RESACTIVE                 = 100
+    T_RES                       = 5_000
+
+    SPI_WR                      = 1 << 7        ' wnr bit (Write access)
 
 ' General/shared functionality
     FIFO                        = $00
+
     OPMODE                      = $01
-    OPMODE_MASK                 = $CF
-        LONGRANGEMODE           = 7
+    OPMODEF_MASK                = $EF           ' chip in FSK/OOK mode
+        LORAMODE                = 7
         MODTYPE                 = 5
         LOWFREQMODEON           = 3
         MODE                    = 0
         MODTYPE_BITS            = %11
+        MODTYPE_LORA_BITS       = %111          ' MODTYPE and LORAMODE combined
         MODE_BITS               = %111
-        LONGRANGEMODE_MASK      = (1 << LONGRANGEMODE) ^ OPMODE_MASK
-        MODTYPE_MASK            = (MODTYPE_BITS << MODTYPE) ^ OPMODE_MASK
-        LOWFREQMODEON_MASK      = (1 << LOWFREQMODEON) ^ OPMODE_MASK
-        MODE_MASK               = MODE_BITS ^ OPMODE_MASK
+        LORAMODE_MASK           = (1 << LORAMODE) ^ OPMODEF_MASK
+        MODTYPE_MASK            = (MODTYPE_BITS << MODTYPE) ^ OPMODEF_MASK
+        MODTYPE_LORA_MASK       = (MODTYPE_LORA_BITS << MODTYPE) ^ OPMODEF_MASK
+        LOWFREQMODEON_MASK      = (1 << LOWFREQMODEON) ^ OPMODEF_MASK
+        MODE_MASK               = MODE_BITS ^ OPMODEF_MASK
+        LORA                    = 1 << LORAMODE
+
+    OPMODEL_MASK                = $CF           ' chip in LoRa mode
+        ACCSHRDREG              = 6
+        LORAMODEL_MASK          = (1 << LORAMODE) ^ OPMODEL_MASK
+        LOWFREQMODEONL_MASK     = (1 << LOWFREQMODEON) ^ OPMODEL_MASK
+        MODEL_MASK              = MODE_BITS ^ OPMODEL_MASK
 
     FRFMSB                      = $06
     FRFMID                      = $07
@@ -158,9 +172,26 @@ CON
     SYNCVALUE6                  = $2D
     SYNCVALUE7                  = $2E
     SYNCVALUE8                  = $2F
+
     PACKETCFG1                  = $30
+
     PACKETCFG2                  = $31
+    PACKETCFG2_MASK             = $7F
+        DATAMODE                = 6
+        IOHOMEON                = 5
+        IOHOMEPWRFRM            = 4
+        BEACONON                = 3
+        PAYLDLEN_MSB            = 0
+        DATAMODE_MASK           = (1 << DATAMODE) ^ PACKETCFG2_MASK
+        IOHOMEON_MASK           = (1 << IOHOMEON) ^ PACKETCFG2_MASK
+        IOHOMEPWRFRM_MASK       = (1 << IOHOMEPWRFRM) ^ PACKETCFG2_MASK
+        BEACONON_MASK           = (1 << BEACONON) ^ PACKETCFG2_MASK
+
     PAYLDLENGTH                 = $32
+    PKTCFG2_PAYLDLEN_MASK       = $7FFF         ' pseudo-mask: $31 and $32
+        PAYLDLEN_BITS           = %111_11111111 ' bits from both regs
+        PAYLDLEN_MASK           = PAYLDLEN_BITS ^ PKTCFG2_PAYLDLEN_MASK
+
     NODEADRS                    = $33
     BROADCASTADRS               = $34
     FIFOTHRESH                  = $35
