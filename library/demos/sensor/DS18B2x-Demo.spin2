@@ -3,9 +3,9 @@
     Filename: DS18B2x-Demo.spin
     Author: Jesse Burt
     Description: Demo of the DS18B2x driver
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Jul 13, 2019
-    Updated Jan 8, 2021
+    Updated Feb 4, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -32,8 +32,7 @@ CON
 OBJ
 
     cfg : "core.con.boardcfg.p2eval"
-    time: "time"
-    ds  : "sensor.temperature.ds18b2x.ow"
+    ds  : "sensor.temperature.ds18b2x"
     ser : "com.serial.terminal.ansi"
     int : "string.integer"
 
@@ -104,9 +103,6 @@ PUB Setup()
         ser.strln(string("DS18B2x driver started"))
     else
         ser.strln(string("DS18B2x driver failed to start - halting"))
-        ds.stop()
-        waitms(500)
-        
         repeat
 
 DAT
