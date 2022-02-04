@@ -37,9 +37,8 @@ OBJ
 
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
-    time        : "time"
     int         : "string.integer"
-    cc2500      : "wireless.transceiver.cc2500.spi"
+    cc2500      : "wireless.transceiver.cc2500"
     sf          : "string.format"
 
 VAR
