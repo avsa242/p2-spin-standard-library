@@ -6,11 +6,11 @@
         controller (P2 version)
     Copyright (c) 2022
     Started Apr 4, 2021
-    Updated Jan 30, 2022
+    Updated Feb 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
-#define IL38xx
+#define 1BPP
 #define MEMMV_NATIVE bytemove
 #include "lib.gfx.bitmap.spin2"
 
@@ -459,13 +459,15 @@ PUB MirrorV(state): curr_state  'XXX not functional yet
         _drv_out_ctrl[2] := state
         writereg(core.DRV_OUT_CTRL, 3, @_drv_out_ctrl)
 
+PUB Plot(x, y, color)
+' Plot pixel at (x, y) in color
+    if (x < 0 or x > _disp_xmax) or (y < 0 or y > _disp_ymax)
+        return                                  ' coords out of bounds, ignore
 #ifdef GFX_DIRECT
-PUB Plot(x, y, color)
-' Plot pixel at (x, y) in color (direct to display)
-
+' direct to display
+'   (not implemented)
 #else
-PUB Plot(x, y, color)
-' Plot pixel at (x, y) in color (buffered)
+' buffered display
     case color
         1:
             byte[_ptr_drawbuffer][(x + y * _disp_width) >> 3] |= $80 >> (x & 7)
