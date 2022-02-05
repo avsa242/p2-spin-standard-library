@@ -5,7 +5,7 @@
     Description: Driver for ILI9341 LCD controllers (P2 version)
     Copyright (c) 2022
     Started Jan 10, 2022
-    Updated Jan 15, 2022
+    Updated Feb 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -448,10 +448,11 @@ PUB MirrorV(state): curr_state
     com.wrbyte_dat(_madctl)
 
 PUB Plot(x, y, color) | cmd_pkt
-' Draw a pixel at (x, y), in color
-    if (x > _disp_xmax) or (x < 0) or (y > _disp_ymax) or (y < 0)
-        return                                  ' reject invalid coordinates
-
+' Plot pixel at (x, y) in color
+    if (x < 0 or x > _disp_xmax) or (y < 0 or y > _disp_ymax)
+        return                                  ' coords out of bounds, ignore
+#ifdef GFX_DIRECT
+' direct to display
     cmd_pkt.byte[0] := color.byte[1]
     cmd_pkt.byte[1] := color.byte[0]
 
@@ -462,6 +463,9 @@ PUB Plot(x, y, color) | cmd_pkt
 
     com.wrbyte_cmd(core.RAMWR)
     com.wrblock_dat(@cmd_pkt, 2)
+#else
+' buffered display
+#endif
 
 PUB Powered(state)
 ' Enable display power
