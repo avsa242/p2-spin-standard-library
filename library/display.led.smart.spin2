@@ -5,7 +5,7 @@
     Description: Driver for various smart LED arrays
     Copyright (c) 2022
     Started Jun 13, 2021
-    Updated Jan 30, 2022
+    Updated Feb 6, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -23,7 +23,7 @@ CON
     WS2811_BITPER   = 1_250                     ' nsec
 
     WS2811_T0H      = 250_000 -20_000           ' nsec
-    WS2811_T0L      = 1000_000 -120_000          '   (adjusted for overhead)
+    WS2811_T0L      = 1000_000 -120_000         '   (adjusted for overhead)
     WS2811_T1H      = 600_000 -20_000
     WS2811_T1L      = 650_000 -130_000
     WS2811_TRES     = 50
@@ -134,14 +134,15 @@ PUB Clear()
 ' Clear the display buffer
     longfill(_ptr_drawbuffer, _bgcolor, _nr_pix)
 
+PUB Plot(x, y, color)
+' Plot pixel at (x, y) in color
+    if (x < 0 or x > _disp_xmax) or (y < 0 or y > _disp_ymax)
+        return                                  ' coords out of bounds, ignore
 #ifdef GFX_DIRECT
-PUB Plot(x, y, color)
-' Draw a pixel at (x, y) in color (direct to display)
-
+' direct to display
+'   (not implemented)
 #else
-
-PUB Plot(x, y, color)
-' Draw a pixel at (x, y) in color (buffered)
+' buffered display
     long[_ptr_drawbuffer][x + (y * _disp_width)] := color
 #endif
 
