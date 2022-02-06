@@ -3,9 +3,9 @@
     Filename: GFXBench.spin2
     Description: Graphics benchmark
     Author: Jesse Burt
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started: Apr 10, 2021
-    Updated: Oct 31, 2021
+    Updated: Feb 6, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,8 +16,8 @@
 '#define SSD1331
 '#define SSD1351
 '#define ST7735
-#define HUB75
-'#define VGABITMAP8BPP
+'#define HUB75
+#define VGABITMAP8BPP
 
 ' Comment out this line to define custom I/O pins below
 ' or, uncomment to use MikroE Click I/O pin offset definitions
@@ -33,17 +33,17 @@ OBJ
     int     : "string.integer"
     fnt     : "font.5x8"
 #ifdef SSD1306_I2C
-    disp    : "display.oled.ssd1306.i2c"
+    disp    : "display.oled.ssd1306"
 #elseifdef SSD1306_SPI
-    disp    : "display.oled.ssd1306.spi"
+    disp    : "display.oled.ssd1306"
 #elseifdef SSD1309
-    disp    : "display.oled.ssd1309.spi"
+    disp    : "display.oled.ssd1309"
 #elseifdef SSD1331
-    disp    : "display.oled.ssd1331.spi"
+    disp    : "display.oled.ssd1331"
 #elseifdef SSD1351
-    disp    : "display.oled.ssd1351.spi"
+    disp    : "display.oled.ssd1351"
 #elseifdef ST7735
-    disp    : "display.lcd.st7735.spi"
+    disp    : "display.lcd.st7735"
 #elseifdef VGABITMAP8BPP
     disp    : "display.vga.bitmap-8bpp"
 #elseifdef HUB75
@@ -159,7 +159,7 @@ PUB Main() | time_ms, sz, maxsz, iteration, bench, ch, color
     disp.printf(string("%dx%d"), WIDTH, HEIGHT)
     disp.update()
     waitms(5_000)
-    disp.clearall()
+    disp.clear()
 
     maxsz := WIDTH <# HEIGHT                    ' find smallest disp. dimension
 
