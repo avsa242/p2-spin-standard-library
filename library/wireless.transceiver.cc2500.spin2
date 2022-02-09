@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Driver for TI's CC2500 ISM-band (2.4GHz) transceiver
         (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Jul 7, 2019
-    Updated May 16, 2021
+    Updated Feb 9, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,6 +19,8 @@ CON
     TWO16                   = 1 << 16           ' 2^16
     TWO17                   = 1 << 17           ' 2^17
     TWO18                   = 1 << 18           ' 2^18
+    TWO20                   = 1 << 20           ' 2^20
+    TWO28                   = 1 << 28           ' 2^28
     U64SCALE                = 1_000_000         ' Unsigned math scale
     U64_FREQ_RES            = 396_728515        ' (F_XOSC / TWO16) * 1_000_000
     CHANSPC_RES             = 99_182128         ' (F_XOSC / TWO18) * 1_000_000
@@ -446,30 +448,34 @@ PUB CrystalOff()
 ' Turn off crystal oscillator
     writereg(core.CS_SXOFF, 0, 0)
 
-PUB DataRate(rate=-2): curr_rate | tmp, tmp_e, tmp_m, DRATE_E, DRATE_M
+PUB DataRate(rate): curr_rate | curr_exp, curr_mant, dr_exp, dr_mant
 ' Set on-air data rate, in bps
-'   Valid values: 1000, 1200, 2400, 4800, 9600, 19_600, 38_400, 76_800, 115_051, 153_600, 250_000, 500_000
+'   Valid values: 600..500_000
 '   Default value: 115_051
 '   Any other value polls the chip and returns the current setting
-    longfill(@tmp, 0, 5)
+    longfill(@curr_exp, 0, 4)
 
-    readreg(core.MDMCFG4, 1, @tmp_e)
-    readreg(core.MDMCFG3, 1, @tmp_m)
-    case rate := lookdown(rate: 1000, 1200, 2048, 2400, 4096, 4800, 9600, 19_600, 38_400, 76_800, 115_051, 153_600, 250_000, 500_000)
-        1..14:
-            DRATE_E := lookup(rate: $05, $05, $06, $06, $07, $07, $08, $09, $0A, $0B, $0C, $0C, $0D, $0E) & core.DRATE_E_BITS
-            DRATE_M := lookup(rate: $42, $83, $4A, $83, $4A, $83, $83, $8B, $83, $83, $22, $83, $3B, $3B) & core.MDMCFG3_MASK
+    readreg(core.MDMCFG4, 1, @curr_exp)
+    readreg(core.MDMCFG3, 1, @curr_mant)
+    case rate
+        600..500_000:
+            dr_exp := log2( u64.multdiv(rate, TWO20, F_XOSC) )
+            dr_mant := (u64.multdiv(rate, TWO28, u64.multdiv(F_XOSC, {
+}            (1 << dr_exp), 1_000) )-256_000) / 1_000
+            if (dr_mant > 255)                  ' mantissa overflow?
+                dr_mant := 0                    ' clear and carry it into
+                dr_exp := (dr_exp + 1) <# $0E   ' the exponent
         other:
-            tmp_e &= core.DRATE_E_BITS
-            tmp := (tmp_e << 8) | tmp_m
-            curr_rate := lookdown(tmp: $0542, $0583, $064A, $0683, $074A, $0783, $0883, $098B, $0A83, $0B83, $0C22, $0C83, $0D3B, $0E3B)
-            return lookup(curr_rate: 1000, 1200, 2048, 2400, 4096, 4800, 9600, 19_600, 38_400, 76_800, 115_051, 153_600, 250_000, 500_000)
+            curr_exp &= core.DRATE_E_BITS
+            curr_rate := u64.multdiv( (256+curr_mant) * (1 << curr_exp), {
+}            U64SCALE, TWO28)
+            return u64.multdiv(curr_rate, F_XOSC, U64SCALE)
 
-    tmp_e &= core.DRATE_E_MASK
-    tmp_e := (tmp_e | DRATE_E)
+    curr_exp &= core.DRATE_E_MASK
+    curr_exp := (curr_exp | dr_exp)
 
-    writereg(core.MDMCFG4, 1, @tmp_e)
-    writereg(core.MDMCFG3, 1, @DRATE_M)
+    writereg(core.MDMCFG4, 1, @curr_exp)
+    writereg(core.MDMCFG3, 1, @dr_mant)
 
 PUB DataWhitening(mode=-2): curr_mode
 ' Enable data whitening
