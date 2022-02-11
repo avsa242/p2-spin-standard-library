@@ -1,38 +1,43 @@
 {
     --------------------------------------------
-    Filename: core.bt815.lcdtimings.320x102.spinh
+    Filename: eve3-lcdtimings.320x240.spinh
     Author: Jesse Burt
-    Description: Display timings for 320x102 LCDs
-        (e.g., Matrix Orbital 2.9")
-    Copyright (c) 2020
+    Description: Display timings for 320x240 LCDs
+        (e.g., Matrix Orbital 3.5")
+    Copyright (c) 2022
     Started May 29, 2020
-    Updated May 30, 2020
+    Updated Feb 9, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
-#ifndef MO_29
-#define MO_29
 
-#define DISP_WIDTH      320
-#define DISP_HEIGHT     102
-#define DISP_XMAX       319
-#define DISP_YMAX       101
-#define HCYCLE_CLKS     408
-#define HOFFSET_CYCLES  70
-#define HSYNC0_CYCLES   0
-#define HSYNC1_CYCLES   10
-#define VCYCLE_CLKS     262
-#define VOFFSET_LINES   156
-#define VSYNC0_CYCLES   0
-#define VSYNC1_CYCLES   2
-#define CLKDIV          8
-#define SWIZZLE_MODE    0
-#define PCLK_POLARITY   0
-#define CLKSPREAD       1
-#define DITHER_MODE     1
-#define TS_I2CADDR      $5D
+DAT
 
-#endif
+_disp_setup
+
+    WIDTH           long 320
+    HEIGHT          long 240
+    XMAX            long 319
+    YMAX            long 239
+    CENTERX         long 160
+    CENTERY         long 120
+
+    HCYCLE_CLKS     long 408
+    HOFFSET_CYCS    long 68
+    HSYNC0_CYCS     long 0
+    HSYNC1_CYCS     long 10
+    VCYCLE_CLKS     long 262
+    VOFFSET_LNS     long 18
+    VSYNC0_CYCS     long 0
+    VSYNC1_CYCS     long 2
+
+    CLKDIV          long 8
+    SWIZZLE_MD      long 0
+    PCLK_POL        long 0
+    CLKSPRD         long 1
+    DITHER_MD       long 1
+
+    TS_I2CADDR      long $5D
 
 {
     --------------------------------------------------------------------------------------------------------
