@@ -7,7 +7,7 @@
         (P2 version)
     Copyright (c) 2022
     Started Dec 31, 2020
-    Updated Feb 10, 2022
+    Updated Feb 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -96,6 +96,13 @@ CON
     LR                  = %0100
     LL                  = %1000
 
+' Built-in fonts
+
+    VGA8X8_ROM          = 16                    ' VGA ROM-like 8x8 font ($20..$7E)
+    VGA8X8_ROM_HI       = 17                    ' same, but $80..$FF mapped to $00..$7F
+    VGA8X12_ROM         = 18                    ' 8x12 variant of the above
+    VGA8X12_ROM_HI      = 19
+
 VAR
 
     long _disp_width, _disp_height, _disp_xmax, _disp_ymax, _cent_x, _cent_y
@@ -165,10 +172,11 @@ PUB Defaults()
     displaywidth(_disp_width)
     displayheight(_disp_height)
 
-    displayliststart()
+    waitidle()
+    dlstart()
         clearcolor(0, 0, 0)
         clear()
-    displaylistend()
+    dlend()
     gpiodir($FFFF)
     gpio($FFFF)
 
@@ -332,10 +340,17 @@ PUB ClockSpread(state): curr_state
 
 PUB ColorRGB(r, g, b)
 ' Specify color for following graphics primitive
+'   Valid values: 0..$ff (RGB 8, 8, 8)
     r := 0 #> r <# 255
     g := 0 #> g <# 255
     b := 0 #> b <# 255
     coproccmd(core.COLOR_RGB | (r << core.RED) | (g << core.GREEN) | b)
+
+PUB ColorRGB24(rgb24)
+' Specify color for following graphics primitive
+'   Valid values: 0..$ff_ff_ff (RGB24)
+    rgb24 := 0 #> rgb24 <# $ff_ff_ff
+    coproccmd(core.COLOR_RGB | rgb24)
 
 PUB CoProcCmd(command)
 ' Queue a coprocessor command
@@ -394,11 +409,11 @@ PUB DisplayHeight(pixels)
 ' Set display height, in pixels
     vsize(pixels)
 
-PUB DisplayListStart()
+PUB DLStart()
 ' Begin a display list block
     coproccmd(core.CMD_DLSTART)
 
-PUB DisplayListEnd()
+PUB DLEnd()
 ' End a display list block
     coproccmd(core.DISPLAY)
     coproccmd(core.CMD_SWAP)
@@ -1114,6 +1129,7 @@ PUB WidgetFGColor(rgb)
 PUB Idle(): status | cmd_rd, cmd_wr
 ' Return idle status
 '   Returns: TRUE (-1) if coprocessor is idle, FALSE (0) if busy
+    longfill(@cmd_rd, 0, 2)
     readreg(core.CMD_READ, 4, @cmd_rd)
     readreg(core.CMD_WRITE, 4, @cmd_wr)
     return (cmd_rd == cmd_wr)
