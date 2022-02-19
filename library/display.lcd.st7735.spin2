@@ -5,7 +5,7 @@
     Description: Driver for Sitronix ST7735-based displays (P2 version)
     Copyright (c) 2022
     Started Mar 7, 2020
-    Updated Feb 6, 2022
+    Updated Feb 17, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -447,7 +447,7 @@ PUB FrameRateCtrl(ln_per, f_porch, b_porch, lim_ln_per, lim_f_porch, lim_b_porch
 '           - ignored when opmode is 1 or 2
 '   Any other value for opmode returns the last calculated frame frequency
 '   Any other values for other parameters are ignored
-    result := 0
+    curr_frmr := 0
     case _opmode
         NORMAL, IDLE:
             nr_bytes := 3
