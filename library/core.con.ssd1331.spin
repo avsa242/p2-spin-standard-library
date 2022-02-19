@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: core.con.ssd1331.spin
     Author: Jesse Burt
-    Description: Low-level constants
-    Copyright (c) 2021
+    Description: SSD1331-specific constants
+    Copyright (c) 2022
     Started: Nov 18, 2018
-    Updated: Oct 17, 2021
+    Updated: Feb 19, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,6 +15,9 @@ CON
 ' SPI configuration
     SCK_MAX_FREQ            = 6_666_666         ' According to the datasheet
     SPI_MODE                = 0
+
+    T_RES                   = 3                 ' minimum low pulse on RESET
+    T_RES_COMPLT            = 2                 ' reset completion time (max)
 
 ' D/C states
     CMD                     = 0
