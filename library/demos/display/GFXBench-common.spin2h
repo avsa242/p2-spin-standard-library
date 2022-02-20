@@ -1,0 +1,225 @@
+{
+    --------------------------------------------
+    Filename: GFXBench-common.spin2h
+    Description: Graphics benchmark for all supported
+        display types (common code)
+    Author: Jesse Burt
+    Copyright (c) 2022
+    Started: Feb 20, 2022
+    Updated: Feb 20, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+
+    NOTE: This is not a top-level object. This file is meant to be #included
+    by a display driver-specific benchmark
+}
+
+OBJ
+
+    ser     : "com.serial.terminal.ansi"
+    int     : "string.integer"
+    fnt     : "font.5x8"
+
+CON
+
+    XMAX        = WIDTH - 1
+    YMAX        = HEIGHT - 1
+    CENTERX     = WIDTH/2
+    CENTERY     = HEIGHT/2
+
+    BITMAP      = 0
+    BOX         = 1
+    BOX_F       = 2
+    CIRCLE      = 3
+    CIRCLE_F    = 4
+    DLINE       = 5
+    HLINE       = 6
+    PLOT        = 7
+    TEXT        = 8
+    VLINE       = 9
+
+VAR
+
+    long _stack_timer[50]
+    long _timer_set
+
+PUB Benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
+
+    cogspin(NEWCOG, cog_timer(), @_stack_timer)
+    disp.clear()
+
+    disp.fgcolor(disp.MAX_COLOR)
+    disp.bgcolor(0)
+    disp.position(0, 0)
+    disp.printf(string("%s\n"), @_drv_name)
+    disp.printf(string("P2X8C4M64P\n @%dMHz\n"), clkfreq/1_000_000)
+    disp.printf(string("%dx%d"), WIDTH, HEIGHT)
+    disp.update()
+    waitms(5_000)
+    disp.clear()
+
+    maxsz := WIDTH <# HEIGHT                    ' find smallest disp. dimension
+
+    color := disp.MAX_COLOR
+    time_ms := 2_000                            ' time to run each test
+    if (disp.MAX_COLOR > 1)
+        bench := BITMAP                         ' starting benchmark
+    else
+        bench := BOX                            ' skip BITMAP on 1BPP for now
+
+    ch := $20
+    sz := 1
+    ser.position(0, 3)
+    repeat
+        ser.printf(string("Bench %s (%dpx): "), @_bench_name[bench*14], sz)
+
+        _timer_set := time_ms
+        iteration := 0
+        case bench
+            BITMAP:
+                repeat while _timer_set
+                    disp.bitmap(0, 0, 0, sz-1, sz-1)
+                    disp.update()
+                    iteration++
+            BOX:
+                repeat while _timer_set
+                    disp.box(0, 0, sz-1, sz-1, color, false)
+                    disp.update()
+                    iteration++
+            BOX_F:
+                repeat while _timer_set
+                    disp.box(0, 0, sz-1, sz-1, color, true)
+                    disp.update()
+                    iteration++
+            CIRCLE:
+                repeat while _timer_set
+                    disp.circle(CENTERX, CENTERY, sz-1, color, false)
+                    disp.update()
+                    iteration++
+            CIRCLE_F:
+                repeat while _timer_set
+                    disp.circle(CENTERX, CENTERY, sz-1, color, true)
+                    disp.update()
+                    iteration++
+            DLINE:
+                repeat while _timer_set
+                    disp.line(0, 0, sz-1, sz-1, color)
+                    disp.update()
+                    iteration++
+            HLINE:
+                repeat while _timer_set
+                    disp.line(0, 0, sz-1, 0, color)
+                    disp.update()
+                    iteration++
+            PLOT:
+                repeat while _timer_set
+                    disp.plot(0, 0, color)
+                    disp.update()
+                    iteration++
+            TEXT:
+                disp.fontscale(lookdown(sz: 2, 4, 8, 16, 32, 64, 128))
+                disp.position(0, 0)
+                repeat while _timer_set
+                    disp.char(ch)
+                    ch++
+                    if (ch > $7F)
+                        ch := $20
+                    disp.update()
+                    iteration++
+            VLINE:
+                repeat while _timer_set
+                    disp.line(0, 0, 0, sz-1, color)
+                    disp.update()
+                    iteration++
+            other:
+                quit
+        report(time_ms, iteration)              ' show the results
+        disp.clear()
+
+        sz *= 2
+
+        if (sz > maxsz) or (bench == PLOT)      ' if max size reached,
+            sz := 1                             ' reset it and move on to
+            bench++                             ' the next test
+
+        if (bench > VLINE)
+            quit
+
+    ser.strln(string("COMPLETE"))
+    disp.stop()
+    repeat
+
+PRI Report(testtime, iterations)
+' Display benchmark test results
+    ser.printf(string("%d per sec, "), iterations / (testtime/1000))
+    decimal((testtime * 1_000) / iterations, 1_000)
+    ser.str(string(" ms/iteration, "))
+    ser.printf(string("(total iterations: %d in %dms)"), iterations, testtime)
+    ser.newline()
+
+PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
+' Display a fixed-point scaled up number in decimal-dot notation - scale it back down by divisor
+'   e.g., Decimal (314159, 100000) would display 3.14159 on the termainl
+'   scaled: Fixed-point scaled up number
+'   divisor: Divide scaled-up number by this amount
+    whole := scaled / divisor
+    tmp := divisor
+    places := 0
+
+    repeat
+        tmp /= 10
+        places++
+    until tmp == 1
+    part := int.deczeroed(abs(scaled // divisor), places)
+
+    ser.dec(whole)
+    ser.char(".")
+    ser.str(part)
+
+PRI cog_Timer() | time_left
+' Benchmark timer loop
+    repeat
+        repeat until _timer_set                 ' wait here until a timer has
+        time_left := _timer_set                 '   been set
+
+        repeat                                  ' loop for time_left ms
+            time_left--
+            waitms(1)
+        while time_left > 0
+        _timer_set := 0                         ' signal the timer's been reset
+
+DAT
+
+    _bench_name byte "Bitmap       ", 0
+                byte "Box          ", 0
+                byte "BoxFilled    ", 0
+                byte "Circle       ", 0
+                byte "CircleFilled ", 0
+                byte "DLine        ", 0
+                byte "HLine        ", 0
+                byte "Plot         ", 0
+                byte "Text         ", 0
+                byte "VLine        ", 0
+
+{
+TERMS OF USE: MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+}
+

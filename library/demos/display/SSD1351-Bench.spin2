@@ -1,0 +1,103 @@
+{
+    --------------------------------------------
+    Filename: SSD1351-Demo.spin2
+    Description: SSD1351-specific setup for graphics demo
+    Author: Jesse Burt
+    Copyright (c) 2022
+    Started: Feb 20, 2022
+    Updated: Feb 20, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+}
+CON
+
+    _clkfreq    = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
+
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_BAUD    = 2_000_000
+
+    WIDTH       = 128
+    HEIGHT      = 128
+
+{ SPI configuration }
+    CS_PIN      = 0
+    SCK_PIN     = 1
+    MOSI_PIN    = 2
+    DC_PIN      = 3
+
+{ SPI bus speed: may work at up to about 20MHz, but speeds over 13MHz
+    require a system clock of 240MHz or higher }
+    SCK_FREQ    = 10_000_000
+
+    RES_PIN     = 4                             ' optional; -1 to disable
+' --
+
+    BPP         = disp.BYTESPERPX
+    BYTESPERLN  = WIDTH * BPP
+    BUFFSZ      = (WIDTH * HEIGHT)
+
+OBJ
+
+    cfg     : "core.con.boardcfg.p2eval"
+    disp    : "display.oled.ssd1351"
+
+VAR
+
+#ifndef GFX_DIRECT
+    word _framebuff[BUFFSZ]                     ' display buffer
+#else
+    byte _framebuff                             ' dummy VAR for GFX_DIRECT
+#endif
+
+PUB Main()
+
+    ser.start(SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.strln(string("Serial terminal started"))
+
+    if disp.startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, SCK_FREQ, WIDTH, HEIGHT, @_framebuff)
+        ser.printf(string("%s driver started"), @_drv_name)
+        disp.fontspacing(1, 0)
+        disp.fontscale(1)
+        disp.fontsize(fnt.WIDTH, fnt.HEIGHT)
+        disp.fontaddress(fnt.baseaddr())
+    else
+        ser.printf(string("%s driver failed to start - halting"), @_drv_name)
+        repeat
+
+
+    disp.preset_128x()
+    disp.mirrorh(TRUE)
+    disp.mirrorv(FALSE)
+    benchmark()                                      ' start demo
+
+{ benchmark routines (common to all display types) included here }
+#include "GFXBench-common.spin2h"
+
+DAT
+    _drv_name   byte    "SSD1351 (SPI)", 0
+
+{
+TERMS OF USE: MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+}
