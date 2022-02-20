@@ -1,0 +1,30 @@
+{
+    --------------------------------------------
+    Filename: core.con.ishphub75.spin2
+    Author: Jesse Burt
+    Description: Iron Sheep P2 Eval HUB75 adaptor board
+    Copyright (c) 2022
+    Started Feb 20, 2022
+    Updated Feb 20, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+}
+' Tell object including this file that it's present
+#ifndef ISHPHUB75
+#define ISHPHUB75
+#endif
+
+CON
+' I/O pin offsets for Iron Sheep HUB75 adaptor boards
+'   (Parallax #64032)
+'   Usage in your application:
+'       * #include this file
+'       * define ISHP_BASEPIN (the adaptor's base/lowest I/O pin)
+'           (can be either CON or preprocessor #define)
+
+' HUB75 I/O
+    RGB_BASEPIN = ISHP_BASEPIN+8
+    ADDR_BASEPIN= ISHP_BASEPIN+3
+    CLKPIN      = ISHP_BASEPIN+0
+    LATPIN      = ISHP_BASEPIN+2
+    BLPIN       = ISHP_BASEPIN+1

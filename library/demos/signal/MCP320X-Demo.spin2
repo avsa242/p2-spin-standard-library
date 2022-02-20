@@ -1,0 +1,106 @@
+{
+    --------------------------------------------
+    Filename: MCP320X-Demo.spin2
+    Author: Jesse Burt
+    Description: Demo of the MCP320x driver
+        (P2 version)
+    Copyright (c) 2022
+    Started Nov 26, 2019
+    Updated Feb 3, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    _clkfreq    = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
+
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_BAUD    = 2_000_000
+
+    CS_PIN      = 16                            ' CSn/SHDN
+    SCK_PIN     = 17                            ' CLK
+    MOSI_PIN    = 18                            ' DIN
+    MISO_PIN    = 19                            ' DOUT
+    SCK_FREQ    = 1_000_000                     ' max is 1_800_000 (5v supply)
+' --
+
+OBJ
+
+    cfg     : "core.con.boardcfg.p2eval"
+    ser     : "com.serial.terminal.ansi"
+    adc     : "signal.adc.mcp320x"
+    int     : "string.integer"
+
+PUB Main()
+
+    setup()
+    adc.adcchannel(0)                           ' 0..1 (MCP3202)
+
+    repeat
+        ser.position(0, 3)
+        ser.str(string("ADC: "))
+        ser.hex(adc.adcdata(), 8)
+        ser.newline()
+        decimaldot(adc.volts(), 1000)
+
+PRI DecimalDot(scaled, divisor) | whole[4], part[4], places, tmp, sign
+' Display a scaled up number as a decimal
+'   Scale it back down by divisor (e.g., 10, 100, 1000, etc)
+    whole := scaled / divisor
+    tmp := divisor
+    places := 0
+    part := 0
+    sign := 0
+    if scaled < 0
+        sign := "-"
+    else
+        sign := " "
+
+    repeat
+        tmp /= 10
+        places++
+    until tmp == 1
+    scaled //= divisor
+    part := int.deczeroed(abs(scaled), places)
+
+    ser.char(sign)
+    ser.dec(abs(whole))
+    ser.char(".")
+    ser.str(part)
+
+PUB Setup()
+
+    ser.start(SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.strln(string("Serial terminal started"))
+    if adc.start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
+        ser.strln(string("MCP320x driver started"))
+    else
+        ser.strln(string("MCP320x driver failed to start - halting"))
+        repeat
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
