@@ -1,7 +1,7 @@
 {
     --------------------------------------------
     Filename: SSD130X-Bench.spin2
-    Description: SSD130X-specific setup for benchmark
+    Description: SSD130X-specific setup for graphics benchmark
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Feb 20, 2022

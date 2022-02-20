@@ -1,7 +1,7 @@
 {
     --------------------------------------------
     Filename: ILI9341-Demo.spin2
-    Description: ILI9341-specific setup for benchmark
+    Description: ILI9341-specific setup for graphics benchmark
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Feb 20, 2022

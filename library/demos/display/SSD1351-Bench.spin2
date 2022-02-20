@@ -1,7 +1,7 @@
 {
     --------------------------------------------
     Filename: SSD1351-Demo.spin2
-    Description: SSD1351-specific setup for graphics demo
+    Description: SSD1351-specific setup for graphics benchmark
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Feb 20, 2022
