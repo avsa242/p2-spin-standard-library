@@ -1,19 +1,33 @@
-' Original author: Jeff Martin
-{{
-    This object provides basic time functions for Spin.
+{
+    --------------------------------------------
+    Filename: time.spin2
+    Author: Jesse Burt
+    Description: Basic time/delay functions
+    Started 2006
+    Updated Mar 6, 2022
+    See end of file for terms of use.
+    --------------------------------------------
 
-    Sleep methods are adjusted for method cost and freeze-protected.
-
-    P2/SPIN2 version
-    Valid down to about 110MHz fsys
-}}
-VAR
-
-    long sync
+    NOTE: This object is based on a subset of Clock.spin,
+    originally by Jeff Martin
+}
 
 CON
 
-    WMIN = 160'TBD                                                                  ' WAITCNT-expression overhead minimum
+    { limits }
+    WMIN        = 160 'XXX TBD                  ' waitcnt() overhead minimum
+
+    { misc time unit symbols }
+    SECOND_US   = 1_000_000
+    SECOND_MS   = 1_000
+    SECOND      = 1
+    MINUTE      = (60 * SECOND)
+    HOUR        = (60 * MINUTE)
+    DAY         = (24 * HOUR)
+
+VAR
+
+    long sync
 
 PUB Sleep(secs)
 {{
