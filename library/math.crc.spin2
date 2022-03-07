@@ -5,7 +5,7 @@
     Description: A collection of CRC routines
     Copyright (c) 2022
     Started Nov 19, 2017
-    Updated Jan 5, 2022
+    Updated Mar 7, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,6 +20,19 @@ CON
     POLY16_DSMAX    = $A001
     POLY16_XYZMODEM = $1021
     POLY32_ZMODEM   = $EDB88320
+
+PUB InetChksum(ptr_buff, len): cksum | i, carry
+' Checksum used in various internet datagrams
+    { checksum is word-oriented, so _always_ process two bytes at a time
+      An even number required for len is thus implied; if the length of data
+      is odd, pad the source data with a zero. }
+    repeat i from 0 to (len-2) step 2
+        cksum += (byte[ptr_buff][i] << 8) | byte[ptr_buff][i+1]
+
+    { isolate the total carried, add it to the checksum and return
+      the complement as the final result }
+    carry := (cksum & $ffff_0000) >> 16
+    return ( !(cksum + carry) ) & $ffff
 
 PUB MeasCRC8(data, len): crc | currbyte, i, j
 ' Measurement specialties CRC8
