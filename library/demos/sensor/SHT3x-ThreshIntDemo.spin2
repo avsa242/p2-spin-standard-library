@@ -6,7 +6,7 @@
         Threshold interrupt functionality (P2 version)
     Copyright (c) 2022
     Started Jan 8, 2022
-    Updated Jan 9, 2022
+    Updated Mar 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -87,7 +87,7 @@ PUB Main() | dr
         ser.newline()
 
         ser.str(string("Relative humidity: "))
-        decimal(sht3x.lasthumidity(), 100)
+        decimal(sht3x.lastrh(), 100)
         ser.newline()
         if _intflag
             ser.position(0, 12)

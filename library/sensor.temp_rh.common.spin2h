@@ -39,6 +39,8 @@ CON
 
 VAR
 
+    long _last_temp
+    long _last_rh
     byte _temp_scale
 
 PUB Null()

@@ -51,7 +51,7 @@ PUB Main() | temp, rh
         ser.newline()
 
         ser.str(string("Relative humidity: "))
-        decimal(sht3x.humidity(), 100)
+        decimal(sht3x.rh(), 100)
         ser.newline()
 
         waitms (1000)
