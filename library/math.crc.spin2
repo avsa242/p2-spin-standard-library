@@ -5,13 +5,14 @@
     Description: A collection of CRC routines
     Copyright (c) 2022
     Started Nov 19, 2017
-    Updated Mar 7, 2022
+    Updated Mar 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
+    POLY8_ASAIR     = $131
     POLY8_DSMAX     = $8C
     POLY8_MEAS      = $31
     POLY8_SD        = $09
@@ -20,6 +21,10 @@ CON
     POLY16_DSMAX    = $A001
     POLY16_XYZMODEM = $1021
     POLY32_ZMODEM   = $EDB88320
+
+PUB ASAIRCRC8(ptr_data, len): crc
+' CRC8 for ASAIR temp/RH sensors
+    return crc8(ptr_data, len, $ff, 0, POLY8_ASAIR, false, false)
 
 PUB InetChksum(ptr_buff, len): cksum | i, carry
 ' Checksum used in various internet datagrams
@@ -131,6 +136,32 @@ PUB ZMCRC32(ptr_data, len): crc
 '   ptr_data: pointer to data
 '   data_len: length of data, in bytes
     return crc32(ptr_data, len, $FFFFFFFF, true, POLY32_ZMODEM, false, false)
+
+PUB CRC8(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr_byte, bit
+' Calculate CRC8
+'   ptr_data: pointer to data
+'   data_len: length of data, in bytes (u31)
+'   init: value to initialize CRC with (u32)
+'   xorout: value to XOR final CRC with (u32)
+'   poly: polynomial to use in CRC calculation (u32)
+'   ireflect: bitwise reverse initial value? (bool)
+'   oreflect: bitwise reverse final value? (bool)
+    crc := init
+    if (ireflect)                               ' reflect initial value?
+        crc rev= 7
+
+    repeat curr_byte from 0 to (data_len-1)
+        crc ^= byte[ptr_data][curr_byte]
+        repeat bit from 0 to 7
+            if (crc & $80)
+                crc := (crc << 1) ^ poly
+            else
+                crc := (crc << 1)
+
+    if (oreflect)                               ' reflect final value?
+        crc rev= 7
+
+    return (crc ^ xorout) & $ff
 
 PUB CRC16(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr_byte, bit
 ' Calculate CRC16
