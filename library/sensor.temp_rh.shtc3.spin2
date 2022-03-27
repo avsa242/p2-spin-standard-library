@@ -4,32 +4,24 @@
     Author: Jesse Burt
     Description: Driver for the Sensirion SHT-C3
         Temperature/RH sensor (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Jul 27, 2020
-    Updated Jun 30, 2021
+    Updated Mar 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
+{ pull in methods common to all Temp/RH drivers }
+#include "sensor.temp_rh.common.spin2h"
 
 CON
-
-    SLAVE_WR            = core.SLAVE_ADDR
-    SLAVE_RD            = core.SLAVE_ADDR|1
-
-    DEF_HZ              = 100_000
-    I2C_MAX_FREQ        = core.I2C_MAX_FREQ
 
 ' Operating modes
     NORMAL              = 0
     LOWPOWER            = 1
 
-' Temperature scales
-    C                   = 0
-    F                   = 1
-
 VAR
 
-    byte _opmode, _temp_scale
+    byte _opmode
 
 OBJ
 
@@ -68,26 +60,6 @@ PUB DeviceID(): id
     readreg(core.DEVID, 2, @id)
     id &= $083F                                 ' only some bits are relevant
 
-PUB HumData(): rh_adc
-' Read relative humidity data
-'   Returns: u16
-    rh_adc := 0
-    writereg(core.WAKEUP, 0, 0)                 ' Wake the sensor up
-    waitus(core.T_POR)
-
-    if _opmode == NORMAL                        ' Take a measurement
-        readreg(core.NML_RHFIRST_CS, 3, @rh_adc)
-    elseif _opmode == LOWPOWER
-        readreg(core.LP_RHFIRST_CS, 3, @rh_adc)
-
-    writereg(core.SLEEP, 0, 0)                  ' Go back to sleep
-
-PUB Humidity(): rh
-' Current Relative Humidity, in hundredths of a percent
-'   Returns: Integer
-'   (e.g., 4762 is equivalent to 47.62%)
-    rh := calcrh(humdata())
-
 PUB OpMode(mode): curr_mode
 ' Set device operating mode
 '   Valid values: NORMAL (0), LOWPOWER (1)
@@ -104,6 +76,25 @@ PUB Reset()
     writereg(core.RESET, 0, 0)                  '   sending reset
     waitus(core.T_POR)
 
+PUB RHData(): rh_adc
+' Read relative humidity data
+'   Returns: u16
+    rh_adc := 0
+    writereg(core.WAKEUP, 0, 0)                 ' Wake the sensor up
+    waitus(core.T_POR)
+
+    if _opmode == NORMAL                        ' Take a measurement
+        readreg(core.NML_RHFIRST_CS, 3, @rh_adc)
+    elseif _opmode == LOWPOWER
+        readreg(core.LP_RHFIRST_CS, 3, @rh_adc)
+
+    writereg(core.SLEEP, 0, 0)                  ' Go back to sleep
+
+PUB RHWord2Pct(rh_word): rh_cal
+' Convert RH ADC word to hundredths of a percent
+'   Returns: 0..100_00
+    return (rh_word * 100_00) / 65535
+
 PUB TempData(): temp_adc
 ' Read temperature data
 '   Returns: s16
@@ -118,30 +109,9 @@ PUB TempData(): temp_adc
 
     writereg(core.SLEEP, 0, 0)                  ' Go back to sleep
 
-PUB Temperature(): deg
-' Current Temperature, in hundredths of a degree
-'   Returns: Integer
-'   (e.g., 2105 is equivalent to 21.05 deg C)
-    return calctemp(tempdata())
-
-PUB TempScale(scale): curr_scale
-' Set temperature scale used by Temperature method
-'   Valid values:
-'       C (0): Celsius
-'       F (1): Fahrenheit
-'   Any other value returns the current setting
-    case scale
-        C, F:
-            _temp_scale := scale
-        other:
-            return _temp_scale
-
-PRI calcRH(rh_word): rh_cal
-
-    return (rh_word * 100_00) / 65535
-
-PRI calcTemp(temp_word): temp_cal
-
+PUB TempWord2Deg(temp_word): temp_cal
+' Convert temperature ADC word to degrees
+'   Returns: hundredths of a degree, in chosen scale
     case _temp_scale
         C:
             return ((175 * (temp_word * 100)) / 65535)-45_00
@@ -149,6 +119,7 @@ PRI calcTemp(temp_word): temp_cal
             return ((315 * (temp_word * 100)) / 65535)-49_00
         other:
             return FALSE
+
 
 PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp, crc_r
 ' Read nr_bytes from the slave device into ptr_buff
