@@ -4,33 +4,25 @@
     Author: Jesse Burt
     Description: Driver for the Maxim LM75
         Digital Temperature Sensor (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started May 19, 2019
-    Updated Aug 20, 2021
+    Updated Mar 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
+{ pull in methods common to all Temp/RH drivers }
+#include "sensor.temp_rh.common.spin2h"
 
 CON
 
-    SLAVE_WR            = core.SLAVE_ADDR
-    SLAVE_RD            = core.SLAVE_ADDR|1
-
-    DEF_HZ              = 100_000
     DEF_ADDR            = %000
-    I2C_MAX_FREQ        = core.I2C_MAX_FREQ
 
 ' Overtemperature alarm (OS) output pin active state
     ACTIVE_LO           = 0
     ACTIVE_HI           = 1
 
-' Temperature scale
-    C                   = 0
-    F                   = 1
-
 VAR
 
-    byte _temp_scale
     byte _addr
 
 OBJ
@@ -41,7 +33,7 @@ OBJ
 PUB Null()
 ' This is not a top-level object
 
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): status
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ, ADDR_BITS=DEF_ADDR): status
 ' Start using custom settings
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }   I2C_HZ <= core.I2C_MAX_FREQ and lookdown(ADDR_BITS: %000..%111)
@@ -186,26 +178,16 @@ PUB Powered(state=-2): curr_state
     state := ((curr_state & core.SHUTDOWN_MASK) | state)
     writereg(core.CONFIG, 1, @state)
 
+PUB RHData{}
+' dummy method
+
+PUB RHWord2Pct(rh_word)
+' dummy method
+
 PUB TempData(): temp_raw
 ' Temperature ADC data
     temp_raw := 0
     readreg(core.TEMP, 2, @temp_raw)
-
-PUB Temperature(): temp_cal
-' Temperature, in hundredths of a degree, in chosen scale
-    return tempword2deg(tempdata())
-
-PUB TempScale(scale=-2): curr_scl
-' Set temperature scale used by Temperature method
-'   Valid values:
-'      *C (0): Celsius
-'       F (1): Fahrenheit
-'   Any other value returns the current setting
-    case scale
-        C, F:
-            _temp_scale := scale
-        other:
-            return _temp_scale
 
 PUB TempWord2Deg(temp_word): temp
 ' Convert temperature ADC word to temperature
