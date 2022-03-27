@@ -3,30 +3,18 @@
     Filename: sensor.temp_rh.htu21d.i2c.spin2
     Author: Jesse Burt
     Description: Driver for the HTU21D Temp/RH sensor (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Jun 16, 2021
-    Updated Aug 2, 2021
+    Updated Mar 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
-
-CON
-
-    SLAVE_WR        = core.SLAVE_ADDR
-    SLAVE_RD        = core.SLAVE_ADDR|1
-
-    DEF_SCL         = 28
-    DEF_SDA         = 29
-    DEF_HZ          = 100_000
-    I2C_MAX_FREQ    = core.I2C_MAX_FREQ
-
-    C               = 0
-    F               = 1
+{ pull in methods common to all Temp/RH drivers }
+#include "sensor.temp_rh.common.spin2h"
 
 VAR
 
     long _lastrhvalid, _lasttempvalid
-    byte _temp_scale
     byte _crccheck
 
 OBJ
@@ -103,26 +91,6 @@ PUB HeaterEnabled(state): curr_state
     state := ((curr_state & core.HEATER_MASK) | state)
     writereg(core.WR_USR_REG, 1, @state)
 
-PUB HumData(): rh_adc | crc_in
-' Read relative humidity data
-'   Returns: u12
-    rh_adc := 0
-
-    if _crccheck
-        readreg(core.RHMEAS_CS, 3, @rh_adc)
-        crc_in := rh_adc.byte[0]
-        rh_adc >>= 8
-        _lastrhvalid := (crc.meascrc8(@rh_adc, 2) == crc_in)
-    else
-        readreg(core.RHMEAS_CS, 2, @rh_adc)
-
-PUB Humidity(): rh
-' Current Relative Humidity, in hundredths of a percent
-'   Returns: Integer
-'   (e.g., 4762 is equivalent to 47.62%)
-    ' clamp data to sensible range
-    rh := 0 #> rhword2percent(humdata()) <# 100_00
-
 PUB LastRHValid(): isvalid
 ' Flag indicating CRC check of last RH measurement was good
     return _lastrhvalid
@@ -162,7 +130,20 @@ PUB RHADCRes(r_res): curr_res | adc_bits
     r_res := ((curr_res & core.ADCRES_MASK) | adc_bits)
     writereg(core.WR_USR_REG, 1, @r_res)
 
-PUB RHWord2Percent(rh_word): rh
+PUB RHData(): rh_adc | crc_in
+' Read relative humidity data
+'   Returns: u12
+    rh_adc := 0
+
+    if _crccheck
+        readreg(core.RHMEAS_CS, 3, @rh_adc)
+        crc_in := rh_adc.byte[0]
+        rh_adc >>= 8
+        _lastrhvalid := (crc.meascrc8(@rh_adc, 2) == crc_in)
+    else
+        readreg(core.RHMEAS_CS, 2, @rh_adc)
+
+PUB RHWord2Pct(rh_word): rh
 ' Convert RH ADC word to percent
 '   Returns: relative humidity, in hundredths of a percent
     return ((rh_word * 125_00) / 65536) - 6_00
@@ -209,24 +190,6 @@ PUB TempData(): temp_adc | crc_in
         readreg(core.TEMPMEAS_CS, 2, @temp_adc)
         temp_adc &= $fffc                       ' mask off status bits (unused)
         return ~~temp_adc
-
-PUB Temperature(): deg
-' Current Temperature, in hundredths of a degree
-'   Returns: Integer
-'   (e.g., 2105 is equivalent to 21.05 deg C)
-    return tempword2deg(tempdata())
-
-PUB TempScale(scale): curr_scale
-' Set temperature scale used by Temperature method
-'   Valid values:
-'       C (0): Celsius
-'       F (1): Fahrenheit
-'   Any other value returns the current setting
-    case scale
-        C, F:
-            _temp_scale := scale
-        other:
-            return _temp_scale
 
 PUB TempWord2Deg(temp_word): temp
 ' Convert temperature ADC word to temperature

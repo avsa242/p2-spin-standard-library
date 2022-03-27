@@ -3,9 +3,9 @@
     Filename: HTU21D-Demo.spin2
     Author: Jesse Burt
     Description: Demo of the HTU21D driver (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Jun 16, 2021
-    Updated Jun 16, 2021
+    Updated Mar 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,14 +19,15 @@ CON
     SER_BAUD    = 2_000_000
     LED         = cfg.LED1
 
-    SCL_PIN     = 24
-    SDA_PIN     = 25
+    SCL_PIN     = 0
+    SDA_PIN     = 1
     I2C_HZ      = 400_000                       ' max is 400_000
 ' --
 
 ' Temperature scales
     C           = 0
     F           = 1
+    K           = 2
 
 OBJ
 
@@ -39,7 +40,7 @@ PUB Main()
 
     setup()
 
-    sens.tempscale(C)                           ' C (0) or F (1)
+    sens.tempscale(C)                           ' C (0), F (1), K (2)
     sens.crccheckenabled(true)                  ' TRUE, FALSE
 
     repeat
@@ -52,7 +53,7 @@ PUB Main()
 
         ser.newline()
         ser.str(string("Humidity: "))
-        int2dp(sens.humidity(), 100)
+        int2dp(sens.rh(), 100)
         ser.str(string("  (CRC valid: "))
         ser.str(lookupz(abs(sens.lastrhvalid()): string("No "), string("Yes")))
         ser.char(")")
