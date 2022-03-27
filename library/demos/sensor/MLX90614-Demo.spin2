@@ -19,8 +19,8 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    I2C_SCL     = 17
-    I2C_SDA     = 16
+    I2C_SCL     = 0
+    I2C_SDA     = 1
     I2C_HZ      = 100_000                       ' max is 100_000
 
     TEMP_SCALE  = C
