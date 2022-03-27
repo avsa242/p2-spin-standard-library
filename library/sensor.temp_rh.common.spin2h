@@ -70,7 +70,7 @@ PUB Temperature(): temp
 '   (e.g., 2105 is equivalent to 21.05 deg C)
     return tempword2deg(tempdata())
 
-PUB TempScale(scale): curr_scale
+PUB TempScale(scale=-2): curr_scale
 ' Set temperature scale used by Temperature method
 '   Valid values:
 '       C (0): Celsius
