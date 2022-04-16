@@ -5,7 +5,7 @@
     Description: A collection of CRC routines
     Copyright (c) 2022
     Started Nov 19, 2017
-    Updated Mar 27, 2022
+    Updated Apr 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -26,18 +26,27 @@ PUB ASAIRCRC8(ptr_data, len): crc
 ' CRC8 for ASAIR temp/RH sensors
     return crc8(ptr_data, len, $ff, 0, POLY8_ASAIR, false, false)
 
-PUB InetChksum(ptr_buff, len): cksum | i, carry
+PUB InetChksum(ptr_buff, len, pshdr_chk): cksum | i
 ' Checksum used in various internet datagrams
+'   ptr_buff: pointer to buffer of data to calculate checksum
+'   len: length of data
+'   pshdr_chk: optional checksum to add to this checksum, e.g., the checksum of a
+'       UDP or TCP pseudo-header. Specify 0, if unused.
     { checksum is word-oriented, so _always_ process two bytes at a time
       An even number required for len is thus implied; if the length of data
       is odd, pad the source data with a zero. }
+    cksum := 0
+
     repeat i from 0 to (len-2) step 2
         cksum += (byte[ptr_buff][i] << 8) | byte[ptr_buff][i+1]
 
     { isolate the total carried, add it to the checksum and return
       the complement as the final result }
-    carry := (cksum & $ffff_0000) >> 16
-    return ( !(cksum + carry) ) & $ffff
+    cksum := ( !(cksum + cksum.word[1]) ) & $ffff
+
+    { add the optional pseudo-header checksum to the result }
+    cksum += pshdr_chk
+    cksum.word[0] += cksum.word[1]
 
 PUB MeasCRC8(data, len): crc | currbyte, i, j
 ' Measurement specialties CRC8
