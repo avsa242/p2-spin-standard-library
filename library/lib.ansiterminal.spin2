@@ -10,7 +10,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Jun 18, 2019
-    Updated: Apr 18, 2022
+    Updated: Apr 19, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -69,14 +69,33 @@ CON
     FG                  = 30
     BG                  = 40
     BRIGHT              = 60
+
     BLACK               = 0
+    DKGREY              = BRIGHT + BLACK
+    GREY                = 7
+    WHITE               = BRIGHT + GREY
+
     RED                 = 1
+    LTRED               = BRIGHT + RED
+
     GREEN               = 2
+    LTGREEN             = BRIGHT + GREEN
+
     YELLOW              = 3
+    BROWN               = 3
+    LTYELLOW            = BRIGHT + YELLOW
+    LTBROWN             = BRIGHT + BROWN
+
     BLUE                = 4
+    LTBLUE              = BRIGHT + BLUE
+
     MAGENTA             = 5
+    VIOLET              = 5
+    LTMAGENTA           = BRIGHT + MAGENTA
+    LTVIOLET            = BRIGHT + VIOLET
+
     CYAN                = 6
-    WHITE               = 7
+    LTCYAN              = BRIGHT + CYAN
 
 ' Semi-graphics characters
 ' Corners:
