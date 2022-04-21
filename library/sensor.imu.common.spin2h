@@ -1,0 +1,171 @@
+{
+    --------------------------------------------
+    Filename: sensor.imu.common.spin2h
+    Author: Jesse Burt
+    Description: Routines common to all sensor.imu device drivers
+    Copyright (c) 2022
+    Started Sep 24, 2021
+    Updated Apr 20, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+
+    NOTE: This file must be included by the compiler using the
+        #include preprocessor directive, _outside_ of any existing
+        block designators (CON, VAR, OBJ, PUB, PRI, DAT)
+}
+
+PUB AccelG(ax, ay, az) | tmp[ACCEL_DOF]
+' Read the Accelerometer data and scale the outputs to
+'   micro-g's (1_000_000 = 1.000000 g = 9.8 m/s/s)
+    acceldata(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
+    long[ax] := accelword2g(tmp[X_AXIS])
+    long[ay] := accelword2g(tmp[Y_AXIS])
+    long[az] := accelword2g(tmp[Z_AXIS])
+
+PUB CalibrateAccel() | axis, orig_scl, orig_dr, tmp[ACCEL_DOF], tmpx, tmpy, tmpz, samples
+' Calibrate the accelerometer
+'   NOTE: The accelerometer must be oriented with the package top facing up
+'       for this method to be successful
+    longfill(@axis, 0, 10)                      ' initialize vars to 0
+
+    { save current settings }
+    orig_scl := accelscale()
+    orig_dr := acceldatarate()
+
+    accelbias(0, 0, 0, W)                       ' clear existing bias
+
+    { set sensor to driver-specific scale and data rate }
+    accelscale(CAL_XL_SCL)
+    acceldatarate(CAL_XL_DR)
+    samples := CAL_XL_DR                        ' samples = DR, for 1 sec time
+
+    { accumulate and average approx. 1sec worth of samples }
+    repeat samples
+        repeat until acceldataready()
+        acceldata(@tmpx, @tmpy, @tmpz)
+        tmp[X_AXIS] += tmpx
+        tmp[Y_AXIS] += tmpy
+        tmp[Z_AXIS] += (tmpz-(1_000000 / _ares))' cancel out 1g on Z-axis
+
+    { calculate averages }
+    repeat axis from X_AXIS to Z_AXIS
+        tmp[axis] /= samples
+
+    { update offsets }
+    accelbias(tmp[X_AXIS], tmp[Y_AXIS], tmp[Z_AXIS], W)
+
+    { restore existing settings }
+    accelscale(orig_scl)
+    acceldatarate(orig_dr)
+
+PUB CalibrateGyro() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[GYRO_DOF], samples
+' Calibrate the gyroscope
+    longfill(@axis, 0, 10)                      ' initialize vars to 0
+
+    { save current settings }
+    orig_scl := gyroscale()
+    orig_dr := gyrodatarate()
+
+    gyrobias(0, 0, 0, W)                        ' clear existing bias
+
+    { set sensor to driver-specific scale and data rate }
+    gyroscale(CAL_G_SCL)
+    gyrodatarate(CAL_G_DR)
+    samples := CAL_G_DR                         ' samples = DR, for 1 sec time
+
+    { accumulate and average approx. 1sec worth of samples }
+    repeat samples
+        repeat until gyrodataready()
+        gyrodata(@tmpx, @tmpy, @tmpz)
+        tmp[X_AXIS] += tmpx
+        tmp[Y_AXIS] += tmpy
+        tmp[Z_AXIS] += tmpz
+
+    { calculate averages }
+    repeat axis from X_AXIS to Z_AXIS
+        tmp[axis] /= samples
+
+    { update offsets }
+    gyrobias(tmp[X_AXIS], tmp[Y_AXIS], tmp[Z_AXIS], W)
+
+    { restore existing settings }
+    gyroscale(orig_scl)
+    gyrodatarate(orig_dr)
+
+PUB CalibrateMag() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[MAG_DOF], samples
+' Calibrate the magnetometer
+    longfill(@axis, 0, 10)                      ' initialize vars to 0
+
+    { save current settings }
+    orig_scl := magscale()
+    orig_dr := magdatarate()
+
+    magbias(0, 0, 0, W)                         ' clear existing bias
+
+    { set sensor to driver-specific scale and data rate }
+    magscale(CAL_M_SCL)
+    magdatarate(CAL_M_DR)
+    samples := CAL_M_DR                         ' samples = DR, for 1 sec time
+
+    { accumulate and average approx. 1sec worth of samples }
+    repeat samples
+        repeat until magdataready()
+        magdata(@tmpx, @tmpy, @tmpz)
+        tmp[X_AXIS] += tmpx
+        tmp[Y_AXIS] += tmpy
+        tmp[Z_AXIS] += tmpz
+
+    { calculate averages }
+    repeat axis from X_AXIS to Z_AXIS
+        tmp[axis] /= samples
+
+    { update offsets }
+    magbias(tmp[X_AXIS], tmp[Y_AXIS], tmp[Z_AXIS], W)
+
+    { restore existing settings }
+    magscale(orig_scl)
+    magdatarate(orig_dr)
+
+PUB GyroDPS(gx, gy, gz) | tmp[GYRO_DOF]
+' Read the Gyroscope output registers and scale the outputs to
+'   micro degrees per second
+    gyrodata(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
+    long[gx] := gyroword2dps(tmp[X_AXIS])
+    long[gy] := gyroword2dps(tmp[Y_AXIS])
+    long[gz] := gyroword2dps(tmp[Z_AXIS])
+
+PUB MagGauss(mx, my, mz) | tmp[MAG_DOF]
+' Magnetometer data scaled to micro-gauss
+    magdata(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
+    long[mx] := magword2gauss(tmp[X_AXIS])
+    long[my] := magword2gauss(tmp[Y_AXIS])
+    long[mz] := magword2gauss(tmp[Z_AXIS])
+
+PUB MagTesla(ptr_x, ptr_y, ptr_z) | tmp[MAG_DOF]
+' Magnetometer data scaled to micro-Teslas
+    magdata(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
+    long[ptr_x] := magword2tesla(tmp[X_AXIS])
+    long[ptr_y] := magword2tesla(tmp[Y_AXIS])
+    long[ptr_z] := magword2tesla(tmp[Z_AXIS])
+
+{
+TERMS OF USE: MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+}
