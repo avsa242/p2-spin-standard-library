@@ -10,22 +10,20 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Jun 18, 2019
-    Updated: Apr 25, 2022
+    Updated: May 2, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    LBRACKET            = $5B
-
-' Clear modes
+    { Clear modes }
     CLR_CUR_TO_END      = 0     ' Clear from cursor position to end of line
     CLR_CUR_TO_BEG      = 1     ' Clear from cursor position to beginning of line
     CLR_ALL_HOME        = 2     ' Clear screen and return to home position
     CLR_ALL_DEL_SCRLB   = 3     ' Clear all and delete scrollback
 
-' Graphic Rendition modes
+    { Graphic Rendition modes }
     SGR_RESET           = 0     ' Reset text attributes
 
     SGR_INTENSITY_BOLD  = 1     ' Text intensity
@@ -65,7 +63,7 @@ CON
     SGR_OVERLINED_OFF   = 55
 
 
-' Text colors
+    { Text colors }
     FG                  = 30
     BG                  = 40
     BRIGHT              = 60
@@ -97,14 +95,14 @@ CON
     CYAN                = 6
     LTCYAN              = BRIGHT + CYAN
 
-' Semi-graphics characters
-' Corners:
+    { Semi-graphics characters }
+    { Corners: }
     LOWRT               = $6a                   ' Lower-right
     UPPRT               = $6b                   ' Upper-right
     UPPLT               = $6c                   ' Upper-left
     LOWLT               = $6d                   ' Lower-left
     CROSS               = $6e                   ' Cross/4-way
-' Horizontal and Vertical lines
+    { Horizontal and Vertical lines }
     HLINE               = $71                   ' H-line
     LVLHSTEM            = $74                   ' Left V-line w/H-stem
     RVLHSTEM            = $75                   ' Right V-line w/H-stem
@@ -206,7 +204,7 @@ PUB ClearMode(mode)
     csi()
     dec(mode)
     char("J")
-    if (mode == 2)
+    if (mode == CLR_ALL_HOME)
         position (0, 0)
 
 PUB Color(fcolor, bcolor)
@@ -289,7 +287,7 @@ PUB MouseCursorposition() | b, x, y
 '           65- Mouse wheel down
 '   NOTE: The position is only updated when a mouse button is pressed or wheel is moved
     if charin() == ESC
-        if charin() == LBRACKET
+        if charin() == "["
             if charin() == "M"
 '               If we made it this far, it's a mouse position event
             else
@@ -334,25 +332,22 @@ PUB Overline()
 
 PUB Position(x, y)
 ' position cursor at column x, row y (from top-left)
-    y++                                             ' Need to add 1 because the coords
-    x++                                             ' are not 0-based, but 1-based
     csi()
-    dec(y)
+    dec(y+1)                                    ' 1-base coordinates
     char(";")
-    dec(x)
+    dec(x+1)
     char("f")
 
 PUB PositionX(column)
 ' Set horizontal position of cursor
     csi()
-    dec(column+1)
+    dec(column+1)                               ' 1-base coordinate
     char("G")
 
 PUB PositionY(y)
 ' Set vertical position of cursor
-    y++                                             ' Need to add 1 because the coords
-    CSI                                             ' are not 0-based, but 1-based
-    dec(y)
+    csi()
+    dec(y+1)                                    ' 1-base coordinate
     char("d")
 
 PUB Reset()
@@ -411,7 +406,7 @@ PUB Underline(mode)
 PRI CSI()
 ' Command Sequence Introducer
     char(ESC)
-    char(LBRACKET)
+    char("[")
 
 PRI SGR(mode)
 ' Select Graphic Rendition
