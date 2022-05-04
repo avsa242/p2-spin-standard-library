@@ -9,12 +9,22 @@
     See end of file for terms of use.
     --------------------------------------------
 }
+CON
+
+    SCALE       = 1_000
+    FULLCIRCLE  = (360 * SCALE)
+
 VAR
 
     long _rndseed
 
 PUB Null{}
 ' This is not a top-level object
+
+PUB Atan2(y, x): r | angle
+' 2-argument arctangent
+    _, angle := xypol(x, y)
+    return angle sca FULLCIRCLE
 
 PUB Cos(angle): cosine
 ' Return the cosine of angle

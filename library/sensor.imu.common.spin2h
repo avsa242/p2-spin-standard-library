@@ -14,6 +14,10 @@
         block designators (CON, VAR, OBJ, PUB, PRI, DAT)
 }
 
+OBJ
+
+    math : "math.int"
+
 PUB AccelG(ax, ay, az) | tmp[ACCEL_DOF]
 ' Read the Accelerometer data and scale the outputs to
 '   micro-g's (1_000_000 = 1.000000 g = 9.8 m/s/s)
@@ -147,6 +151,18 @@ PUB MagTesla(ptr_x, ptr_y, ptr_z) | tmp[MAG_DOF]
     long[ptr_x] := magword2tesla(tmp[X_AXIS])
     long[ptr_y] := magword2tesla(tmp[Y_AXIS])
     long[ptr_z] := magword2tesla(tmp[Z_AXIS])
+
+PUB Pitch() | x, y, z
+' Get pitch angle of accelerometer, in degrees
+    longfill(@x, 0, 3)
+    acceldata(@x, @y, @z)
+    return math.atan2(y, z)
+
+PUB Roll() | x, y, z
+' Get roll angle of accelerometer, in degrees
+    longfill(@x, 0, 3)
+    acceldata(@x, @y, @z)
+    return math.atan2(-x, z)
 
 {
 TERMS OF USE: MIT License
