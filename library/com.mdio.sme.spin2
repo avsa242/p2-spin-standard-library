@@ -6,7 +6,7 @@
         (bit-banged, classic I/O)
     Copyright (c) 2022
     Started May 3, 2022
-    Updated May 4, 2022
+    Updated May 7, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -53,17 +53,16 @@ PUB RdWord_MSBF(phy_addr, reg_addr): mwd | cmd_pkt, bit, per, MDC, MDIO
 
     { preamble: 32 '1' bits }
     pinh(MDIO)                                  ' leave data line floating
-    repeat bit from 0 to 31
-        waitx(_period)
+    repeat 32
+        waitx(_period)                          ' clock out bits
         pint(MDC)
         waitx(_period)
         pint(MDC)
 
-    { register access }
-    cmd_pkt rol= 1                              ' get MSB ready (move to bit 0)
-    repeat bit from 0 to 13
-        (cmd_pkt & 1) ? pinh(MDIO) : pinl(MDIO)
-        cmd_pkt rol= 1
+    { register access: [31..18] send ST, RD opcode, phy_addr, reg_addr }
+    repeat bit from 31 to 18
+        { current bit is set? raise MDIO; else, lower it }
+        (cmd_pkt.[bit]) ? pinh(MDIO) : pinl(MDIO)
         waitx(_period)
         pint(MDC)
         waitx(_period)
@@ -97,18 +96,16 @@ PUB WrWord_MSBF(phy_addr, reg_addr, reg_data) | cmd_pkt, bit, per, MDC, MDIO
 }   (reg_data)
 
     { preamble: 32 '1' bits }
-    pinh(MDIO)                                  ' float for preamble
-    repeat bit from 0 to 31
-        waitx(_period)
+    pinh(MDIO)                                  ' leave data line floating
+    repeat 32
+        waitx(_period)                          ' clock out bits
         pint(MDC)
         waitx(_period)
         pint(MDC)
 
     { register access }
-    cmd_pkt rol= 1
-    repeat bit from 0 to 31
-        (cmd_pkt & 1) ? pinh(MDIO) : pinl(MDIO)
-        cmd_pkt rol= 1
+    repeat bit from 31 to 0
+        (cmd_pkt.[bit]) ? pinh(MDIO) : pinl(MDIO)
         waitx(_period)
         pint(MDC)
         waitx(_period)
