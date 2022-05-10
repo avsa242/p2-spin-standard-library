@@ -5,7 +5,7 @@
     Description: Routines common to all sensor.imu device drivers
     Copyright (c) 2022
     Started Sep 24, 2021
-    Updated Apr 20, 2022
+    Updated May 10, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -141,16 +141,16 @@ PUB GyroDPS(gx, gy, gz) | tmp[GYRO_DOF]
 PUB MagGauss(mx, my, mz) | tmp[MAG_DOF]
 ' Magnetometer data scaled to micro-gauss
     magdata(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
-    long[mx] := magword2gauss(tmp[X_AXIS])
-    long[my] := magword2gauss(tmp[Y_AXIS])
-    long[mz] := magword2gauss(tmp[Z_AXIS])
+    long[mx] := magxword2gauss(tmp[X_AXIS])
+    long[my] := magyword2gauss(tmp[Y_AXIS])
+    long[mz] := magzword2gauss(tmp[Z_AXIS])
 
 PUB MagTesla(ptr_x, ptr_y, ptr_z) | tmp[MAG_DOF]
 ' Magnetometer data scaled to micro-Teslas
     magdata(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
-    long[ptr_x] := magword2tesla(tmp[X_AXIS])
-    long[ptr_y] := magword2tesla(tmp[Y_AXIS])
-    long[ptr_z] := magword2tesla(tmp[Z_AXIS])
+    long[ptr_x] := magxword2tesla(tmp[X_AXIS])
+    long[ptr_y] := magyword2tesla(tmp[Y_AXIS])
+    long[ptr_z] := magzword2tesla(tmp[Z_AXIS])
 
 PUB Pitch() | x, y, z
 ' Get pitch angle of accelerometer, in degrees
