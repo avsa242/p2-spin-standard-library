@@ -5,7 +5,7 @@
     Description: Routines common to all sensor.imu device drivers
     Copyright (c) 2022
     Started Sep 24, 2021
-    Updated May 10, 2022
+    Updated May 12, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -25,6 +25,10 @@ PUB AccelG(ax, ay, az) | tmp[ACCEL_DOF]
     long[ax] := accelword2g(tmp[X_AXIS])
     long[ay] := accelword2g(tmp[Y_AXIS])
     long[az] := accelword2g(tmp[Z_AXIS])
+
+PUB AccelWord2G(accel_word): accel_g
+' Convert accelerometer ADC word to g's
+    return (accel_word * _ares)
 
 PUB CalibrateAccel() | axis, orig_scl, orig_dr, tmp[ACCEL_DOF], tmpx, tmpy, tmpz, samples
 ' Calibrate the accelerometer
@@ -138,6 +142,10 @@ PUB GyroDPS(gx, gy, gz) | tmp[GYRO_DOF]
     long[gy] := gyroword2dps(tmp[Y_AXIS])
     long[gz] := gyroword2dps(tmp[Z_AXIS])
 
+PUB GyroWord2DPS(gyro_word): gyro_dps
+' Convert gyroscope ADC word to degrees per second
+    return (gyro_word * _gres)
+
 PUB MagGauss(mx, my, mz) | tmp[MAG_DOF]
 ' Magnetometer data scaled to micro-gauss
     magdata(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
@@ -151,6 +159,30 @@ PUB MagTesla(ptr_x, ptr_y, ptr_z) | tmp[MAG_DOF]
     long[ptr_x] := magxword2tesla(tmp[X_AXIS])
     long[ptr_y] := magyword2tesla(tmp[Y_AXIS])
     long[ptr_z] := magzword2tesla(tmp[Z_AXIS])
+
+PUB MagXWord2Gauss(mag_word): mag_gauss
+' Convert magnetometer X-axis ADC word to Gauss
+    return (mag_word * _mres[X_AXIS])
+
+PUB MagYWord2Gauss(mag_word): mag_gauss
+' Convert magnetometer Y-axis ADC word to Gauss
+    return (mag_word * _mres[Y_AXIS])
+
+PUB MagZWord2Gauss(mag_word): mag_gauss
+' Convert magnetometer Z-axis ADC word to Gauss
+    return (mag_word * _mres[Z_AXIS])
+
+PUB MagXWord2Tesla(mag_word): mag_tesla
+' Convert magnetometer X-axis ADC word to Teslas
+    return (mag_word * _mres[X_AXIS]) / 10_000
+
+PUB MagYWord2Tesla(mag_word): mag_tesla
+' Convert magnetometer Y-axis ADC word to Teslas
+    return (mag_word * _mres[Y_AXIS]) / 10_000
+
+PUB MagZWord2Tesla(mag_word): mag_tesla
+' Convert magnetometer Z-axis ADC word to Teslas
+    return (mag_word * _mres[Z_AXIS]) / 10_000
 
 PUB Pitch() | x, y, z
 ' Get pitch angle of accelerometer, in degrees
