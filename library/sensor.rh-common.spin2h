@@ -1,0 +1,42 @@
+{
+    --------------------------------------------
+    Filename: sensor.rh-common.spin2h
+    Author: Jesse Burt
+    Description: Routines common to all relative humidity device drivers
+    Copyright (c) 2022
+    Started May 13, 2022
+    Updated May 13, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+
+    NOTE: This file must be included by the compiler using the
+        #include preprocessor directive, _outside_ of any existing
+        block designators (CON, VAR, OBJ, PUB, PRI, DAT)
+
+        Example:
+```
+#include "sensor.rh-common.spin2h"
+
+CON
+
+    SOME_CONST  = 1
+```
+
+}
+
+VAR
+
+    long _last_rh
+
+PUB LastRH(): rh
+' Previous Relative Humidity measurement, in hundredths of a percent
+'   Returns: Integer
+'   (e.g., 4762 is equivalent to 47.62%)
+    return rhword2pct(_last_rh)
+
+PUB RH(): rh_pct
+' Current Relative Humidity, in hundredths of a percent
+'   Returns: Integer
+'   (e.g., 4762 is equivalent to 47.62%)
+    return rhword2pct(rhdata())
+
