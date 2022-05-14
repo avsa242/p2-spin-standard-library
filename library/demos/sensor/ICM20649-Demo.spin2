@@ -5,7 +5,7 @@
     Description: Demo of the ICM20649 driver (P2 version)
     Copyright (c) 2022
     Started Sep 4, 2020
-    Updated Feb 1, 2022
+    Updated Apr 23, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -90,7 +90,8 @@ PUB Calibrate()
 
     ser.position(0, 7)
     ser.str(string("Calibrating..."))
-    imu.calibratexlg()
+    imu.calibrateaccel()
+    imu.calibrategyro()
     ser.positionx(0)
     ser.clearline()
 

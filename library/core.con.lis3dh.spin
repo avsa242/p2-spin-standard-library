@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: core.con.lis3dh.spin
     Author: Jesse Burt
-    Description: Low-level constants
-    Copyright (c) 2021
+    Description: LIS3DH-specific constants
+    Copyright (c) 2022
     Started Mar 15, 2020
-    Updated Dec 23, 2021
+    Updated Apr 9, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -88,6 +88,7 @@ CON
         HR_MASK         = (1 << HR) ^ CTRL_REG4_MASK
         ST_MASK         = (ST_BITS << ST) ^ CTRL_REG4_MASK
         SIM_MASK        = (1 << SIM) ^ CTRL_REG4_MASK
+        SPI_3W          = (1 << SIM)
 
     CTRL_REG5           = $24
     CTRL_REG5_MASK      = $CF

@@ -28,6 +28,9 @@ CON
     I2C_ADDR    = 0                             ' I2C
 
     INT1        = 15
+
+'   NOTE: If LIS3DH_SPI is #defined, and SDA_PIN and SDO_PIN are the same,
+'   the driver will attempt to start in 3-wire SPI mode.
 ' --
 
     DAT_X_COL   = 20

@@ -19,6 +19,7 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
+' I2C configuration
     I2C_SCL     = 0
     I2C_SDA     = 1
     I2C_HZ      = 400_000

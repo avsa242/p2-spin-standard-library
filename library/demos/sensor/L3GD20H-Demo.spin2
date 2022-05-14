@@ -9,9 +9,6 @@
     See end of file for terms of use.
     --------------------------------------------
 }
-' Uncomment one of the lines below to select an interface
-#define L3GD20H_I2C
-'#define L3GD20H_SPI
 
 CON
 

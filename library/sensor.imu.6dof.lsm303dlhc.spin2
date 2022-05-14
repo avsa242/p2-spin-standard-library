@@ -6,10 +6,11 @@
         (P2 version)
     Copyright (c) 2022
     Started Aug 1, 2020
-    Updated Jan 16, 2022
+    Updated May 12, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
+#include "sensor.imu.common.spin2h"
 
 CON
 
@@ -63,7 +64,7 @@ CON
 
 VAR
 
-    long _abiasraw[ACCEL_DOF], _mbiasraw[MAG_DOF], _ares, _mres_xy, _mres_z
+    long _abiasraw[ACCEL_DOF], _mbiasraw[MAG_DOF], _ares, _mres[MAG_DOF]
 
 OBJ
 
@@ -94,7 +95,7 @@ PUB Stop()
 PUB Defaults()
 ' Set factory defaults
     accelscale(2)
-    magscale(1_3)
+    magscale(1)
     magdatarate(15)
 
 PUB Preset_Active()
@@ -243,13 +244,6 @@ PUB AccelDataRate(rate=-2): curr_rate
     rate := ((curr_rate & core.ODR_MASK) | rate)
     writereg(core.CTRL_REG1, 1, @rate)
 
-PUB AccelG(ptr_x, ptr_y, ptr_z) | tmpx, tmpy, tmpz
-' Reads the Accelerometer output registers and scales the outputs to micro-g's (1_000_000 = 1.000000 g = 9.8 m/s/s)
-    acceldata(@tmpx, @tmpy, @tmpz)
-    long[ptr_x] := tmpx * _ares
-    long[ptr_y] := tmpy * _ares
-    long[ptr_z] := tmpz * _ares
-
 PUB AccelInt(): curr_state
 ' Read accelerometer interrupt state
 '   Bit 6543210 (For each bit, 0: No interrupt, 1: Interrupt has been generated)
@@ -322,72 +316,6 @@ PUB AccelScale(scale=-2): curr_scl
 
     scale := ((curr_scl & core.FS_MASK) | scale)
     writereg(core.CTRL_REG4, 1, @scale)
-
-PUB CalibrateAccel() | axis, orig_res, orig_scl, orig_dr, tmp[ACCEL_DOF], tmpx, tmpy, tmpz, samples
-' Calibrate the accelerometer
-'   NOTE: The accelerometer must be oriented with the package top facing up
-'       for this method to be successful
-    longfill(@axis, 0, 11)                      ' initialize vars to 0
-    orig_scl := accelscale()                    ' save user's current settings
-    orig_dr := acceldatarate()
-    accelbias(0, 0, 0, W)                       ' clear existing bias
-
-    ' set sensor to CAL_XL_SCL range, CAL_XL_DR Hz data rate
-    accelscale(CAL_XL_SCL)
-    acceldatarate(CAL_XL_DR)
-    samples := CAL_XL_DR                        ' samples = DR, for 1 sec time
-
-    ' accumulate and average approx. 1sec worth of samples
-    repeat samples
-        repeat until acceldataready()
-        acceldata(@tmpx, @tmpy, @tmpz)
-        tmp[X_AXIS] += tmpx
-        tmp[Y_AXIS] += tmpy
-        tmp[Z_AXIS] += (tmpz-(1_000_000 / _ares))' cancel out 1g on Z-axis
-
-    repeat axis from X_AXIS to Z_AXIS           ' calc avg
-        tmp[axis] /= samples
-
-    ' update offsets
-    accelbias(tmp[X_AXIS], tmp[Y_AXIS], tmp[Z_AXIS], W)
-
-    accelscale(orig_scl)                        ' restore user's settings
-    acceldatarate(orig_dr)
-
-PUB CalibrateGyro()
-' dummy method
-
-PUB CalibrateMag() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[MAG_DOF], samples
-' Calibrate the magnetometer
-    longfill(@axis, 0, 10)                      ' initialize vars to 0
-    orig_scl := magscale()                      ' save user's current settings
-    orig_dr := magdatarate()
-    magbias(0, 0, 0, W)                         ' clear existing bias
-
-    ' set sensor to CAL_M_SCL range, CAL_M_DR Hz data rate
-    magscale(CAL_M_SCL)
-    magdatarate(CAL_M_DR)
-    samples := CAL_M_DR                         ' samples = DR, for 1 sec time
-
-    ' accumulate and average approx. 1sec worth of samples
-    repeat samples
-        repeat until magdataready()
-        magdata(@tmpx, @tmpy, @tmpz)
-        tmp[X_AXIS] += tmpx
-        tmp[Y_AXIS] += tmpy
-        tmp[Z_AXIS] += tmpz
-
-    repeat axis from X_AXIS to Z_AXIS           ' calc avg
-        tmp[axis] /= samples
-
-    ' update offsets
-    magbias(tmp[X_AXIS], tmp[Y_AXIS], tmp[Z_AXIS], W)
-
-    magscale(orig_scl)                          ' restore user's settings
-    magdatarate(orig_dr)
-
-PUB CalibrateXLG()
-' dummy method
 
 PUB ClickAxisEnabled(mask=-2): curr_mask
 ' Enable click detection per axis, and per click type
@@ -624,9 +552,6 @@ PUB GyroDataOverrun()
 PUB GyroDataReady()
 ' dummy method
 
-PUB GyroDPS(x, y, z)
-' dummy method
-
 PUB GyroScale(scale=-2)
 ' dummy method
 
@@ -699,14 +624,6 @@ PUB MagEndian(endianness): curr_order
 ' Choose byte order of magnetometer data
 ' Dummy method
 
-PUB MagGauss(mx, my, mz) | tmp[MAG_DOF]
-' Read the Magnetometer output registers and scale the outputs to micro-Gauss (1_000_000 = 1.000000 Gs)
-    longfill(@tmp, 0, MAG_DOF)
-    magdata(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
-    long[mx] := tmp[X_AXIS] * _mres_xy
-    long[my] := tmp[Y_AXIS] * _mres_xy
-    long[mz] := tmp[Z_AXIS] * _mres_z
-
 PUB MagInt(): intsrc
 ' Magnetometer interrupt source(s)
 ' Dummy method
@@ -761,9 +678,11 @@ PUB MagScale(scale=-2): curr_scl
     case scale
         1, 2, 3, 4, 5, 6, 8:
             scale := lookdown(scale: 1, 2, 3, 4, 5, 6, 8)
-            _mres_xy := lookup(scale: 0_000909, 0_001169, 0_001492, 0_002222, {
+            _mres[X_AXIS] := lookup(scale: 0_000909, 0_001169, 0_001492, 0_002222, {
 }           0_002500, 0_003030, 0_004347)
-            _mres_z := lookup(scale: 0_001020, 0_001315, 0_001666, 0_002500, {
+            _mres[Y_AXIS] := lookup(scale: 0_000909, 0_001169, 0_001492, 0_002222, {
+}           0_002500, 0_003030, 0_004347)
+            _mres[Z_AXIS] := lookup(scale: 0_001020, 0_001315, 0_001666, 0_002500, {
 }           0_002816, 0_003389, 0_004878)
             scale <<= core.GN
             writereg(core.CRB_REG_M, 1, @scale)

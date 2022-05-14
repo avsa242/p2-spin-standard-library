@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: sensor.imu.9dof.lsm9ds1.spi.spin2
+    Filename: sensor.imu.9dof.lsm9ds1.spin2
     Author: Jesse Burt
     Description: Driver for the ST LSM9DS1 9DoF/3-axis IMU
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Aug 12, 2017
-    Updated Oct 26, 2021
+    Updated May 12, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,6 +14,8 @@
 #elseifdef LSM9DS1_SPI4W
 #define LSM9DS1_SPI
 #endif
+#include "sensor.imu.common.spin2h"
+
 CON
 
     DEF_HZ                  = 100_000
@@ -126,6 +128,7 @@ OBJ
     i2c     : "com.i2c"
 #elseifdef LSM9DS1_SPI
     spi     : "com.spi.bitbang-fast"
+#else
 #error "One of LSM9DS1_I2C, LSM9DS1_SPI3W, or LSM9DS1_SPI4W must be defined"
 #endif
     core    : "core.con.lsm9ds1"
@@ -134,7 +137,7 @@ VAR
 
     long _gres, _gbiasraw[GYRO_DOF]
     long _ares, _abiasraw[ACCEL_DOF]
-    long _mres
+    long _mres[MAG_DOF]
     long _CS_AG, _CS_M
     byte _temp_scale
 
@@ -290,6 +293,8 @@ PUB AccelData(ax, ay, az) | tmp[2]
 ' Reads the Accelerometer output registers
     readreg(XLG, core.OUT_X_L_XL, 6, @tmp)
 
+    { accel ADC words are 15-bit signed - extend sign and }
+    {   cancel out bias }
     long[ax] := (tmp.word[X_AXIS] signx 15) - _abiasraw[X_AXIS]
     long[ay] := (tmp.word[Y_AXIS] signx 15) - _abiasraw[Y_AXIS]
     long[az] := (tmp.word[Z_AXIS] signx 15) - _abiasraw[Z_AXIS]
@@ -324,14 +329,6 @@ PUB AccelDataReady() | tmp
 '   Returns TRUE or FALSE
     readreg(XLG, core.STATUS_REG, 1, @tmp)
     result := (((tmp >> core.XLDA) & 1) == 1)
-
-PUB AccelG(ax, ay, az) | tmpx, tmpy, tmpz
-' Reads the Accelerometer output registers and scales the outputs to
-'   micro-g's (1_000_000 = 1.000000 g = 9.8 m/s/s)
-    acceldata(@tmpx, @tmpy, @tmpz)
-    long[ax] := tmpx * _ares
-    long[ay] := tmpy * _ares
-    long[az] := tmpz * _ares
 
 PUB AccelHighRes(state=-2): curr_state
 ' Enable high resolution mode for accelerometer
@@ -450,95 +447,6 @@ PUB AccelScale(scale=-2): curr_scl
 
     scale := ((curr_scl & core.FS_XL_MASK) | scale)
     writereg(XLG, core.CTRL_REG6_XL, 1, @scale)
-
-PUB CalibrateAccel() | axis, orig_res, orig_scl, orig_dr, tmp[ACCEL_DOF], tmpx, tmpy, tmpz, samples
-' Calibrate the accelerometer
-'   NOTE: The accelerometer must be oriented with the package top facing up
-'       for this method to be successful
-    longfill(@axis, 0, 11)                      ' initialize vars to 0
-    orig_scl := accelscale()                    ' save user's current settings
-    orig_dr := acceldatarate()
-    accelbias(0, 0, 0, W)                       ' clear existing bias
-
-    ' set sensor to CAL_XL_SCL range, CAL_XL_DR Hz data rate
-    accelscale(CAL_XL_SCL)
-    acceldatarate(CAL_XL_DR)
-    samples := CAL_XL_DR                        ' samples = DR, for 1 sec time
-
-    ' accumulate and average approx. 1sec worth of samples
-    repeat samples
-        repeat until acceldataready()
-        acceldata(@tmpx, @tmpy, @tmpz)
-        tmp[X_AXIS] += tmpx
-        tmp[Y_AXIS] += tmpy
-        tmp[Z_AXIS] += (tmpz-(1_000_000 / _ares))' cancel out 1g on Z-axis
-
-    repeat axis from X_AXIS to Z_AXIS           ' calc avg
-        tmp[axis] /= samples
-
-    ' update offsets
-    accelbias(tmp[X_AXIS], tmp[Y_AXIS], tmp[Z_AXIS], W)
-
-    accelscale(orig_scl)                        ' restore user's settings
-    acceldatarate(orig_dr)
-
-PUB CalibrateGyro() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[GYRO_DOF], samples
-' Calibrate the gyroscope
-    longfill(@axis, 0, 10)                      ' initialize vars to 0
-    orig_scl := gyroscale()                     ' save user's current settings
-    orig_dr := gyrodatarate()
-    gyrobias(0, 0, 0, W)                        ' clear existing bias
-
-    ' set sensor to CAL_G_SCL range, CAL_G_DR Hz data rate
-    gyroscale(CAL_G_SCL)
-    gyrodatarate(CAL_G_DR)
-    samples := CAL_G_DR                         ' samples = DR, for 1 sec time
-
-    ' accumulate and average approx. 1sec worth of samples
-    repeat samples
-        repeat until gyrodataready()
-        gyrodata(@tmpx, @tmpy, @tmpz)
-        tmp[X_AXIS] += tmpx
-        tmp[Y_AXIS] += tmpy
-        tmp[Z_AXIS] += tmpz
-
-    repeat axis from X_AXIS to Z_AXIS           ' calc avg
-        tmp[axis] /= samples
-
-    ' update offsets
-    gyrobias(tmp[X_AXIS], tmp[Y_AXIS], tmp[Z_AXIS], W)
-
-    gyroscale(orig_scl)                         ' restore user's settings
-    gyrodatarate(orig_dr)
-
-PUB CalibrateMag() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[MAG_DOF], samples
-' Calibrate the magnetometer
-    longfill(@axis, 0, 11)                      ' initialize vars to 0
-    orig_scl := magscale()                      ' save user's current settings
-    orig_dr := magdatarate()
-    magbias(0, 0, 0, W)                         ' clear existing bias
-
-    ' set sensor to CAL_M_SCL range, CAL_M_DR Hz data rate
-    magscale(CAL_M_SCL)
-    magdatarate(CAL_M_DR)
-    samples := CAL_M_DR                         ' samples = DR, for 1 sec time
-
-    ' accumulate and average approx. 1sec worth of samples
-    repeat samples
-        repeat until magdataready()
-        magdata(@tmpx, @tmpy, @tmpz)
-        tmp[X_AXIS] += tmpx
-        tmp[Y_AXIS] += tmpy
-        tmp[Z_AXIS] += tmpz
-
-    repeat axis from X_AXIS to Z_AXIS           ' calc avg
-        tmp[axis] /= samples
-
-    ' update offsets
-    magbias(tmp[X_AXIS], tmp[Y_AXIS], tmp[Z_AXIS], W)
-
-    magscale(orig_scl)                          ' restore user's settings
-    magdatarate(orig_dr)
 
 PUB DeviceID(): id
 ' Read device identification
@@ -693,14 +601,6 @@ PUB GyroDataReady(): flag
 '   Returns TRUE or FALSE
     readreg(XLG, core.STATUS_REG, 1, @flag)
     return (((flag >> core.GDA) & 1) == 1)
-
-PUB GyroDPS(gx, gy, gz) | tmp[3]
-' Read the Gyroscope output registers and scale the outputs to micro-degrees
-'   of rotation per second (1_000_000 = 1.000000 deg/sec)
-    gyrodata(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
-    long[gx] := tmp[X_AXIS] * _gres
-    long[gy] := tmp[Y_AXIS] * _gres
-    long[gz] := tmp[Z_AXIS] * _gres
 
 PUB GyroHighPass(freq=-2): curr_freq
 ' Set Gyroscope high-pass filter cutoff frequency
@@ -1071,14 +971,6 @@ PUB MagFastRead(state=-2): curr_state
     return booleanChoice (MAG, core.CTRL_REG5_M, core.FAST_READ, {
 }   core.FAST_READ_MASK, core.CTRL_REG5_M_MASK, state, 1)
 
-PUB MagGauss(ptr_x, ptr_y, ptr_z) | tmp[3]
-' Read the Magnetometer output registers and scale the outputs to micro-Gauss
-'   (1_000_000 = 1.000000 Gs)
-    magdata(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
-    long[ptr_x] := tmp[X_AXIS] * _mres
-    long[ptr_y] := tmp[Y_AXIS] * _mres
-    long[ptr_z] := tmp[Z_AXIS] * _mres
-
 PUB MagInt(): intsrc
 ' Magnetometer interrupt source(s)
 '   Returns: Interrupts that are currently asserted, as a bitmask
@@ -1224,7 +1116,7 @@ PUB MagScale(scale=-2): curr_scl
     case(scale)
         4, 8, 12, 16:
             scale := lookdownz(scale: 4, 8, 12, 16)
-            _mres := lookupz(scale: 0_000140, 0_000290, 0_000430, 0_000580)
+            longfill(@_mres, lookupz(scale: 0_000140, 0_000290, 0_000430, 0_000580), MAG_DOF)
             scale <<= core.FS_M
             writereg(MAG, core.CTRL_REG2_M, 1, @scale)
         other:

@@ -1,14 +1,16 @@
 {
     --------------------------------------------
-    Filename: sensor.gyroscope.l3gd20h.i2c.spin2
+    Filename: sensor.gyroscope.l3gd20h.spin2
     Author: Jesse Burt
     Description: Driver for the ST L3GD20H 3DoF gyroscope (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Jul 11, 2020
-    Updated Oct 23, 2021
+    Updated May 12, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
+#include "sensor.imu.common.spin2h"
+
 CON
 
     SLAVE_WR            = core.SLAVE_ADDR
@@ -68,7 +70,7 @@ CON
 VAR
 
     long _CS
-    long _gyro_cnts_per_lsb
+    long _gres
     long _gbiasraw[3]
     byte _addr_bits
 
@@ -175,9 +177,6 @@ PUB AccelDataReady()
 PUB AccelDataOverrun()
 ' Dummy method
 
-PUB AccelG(x, y, z)
-' Dummy method
-
 PUB AccelScale(scale=-2)
 ' Dummy method
 
@@ -197,45 +196,6 @@ PUB BlockUpdateEnabled(state=-2): curr_state
 
     state := ((curr_state & core.BDU_MASK) | state)
     writereg(core.CTRL4, 1, @state)
-
-PUB Calibrate()
-' Dummy method
-
-PUB CalibrateGyro() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[GYRO_DOF], samples
-' Calibrate the gyroscope
-    longfill(@axis, 0, 10)                      ' initialize vars to 0
-    orig_scl := gyroscale(-2)                   ' save user's current settings
-    orig_dr := gyrodatarate(-2)
-    gyrobias(0, 0, 0, W)                        ' clear existing bias
-
-    ' set sensor to CAL_G_SCL range, CAL_G_DR Hz data rate
-    gyroscale(CAL_G_SCL)
-    gyrodatarate(CAL_G_DR)
-    samples := CAL_G_DR                         ' samples = DR, for 1 sec time
-
-    ' accumulate and average approx. 1sec worth of samples
-    repeat samples
-        repeat until gyrodataready()
-        gyrodata(@tmpx, @tmpy, @tmpz)
-        tmp[X_AXIS] += tmpx
-        tmp[Y_AXIS] += tmpy
-        tmp[Z_AXIS] += tmpz
-
-    repeat axis from X_AXIS to Z_AXIS           ' calc avg
-        tmp[axis] /= samples
-
-    ' update offsets
-    gyrobias(tmp[X_AXIS], tmp[Y_AXIS], tmp[Z_AXIS], W)
-
-    gyroscale(orig_scl)                         ' restore user's settings
-    gyrodatarate(orig_dr)
-
-PUB CalibrateMag()
-' Dummy method
-
-PUB CalibrateXLG()
-
-    calibrategyro()
 
 PUB DataByteOrder(order=-2): curr_ord
 ' Set byte order of gyro data
@@ -414,18 +374,6 @@ PUB GyroDataReady(): ready
     readreg(core.STATUS, 1, @ready)
     return (((ready >> core.ZYXDA) & 1) == 1)
 
-PUB GyroDPS(ptr_x, ptr_y, ptr_z) | tmp[2]
-' Read gyroscope data, calculated
-'   Returns: Angular rate in millionths of a degree per second
-    bytefill(@tmp, 0, 8)
-    readreg(core.OUT_X_L, 6, @tmp)
-    long[ptr_x] := ((tmp.word[X_AXIS] signx 15) - _gbiasraw[X_AXIS]) {
-}   * _gyro_cnts_per_lsb
-    long[ptr_y] := ((tmp.word[Y_AXIS] signx 15) - _gbiasraw[Y_AXIS]) {
-}   * _gyro_cnts_per_lsb
-    long[ptr_z] := ((tmp.word[Z_AXIS] signx 15) - _gbiasraw[Z_AXIS]) {
-}   * _gyro_cnts_per_lsb
-
 PUB GyroOpMode(mode=-2): curr_mode | tmp_xyz
 ' Set operation mode
 '   Valid values:
@@ -465,7 +413,7 @@ PUB GyroScale(scale=-2): curr_scale
     case scale
         245, 500, 2000:
             scale := lookdownz(scale: 245, 500, 2000) << core.FS
-            _gyro_cnts_per_lsb := lookupz(scale >> core.FS: 8_750, 17_500, 70_000)
+            _gres := lookupz(scale >> core.FS: 8_750, 17_500, 70_000)
         other:
             curr_scale := (curr_scale >> core.FS) & core.FS_BITS
             return lookupz(curr_scale: 245, 500, 2000)
@@ -648,9 +596,6 @@ PUB MagDataRate(hz=-2)
 ' Dummy method
 
 PUB MagDataReady()
-' Dummy method
-
-PUB MagGauss(x, y, z)
 ' Dummy method
 
 PUB MagScale(scale=-2)
