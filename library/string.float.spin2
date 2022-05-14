@@ -278,7 +278,7 @@ PUB SetSeparatorChrs(ThousandsChr, ThousandthsChr)
   thousandths_chr := ThousandthsChr
 
 
-PRI Setup(single): stringptr
+PRI Setup(single): stringptr | tmp
 
  'limit digits to 1..7
   if precision
@@ -305,7 +305,7 @@ PRI Setup(single): stringptr
     'if very small, bias up
     if exponent < -32
       single := math.FMul(single, 1e13)
-      exponent += result := 13
+      exponent += tmp := 13
 
     'determine exact exponent and integer
     repeat
@@ -315,7 +315,7 @@ PRI Setup(single): stringptr
       elseif integer >= teni[digits]
         exponent++
       else
-        exponent -= result
+        exponent -= tmp
         quit
 
   'if 0, reset exponent and integer
