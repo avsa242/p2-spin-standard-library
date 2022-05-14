@@ -12,8 +12,8 @@
 
 CON
 
-     _xtlfreq   = cfg._xtlfreq
-     _clkfreq   = cfg._clkfreq_def
+    _xtlfreq   = cfg._xtlfreq
+    _clkfreq   = cfg._clkfreq_def
 
 ' -- User-modifiable constants
     LED         = cfg.LED1
@@ -26,14 +26,12 @@ OBJ
 
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
-    io          : "io"
     time        : "time"
 
 PUB Main() | fg, bg, rx_char, mb, mx, my
 
     setup()
 
-    ser.cursorposition(FALSE)
     ser.printf("ANSI serial terminal demo\n\n")
     ser.printf("NOTE: Not all attributes supported by all terminals.\n\n")
 
@@ -81,7 +79,7 @@ PUB Main() | fg, bg, rx_char, mb, mx, my
             ser.color(fg, bg)
             ser.printf(" COLORED ")
         ser.newline()
-    ser.color()
+    ser.color(ser.GREY, ser.BLACK)
 
     repeat 5
         ser.moveup()

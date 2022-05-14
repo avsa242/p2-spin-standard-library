@@ -210,12 +210,12 @@ PUB ClearMode(mode)
 PUB Color(fcolor, bcolor)
 ' Set foreground and background colors
     csi()
-    dec(fcolor)
+    dec(FG + fcolor)
     char(";")
-    dec(bcolor)
+    dec(BG + bcolor)
     char("m")
 
-PUB Conceal(mode)
+PUB Conceal(mode=8)
 ' Set Conceal attribute
     sgr(mode)
 
@@ -265,7 +265,7 @@ PUB Home()
 ' Move cursor to home/upper-left position
     position(0, 0)
 
-PUB Inverse(mode)
+PUB Inverse(mode=7)
 ' Set inverse attribute
     sgr(mode)
 
@@ -302,25 +302,25 @@ PUB MouseCursorposition() | b, x, y
     y := charin-33                              '   to 0, 0 instead of 1, 1
     result := (b << 16) | (y << 8) | x          ' Pack into the return value
 
-PUB MoveDown(rows)
+PUB MoveDown(rows=1)
 ' Move cursor down 1 or more rows
     csi()
     dec(rows)
     char("B")
 
-PUB MoveLeft(columns)
+PUB MoveLeft(columns=1)
 ' Move cursor back/left 1 or more columns
     csi()
     dec(columns)
     char("D")
 
-PUB MoveRight(columns)
+PUB MoveRight(columns=1)
 ' Move cursor forward/right 1 or more columns
     csi()
     dec(columns)
     char("C")
 
-PUB MoveUp(rows)
+PUB MoveUp(rows=1)
 ' Move cursor up 1 or more rows
     csi()
     dec(rows)
@@ -355,19 +355,19 @@ PUB Reset()
     csi()
     char("m")
 
-PUB ScrollDown(lines)
+PUB ScrollDown(lines=1)
 ' Scroll display down 1 or more lines
     csi()
     dec(lines)
     char("T")
 
-PUB ScrollUp(lines)
+PUB ScrollUp(lines=1)
 ' Scroll display up 1 or more lines
     csi()
     dec(lines)
     char("S")
 
-PUB SemiGfx(enabled)
+PUB SemiGfx(enabled=1)
 ' Enable semi-graphics (e.g., line-drawing) mode
     case abs(enabled)
         1:
@@ -382,7 +382,7 @@ PUB ShowCursor()
     dec(25)
     char("h")
 
-PUB Strikethrough(mode)
+PUB Strikethrough(mode=9)
 ' Set strike-through attribute
     sgr(mode)
 
