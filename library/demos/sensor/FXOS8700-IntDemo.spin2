@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Demo of the FXOS8700 driver
         Interrupt functionality (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Sep 26, 2020
-    Updated Nov 18, 2021
+    Updated May 14, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -56,7 +56,7 @@ PUB Main() | dispmode
     imu.opmode(imu.BOTH)
     imu.tempscale(C)
 
-    imu.accelopmode(imu.MEASURE)
+    imu.accelopmode(imu.ACTIVE)
     imu.accelscale(2)                   ' 2, 4, 8 (g's)
     imu.acceldatarate(50)               ' 1, 6, 12, 50, 100, 200, 400, 800
     imu.intmask(%11111111)
