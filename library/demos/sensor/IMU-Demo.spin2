@@ -3,24 +3,12 @@
     Filename: IMU-Demo.spin2
     Author: Jesse Burt
     Description: IMU/Motion sensor data display demo
-    Copyright (c) 2020
+    Copyright (c) 2022
     Started Jul 18, 2020
-    Updated Aug 21, 2020
+    Updated May 14, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
-
-' Uncomment one of the following to choose the connected IMU/motion sensor:
-'#define ADXL345_SPI
-'#define ICM20649_I2C
-#define ICM20649_SPI
-'#define L3GD20H_I2C
-'#define L3GD20H_SPI
-'#define LIS3DH_I2C
-'#define LIS3DH_SPI
-'#define LSM303DLHC_I2C
-'#define LSM9DS1_SPI
-'#define MPU9250_I2C
 
 CON
 
@@ -343,13 +331,11 @@ PUB Calibrate()
 
     ser.position(0, 14)
     ser.str("Calibrating...")
-    if imu.ACCEL_DOF > 0 && imu.GYRO_DOF > 0
-        imu.calibratexlg()
-    elseif imu.ACCEL_DOF > 0
+    if (imu.ACCEL_DOF > 0)
         imu.calibrateaccel()
-    elseif imu.GYRO_DOF > 0
+    if (imu.GYRO_DOF > 0)
         imu.calibrategyro()
-    if imu.MAG_DOF > 0
+    if (imu.MAG_DOF > 0)
         imu.calibratemag()
     ser.positionx(0)
     ser.clearline()
