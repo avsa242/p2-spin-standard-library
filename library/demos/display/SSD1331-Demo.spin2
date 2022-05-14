@@ -5,18 +5,18 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Feb 17, 2022
-    Updated: Feb 17, 2022
+    Updated: May 14, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
-    _clkmode    = cfg#_clkmode
-    _xinfreq    = cfg#_xinfreq
+    _clkfreq    = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    LED         = cfg#LED1
-    SER_BAUD    = 115_200
+    LED         = cfg.LED1
+    SER_BAUD    = 2_000_000
 
     WIDTH       = 96
     HEIGHT      = 64
@@ -26,17 +26,18 @@ CON
     SCK_PIN     = 1
     MOSI_PIN    = 2
     DC_PIN      = 3
+    SCK_FREQ    = 5_000_000                     ' 6.66MHz max (official); unenforced
 
-    RES_PIN     = -1                             ' optional; -1 to disable
+    RES_PIN     = -1                            ' optional; -1 to disable
 ' --
 
-    BPP         = disp#BYTESPERPX
+    BPP         = disp.BYTESPERPX
     BYTESPERLN  = WIDTH * BPP
     BUFFSZ      = (WIDTH * HEIGHT)
 
 OBJ
 
-    cfg     : "core.con.boardcfg.flip"
+    cfg     : "core.con.boardcfg.p2eval"
     disp    : "display.oled.ssd1331"
 
 VAR
@@ -47,31 +48,31 @@ VAR
     byte _framebuff                             ' dummy VAR for GFX_DIRECT
 #endif
 
-PUB Main{}
+PUB Main()
 
     ser.start(SER_BAUD)
-    time.msleep(30)
-    ser.clear{}
+    waitms(30)
+    ser.clear()
     ser.strln(string("Serial terminal started"))
 
-    if disp.startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, WIDTH, HEIGHT, @_framebuff)
-        ser.printf1(string("%s driver started"), @_drv_name)
+    if disp.startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, SCK_FREQ, WIDTH, HEIGHT, @_framebuff)
+        ser.printf(string("%s driver started"), @_drv_name)
         disp.fontspacing(1, 0)
         disp.fontscale(1)
-        disp.fontsize(fnt#WIDTH, fnt#HEIGHT)
-        disp.fontaddress(fnt.baseaddr{})
+        disp.fontsize(fnt.WIDTH, fnt.HEIGHT)
+        disp.fontaddress(fnt.baseaddr())
     else
-        ser.printf1(string("%s driver failed to start - halting"), @_drv_name)
+        ser.printf(string("%s driver failed to start - halting"), @_drv_name)
         repeat
 
 
-    disp.preset_96x64_hiperf{}
+    disp.preset_96x64_hiperf()
     _time := 5_000                              ' time each demo runs (ms)
 
-    demo{}                                      ' start demo
+    demo()                                      ' start demo
 
 { demo routines (common to all display types) included here }
-#include "GFXDemo-common.spinh"
+#include "GFXDemo-common.spin2h"
 
 DAT
     _drv_name   byte    "SSD1331 (SPI)", 0
