@@ -5,7 +5,7 @@
     Description: Driver for AHT20 temperature/RH sensors (P2 version)
     Copyright (c) 2022
     Started Mar 27, 2022
-    Updated Mar 27, 2022
+    Updated May 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,8 +14,14 @@
 
 CON
 
+    { I2C }
+    SLAVE_WR    = core.SLAVE_ADDR
+    SLAVE_RD    = core.SLAVE_ADDR | 1
+    DEF_HZ      = 100_000
+
     FP_SCALE    = 10_000
     TWO20       = (1 << 20)                     ' 2^20
+
 
 OBJ
 

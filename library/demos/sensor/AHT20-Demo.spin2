@@ -32,7 +32,6 @@ OBJ
 
     cfg : "core.con.boardcfg.p2eval"
     ser : "com.serial.terminal.ansi"
-    time: "time"
     trh : "sensor.temp_rh.aht20"
     int : "string.integer"
 
