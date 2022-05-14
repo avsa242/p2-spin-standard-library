@@ -4,7 +4,7 @@ OPTS="-q -2 -L ./library"
 
 if [ -z "$SPINC" ]
 then
-    SPINC="fastspin"
+    SPINC="flexspin"
 fi
 
 if [ "$1" == "clean" ]

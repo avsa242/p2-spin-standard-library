@@ -10,7 +10,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Jun 18, 2019
-    Updated: May 2, 2022
+    Updated: May 14, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -117,11 +117,11 @@ PUB BGColor(bcolor)
     dec(BG + bcolor)
     char("m")
 
-PUB Blink(mode)
+PUB Blink(mode=5)
 ' Set Blink attribute
     sgr(mode)
 
-PUB Bold(mode)
+PUB Bold(mode=1)
 ' Set Bold attribute
     sgr(mode)
 
@@ -399,7 +399,7 @@ PUB TextWindow(ptr_titlestr, x, y, w, h, brd_fg, brd_bg, ttl_fg)
     position(x+2, y)                        ' display window title
     str(ptr_titlestr)
 
-PUB Underline(mode)
+PUB Underline(mode=4)
 ' Set Underline attribute
     sgr(mode)
 
