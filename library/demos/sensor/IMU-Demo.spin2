@@ -131,25 +131,25 @@ OBJ
     ser     : "com.serial.terminal.ansi"
     int     : "string.integer"
 #ifdef ADXL345_SPI
-    imu     : "sensor.accel.3dof.adxl345.spi"
+    imu     : "sensor.accel.3dof.adxl345"
 #elseifdef ICM20649_SPI
-    imu     : "sensor.imu.6dof.icm20649.spi"
+    imu     : "sensor.imu.6dof.icm20649"
 #elseifdef ICM20649_I2C
-    imu     : "sensor.imu.6dof.icm20649.i2c"
+    imu     : "sensor.imu.6dof.icm20649"
 #elseifdef L3GD20H_I2C
-    imu     : "sensor.gyroscope.3dof.l3gd20h.i2c"
+    imu     : "sensor.gyroscope.3dof.l3gd20h"
 #elseifdef L3GD20H_SPI
-    imu     : "sensor.gyroscope.3dof.l3gd20h.spi"
+    imu     : "sensor.gyroscope.3dof.l3gd20h"
 #elseifdef LIS3DH_I2C
-    imu     : "sensor.accel.3dof.lis3dh.i2c"
+    imu     : "sensor.accel.3dof.lis3dh"
 #elseifdef LIS3DH_SPI
-    imu     : "sensor.accel.3dof.lis3dh.spi"
+    imu     : "sensor.accel.3dof.lis3dh"
 #elseifdef LSM303DLHC_I2C
-   imu     : "sensor.imu.6dof.lsm303dlhc.i2c"
+   imu     : "sensor.imu.6dof.lsm303dlhc"
 #elseifdef LSM9DS1_SPI
-    imu     : "sensor.imu.9dof.lsm9ds1.spi"
+    imu     : "sensor.imu.9dof.lsm9ds1"
 #elseifdef MPU9250_I2C
-    imu     : "sensor.imu.9dof.mpu9250.i2c"
+    imu     : "sensor.imu.9dof.mpu9250"
 #else
 #error "One, and only one sensor must be defined"
 #endif
