@@ -1,0 +1,99 @@
+{
+    --------------------------------------------
+    Filename: motor.bdc.hbridge.spin2
+    Author: Jesse Burt
+    Description: Brushed motor driver
+        (requires full H-Bridge power circuit)
+    Started May 15, 2022
+    Updated May 15, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+VAR
+
+    long _HS_LFT, _LS_LFT, _HS_RT, _LS_RT, _pwm_frame_per
+
+PUB Start(HS_LFT, LS_LFT, HS_RT, LS_RT, PWM_FREQ=20_000)
+' Start h-bridge driver
+'   HS_LFT, LS_LFT: high side left, low side left I/O pins
+'   HS_RT, LS_RT: high side right, low side right I/O pins
+'   PWM_FREQ: PWM switching frequency (default if unspecified: 20kHz)
+    if lookdown(HS_LFT: 0..63) and lookdown(LS_LFT: 0..63) and {
+}   lookdown(HS_RT: 0..63) and lookdown(LS_RT: 0..63)
+        longmove(@_HS_LFT, @HS_LFT, 4)
+        { start by resetting everything to a known state }
+        stop()
+
+        { calculate PWM frame period, and scale to tenths (0.1) of a percent }
+        _pwm_frame_per := (100_0 << 16) | ((clkfreq / 100_0) / PWM_FREQ)
+
+        { initialize smart-pins }
+        pinstart(_HS_LFT, P_PWM_SAWTOOTH | P_OE, _pwm_frame_per, 0)
+        pinstart(_LS_LFT, P_PWM_SAWTOOTH | P_OE, _pwm_frame_per, 0)
+        pinstart(_HS_RT, P_PWM_SAWTOOTH | P_OE, _pwm_frame_per, 0)
+        pinstart(_LS_RT, P_PWM_SAWTOOTH | P_OE, _pwm_frame_per, 0)
+
+PUB Stop()
+' Stop h-bridge driver
+    coast()
+
+    { reset smart-pins }
+    pinclear(_HS_LFT)
+    pinclear(_LS_LFT)
+    pinclear(_HS_RT)
+    pinclear(_LS_RT)
+
+    { open gate of all FETs }
+    pinl(_HS_LFT)
+    pinl(_LS_LFT)
+    pinl(_HS_RT)
+    pinl(_LS_RT)
+
+PUB Coast()
+' Stop motor effort (allow to coast or free-wheel)
+    wypin(_HS_LFT, 0)
+    wypin(_LS_LFT, 0)
+    wypin(_HS_RT, 0)
+    wypin(_LS_RT, 0)
+
+PUB Forward(duty)
+' Command motor forward, in tenths of a percent duty cycle
+'   (e.g., 50_5 == 50.5%)
+    wypin(_HS_RT, 0)
+    wypin(_LS_RT, 100_0)
+    wypin(_LS_LFT, 0)
+    wypin(_HS_LFT, 0 #> duty <# 100_0)
+
+PUB Reverse(duty)
+' Command motor reverse, in tenths of a percent duty cycle
+'   (e.g., 50_5 == 50.5%)
+    wypin(_HS_RT, 0 #> duty <# 100_0)
+    wypin(_LS_RT, 0)
+    wypin(_LS_LFT, 100_0)
+    wypin(_HS_LFT, 0)
+
+DAT
+
+{
+TERMS OF USE: MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+}
+
