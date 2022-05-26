@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: MIKROE Click adapter board
         I/O base pin offset constants
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Mar 7, 2021
-    Updated Apr 10, 2021
+    Updated May 22, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -22,11 +22,11 @@ CON
 '           (can be either CON or preprocessor #define)
 '   base I/O pin
 
-' I2C
+    { I2C }
     SDA_PIN     = CLICK_BASE + 0
     SCL_PIN     = CLICK_BASE + 1
 
-' SPI
+    { SPI }
     CS_PIN      = CLICK_BASE + 8
     SCK_PIN     = CLICK_BASE + 9
     MOSI_PIN    = CLICK_BASE + 11
@@ -34,13 +34,18 @@ CON
 
     INT_PIN     = CLICK_BASE + 4
 
-' UART
-    CTS         = CLICK_BASE + 0
-    RTS         = CLICK_BASE + 1
-    RX          = CLICK_BASE + 2
-    TX          = CLICK_BASE + 3
+    { UART }
+    CTS_PIN     = CLICK_BASE + 0
+    RTS_PIN     = CLICK_BASE + 1
+    RX_PIN      = CLICK_BASE + 2
+    TX_PIN      = CLICK_BASE + 3
 
-' Displays (OLED, LCD, etc)
+    { SPI Displays (OLED, LCD, etc) }
     DC_PIN      = CLICK_BASE + 5
     RES_PIN     = CLICK_BASE + 7
+
+    { Brushless 3 }
+    PWM_PIN     = CLICK_BASE + 5
+    AN_PIN      = CLICK_BASE + 6
+    DIR_PIN     = CLICK_BASE + 7
 
