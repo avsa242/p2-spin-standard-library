@@ -1,6 +1,6 @@
 {
     --------------------------------------------
-    Filename: SSD1351-MinimalDemo.spin2 (P2 version)
+    Filename: ST7735-MinimalDemo.spin2 (P2 version)
     Description: Graphics demo using minimal code
     Author: Jesse Burt
     Copyright (c) 2022
@@ -40,7 +40,7 @@ CON
 OBJ
 
     fnt     : "font.5x8"
-    disp    : "display.oled.ssd1351"
+    disp    : "display.lcd.st7735"
 
 VAR
 
@@ -60,7 +60,7 @@ PUB Main()
     { configure the display with the minimum required setup:
         1. Use a common settings preset for 128x. displays
         2. Tell the driver the size of the font }
-    disp.preset_128x()
+    disp.preset_greentab128x128()
     disp.fontspacing(1, 1)
     disp.fontscale(1)
     disp.fontsize(fnt.WIDTH, fnt.HEIGHT)
