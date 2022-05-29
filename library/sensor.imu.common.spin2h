@@ -5,7 +5,7 @@
     Description: Routines common to all sensor.imu device drivers
     Copyright (c) 2022
     Started Sep 24, 2021
-    Updated May 12, 2022
+    Updated May 29, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -184,17 +184,37 @@ PUB MagZWord2Tesla(mag_word): mag_tesla
 ' Convert magnetometer Z-axis ADC word to Teslas
     return (mag_word * _mres[Z_AXIS]) / 10_000
 
-PUB Pitch() | x, y, z
+PUB Pitch(): deg | x, y, z
 ' Get pitch angle of accelerometer, in degrees
     longfill(@x, 0, 3)
     acceldata(@x, @y, @z)
-    return math.atan2(y, z)
+#ifdef PITCH_INV
+    -y
+#endif
+    if ( (z >= 0) and (y >= 0) )
+        return math.atan2(y, z)
+    elseif ( (z <= 0) and (y >= 0) )
+        return ( 180_000 - math.atan2(y, -z) )
+    elseif ( (z <= 0) and (y <= 0) )
+        return ( -180_000 + math.atan2(-y, -z) )
+    else
+        return ( -math.atan2(-y, z) )
 
-PUB Roll() | x, y, z
+PUB Roll(): deg | x, y, z
 ' Get roll angle of accelerometer, in degrees
     longfill(@x, 0, 3)
     acceldata(@x, @y, @z)
-    return math.atan2(-x, z)
+#ifdef ROLL_INV
+    -x
+#endif
+    if ( (z >= 0) and (x >= 0) )
+        return math.atan2(x, z)
+    elseif ( (z <= 0) and (x >= 0) )
+        return ( 180_000 - math.atan2(x, -z) )
+    elseif (z <= 0) and (x <= 0)
+        return ( -180_000 + math.atan2(-x, -z) )
+    else
+        return ( -math.atan2(-x, z) )
 
 {
 TERMS OF USE: MIT License
