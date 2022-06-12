@@ -5,7 +5,7 @@
     Description: 8-bit parallel I/O engine for LCDs (P2 version)
     Copyright (c) 2022
     Started Jan 10, 2022
-    Updated Jan 13, 2022
+    Updated Jun 12, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -48,7 +48,7 @@ PUB DeInit()
 '   Stop running cog and clear variables
     if _cog
         cogstop(_cog-1)
-        longfill(@_cog, 0, 109)                 ' clear global vars
+        longfill(@_cog, 0, 86)                  ' clear global vars
 
 PUB WrByte_CMD(c)
 ' Write command (8-bits)
