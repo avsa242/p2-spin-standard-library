@@ -3,9 +3,9 @@
     Filename: LSM9DS1-Demo.spin2
     Author: Jesse Burt
     Description: Demo of the LSM9DS1 driver (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Aug 12, 2017
-    Updated Oct 2, 2021
+    Updated May 14, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -28,9 +28,8 @@ CON
     SPI_CS_AG   = 8
     SPI_CS_M    = 9
     SPI_SCL     = 10
-    SPI_SDIO    = 11                            ' SPI (3-wire only)
-    SPI_SDA     = 11
-    SPI_SDO     = 12                            ' SPI (4-wire only)
+    SPI_SDA     = 11                            ' define these both the same
+    SPI_SDO     = 12                            ' to use 3-wire SPI
 ' --
 
     DAT_X_COL   = 20
@@ -147,12 +146,9 @@ PUB Setup()
 #ifdef LSM9DS1_I2C
     if imu.startx(I2C_SCL, I2C_SDA, I2C_HZ)
         ser.strln(string("LSM9DS1 driver started (I2C)"))
-#elseifdef LSM9DS1_SPI3W
-    if imu.startx(SPI_CS_AG, SPI_CS_M, SPI_SCL, SPI_SDIO)
-        ser.strln(string("LSM9DS1 driver started (SPI 3-wire)"))
-#elseifdef LSM9DS1_SPI4W
+#elseifdef LSM9DS1_SPI
     if imu.startx(SPI_CS_AG, SPI_CS_M, SPI_SCL, SPI_SDA, SPI_SDO)
-        ser.strln(string("LSM9DS1 driver started (SPI 4-wire)"))
+        ser.strln(string("LSM9DS1 driver started (SPI)"))
 #endif
     else
         ser.strln(string("LSM9DS1 driver failed to start - halting"))

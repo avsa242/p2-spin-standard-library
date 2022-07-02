@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Driver object for Maxim's MAX31856 thermocouple amplifier
         (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Created: Sep 30, 2018
-    Updated: Dec 28, 2021
+    Updated: Jul 2, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -58,7 +58,7 @@ VAR
 OBJ
 
     core    : "core.con.max31856"               ' HW-specific constants
-    spi     : "com.spi.bitbang-fast"            ' SPI engine (~10MHz)
+    spi     : "com.spi.bitbang"                 ' SPI engine (~10MHz)
 
 PUB Null()
 ' This is not a top-level object

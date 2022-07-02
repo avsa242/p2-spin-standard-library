@@ -5,7 +5,7 @@
     Description: Driver for the ST L3GD20H 3DoF gyroscope (P2 version)
     Copyright (c) 2022
     Started Jul 11, 2020
-    Updated May 12, 2022
+    Updated Jul 2, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -79,7 +79,7 @@ OBJ
 #ifdef L3GD20H_I2C
     i2c : "com.i2c"                             ' bitbanged I2C engine
 #elseifdef L3GD20H_SPI
-    spi : "com.spi.bitbang-fast"                ' bitbanged SPI engine
+    spi : "com.spi.bitbang"                     ' bitbanged SPI engine
 #else
 #error "One of L3GD20H_I2C or L3GD20H_SPI must be defined"
 #endif
