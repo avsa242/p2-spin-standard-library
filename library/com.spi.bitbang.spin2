@@ -4,7 +4,7 @@
     Description: SPI engine (bit-banged) for the Propeller 2
     Author: Jesse Burt
     Created: Nov 9, 2019
-    Updated: Jan 25, 2021
+    Updated: Jul 2, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -207,115 +207,6 @@ PUB WrWord_LSBF(word2spi)
 PUB WrWord_MSBF(word2spi)
 ' Write word to SPI bus, most-significant byte first
     wrblock_msbf(@word2spi, 2)
-
-' -- Legacy methods below
-
-PUB Start(MOSI, MISO, SCK, SCK_HZ, CPOL=0): okay
-
-    _CPOL := CPOL
-    _dirw(MOSI, 1)
-    if MISO <> -1
-        _dirw(MISO, 0)
-    pinw(SCK, _CPOL)
-    _dirw(SCK, 1)
-    _clk_delay := ((clkfreq / SCK_HZ) / 2) #> 2
-    okay := cogid() + 1
-
-{{
-************************************************
-* Propeller SPI Engine  ... Spin Version  v1.0 *
-* Author: Beau Schwabe                         *
-* Copyright (c) 2009 Parallax                  *
-* See end of file for terms of use.            *
-************************************************
-
-Revision History:
-         V1.0   - original program
-
-}}
-CON
-
-' Bit order: Read/ShiftIn
-' MSBPRE   - Most Significant Bit first ; data is valid before the clock
-' LSBPRE   - Least Significant Bit first ; data is valid before the clock
-' MSBPOST  - Most Significant Bit first ; data is valid after the clock
-' LSBPOST  - Least Significant Bit first ; data is valid after the clock
-    #0, MSBPRE, LSBPRE, MSBPOST, LSBPOST
-
-' Bit order: Write/ShiftOut
-' LSBFIRST - Least Significant Bit first ; data is valid after the clock
-' MSBFIRST - Most Significant Bit first ; data is valid after the clock
-    #4, LSBFIRST, MSBFIRST
-
-PUB Read(MISO, SCK, mode, nr_bits): result | clk_delay, tmp
-
-    clk_delay := _clk_delay
-    pinw(SCK, _CPOL)                                         ' Set initial clock state/clock polarity
-    tmp := 32 - nr_bits
-
-    result := 0
-
-    case_fast mode
-        MSBPRE:
-            repeat nr_bits
-                waitx(clk_delay)
-                pint(SCK)
-                waitx(clk_delay)
-                pint(SCK)
-                result := (result << 1) | pinr(MISO)
-
-        LSBPRE:
-            repeat nr_bits + 1
-                result := (result >> 1) | (pinr(MISO) << 31)
-                waitx(clk_delay)
-                pint(SCK)
-                waitx(clk_delay)
-                pint(SCK)
-                result >>= tmp
-
-        MSBPOST:
-            repeat nr_bits
-                pint(SCK)
-                waitx(clk_delay)
-                pint(SCK)
-                waitx(clk_delay)
-                result := (result << 1) | pinr(MISO)
-
-        LSBPOST:
-            repeat nr_bits + 1
-                pint(SCK)
-                waitx(clk_delay)
-                pint(SCK)
-                waitx(clk_delay)
-                result := (result >> 1) | (pinr(MISO) << 31)
-                result >>= tmp
-
-    return result
-
-PUB Write(MOSI, SCK, mode, nr_bits, val) | clk_delay, tmp
-
-    clk_delay := _clk_delay
-    tmp := 32-(nr_bits-1)
-    case_fast mode
-        LSBFIRST:
-            val <<= tmp
-            val := val REV 31
-        MSBFIRST:
-
-    org
-            shl     val,        tmp     wc
-
-            rep     #loop,      nr_bits
-            outc    MOSI                                    ' Put the MSB out on MOSI
-
-            waitx   clk_delay
-            drvnot  SCK                                     ' Clock out
-            waitx   clk_delay
-            drvnot  SCK
-
-            shl     val,        #1      wc                  ' Shift the next bit into position for MOSI
-        loop
-    end
 
 DAT
 {
