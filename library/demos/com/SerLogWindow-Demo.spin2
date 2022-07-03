@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Display a scrolling text/logging
         "window" on the serial terminal
-    Copyright (c) 2020
+    Copyright (c) 2022
     Started Oct 25, 2020
-    Updated Nov 9, 2020
+    Updated Jul 3, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -105,7 +105,7 @@ PUB Setup()
     waitms(30)
     ser.reset()
     ser.clear()
-    ser.strln("Serial terminal started")
+    ser.strln(@"Serial terminal started")
 
 DAT
 {
