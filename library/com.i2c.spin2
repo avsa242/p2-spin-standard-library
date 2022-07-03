@@ -4,12 +4,12 @@
     Description: Bitbanged I2C driver for the P2X8C4M64P
     Author: Jesse Burt
     Created: Jun 15, 2019
-    Updated: Jul 21, 2021
+    Updated: Jul 3, 2022
     See end of file for terms of use.
+    --------------------------------------------
 
     NOTE: This is based on jm_i2c.spin, by
         Jon McPhalen
-    --------------------------------------------
 }
 
 ' NOTE: Pull-up resistors are required on SDA _and_ SCL lines
@@ -207,6 +207,30 @@ PUB Wr_Byte(b): ackbit
 ' Write byte to I2C bus
     return wrblock_lsbf(@b, 1)
 
+PUB Wr_ByteX(b, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, i2cbyte
+' Repeatedly write byte to bus
+'   b: byte to write
+'   nr_bytes: number of bytes to write
+    longmove(@SCL, @_SCL, 4)
+
+    repeat nr_bytes
+        i2cbyte := (b << 24)
+        repeat 8
+            ((i2cbyte rol= 1) & 1) ? (pinf(SDA)) : (pinl(SDA))
+            waitx(bit_lo)                           ' clock out bit
+            pinf(SCL)
+            waitx(bit_hi)
+            pinl(SCL)
+        pinf(SDA)                                   ' release SDA
+
+        waitx(bit_lo)
+        waitclkstretch()
+        waitx(bit_hi)
+        ackbit := pinr(SDA)                         ' read ack bit
+        pinl(SCL)
+
+        waitx(bit_lo)
+
 PUB WrBlock_LSBF(ptr_buff, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, bytenum, i2cbyte
 ' Write nr_bytes to I2C bus from ptr_buff, LSByte-first
 '   Returns: ack bit of last byte written
@@ -214,9 +238,9 @@ PUB WrBlock_LSBF(ptr_buff, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, bytenum
 
     repeat bytenum from 0 to nr_bytes-1
         ' align byte with long bit 31
-        i2cbyte := (byte[ptr_buff][bytenum] ^ $FF) << 24
+        i2cbyte := (byte[ptr_buff][bytenum] << 24)
         repeat 8                                    ' output eight bits, MSB first
-            ((i2cbyte rol= 1) & 1) ? (pinl(SDA)) : (pinf(SDA))
+            ((i2cbyte rol= 1) & 1) ? (pinf(SDA)) : (pinl(SDA))
             waitx(bit_lo)                           ' clock out bit
             pinf(SCL)
             waitx(bit_hi)
@@ -239,9 +263,9 @@ PUB WrBlock_MSBF(ptr_buff, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, bytenum
 
     repeat bytenum from nr_bytes-1 to 0
         ' align byte with long bit 31
-        i2cbyte := (byte[ptr_buff][bytenum] ^ $FF) << 24
+        i2cbyte := (byte[ptr_buff][bytenum] << 24)
         repeat 8                                    ' output eight bits, MSB first
-            ((i2cbyte rol= 1) & 1) ? (pinl(SDA)) : (pinf(SDA))
+            ((i2cbyte rol= 1) & 1) ? (pinf(SDA)) : (pinl(SDA))
             waitx(bit_lo)                           ' clock out bit
             pinf(SCL)
             waitx(bit_hi)
@@ -265,6 +289,60 @@ PUB WrLong_MSBF(long2i2c): ackbit
 ' Write long to I2C bus, most-significant byte first
     return wrblock_msbf(@long2i2c, 4)
 
+PUB WrLongX_LSBF(l, nr_longs): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
+' Repeatedly write LSB-first long to bus
+'   l: long to write
+'   nr_longs: number of longs to write
+    longmove(@SCL, @_SCL, 4)
+
+    repeat nr_longs
+        repeat tmp from 0 to 3
+            ' align byte with long bit 31
+            i2cbyte := (l.byte[tmp] << 24)
+            repeat 8                                    ' output eight bits, MSB first
+                ((i2cbyte rol= 1) & 1) ? (pinf(SDA)) : (pinl(SDA))
+                waitx(bit_lo)                           ' clock out bit
+                pinf(SCL)
+                waitx(bit_hi)
+                pinl(SCL)
+
+            pinf(SDA)                                   ' release SDA
+
+            waitx(bit_lo)
+            waitclkstretch()
+            waitx(bit_hi)
+            ackbit := pinr(SDA)                         ' read ack bit
+            pinl(SCL)
+
+            waitx(bit_lo)
+
+PUB WrLongX_MSBF(l, nr_longs): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
+' Repeatedly write MSB-first long to bus
+'   l: long to write
+'   nr_longs: number of longs to write
+    longmove(@SCL, @_SCL, 4)
+
+    repeat nr_longs
+        repeat tmp from 3 to 0
+            ' align byte with long bit 31
+            i2cbyte := (l.byte[tmp] << 24)
+            repeat 8                                    ' output eight bits, MSB first
+                ((i2cbyte rol= 1) & 1) ? (pinf(SDA)) : (pinl(SDA))
+                waitx(bit_lo)                           ' clock out bit
+                pinf(SCL)
+                waitx(bit_hi)
+                pinl(SCL)
+
+            pinf(SDA)                                   ' release SDA
+
+            waitx(bit_lo)
+            waitclkstretch()
+            waitx(bit_hi)
+            ackbit := pinr(SDA)                         ' read ack bit
+            pinl(SCL)
+
+            waitx(bit_lo)
+
 PUB WrWord_LSBF(word2i2c): ackbit
 ' Write word to I2C bus, least-significant byte first
     return wrblock_lsbf(@word2i2c, 2)
@@ -272,6 +350,60 @@ PUB WrWord_LSBF(word2i2c): ackbit
 PUB WrWord_MSBF(word2i2c): ackbit
 ' Write word to I2C bus, most-significant byte first
     return wrblock_msbf(@word2i2c, 2)
+
+PUB WrWordX_LSBF(w, nr_words): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
+' Repeatedly write LSB-first word to bus
+'   w: word to write
+'   nr_words: number of words to write
+    longmove(@SCL, @_SCL, 4)
+
+    repeat nr_words
+        repeat tmp from 0 to 1
+            ' align byte with long bit 31
+            i2cbyte := (w.byte[tmp] << 24)
+            repeat 8                                    ' output eight bits, MSB first
+                ((i2cbyte rol= 1) & 1) ? (pinf(SDA)) : (pinl(SDA))
+                waitx(bit_lo)                           ' clock out bit
+                pinf(SCL)
+                waitx(bit_hi)
+                pinl(SCL)
+
+            pinf(SDA)                                   ' release SDA
+
+            waitx(bit_lo)
+            waitclkstretch()
+            waitx(bit_hi)
+            ackbit := pinr(SDA)                         ' read ack bit
+            pinl(SCL)
+
+            waitx(bit_lo)
+
+PUB WrWordX_MSBF(w, nr_words): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
+' Repeatedly write MSB-first word to bus
+'   w: word to write
+'   nr_words: number of words to write
+    longmove(@SCL, @_SCL, 4)
+
+    repeat nr_words
+        repeat tmp from 1 to 0
+            ' align byte with long bit 31
+            i2cbyte := (w.byte[tmp] << 24)
+            repeat 8                                    ' output eight bits, MSB first
+                ((i2cbyte rol= 1) & 1) ? (pinf(SDA)) : (pinl(SDA))
+                waitx(bit_lo)                           ' clock out bit
+                pinf(SCL)
+                waitx(bit_hi)
+                pinl(SCL)
+
+            pinf(SDA)                                   ' release SDA
+
+            waitx(bit_lo)
+            waitclkstretch()
+            waitx(bit_hi)
+            ackbit := pinr(SDA)                         ' read ack bit
+            pinl(SCL)
+
+            waitx(bit_lo)
 
 PUB Write(i2cbyte): ackbit | SCL, SDA, bit_lo, bit_hi
 ' Write byte to I2C bus
@@ -284,22 +416,23 @@ PRI WaitClkStretch()
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+TERMS OF USE: MIT License
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 }
