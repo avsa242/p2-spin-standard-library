@@ -1,8 +1,8 @@
 {
     --------------------------------------------
-    Filename: lib.ansiterminal.spin
+    Filename: lib.ansiterminal.spin2
     Description: Library to add ANSI terminal functionality to a
-        terminal driver
+        terminal driver (P2 version)
     Requires: Terminal driver that provides the following methods:
         Char(ch)    - Output one character to terminal
         CharIn()    - Read one character from terminal

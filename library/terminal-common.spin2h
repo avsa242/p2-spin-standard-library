@@ -1,0 +1,118 @@
+{
+    --------------------------------------------
+    Filename: terminal-common.spin2h
+    Author: Jesse Burt
+    Description: Library to extend a terminal driver with
+        standard terminal routines (P2 version)
+    Copyright (c) 2022
+    Started Dec 14, 2019
+    Updated Jul 3, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+    NOTE: This is a derivative of std_text_routines.spinh, by Eric Smith.
+}
+
+{
+    Must be included using the preprocessor #include directive
+
+    Requires:
+        An object with a Char(param) method
+}
+
+{ if a maximum buffer size isn't defined at build-time, go with the default of 33 bytes
+    (enough for a 32-bit binary number output + trailing null character) }
+#ifndef TMPBUFF_SZ
+#define TMPBUFF_SZ 33
+#endif
+
+#ifndef TERMCODES_H
+#include "termcodes.spin2h"
+#endif
+
+OBJ
+
+    stl : "string.new"
+
+VAR
+
+    byte _tmp[TMPBUFF_SZ]
+
+PUB Bin(val, digits)
+' Print a number in binary form
+    stl.itoab(val, @_tmp, stl.IBIN)
+    str(@_tmp)
+
+PUB Dec(val)
+' Print a signed decimal number
+    stl.itoa(val, @_tmp)
+    str(@_tmp)
+
+PUB DecUns(val, digits)
+' Print an unsigned decimal number with the specified
+'   number of digits; 0 means just use as many as we need
+    stl.atoib(val, stl.IDEC)
+    str(@_tmp)
+
+PUB Hex(val, digits)
+' Print a hex number with the specified number
+'   of digits; 0 means just use as many as we need
+    stl.itoab(val, @_tmp, stl.IHEX)
+    str(@_tmp)
+
+PUB Hexs(val, digits)
+' Print a hex number with the specified number (small implementation)
+'   of digits; 0 means just use as many as we need
+    str(stl.hexs(val, digits))
+
+#ifndef _HAS_NEWLINE_
+PUB NewLine
+' Print a carriage return and line-feed
+    char(CR)
+    char(LF)
+#endif
+
+PUB PrintF(fmt=@"", arg1=0, arg2=0, arg3=0, arg4=0, arg5=0, arg6=0, arg7=0, arg8=0, arg9=0, arg10=0)
+' C like formatted print
+    bytefill(@_tmp, 0, TMPBUFF_SZ)
+    stl.sprintf(@_tmp, fmt, @arg1)
+    str(@_tmp)
+
+PUB Str(s) | c
+' Output a string
+    repeat while ((c := byte[s++]) <> 0)
+        char(c)
+
+PUB StrLn(s)
+' Output a string, with a newline appended
+    str(s)
+    newline{}
+
+PUB Wr_ByteX(b, bcnt)
+' Repeatedly write byte to terminal
+'   b: byte to write
+'   bcnt: number of bytes to write
+    repeat bcnt
+        char(b)
+
+DAT
+{
+    --------------------------------------------------------------------------------------------------------
+    TERMS OF USE: MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+    associated documentation files (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+    following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial
+    portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    --------------------------------------------------------------------------------------------------------
+}
+

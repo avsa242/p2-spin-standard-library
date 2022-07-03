@@ -6,92 +6,141 @@
      for low-level async serial.
     Author: Jesse Burt
     Created: Jun 15, 2019
-    Updated: Jun 23, 2020
+    Updated: Jul 3, 2022
     See end of file for terms of use.
     --------------------------------------------
 
-    NOTE: Based on SmartSerial.spin2, by Eric Smith
+    NOTE: This is based on excerpts of SmartSerial.spin2,
+    originally by Eric Smith
 }
-
-#include "lib.terminal.spin2"
-#include "lib.ansiterminal.spin2"
-#include "lib.termwidgets.spin2"
 
 OBJ
 
     ser : "com.serial"
-    int : "string.integer"
 
-PUB Start(baudrate): okay
+PUB Start(BPS): status
+' Start UART/serial engine using default I/O pins
+'   BPS: serial bitrate (bits per second)
+'   Returns: cog ID+1 of engine (if started), FALSE otherwise
+    return ser.start(BPS)
 
-    okay := ser.Start(baudrate)
-    Clear()
-    return okay
+PUB StartRxTx(RX_PIN, TX_PIN, MODE, BPS): status
+' Start UART/serial engine using custom I/O pins and mode
+'   RX_PIN: input pin (receive from external device's TX pin)
+'   TX_PIN: output pin (send to external device's RX pin)
+'   MODE: signaling mode (bits 3..0)
+'       3 - ignore tx echo on rx
+'       2 - open drain/source tx
+'       1 - invert TX
+'       0 - invert RX
+'   BPS: serial bitrate (bits per second)
+'   Returns: cog ID+1 of engine (if started), FALSE otherwise
+    return ser.startrxtx(RX_PIN, TX_PIN, MODE, BPS)
 
-PUB StartRxTx(rxpin, txpin, mode, baudrate): okay
-
-    return ser.StartRxTx(rxpin, txpin, mode, baudrate)
+PUB Stop()
+' Stop serial engine
 
 PUB BinIn(): result
-' Read a binary number as a string, converted to a number
-'   Returns: Number
-    StrInMax(@buffer, MAXSTR_LENGTH)
-    return int.StrToBase(@buffer, 2)
+' Receive CR-terminated string representing a binary value
+'   Returns: the corresponding binary value
+    strinmax(@buffer, MAXSTR_LENGTH)
+    return stl.atoib(@_str_buff, stl.IBIN)
 
 PUB Char(ch)
 ' Send a character
-    ser.Char(ch)
+    ser.char(ch)
 
 PUB CharIn(): result
-' Read a character
-'   Returns: Byte
-    return ser.CharIn()
+' Receive single-byte character (blocks)
+    return ser.charin()
 
 PUB Chars(ch, nr_chars)
-' Send character repeatedly, nr_chars times
-    repeat nr_chars
-        ser.Char(ch)
+' Send nr_ch number of character ch
+    repeat nr_ch
+        ser.char(ch)
 
-PUB DecIn(): result
-' Read a decimal number as a string, converted to a number
-'   Returns: Number
-    StrInMax(@buffer, MAXSTR_LENGTH)
-    return int.StrToBase(@buffer, 10)
+PUB DecIn(): d
+' Receive CR-terminated string representing a decimal value
+'   Returns: the corresponding decimal value
+    strinmax(@_str_buff, MAXSTR_LENGTH)
+    return stl.atoib(@_str_buff, stl.IDEC)
 
-PUB HexIn(): result
-' Read a hexadecimal number as a string, converted to a number
-'   Returns: Number
-    StrInMax(@buffer, MAXSTR_LENGTH)
-    return int.StrToBase(@buffer, 16)
+PUB HexIn(): h
+' Receive CR-terminated string representing a hexadecimal value
+'   Returns: the corresponding hexadecimal value
+    strinmax(@_str_buff, MAXSTR_LENGTH)
+    return stl.atoib(@_str_buff, stl.IHEX)
 
 PUB ReadLine(line, maxline): size | c
-' Read a string, terminated by a carriage return or line-feed, up to maxline length
+' Read a CR-terminated string up to max_len chars into ptr_str
+'   Returns: number of characters received
+    size := 0
     repeat
-        case c := CharIn()
-            BS:     if size
-                        size--
-                        ser.Char(c)
-            CR, LF: byte[line][size] := 0
-                    ser.Char(c)
+        case (c := charin())
+            BS:
+                if (size)
+                    size--
+            CR, LF:
+                byte[ptr_str][size] := NUL
+                quit
+            other:
+                if (size < max_len)
+                    byte[ptr_str][size++] := c
+                else
                     quit
-            other:  if size < maxline
-                        byte[line][size++] := c
-                        ser.Char(c)
 
-PUB RXCheck(): rxbyte
-' Check if byte received (never waits)
+PUB RXCheck(): ch
+' Check if character received (does not block)
 '   Returns:
-'       -1 if no byte, otherwise byte
-    return ser.RXCheck()
+'       -1 if no byte received
+'       $00..$FF if character received
+    return ser.rxcheck()
 
-PUB StrIn(stringptr)
-' Read a string
-    StrInMax(stringptr, -1)
+PUB StrIn(ptr_buff)
+' Receive a CR-terminated string into ptr_str
+'   ptr_str: pointer to buffer in which to store received string
+'   NOTE: ptr_str must point to a large enough buffer for entire string
+'       plus a zero terminator
+    strinmax(ptr_buff, -1)
 
 PUB StrInMax(stringptr, maxcount)
-' Read a string, up to maxcount characters
-    repeat while (maxcount--)                                   ' While maxcount not reached
-        if (byte[stringptr++] := ser.CharIn()) == CR            ' Get chars until CR
+' Receive a CR-terminated string (or max_len size; whichever is first)
+'   into ptr_buff
+'   ptr_str: pointer to buffer in which to store received string
+'   max_len: maximum length of string to receive, or -1 for unlimited
+
+    { get up to max_len chars, or until CR received }
+    repeat while (max_len--)
+        if ((byte[ptr_buff++] := ser.charin()) == CR)
             quit
-    byte[stringptr+(byte[stringptr-1] == CR)]~                  ' Zero terminate string; overwrite CR or append 0 char
+
+    { zero terminate string; overwrite CR or append 0 char }
+    byte[ptr_buff+(byte[ptr_buff-1] == CR)] := NUL
+
+#include "terminal-common.spin2h"
+#include "lib.ansiterminal.spin2"
+#include "lib.termwidgets.spin2"
+
+DAT
+{
+TERMS OF USE: MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+}
 
