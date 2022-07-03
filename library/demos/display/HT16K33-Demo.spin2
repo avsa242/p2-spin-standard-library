@@ -41,12 +41,12 @@ OBJ
     disp: "display.led.ht16k33"
     int : "string.integer"
     fnt : "font.5x8"
+    math: "math.int"
 
 VAR
 
     long _stack_timer[50]
     long _timer_set
-    long _rnd_seed
     byte _framebuff[BUFFSZ]
     byte _timer_cog
 
@@ -100,7 +100,7 @@ PUB Main() | time_ms
 
 PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
 ' Continuously redraws bitmap at address bitmap_addr
-    ser.str("Demo_Bitmap - ")
+    ser.str(@"Demo_Bitmap - ")
     _timer_set := testtime
     iteration := 0
 
@@ -114,14 +114,14 @@ PUB Demo_Bitmap(testtime, bitmap_addr) | iteration
 
 PUB Demo_Circle(testtime) | iteration, x, y, r
 ' Draws circles at random locations
-    ser.str("Demo_Circle - ")
+    ser.str(@"Demo_Circle - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        x := rnd(XMAX)
-        y := rnd(YMAX)
-        r := rnd(HEIGHT/2)
+        x := math.rndi(XMAX)
+        y := math.rndi(YMAX)
+        r := math.rndi(HEIGHT/2)
         disp.circle(x, y, r, -1, false)
         disp.update()
         iteration++
@@ -148,12 +148,12 @@ PUB Demo_Greet() | ch, idx
 
 PUB Demo_Line(testtime) | iteration
 ' Draws random lines with color -1 (invert)
-    ser.str("Demo_Line - ")
+    ser.str(@"Demo_Line - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        disp.line(rnd(XMAX), rnd(YMAX), rnd(XMAX), rnd(YMAX), -1)
+        disp.line(math.rndi(XMAX), math.rndi(YMAX), math.rndi(XMAX), math.rndi(YMAX), -1)
         disp.update()
         iteration++
 
@@ -165,7 +165,7 @@ PUB Demo_LineSweepX(testtime) | iteration, x
 '  from the top-down
     x := 0
 
-    ser.str("Demo_LineSweepX - ")
+    ser.str(@"Demo_LineSweepX - ")
     _timer_set := testtime
     iteration := 0
 
@@ -185,7 +185,7 @@ PUB Demo_LineSweepY(testtime) | iteration, y
 '  from the top-down
     y := 0
 
-    ser.str("Demo_LineSweepY - ")
+    ser.str(@"Demo_LineSweepY - ")
     _timer_set := testtime
     iteration := 0
 
@@ -204,7 +204,7 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
 ' Dumps Propeller Hub RAM (and/or ROM) to the display buffer
     pos := start_addr
 
-    ser.str("Demo_MEMScroller - ")
+    ser.str(@"Demo_MEMScroller - ")
     _timer_set := testtime
     iteration := 0
 
@@ -221,12 +221,12 @@ PUB Demo_MEMScroller(testtime, start_addr, end_addr) | iteration, pos, st, en
 
 PUB Demo_Plot(testtime) | iteration, x, y
 ' Draws random pixels to the screen, with color -1 (invert)
-    ser.str("Demo_Plot - ")
+    ser.str(@"Demo_Plot - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        disp.plot(rnd(XMAX), rnd(YMAX), -1)
+        disp.plot(math.rndi(XMAX), math.rndi(YMAX), -1)
         disp.update()
         iteration++
 
@@ -235,7 +235,7 @@ PUB Demo_Plot(testtime) | iteration, x, y
 
 PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
 ' Draws a sine wave the length of the screen, influenced by the system counter
-    ser.str("Demo_Sinewave - ")
+    ser.str(@"Demo_Sinewave - ")
 
     div := 16_384
 
@@ -247,7 +247,7 @@ PUB Demo_Sinewave(testtime) | iteration, x, y, modifier, offset, div
     repeat while _timer_set
         repeat x from 0 to XMAX
             modifier := abs(getct()) / 10_000   ' Use system counter as modifier
-            y := offset + sin(x * modifier) / div
+            y := offset + math.sin(x * modifier) / div
             disp.plot(x, y, 1)
 
         disp.update()
@@ -265,7 +265,7 @@ PUB Demo_SeqText(testtime) | iteration, col, row, maxcol, maxrow, ch, st
     maxrow := (HEIGHT/disp.fontheight())-1
     ch := $00
 
-    ser.str("Demo_SeqText - ")
+    ser.str(@"Demo_SeqText - ")
     _timer_set := testtime
     iteration := 0
 
@@ -291,7 +291,7 @@ PUB Demo_RndText(testtime) | iteration, col, row, maxcol, maxrow, ch, st
     maxrow := (HEIGHT/disp.fontheight())-1
     ch := $00
 
-    ser.str("Demo_RndText - ")
+    ser.str(@"Demo_RndText - ")
     _timer_set := testtime
     iteration := 0
 
@@ -302,7 +302,7 @@ PUB Demo_RndText(testtime) | iteration, col, row, maxcol, maxrow, ch, st
                 if ch > $7F
                     ch := $00
                 disp.position(col, row)
-                disp.char(rnd(127))
+                disp.char(math.rnd(127))
         disp.update()
         iteration++
 
@@ -314,7 +314,7 @@ PUB Demo_TriWave(testtime) | iteration, x, y, ydir
     ydir := 1
     y := 0
 
-    ser.str("Demo_TriWave - ")
+    ser.str(@"Demo_TriWave - ")
     _timer_set := testtime
     iteration := 0
 
@@ -335,16 +335,15 @@ PUB Demo_TriWave(testtime) | iteration, x, y, ydir
 
 PUB Demo_Wander(testtime) | iteration, x, y, d
 ' Draws randomly wandering pixels
-    _rnd_seed := getct()
     x := XMAX/2
     y := YMAX/2
 
-    ser.str("Demo_Wander - ")
+    ser.str(@"Demo_Wander - ")
     _timer_set := testtime
     iteration := 0
 
     repeat while _timer_set
-        case d := rnd(4)
+        case d := math.rndi(4)
             1:
                 x += 2
                 if x > XMAX
@@ -367,27 +366,15 @@ PUB Demo_Wander(testtime) | iteration, x, y, d
 
     report(testtime, iteration)
 
-PUB RND(maxval): r
-' Return a random number up to maximum 'maxval'
-    r := getrnd() +// maxval
-
-PUB Sin(angle): sine | tmp
-' Return the sine of angle
-    org
-        shl     angle, #20
-        qrotate ##100000, angle
-        getqy   sine
-    end
-
 PRI Report(testtime, iterations) 
 
-    ser.str("Total iterations: ")
+    ser.str(@"Total iterations: ")
     ser.dec(iterations)
 
-    ser.str(", Iterations/sec: ")
+    ser.str(@", Iterations/sec: ")
     ser.dec(iterations / (testtime/1000))
 
-    ser.str(", Iterations/ms: ")
+    ser.str(@", Iterations/ms: ")
     decimal((iterations * 1_000) / testtime, 1_000)
     ser.newline()
 
