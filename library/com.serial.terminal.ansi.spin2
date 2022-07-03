@@ -13,10 +13,18 @@
     NOTE: This is based on excerpts of SmartSerial.spin2,
     originally by Eric Smith
 }
+CON
+
+    MAXSTR_LENGTH   = 49                        ' max len of received numerical
+                                                ' string (not including zero terminator)
 
 OBJ
 
     ser : "com.serial"
+
+VAR
+
+    byte _str_buff[MAXSTR_LENGTH+1]             ' buffer for numerical strings
 
 PUB Start(BPS): status
 ' Start UART/serial engine using default I/O pins
@@ -40,21 +48,21 @@ PUB StartRxTx(RX_PIN, TX_PIN, MODE, BPS): status
 PUB Stop()
 ' Stop serial engine
 
-PUB BinIn(): result
+PUB BinIn(): b
 ' Receive CR-terminated string representing a binary value
 '   Returns: the corresponding binary value
-    strinmax(@buffer, MAXSTR_LENGTH)
+    strinmax(@_str_buff, MAXSTR_LENGTH)
     return stl.atoib(@_str_buff, stl.IBIN)
 
 PUB Char(ch)
 ' Send a character
     ser.char(ch)
 
-PUB CharIn(): result
+PUB CharIn(): c
 ' Receive single-byte character (blocks)
     return ser.charin()
 
-PUB Chars(ch, nr_chars)
+PUB Chars(ch, nr_ch)
 ' Send nr_ch number of character ch
     repeat nr_ch
         ser.char(ch)
@@ -71,7 +79,7 @@ PUB HexIn(): h
     strinmax(@_str_buff, MAXSTR_LENGTH)
     return stl.atoib(@_str_buff, stl.IHEX)
 
-PUB ReadLine(line, maxline): size | c
+PUB ReadLine(ptr_str, max_len): size | c
 ' Read a CR-terminated string up to max_len chars into ptr_str
 '   Returns: number of characters received
     size := 0
@@ -103,7 +111,7 @@ PUB StrIn(ptr_buff)
 '       plus a zero terminator
     strinmax(ptr_buff, -1)
 
-PUB StrInMax(stringptr, maxcount)
+PUB StrInMax(ptr_buff, max_len)
 ' Receive a CR-terminated string (or max_len size; whichever is first)
 '   into ptr_buff
 '   ptr_str: pointer to buffer in which to store received string
