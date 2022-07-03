@@ -78,6 +78,7 @@ PUB RdBits_LSBF(nr_bits): val | SCK, MOSI, MISO, clk_delay, b
     ifnot (lookdown(nr_bits: 1..32))            ' reject invalid # bits
         return
     longmove(@SCK, @_SCK, 4)
+    val := 0
     pinf(MISO)
     case _spi_mode
         0, 2:
@@ -101,6 +102,7 @@ PUB RdBits_MSBF(nr_bits): val | SCK, MOSI, MISO, clk_delay, b
     ifnot (lookdown(nr_bits: 1..32))            ' reject invalid # bits
         return
     longmove(@SCK, @_SCK, 4)
+    val := 0
     pinf(MISO)
     case _spi_mode
         0, 2:
