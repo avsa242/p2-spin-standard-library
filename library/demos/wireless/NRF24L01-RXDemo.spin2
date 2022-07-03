@@ -4,9 +4,9 @@
     Author: Jesse Burt 
     Description: nRF24L01+ Receive demo
         Will display data from all 6 data pipes
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Nov 23, 2019
-    Updated Sep 29, 2021
+    Updated Jul 3, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -69,15 +69,15 @@ PUB Main() | i, payld_cnt, recv_pipe, pipe_nr
 
     ser.clear()
     ser.position(0, 0)
-    ser.printf("Receive mode (channel %d)\n", nrf24.channel())
-    ser.printf("Listening for transmitters...")
+    ser.printf(@"Receive mode (channel %d)\n", nrf24.channel())
+    ser.printf(@"Listening for transmitters...")
 
     payld_cnt := 0
     repeat
         bytefill(@_payload, $00, 32)            ' Clear RX local buffer
         repeat                                  ' Wait to proceed...
             ser.position(0, 5)
-            ser.printf("Payloads received: %d ", payld_cnt)
+            ser.printf(@"Payloads received: %d ", payld_cnt)
         until nrf24.payloadready()              ' ...until payload received
 
         recv_pipe := nrf24.rxpipepending()      ' Which pipe is the data in?
@@ -87,13 +87,13 @@ PUB Main() | i, payld_cnt, recv_pipe, pipe_nr
         payld_cnt++                             ' Received payload counter
 
         ser.position(0, 8 + (recv_pipe * 4))    ' Use the pipe number for the
-        ser.printf("Received packet on pipe %d ", recv_pipe)
+        ser.printf(@"Received packet on pipe %d ", recv_pipe)
                                                 '   payload display position
 
-        ser.char("(")
+        ser.char(@"(")
         repeat i from 4 to 0                    ' Show the pipe's address
             ser.hex(_addr[i], 2)                ' (2..4 are only 1-byte)
-        ser.char(")")
+        ser.char(@")")
 
         ser.position(0, 9 + (recv_pipe * 4))
         ser.hexdump(@_payload, 0, 4, _payld_len, _payld_len)
@@ -105,12 +105,12 @@ PUB Setup()
 
     ser.start(SER_BAUD)
     ser.clear()
-    ser.printf("Serial terminal started\n")
+    ser.printf(@"Serial terminal started\n")
 
     if nrf24.startx(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
-        ser.printf("nRF24L01+ driver started\n")
+        ser.printf(@"nRF24L01+ driver started\n")
     else
-        ser.printf("nRF24L01+ driver failed to start - halting\n")
+        ser.printf(@"nRF24L01+ driver failed to start - halting\n")
         repeat
 
 DAT

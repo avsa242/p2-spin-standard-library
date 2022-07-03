@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Speed test for nRF24L01+ modules
         RX Mode (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Apr 30, 2020
-    Updated Sep 29, 2021
+    Updated Jul 3, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -70,7 +70,7 @@ PUB Main() | i, iteration, testtime, pipe_nr
         nrf24.payloadlen(PKTLEN, pipe_nr)       ' _must_ match TX
 
     ser.position(0, 4)
-    ser.printf("Waiting for transmitters on ")
+    ser.printf(@"Waiting for transmitters on ")
     repeat i from 4 to 0                        ' show address receiving on
         ser.hex(_addr[i], 2)
     ser.newline()
@@ -108,7 +108,7 @@ PRI Report(testtime, iterations) | rate_iterations, rate_bytes, rate_kbits
     rate_bytes := (iterations * PKTLEN) / (testtime/1000)   ' # bytes/sec
     rate_kbits := (rate_bytes * 8) / 1024                   ' # kbits/sec
 
-    ser.printf("Total iterations: %d, iterations/sec: %d, Bps: %d (%dkbps)", iterations, rate_iterations, rate_bytes, rate_kbits)
+    ser.printf(@"Total iterations: %d, iterations/sec: %d, Bps: %d (%dkbps)", iterations, rate_iterations, rate_bytes, rate_kbits)
     ser.clearline()
 
 PUB Setup()
@@ -116,12 +116,12 @@ PUB Setup()
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
-    ser.strln("Serial terminal started")
+    ser.strln(@"Serial terminal started")
 
     if nrf24.startx(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
-        ser.strln("nRF24L01+ driver started")
+        ser.strln(@"nRF24L01+ driver started")
     else
-        ser.strln("nRF24L01+ driver failed to start - halting")
+        ser.strln(@"nRF24L01+ driver failed to start - halting")
         repeat
 
     cogspin(16, cog_Counter(), @_ctr_stack)

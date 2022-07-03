@@ -3,9 +3,9 @@
     Filename: NRF24L01-TXDemo.spin2
     Author: Jesse Burt
     Description: nRF24L01+ Transmit demo
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Nov 23, 2019
-    Updated Sep 29, 2021
+    Updated Jul 3, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -77,8 +77,8 @@ PUB Main() | payld_cnt, tmp[2], i, max_retrans, pkts_retrans, lost_pkts
 
     ser.clear()
     ser.position(0, 0)
-    ser.printf("Transmit mode (channel %d)\n", nrf24.channel())
-    ser.printf("Transmitting...")
+    ser.printf(@"Transmit mode (channel %d)\n", nrf24.channel())
+    ser.printf(@"Transmitting...")
 
     longfill(@payld_cnt, 0, 6)
     repeat
@@ -88,12 +88,12 @@ PUB Main() | payld_cnt, tmp[2], i, max_retrans, pkts_retrans, lost_pkts
         lost_pkts := nrf24.lostpackets()
 
         ser.position(0, 5)
-        ser.printf("Max retransmissions reached? ")
-        ser.str(lookupz(abs(max_retrans): string("No "), string("Yes")))
+        ser.printf(@"Max retransmissions reached? ")
+        ser.str(lookupz(abs(max_retrans): @"No ", @"Yes"))
         ser.newline()
 
-        ser.printf("Packets retransmitted: %s", int.decpadded(pkts_retrans, 2))
-        ser.printf("\nLost packets: %s", int.decpadded(lost_pkts, 2))
+        ser.printf(@"Packets retransmitted: %s", int.decpadded(pkts_retrans, 2))
+        ser.printf(@"\nLost packets: %s", int.decpadded(lost_pkts, 2))
 
         if max_retrans == TRUE                  ' Max retransmissions reached?
             nrf24.intclear(%001)                '   If yes, clear the int
@@ -104,12 +104,12 @@ PUB Main() | payld_cnt, tmp[2], i, max_retrans, pkts_retrans, lost_pkts
         tmp := int.deczeroed(payld_cnt++, 4)    ' Tack a counter onto the
         bytemove(@_payload[4], tmp, 4)          '   end of the payload
         ser.position(0, 10)
-        ser.printf("Transmitting packet ")
+        ser.printf(@"Transmitting packet ")
 
-        ser.char("(")
+        ser.char(@"(")
         repeat i from 4 to 0                    ' Show address transmitting to
             ser.hex(_addr[i], 2)
-        ser.strln(string(")"))
+        ser.strln(@")")
 
         ' Show what will be transmitted
         ser.position(0, 11)
@@ -124,11 +124,11 @@ PUB Setup()
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
-    ser.printf("Serial terminal started\n")
+    ser.printf(@"Serial terminal started\n")
     if nrf24.startx(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
-        ser.printf("NRF24L01+ driver started\n")
+        ser.printf(@"NRF24L01+ driver started\n")
     else
-        ser.printf("NRF24L01+ driver failed to start - halting\n")
+        ser.printf(@"NRF24L01+ driver failed to start - halting\n")
         repeat
 
 DAT
