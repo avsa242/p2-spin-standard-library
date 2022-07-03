@@ -1,7 +1,7 @@
 {
     --------------------------------------------
-    Filename: HT16K33-Demo.spin2
-    Description: HT16K33-specific setup for small matrix graphics demo (P2 version)
+    Filename: CharlieplexedLED-Demo.spin2
+    Description: Charlieplexed LED-specific setup for small matrix graphics demo (P2 version)
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Jul 3, 2022
@@ -17,17 +17,11 @@ CON
 ' -- User-modifiable constants
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
-
-    WIDTH       = 8
-    HEIGHT      = 8
-
-{ I2C configuration }
-    SCL_PIN     = 8
-    SDA_PIN     = 9
-    ADDR_BITS   = 0
-    I2C_FREQ    = 400_000
+    LED_BASEPIN = 24
 ' --
 
+    WIDTH       = 8                             ' not yet used by driver; used only to
+    HEIGHT      = 7                             '   calc display buffer size
     BPP         = disp.BYTESPERPX
     BYTESPERLN  = WIDTH * BPP
     BUFFSZ      = ((WIDTH * HEIGHT) * BPP) / 8
@@ -35,7 +29,7 @@ CON
 OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
-    disp    : "display.led.ht16k33"
+    disp    : "display.ledmatrix.charlieplexed"
 
 VAR
 
@@ -46,15 +40,14 @@ PUB Main()
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
+    ser.strln(@"Serial terminal started")
 
-    if disp.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS, WIDTH, HEIGHT, @_framebuff)
-        ser.printf(string("%s driver started"), @_drv_name)
-        disp.defaults()
+    if disp.startx(LED_BASEPIN, @_framebuff)
+        ser.printf(@"%s driver started", @_drv_name)
         disp.fontsize(fnt.WIDTH, fnt.HEIGHT)
         disp.fontaddress(fnt.baseaddr())
     else
-        ser.printf(string("%s driver failed to start - halting"), @_drv_name)
+        ser.printf(@"%s driver failed to start - halting", @_drv_name)
         repeat
 
     _time := 5_000                              ' time each demo runs (ms)
@@ -68,7 +61,7 @@ PUB Main()
 
 DAT
 
-    _drv_name   byte    "HT16K33 (I2C)", 0
+    _drv_name   byte    "Charlieplexed LED", 0
 
 {
 TERMS OF USE: MIT License

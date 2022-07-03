@@ -20,12 +20,13 @@ CON
     DIRX_ALL    = $FF_FF_FF_FF
     BITS_MATRIX = %1111111
     BYTESPERPX  = 1
+    MAX_COLOR   = 1
 
 VAR
 
     byte _basepin
 
-PUB Start(basepin, ptr_dispbuff): okay
+PUB Startx(basepin, ptr_dispbuff): okay
 ' Set basepin for driver
 '       Valid values: 0..57
 '       Any other value returns 0
@@ -41,6 +42,16 @@ PUB Start(basepin, ptr_dispbuff): okay
             return _basepin+1
         OTHER:
             return 0
+
+PUB Stop()
+' Stop driver
+    _basepin := 0
+    _disp_width := 0
+    _disp_height := 0
+    _disp_xmax := 0
+    _disp_ymax := 0
+    _buff_sz := 0
+    _ptr_drawbuffer := 0
 
 PUB Address(addr=-2): fb_addr
 ' Set framebuffer address

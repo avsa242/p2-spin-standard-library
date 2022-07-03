@@ -1,0 +1,188 @@
+{
+    --------------------------------------------
+    Filename: SmallMatrixDemo-common.spinh
+    Description: Graphics demo for small-format dot-matrix displays
+        (common code)
+    Author: Jesse Burt
+    Copyright (c) 2022
+    Started: Jul 1, 2022
+    Updated: Jul 2, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+
+    NOTE: This is not a top-level object. This file is meant to be #included
+    by a display driver-specific demo
+}
+
+OBJ
+
+    ser     : "com.serial.terminal.ansi"
+    math    : "math.int"
+    fnt     : "font.5x8"
+
+CON
+
+    XMAX    = (WIDTH - 1)
+    YMAX    = (HEIGHT - 1)
+    CENTERX = (WIDTH / 2)
+    CENTERY = (HEIGHT / 2)
+    AR      = WIDTH / HEIGHT
+
+    Q1      = 1023
+    Q2      = 2047
+    Q3      = 3071
+    Q4      = 4095
+
+VAR
+
+    long _stack_timer[50]
+    long _timer_set, _time
+
+PUB Demo()
+
+    cogspin(NEWCOG, cog_timer(), @_stack_timer)
+    disp.clear()
+
+    demo_box()
+    demo_circle()
+    demo_line()
+    demo_plot()
+    demo_text()
+
+    disp.stop()
+
+PUB Demo_Box() | c, sz
+' Draw expanding boxes
+    _timer_set := _time
+    sz := 0
+    c := disp.MAX_COLOR
+    repeat while _timer_set
+        disp.clear()
+        disp.box(sz, sz, abs(XMAX-sz), abs(YMAX-sz), c, false)
+        disp.update()
+        waitms(100)
+        sz++
+        if (sz > (XMAX <# YMAX))                ' limit size to whichever is smaller
+            sz := 0
+        c++
+        if (c > disp.MAX_COLOR)
+            c := 0
+    waitclear()
+
+PUB Demo_Circle() | c, r
+' Draw expanding circles
+    _timer_set := _time
+    c := disp.MAX_COLOR
+    r := 1
+    repeat while _timer_set
+        disp.clear()
+        disp.circle(0, 0, r, c, false)
+        disp.update()
+        waitms(50)
+        r++
+        if (r > WIDTH)
+            r := 0
+        c++
+        if (c > disp.MAX_COLOR)
+            c := 0
+    waitclear()
+
+PUB Demo_Line() | x, y, c, i, xr, yr
+' Draw screen edge walking lines
+    c := disp.MAX_COLOR
+    xr := (200_000 / (WIDTH*2))
+    yr := (200_000 / (HEIGHT*2))
+    _timer_set := _time
+    repeat while _timer_set
+        repeat i from 0 to Q1 step 15
+            disp.clear
+            x := (math.cos(i) / xr) * AR
+            y := (math.sin(i) / yr)
+            disp.line(0, 0, x, y, c)
+            disp.update()
+            waitms(5)
+        repeat i from Q3 to Q4 step 15
+            disp.clear
+            x := (math.cos(i) / xr) * AR
+            y := (math.sin(i) / yr)
+            disp.line(0, YMAX, x, (YMAX + y), c)
+            disp.update()
+            waitms(5)
+        repeat i from Q2 to Q3 step 15
+            disp.clear
+            x := (math.cos(i) / xr) * AR
+            y := (math.sin(i) / yr)
+            disp.line(XMAX, YMAX, (XMAX + x), (YMAX + y), c)
+            disp.update()
+            waitms(5)
+        repeat i from Q1 to Q2 step 15
+            disp.clear
+            x := (math.cos(i) / xr) * AR
+            y := (math.sin(i) / yr)
+            disp.line(XMAX, 0, (XMAX + x), y, c)
+            disp.update()
+            waitms(5)
+    waitclear()
+
+PUB Demo_Plot() | x, y
+' Draw random pixels
+    _timer_set := _time
+    repeat while _timer_set
+        disp.plot(math.rndi(XMAX), math.rndi(YMAX), math.rndi(disp.MAX_COLOR))
+        disp.update()
+    waitclear()
+
+PUB Demo_Text() | ch
+' Sequentially draw the whole font table
+    disp.fgcolor(disp.MAX_COLOR)
+    disp.bgcolor(0)
+    ch := 32
+    disp.position(0, 0)
+
+    _timer_set := _time
+    repeat while _timer_set
+        disp.char(ch)
+        if (ch++ > 127)
+            ch := 32
+        disp.update()
+        waitms(100)
+    waitclear()
+
+PRI waitClear()
+' Wait, then clear the display
+    waitms(_time)
+    disp.clear()
+
+PRI cog_Timer() | time_left
+' Timer loop
+    repeat
+        repeat until _timer_set                 ' wait here until a timer has
+        time_left := _timer_set                 '   been set
+
+        repeat                                  ' loop for time_left ms
+            time_left--
+            waitms(1)
+        while (time_left > 0)
+        _timer_set := 0                         ' signal the timer's been reset
+
+{
+TERMS OF USE: MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+}
