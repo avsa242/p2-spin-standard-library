@@ -1,45 +1,50 @@
 {
     --------------------------------------------
-    Filename: signal.adc.mcp320x.spi.spin
+    Filename: signal.adc.mcp320x.spin2
     Author: Jesse Burt
     Description: Driver for Microchip MCP320x
-        Analog to Digital Converters
-    Copyright (c) 2021
+        Analog to Digital Converters (P2 version)
+    Copyright (c) 2022
     Started Nov 26, 2019
-    Updated Jan 3, 2021
+    Updated Jul 3, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 
 VAR
 
-    long _CS, _SCK, _MOSI, _MISO
+    long _CS
     word _adc_ref
     byte _ch
 
 OBJ
 
-    spi : "com.spi.bitbang-fast"
+    spi : "com.spi.bitbang"
     core: "core.con.mcp320x"
 
 PUB Null()
 ' This is not a top-level object
 
-PUB Start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=1_000_000): okay
+PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=1_000_000): status
 
-    if lookdown(CS_PIN: 0..31) and lookdown(SCK_PIN: 0..31) and{
-}   lookdown(MOSI_PIN: 0..31) and lookdown(MISO_PIN: 0..31) and{
-}   SCK_FREQ <= core.SCK_MAX_FREQ_5V
-        if okay := spi.start(MOSI_PIN, MISO_PIN, SCK_PIN, SCK_FREQ)
+    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
+}   lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63)
+        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, SCK_FREQ))
             waitms(1)
-            longmove(@_CS, @CS_PIN, 4)
-
+            _CS := CS_PIN
             pinh(_CS)
-            defaults()
-            return okay
-    return FALSE                                ' something above failed
+            return status
+    ' if this point is reached, something above failed
+    ' Double check I/O pin assignments, connections, power
+    ' Lastly - make sure you have at least one free core/cog
+    return FALSE
 
 PUB Stop()
+
+    spi.deinit()
+    _CS := 0
+    _adc_ref := 0
+    _ch := 0
 
 PUB Defaults()
 ' Factory defaults
@@ -66,8 +71,8 @@ PUB ADCData(): adc_word | cfg
             return
 
     pinl(_CS)
-    spi.write(_MOSI, _SCK, core.MOSI_BITORDER, 4, cfg | core.START_MEAS)
-    adc_word := spi.read(_MISO, _SCK, core.MISO_BITORDER, 13)
+    spi.wrbits_msbf((core.START_MEAS | cfg), 4)
+    adc_word := (spi.rdbits_msbf(13) & $fff)    ' 1 null bit + 12 data bits
     pinh(_CS)
 
 PUB RefVoltage(v=-2): curr_v

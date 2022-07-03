@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: core.con.mcp320x.spin
     Author: Jesse Burt
-    Description: Low-level constants
-    Copyright (c) 2021
+    Description: MCP320x-specific constants
+    Copyright (c) 2022
     Started Nov 26, 2019
-    Updated Jan 3, 2021
+    Updated Jul 2, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,12 +13,9 @@
 CON
 
 ' SPI Configuration
-    CPOL                        = 0             ' Actually works with either
-    CLK_DELAY                   = 1
+    SPI_MODE                    = 0
     SCK_MAX_FREQ_5V             = 1_800_000
     SCK_MAX_FREQ_2_7V           = 0_900_000
-    MOSI_BITORDER               = 5             'MSBFIRST
-    MISO_BITORDER               = 0             'MSBPRE
 
 ' Register definitions
     CONFIG                      = $00

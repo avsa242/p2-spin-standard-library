@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2022
     Started Nov 26, 2019
-    Updated Feb 3, 2022
+    Updated Jul 3, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,10 +20,10 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    CS_PIN      = 16                            ' CSn/SHDN
-    SCK_PIN     = 17                            ' CLK
-    MOSI_PIN    = 18                            ' DIN
-    MISO_PIN    = 19                            ' DOUT
+    CS_PIN      = 8                             ' CSn/SHDN
+    SCK_PIN     = 9                             ' CLK
+    MOSI_PIN    = 10                            ' DIN
+    MISO_PIN    = 11                            ' DOUT
     SCK_FREQ    = 1_000_000                     ' max is 1_800_000 (5v supply)
 ' --
 
@@ -37,13 +37,12 @@ OBJ
 PUB Main()
 
     setup()
+    adc.defaults()
     adc.adcchannel(0)                           ' 0..1 (MCP3202)
 
     repeat
         ser.position(0, 3)
         ser.str(string("ADC: "))
-        ser.hex(adc.adcdata(), 8)
-        ser.newline()
         decimaldot(adc.volts(), 1000)
 
 PRI DecimalDot(scaled, divisor) | whole[4], part[4], places, tmp, sign
@@ -74,10 +73,9 @@ PRI DecimalDot(scaled, divisor) | whole[4], part[4], places, tmp, sign
 PUB Setup()
 
     ser.start(SER_BAUD)
-    waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if adc.start(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
+    if adc.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
         ser.strln(string("MCP320x driver started"))
     else
         ser.strln(string("MCP320x driver failed to start - halting"))
