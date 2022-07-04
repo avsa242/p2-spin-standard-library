@@ -4,7 +4,7 @@
     Description: SPI engine (bit-banged) for the Propeller 2
     Author: Jesse Burt
     Created: Nov 9, 2019
-    Updated: Jul 3, 2022
+    Updated: Jul 4, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -14,7 +14,7 @@
 VAR
 
     long _SCK, _MOSI, _MISO, _clk_delay
-    long _spi_mode, _cpol, _cog
+    long _cog
 
 PUB Null()
 ' This is not a top-level object
@@ -56,21 +56,6 @@ PUB DeInit()
     pinf(_MOSI)
     pinf(_MISO)
     longfill(@_SCK, 0, 7)
-
-PUB Mode(mode_nr): curr_mode
-' Set SPI mode
-'   Valid values: 0..3
-'   Any other value returns the current setting
-    case mode_nr
-        0, 1:
-            _cpol := 0                          ' clock idles low
-        2, 3:
-            _cpol := 1                          ' clock idles high
-        other:
-            return _spi_mode                    ' read current setting
-
-    _spi_mode := mode_nr
-    (_cpol == 0) ? (pinl(_SCK)) : (pinh(_SCK))  ' set SCK initial state
 
 PUB RdBits_LSBF(nr_bits): val | SCK, MOSI, MISO, clk_delay, b
 ' Read arbitrary number of bits from SPI bus, least-significant byte first
@@ -168,26 +153,6 @@ PUB RdBlock_MSBF(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
                     waitx(clk_delay)
                     pint(SCK)
 
-PUB Rd_Byte(): spi2byte
-' Read byte from SPI bus
-    rdblock_lsbf(@spi2byte, 1)
-
-PUB RdLong_LSBF(): spi2long
-' Read long from SPI bus, least-significant byte first
-    rdblock_lsbf(@spi2long, 4)
-
-PUB RdLong_MSBF(): spi2long
-' Read long from SPI bus, least-significant byte first
-    rdblock_msbf(@spi2long, 4)
-
-PUB RdWord_LSBF(): spi2word
-' Read word from SPI bus, least-significant byte first
-    rdblock_lsbf(@spi2word, 2)
-
-PUB RdWord_MSBF(): spi2word
-' Read word from SPI bus, least-significant byte first
-    rdblock_msbf(@spi2word, 2)
-
 PUB WrBits_LSBF(val, nr_bits) | SCK, MOSI, MISO, clk_delay, b
 ' Write arbitrary number of bits to SPI bus, least-significant byte first
 '   nr_bits: 1 to 32
@@ -264,31 +229,27 @@ PUB WrBlock_MSBF(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
                     pint(SCK)
                     waitx(clk_delay)
 
-PUB Wr_Byte(byte2spi)
-' Write byte to SPI bus
-    wrblock_lsbf(@byte2spi, 1)
-
-PUB WrLong_LSBF(long2spi)
-' Write long to SPI bus, least-significant byte first
-    wrblock_lsbf(@long2spi, 4)
-
-PUB WrLong_MSBF(long2spi)
-' Write long to SPI bus, most-significant byte first
-    wrblock_msbf(@long2spi, 4)
-
-PUB WrWord_LSBF(word2spi)
-' Write word to SPI bus, least-significant byte first
-    wrblock_lsbf(@word2spi, 2)
-
-PUB WrWord_MSBF(word2spi)
-' Write word to SPI bus, most-significant byte first
-    wrblock_msbf(@word2spi, 2)
+#include "com.spi-common.spin2h"                    ' R/W methods common to all SPI engines
 
 DAT
 {
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+TERMS OF USE: MIT License
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 }

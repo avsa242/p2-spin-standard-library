@@ -1,0 +1,134 @@
+{
+    --------------------------------------------
+    Filename: com.spi-common.spin2h
+    Author: Jesse Burt
+    Description: Routines common to all SPI engines (P2 version)
+    Started Jun 27, 2022
+    Updated Jun 27, 2022
+    Copyright (c) 2022
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+VAR
+
+    long _spi_mode, _cpol
+
+PUB Mode(mode_nr): curr_mode
+' Set SPI mode
+'   Valid values: 0..3
+'   Any other value returns the current setting
+    case mode_nr
+        0, 1:
+            _cpol := 0
+        2, 3:
+            _cpol := 1
+        other:
+            return _spi_mode
+
+    _spi_mode := mode_nr
+    pinw(_SCK, _cpol)
+
+PUB Rd_Byte(): spi2byte
+' Read byte from SPI bus
+    rdblock_lsbf(@spi2byte, 1)
+
+PUB RdLong_LSBF(): spi2long
+' Read long from SPI bus, least-significant byte first
+    rdblock_lsbf(@spi2long, 4)
+
+PUB RdLong_MSBF(): spi2long
+' Read long from SPI bus, least-significant byte first
+    rdblock_msbf(@spi2long, 4)
+
+PUB RdWord_LSBF(): spi2word
+' Read word from SPI bus, least-significant byte first
+    rdblock_lsbf(@spi2word, 2)
+
+PUB RdWord_MSBF(): spi2word
+' Read word from SPI bus, least-significant byte first
+    rdblock_msbf(@spi2word, 2)
+
+PUB Wr_Byte(byte2spi)
+' Write byte to SPI bus
+    wrblock_lsbf(@byte2spi, 1)
+
+#ifndef HAS_WR_BYTEX
+PUB Wr_ByteX(b, nr_bytes)
+' Repeatedly write byte to bus
+'   b: byte to write
+'   nr_bytes: number of bytes to write
+    repeat nr_bytes
+        wrblock_lsbf(@b, 1)
+#endif
+
+PUB WrLong_LSBF(long2spi)
+' Write long to SPI bus, least-significant byte first
+    wrblock_lsbf(@long2spi, 4)
+
+PUB WrLong_MSBF(long2spi)
+' Write long to SPI bus, most-significant byte first
+    wrblock_msbf(@long2spi, 4)
+
+PUB WrLongX_LSBF(l, nr_longs)
+' Repeatedly write LSB-first long to bus
+'   l: long to write
+'   nr_longs: number of longs to write
+    repeat nr_longs
+        wrblock_lsbf(@l, 4)
+
+PUB WrLongX_MSBF(l, nr_longs)
+' Repeatedly write MSB-first long to bus
+'   l: long to write
+'   nr_longs: number of longs to write
+    repeat nr_longs
+        wrblock_msbf(@l, 4)
+
+PUB WrWord_LSBF(word2spi)
+' Write word to SPI bus, least-significant byte first
+    wrblock_lsbf(@word2spi, 2)
+
+PUB WrWord_MSBF(word2spi)
+' Write word to SPI bus, most-significant byte first
+    wrblock_msbf(@word2spi, 2)
+
+#ifndef HAS_WRWORDX_LSBF
+PUB WrWordX_LSBF(w, nr_words)
+' Repeatedly write LSB-first word to bus
+'   w: word to write
+'   nr_words: number of words to write
+    repeat nr_words
+        wrblock_lsbf(@w, 2)
+#endif
+
+#ifndef HAS_WRWORDX_MSBF
+PUB WrWordX_MSBF(w, nr_words)
+' Repeatedly write MSB-first word to bus
+'   w: word to write
+'   nr_words: number of words to write
+    repeat nr_words
+        wrblock_msbf(@w, 2)
+#endif
+
+{
+TERMS OF USE: MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+}
+
