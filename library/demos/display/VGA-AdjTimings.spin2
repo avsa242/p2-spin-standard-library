@@ -38,7 +38,6 @@ CON
 
 VAR
 
-    long _palette[256]
     byte _disp_buff[BUFFSZ]
 
 OBJ
@@ -104,7 +103,7 @@ PUB Main() | ch, vf, vb, hf, hs, hb, hv
         { timings are read on driver startup - re-cycle the driver
             when changes are made }
         vga.stop()
-        vga.start(VGA_BASEPIN, @_disp_buff, @_palette, WIDTH, HEIGHT)
+        vga.start(VGA_BASEPIN, WIDTH, HEIGHT, @_disp_buff)
         vga.settimings(vf, vb, hf, hs, hb, hv)
         vga.waitvsync()
         vga.update()
@@ -117,21 +116,21 @@ PUB Setup()
     ser.printf(@"Serial terminal started - p2 @ %dMHz\n\r", (clkfreq/1000000))
 
     setuppalette()
-    vga.start(VGA_BASEPIN, @_disp_buff, @_palette, WIDTH, HEIGHT)
+    vga.start(VGA_BASEPIN, WIDTH, HEIGHT, @_disp_buff)
     ser.strln(@"VGA 8bpp driver started")
     vga.fontaddress(fnt.baseaddr())
     vga.fontsize(fnt.WIDTH, fnt.HEIGHT)
     vga.clear()
 
-PRI SetupPalette() | i, r, g, b, c
+PRI SetupPalette() | i, r, g, b, c, ptr_pal
 ' Set up palette
     r := 0
     g := 0
     b := 0
-
+    ptr_pal := vga.paletteptr()
     repeat i from 0 to 255
         c := 0 | (r << 16) | (g << 8) | b
-        _palette[i] := c
+        long[ptr_pal][i] := c
 
         case i
             0..63:

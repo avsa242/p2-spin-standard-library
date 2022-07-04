@@ -34,19 +34,20 @@ OBJ
 
 VAR
 
+    long _palette[256]
     long _cog, _params[6]
-    long _ptr_framebuffer
+    long _ptr_dispbuff
     byte _vsync_pin
 
-PUB Start(pinbase, ptr_framebuffer, ptr_palette, WIDTH, HEIGHT): okay
+PUB Start(BASEPIN, WIDTH, HEIGHT, ptr_dispbuff): okay
 
-    _ptr_palette := ptr_palette
-    _params[HSYNC_PAR] := pinbase
-    _params[RED_PAR] := pinbase+1
-    _params[GREEN_PAR] := pinbase+2
-    _params[BLUE_PAR] := pinbase+3
-    _params[VSYNC_PAR] := pinbase+4
-    _params[PTR_FB_PAR] := ptr_framebuffer
+    _ptr_palette := @_palette
+    _params[HSYNC_PAR] := BASEPIN
+    _params[RED_PAR] := BASEPIN+1
+    _params[GREEN_PAR] := BASEPIN+2
+    _params[BLUE_PAR] := BASEPIN+3
+    _params[VSYNC_PAR] := BASEPIN+4
+    _params[PTR_FB_PAR] := ptr_dispbuff
 
     _disp_width := WIDTH
     _disp_height := HEIGHT
@@ -54,7 +55,7 @@ PUB Start(pinbase, ptr_framebuffer, ptr_palette, WIDTH, HEIGHT): okay
     _disp_ymax := _disp_height-1
     _bytesperln := 320
     _buff_sz := (WIDTH * HEIGHT)
-    Address(ptr_framebuffer)
+    Address(ptr_dispbuff)
     _cog := okay := coginit(16, @DisplayEntry, @_params) + 1
     return
 
@@ -70,12 +71,12 @@ PUB Defaults()
 PUB Address(addr)
 ' Set address of display buffer
 '   NOTE: Also sets address of (optional) offscreen buffer to the same address
-    _ptr_framebuffer := addr
+    _ptr_dispbuff := addr
     _ptr_drawbuffer := addr
 
 PUB Clear()
 ' Clear the display
-    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_dispbuff, _bgcolor, _buff_sz/4)
 
 PUB DrawTo(addr)
 ' Set address of (optional) draw/render buffer
@@ -89,6 +90,10 @@ PUB MirrorH(state)
 
 PUB MirrorV(state)
 ' dummy method
+
+PUB PalettePtr(): addr
+' Pointer to palette data
+    return @_palette
 
 PUB Plot(x, y, color)
 ' Plot pixel at (x, y) in color
@@ -128,7 +133,7 @@ PUB SetTimings(vfront, vback, hfront, hsync, hback, hvisible)
 PUB Update()
 ' Write the draw buffer to the display
 '   NOTE: This is only required when using double-buffering
-    longmove(_ptr_framebuffer, _ptr_drawbuffer, _buff_sz/4)
+    longmove(_ptr_dispbuff, _ptr_drawbuffer, _buff_sz/4)
 
 PUB WaitVSync()
 ' Wait for vertical sync signal to be high

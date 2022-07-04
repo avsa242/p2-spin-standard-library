@@ -28,8 +28,7 @@ CON
 
 VAR
 
-    long _palette[256]
-    byte _framebuffer[BUFFSZ]
+    byte _disp_buff[BUFFSZ]
 
 OBJ
 
@@ -47,7 +46,7 @@ PUB Main()
     setuppalette()
 
     { start the driver }
-    disp.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
+    disp.start(VGA_BASEPIN, WIDTH, HEIGHT, @_disp_buff)
 
     { tell the driver the size of the font }
     disp.fontspacing(1, 1)
@@ -74,15 +73,15 @@ PUB Main()
 
     repeat
 
-PRI SetupPalette() | i, r, g, b, c
+PRI SetupPalette() | i, r, g, b, c, ptr_pal
 ' Set up palette
     r := 0
     g := 0
     b := 0
-
+    ptr_pal := disp.paletteptr()
     repeat i from 0 to disp.MAX_COLOR
         c := 0 | (r << 16) | (g << 8) | b
-        _palette[i] := c
+        long[ptr_pal][i] := c
 
         case i
             0..63:

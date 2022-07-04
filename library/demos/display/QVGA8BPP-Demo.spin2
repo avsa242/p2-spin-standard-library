@@ -36,8 +36,7 @@ OBJ
 
 VAR
 
-    long _palette[256]                          ' 256 * R_G_B entries
-    byte _framebuff[BUFFSZ]                     ' display buffer
+    byte _disp_buff[BUFFSZ]                     ' display buffer
 
 PUB Main()
 
@@ -49,7 +48,7 @@ PUB Main()
     { these two must be called before starting the driver }
     setuppalette()
     disp.settimings(10, 33, 16, 96, 48, 640)
-    if disp.start(VGA_BASEPIN, @_framebuff, @_palette, WIDTH, HEIGHT)
+    if disp.start(VGA_BASEPIN, WIDTH, HEIGHT, @_disp_buff)
         ser.printf(string("%s driver started"), @_drv_name)
         disp.fontspacing(1, 0)
         disp.fontscale(1)
@@ -66,15 +65,15 @@ PUB Main()
 { demo routines (common to all display types) included here }
 #include "GFXDemo-common.spin2h"
 
-PRI SetupPalette() | i, r, g, b, c
+PRI SetupPalette() | i, r, g, b, c, ptr_pal
 ' Set up palette
     r := 0
     g := 0
     b := 0
-
+    ptr_pal := disp.paletteptr()
     repeat i from 0 to disp.MAX_COLOR
         c := 0 | (r << 16) | (g << 8) | b
-        _palette[i] := c
+        long[ptr_pal][i] := c
 
         case i
             0..63:
