@@ -1,0 +1,104 @@
+{
+    --------------------------------------------
+    Filename: EInkDemo-common.spin2h
+    Author: Jesse Burt
+    Description: Electrophoretic/E-Ink/E-Paper demo
+        (common code)
+    Copyright (c) 2022
+    Started Jul 2, 2022
+    Updated Jul 2, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    XMAX        = WIDTH-1
+    YMAX        = HEIGHT-1
+    CENTERX     = (WIDTH / 2)
+    CENTERY     = (HEIGHT / 2)
+
+OBJ
+
+    ser : "com.serial.terminal.ansi"
+    fnt : "font.5x8"
+
+VAR
+
+    byte _disp_buff[BUFF_SZ]
+
+DAT
+
+    _test_txt byte "HELLO WORLD", 0
+
+PUB Demo() | i
+
+    ser.position(0, 3)
+
+    repeat until epaper.displayready()          ' Wait for display to be ready
+
+    epaper.bgcolor(epaper.WHITE)                ' set BG color for text, and
+    epaper.clear()                              '   also Clear() color
+    epaper.fgcolor(epaper.BLACK)                ' set FG color for text
+    epaper.box(0, 0, XMAX, YMAX, 0, FALSE)      ' draw box full-screen size
+
+    { find center X position for test text and draw it }
+    epaper.position((epaper.textcols() / 2)-(strsize(@_test_txt) / 2), 2)
+    epaper.str(@_test_txt)
+
+    { diagonal lines }
+    epaper.line(0, 0, XMAX, YMAX, 0)
+    epaper.line(XMAX, 0, 0, YMAX, 0)
+
+    { concentric circles }
+    repeat i from 0 to (WIDTH/2) step 10
+        epaper.circle(CENTERX, CENTERY, i, 0, false)
+
+    hrule()                                     ' draw rulers at screen edges
+    vrule()
+
+    epaper.update()                             ' Update the display
+
+PUB HRule() | x, grad_len
+' Draw a simple rule along the x-axis
+    grad_len := 5
+
+    repeat x from 0 to XMAX step 4
+        ifnot (x // 8)                          ' minor ticks
+            epaper.line(x, 0, x, grad_len, epaper.INVERT)
+        else                                    ' major ticks
+            epaper.line(x, 0, x, grad_len*2, epaper.INVERT)
+
+PUB VRule() | y, grad_len
+' Draw a simple rule along the y-axis
+    grad_len := 5
+
+    repeat y from 0 to YMAX step 4
+        ifnot (y // 8)
+            epaper.line(0, y, grad_len, y, epaper.INVERT)
+        else
+            epaper.line(0, y, grad_len*2, y, epaper.INVERT)
+
+DAT
+{
+TERMS OF USE: MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+}
+

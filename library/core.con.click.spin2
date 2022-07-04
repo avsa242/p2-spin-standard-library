@@ -6,7 +6,7 @@
         I/O base pin offset constants
     Copyright (c) 2022
     Started Mar 7, 2021
-    Updated May 22, 2022
+    Updated Jul 4, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -43,6 +43,7 @@ CON
     { SPI Displays (OLED, LCD, etc) }
     DC_PIN      = CLICK_BASE + 5
     RES_PIN     = CLICK_BASE + 7
+    BUSY_PIN    = CLICK_BASE + 4
 
     { Brushless 3 }
     PWM_PIN     = CLICK_BASE + 5
