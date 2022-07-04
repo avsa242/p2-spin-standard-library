@@ -4,16 +4,21 @@
     Description: Utility for adjusting VGA driver display
         timings while displaying a simple test pattern
     Author: Jesse Burt
-    Copyright (c) 2020
+    Copyright (c) 2022
     Started: Jun 21, 2020
-    Updated: Jul 14, 2020
+    Updated: Jul 4, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
+    _clkfreq        = cfg._clkfreq_def
     _xtlfreq        = cfg._xtlfreq
-    _clkfreq        = 250_000_000
+
+' -- User-modifiable constants
+    SER_BAUD        = 2_000_000
+    VGA_BASEPIN     = 48                         ' 0, 8, 16, 24, 32, 40, 48
+' --
 
     WIDTH           = 320
     HEIGHT          = 240
@@ -23,60 +28,46 @@ CON
     BPP             = 1
     BPL             = WIDTH * BPP
 
-' Default 640x480 timings
-    VF_DEF          = 10
-    VB_DEF          = 33
-    BS_DEF          = 16
-    SN_DEF          = 96
-    BV_DEF          = 48
-    VI_DEF          = 640
-
-' -- User-modifiable constants
-    SER_RX          = cfg.SER_RX
-    SER_TX          = cfg.SER_TX
-    SER_BAUD        = 2_000_000
-    LED             = cfg.LED1
-
-    VGA_BASEPIN     = 0                                     ' 0, 8, 16, 24, 32, 40, 48
-'                                                           Works with all basepins on the P2ES except 56
-' --
+    { Default 640x480 timings }
+    VF_DEF          = 10        ' vert front porch
+    VB_DEF          = 33        ' vert back porch
+    HF_DEF          = 16        ' horiz front porch
+    HS_DEF          = 96        ' horiz sync pulse
+    HB_DEF          = 48        ' horiz back porch
+    HV_DEF          = 640       ' active horizontal
 
 VAR
 
-    long _stack_timer[50]
-    long _timer_set
-    long _rndSeed
-
     long _palette[256]
-    byte _framebuffer[BUFFSZ]
-
-    byte _timer_cog, _ser_cog, _vga_cog
+    byte _disp_buff[BUFFSZ]
 
 OBJ
 
-    cfg         : "core.con.boardcfg.p2eval"
-    ser         : "com.serial.terminal.ansi"
-    time        : "time"
-    io          : "io"
-    vga         : "display.vga.bitmap-8bpp"
-    int         : "string.integer"
-    fnt         : "font.5x8"
+    cfg : "core.con.boardcfg.p2eval"
+    ser : "com.serial.terminal.ansi"
+    vga : "display.vga.bitmap-8bpp"
+    fnt : "font.5x8"
 
-PUB Main() | ch, vf, vb, bs, sn, bv, vi
+PUB Main() | ch, vf, vb, hf, hs, hb, hv
 
     vf := VF_DEF
     vb := VB_DEF
-    bs := BS_DEF
-    sn := SN_DEF
-    bv := BV_DEF
-    vi := VI_DEF
+    hf := HF_DEF
+    hs := HS_DEF
+    hb := HB_DEF
+    hv := HV_DEF
 
-    vga.settimings(vf, vb, bs, sn, bv, vi)
+    vga.settimings(vf, vb, hf, hs, hb, hv)
 
     setup()
     vga.clear()
 
-    ser.position(0, 20)
+    ser.position(0, 3)
+    ser.strln(@"Keys:")
+    ser.strln(@"   VF   VB   HF   HS   HB   HV")
+    ser.strln(@"+  q    w    e    r    t    y")
+    ser.strln(@"-  a    s    d    f    g    h")
+    ser.strln(@"<SPACE> resets all to defaults")
 
     repeat
         vga.box(0, 0, XMAX, YMAX, 255)
@@ -85,57 +76,54 @@ PUB Main() | ch, vf, vb, bs, sn, bv, vi
         vga.circle(XMAX/2, YMAX/2, YMAX/2, 255)
 
         ser.position(0, 10)
-        ser.printf("vf: %d, vb: %d, bs: %d, sn: %d, bv: %d, vi: %d\n\n", vf, vb, bs, sn, bv, vi)
-        ser.printf("vga.SetTimings(%d, %d, %d, %d, %d, %d)", vf, vb, bs, sn, bv, vi)
+        ser.printf(@"vga.SetTimings(%d, %d, %d, %d, %d, %d)", vf, vb, hf, hs, hb, hv)
 
-        if ch := ser.charin()
-            case ch
-                "q":    vf++
-                "a":    vf--
-                "w":    vb++
-                "s":    vb--
-                "e":    bs++
-                "d":    bs--
-                "r":    sn++
-                "f":    sn--
-                "t":    bv++
-                "g":    bv--
-                "y":    vi++
-                "h":    vi--
-                " ":
-                    vf := VF_DEF
-                    vb := VB_DEF
-                    bs := BS_DEF
-                    sn := SN_DEF
-                    bv := BV_DEF
-                    vi := VI_DEF
-                OTHER:
-                    next
+        case ser.charin()
+            "q": vf++
+            "a": vf--
+            "w": vb++
+            "s": vb--
+            "e": hf++
+            "d": hf--
+            "r": hs++
+            "f": hs--
+            "t": hb++
+            "g": hb--
+            "y": hv++
+            "h": hv--
+            " ":
+                vf := VF_DEF
+                vb := VB_DEF
+                hf := HF_DEF
+                hs := HS_DEF
+                hb := HB_DEF
+                hv := HV_DEF
+            other:
+                next
 
-            vga.stop()
-            vga.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
-            vga.settimings(vf, vb, bs, sn, bv, vi)
-            vga.waitvsync()
-            vga.update()
+        { timings are read on driver startup - re-cycle the driver
+            when changes are made }
+        vga.stop()
+        vga.start(VGA_BASEPIN, @_disp_buff, @_palette, WIDTH, HEIGHT)
+        vga.settimings(vf, vb, hf, hs, hb, hv)
+        vga.waitvsync()
+        vga.update()
     repeat
 
 PUB Setup()
 
-    repeat until ser.startrxtx(SER_RX, SER_TX, 0, SER_BAUD)
+    ser.start(SER_BAUD)
     ser.clear()
-    ser.printf("Serial terminal started - p2 @ %dMHz\n", clkfreq/1000000)
+    ser.printf(@"Serial terminal started - p2 @ %dMHz\n\r", (clkfreq/1000000))
 
     setuppalette()
-    if vga.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
-        ser.printf("VGA 8bpp driver started\n")
-        vga.fontaddress(fnt.baseaddr())
-        vga.fontsize(6, 8)
-        vga.clear()
-    else
-        ser.printf("VGA 8bpp driver failed to start\n")
-        repeat
+    vga.start(VGA_BASEPIN, @_disp_buff, @_palette, WIDTH, HEIGHT)
+    ser.strln(@"VGA 8bpp driver started")
+    vga.fontaddress(fnt.baseaddr())
+    vga.fontsize(fnt.WIDTH, fnt.HEIGHT)
+    vga.clear()
 
-PUB SetupPalette() | i, r, g, b, c
+PRI SetupPalette() | i, r, g, b, c
 ' Set up palette
     r := 0
     g := 0
@@ -167,26 +155,26 @@ PUB SetupPalette() | i, r, g, b, c
                 g := 255
                 b := 255
 
-#include "lib.utility.spin2"
-
+DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+TERMS OF USE: MIT License
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 }
 
