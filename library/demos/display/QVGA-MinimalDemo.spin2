@@ -1,0 +1,131 @@
+{
+    --------------------------------------------
+    Filename: QVGA-MinimalDemo.spin2
+    Description: Demo of the 8bpp QVGA bitmap driver
+    Author: Jesse Burt
+    Copyright (c) 2022
+    Started: Jul 4, 2022
+    Updated: Jul 4, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+}
+CON
+
+    _clkfreq        = 180_000_000
+    _xtlfreq        = 20_000_000
+
+' -- User-modifiable constants
+    VGA_BASEPIN     = 0                         ' 0, 8, 16, 24, 32, 40, 48
+' --
+
+    WIDTH           = 320
+    HEIGHT          = 240
+    XMAX            = WIDTH-1
+    YMAX            = HEIGHT-1
+    CENTERX         = WIDTH/2
+    CENTERY         = HEIGHT/2
+    BUFFSZ          = WIDTH * HEIGHT
+
+VAR
+
+    long _palette[256]
+    byte _framebuffer[BUFFSZ]
+
+OBJ
+
+    disp: "display.vga.bitmap-8bpp"
+    fnt : "font.5x8"
+
+PUB Main()
+
+    { set VGA display timings and a color palette
+        NOTES:
+        1. These _must_ be done _before_ starting the driver
+        2. Setting the color palette is mandatory - display will be blank otherwise
+        3. Timings can be experimentally found, or by using the VGA-AdjTimings.spin2 utility }
+    disp.settimings(10, 33, 16, 96, 48, 640)
+    setuppalette()
+
+    { start the driver }
+    disp.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
+
+    { tell the driver the size of the font }
+    disp.fontspacing(1, 1)
+    disp.fontscale(1)
+    disp.fontsize(fnt.WIDTH, fnt.HEIGHT)
+    disp.fontaddress(fnt.baseaddr())
+    disp.clear()
+
+    { draw some text }
+    disp.position(0, 0)
+    disp.fgcolor($ffff)
+    disp.strln(@"Testing 12345")
+    disp.update()                               ' send the buffer to the display
+
+    { draw one pixel at the center of the screen }
+    { disp.plot(x, y, color) }
+    disp.plot(CENTERX, CENTERY, disp.MAX_COLOR)
+    disp.update()
+
+    { draw a box at the screen edges }
+    { disp.box(x_start, y_start, x_end, y_end, color, filled) }
+    disp.box(0, 0, XMAX, YMAX, disp.MAX_COLOR, false)
+    disp.update()
+
+    repeat
+
+PRI SetupPalette() | i, r, g, b, c
+' Set up palette
+    r := 0
+    g := 0
+    b := 0
+
+    repeat i from 0 to disp.MAX_COLOR
+        c := 0 | (r << 16) | (g << 8) | b
+        _palette[i] := c
+
+        case i
+            0..63:
+                r += 4
+                g := 0
+                b := 0
+            64..127:
+                r := 0
+                g += 4
+                b := 0
+            128..191:
+                r := 0
+                g := 0
+                b += 4
+            192..253:
+                r += 4
+                g += 4
+                b := 0
+            254..255:
+                r := 255
+                g := 255
+                b := 255
+
+DAT
+{
+TERMS OF USE: MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+}
+
