@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: core.con.si114x.spin
     Author: Jesse Burt
-    Description: Low-level constants
-    Copyright (c) 2020
-    Started Jun 01, 2019
-    Updated Nov 21, 2020
+    Description: SI114x-specific constants
+    Copyright (c) 2022
+    Started Jun 1, 2019
+    Updated Jul 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -31,10 +31,15 @@ CON
         INT_OE                  = 0
 
     IRQ_ENABLE                  = $04
+    IRQ_ENABLE_MASK             = $1D
         PS3_IE                  = 4
         PS2_IE                  = 3
         PS1_IE                  = 2
         ALS_IE                  = 0
+        INTSRC_PS3              = (1 << PS3_IE)
+        INTSRC_PS2              = (1 << PS2_IE)
+        INTSRC_PS1              = (1 << PS1_IE)
+        INTSRC_ALS              = 1
 
     HW_KEY                      = $07
         HW_KEY_EXPECTED         = $17
@@ -66,6 +71,7 @@ CON
     RESPONSE                    = $20
 
     IRQ_STATUS                  = $21
+    IRQ_STATUS_MASK             = $3D
         CMD_INT                 = 5
         PS3_INT                 = 4
         PS2_INT                 = 3
