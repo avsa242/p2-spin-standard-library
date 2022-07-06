@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2022
     Started: Apr 28, 2019
-    Updated: Feb 19, 2022
+    Updated: Jul 6, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -236,14 +236,14 @@ PUB Box(sx, sy, ex, ey, color, filled) | tmp[3]
     tmp.byte[3] := ey
 
     { fg color - left-justified }
-    tmp.byte[4] := rgb565_r8(color) << 1        ' R LSB is don't care
-    tmp.byte[5] := rgb565_g8(color)
-    tmp.byte[6] := rgb565_b8(color) << 1        ' B LSB is don't care
+    tmp.byte[4] := ((color & $f800) >> 11) << 1 ' R LSB is don't care
+    tmp.byte[5] := (color & $07e0) >> 6
+    tmp.byte[6] := (color & $1f) << 1           ' B LSB is don't care
 
     { bg color - left-justified }
-    tmp.byte[7] := rgb565_r8(color) << 1
-    tmp.byte[8] := rgb565_g8(color)
-    tmp.byte[9] := rgb565_b8(color) << 1
+    tmp.byte[7] := ((color & $f800) >> 11) << 1 ' R LSB is don't care
+    tmp.byte[8] := (color & $07e0) >> 6
+    tmp.byte[9] := (color & $1f) << 1           ' B LSB is don't care
     writereg(core.DRAWRECT, 10, @tmp)
 #endif
 
@@ -576,9 +576,9 @@ PUB Line(sx, sy, ex, ey, color) | tmp[2]
     tmp.byte[1] := sy
     tmp.byte[2] := ex
     tmp.byte[3] := ey
-    tmp.byte[4] := rgb565_r8(color) << 1        ' R LSB is don't care
-    tmp.byte[5] := rgb565_g8(color)
-    tmp.byte[6] := rgb565_b8(color) << 1        ' B LSB is don't care
+    tmp.byte[4] := ((color & $f800) >> 11) << 1 ' R LSB is don't care
+    tmp.byte[5] := (color & $07e0) >> 6
+    tmp.byte[6] := (color & $1f) << 1           ' B LSB is don't care
     writereg(core.DRAWLINE, 7, @tmp)
 #endif
 
