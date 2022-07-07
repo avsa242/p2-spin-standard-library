@@ -1,31 +1,45 @@
 {
     --------------------------------------------
-    Filename: core.con.boardcfg.p2eval.spin2
+    Filename: core.con.boardcfg.p2edge-ec.spin2
     Author: Jesse Burt
-    Description: Board configuration for Parallax P2EVAL
+    Description: Board configuration for Parallax P2 Edge w/32MB PSRAM
         Includes constants for IO Pins for onboard peripherals
     Copyright (c) 2022
-    Started Jun 15, 2019
+    Started Jul 7, 2022
     Updated Jul 7, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 ' P2 EVAL
-' Parallax #64000-ES
+' Parallax #P2-EC32MB
 ' Clock settings
     _xtlfreq    = 20_000_000
     _clkfreq_def= 180_000_000
 
-    { 8 blue LEDs }
-    LED1        = 56
-    LED2        = 57
-    LED3        = 58
-    LED4        = 59
-    LED5        = 60
-    LED6        = 61
-    LED7        = 62
-    LED8        = 63
+    { 2x white LEDs }
+    LED1        = 38
+    LED2        = 39
+
+    { 32MB PSRAM, 16bit bus }
+    PS0_SI0     = 40
+    PS0_SI1     = 41
+    PS0_SI2     = 42
+    PS0_SI3     = 43
+    PS1_SI0     = 44
+    PS1_SI1     = 45
+    PS1_SI2     = 46
+    PS1_SI3     = 47
+    PS2_SI0     = 48
+    PS2_SI1     = 49
+    PS2_SI2     = 50
+    PS2_SI3     = 51
+    PS3_SI0     = 52
+    PS3_SI1     = 53
+    PS3_SI2     = 54
+    PS3_SI3     = 55
+    PS_SCK      = 56
+    PS_CE       = 57
 
     { microSD }
     SD_MISO     = 58
