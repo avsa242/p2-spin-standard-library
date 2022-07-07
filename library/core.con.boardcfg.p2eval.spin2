@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Board configuration for Parallax P2EVAL
         Includes constants for IO Pins for onboard peripherals
-    Copyright (c) 2020
+    Copyright (c) 2022
     Started Jun 15, 2019
-    Updated Jun 12, 2020
+    Updated Jul 7, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,7 +15,7 @@ CON
 ' Parallax #64000-ES
 ' Clock settings
     _xtlfreq    = 20_000_000
-    _clkfreq_def= 160_000_000
+    _clkfreq_def= 180_000_000
 
 ' Fine-grained clock settings
 '   To effect clock settings, use the following statement:
