@@ -1,6 +1,6 @@
 # lis3dh-spin Makefile - requires GNU Make, or compatible
 # Variables below can be overridden on the command line
-#	e.g. make IFACE=LIS3DH_SPI3W LIS3DH-Demo.binary
+#	e.g. make IFACE=LIS3DH_SPI LIS3DH-Demo.binary
 
 # P1, P2 device nodes and baudrates
 #P1DEV=
@@ -8,26 +8,28 @@ P1BAUD=115200
 #P2DEV=
 P2BAUD=2000000
 
+# Build options
+BUILDOPTS=
+
 # P1, P2 compilers
-#P1BUILD=openspin
+#P1BUILD=flexspin
 P1BUILD=flexspin --interp=rom
 P2BUILD=flexspin -2
 
-# LIS3DH interface: I2C, SPI-3wire or SPI-4wire
+# LIS3DH interface: I2C, SPI
 IFACE=LIS3DH_I2C
-#IFACE=LIS3DH_SPI3W
-#IFACE=LIS3DH_SPI4W
+#IFACE=LIS3DH_SPI
 
 # Paths to spin-standard-library, and p2-spin-standard-library,
 #  if not specified externally
-SPIN1_LIB_PATH=-L ../../
-SPIN2_LIB_PATH=-L ../../
+SPIN1_LIB_PATH=-L ../spin-standard-library/library
+SPIN2_LIB_PATH=-L ../p2-spin-standard-library/library
 
 
 # -- Internal --
-SPIN1_DRIVER_FN=../../sensor.accel.3dof.lis3dh.spin
-SPIN2_DRIVER_FN=../../sensor.accel.3dof.lis3dh.spin2
-CORE_FN=../../core.con.lis3dh.spin
+SPIN1_DRIVER_FN=sensor.accel.3dof.lis3dh.spin
+SPIN2_DRIVER_FN=sensor.accel.3dof.lis3dh.spin2
+CORE_FN=core.con.lis3dh.spin
 # --
 
 # Build all targets (build only)
@@ -41,22 +43,22 @@ p2click: loadp2click
 
 # Build binaries
 LIS3DH-Demo.binary: LIS3DH-Demo.spin $(SPIN1_DRIVER_FN) $(CORE_FN)
-	$(P1BUILD) $(SPIN1_LIB_PATH) -b -D $(IFACE) LIS3DH-Demo.spin
+	$(P1BUILD) $(SPIN1_LIB_PATH) -b -D $(IFACE) $(BUILDOPTS) LIS3DH-Demo.spin
 
 LIS3DH-Demo.bin2: LIS3DH-Demo.spin2 $(SPIN2_DRIVER_FN) $(CORE_FN)
-	$(P2BUILD) $(SPIN2_LIB_PATH) -b -2 -D $(IFACE) -o LIS3DH-Demo.bin2 LIS3DH-Demo.spin2
+	$(P2BUILD) $(SPIN2_LIB_PATH) -b -2 -D $(IFACE) $(BUILDOPTS) -o LIS3DH-Demo.bin2 LIS3DH-Demo.spin2
 
 LIS3DH-ClickDemo.binary: LIS3DH-ClickDemo.spin $(SPIN1_DRIVER_FN) $(CORE_FN)
-	$(P1BUILD) $(SPIN1_LIB_PATH) -b -D $(IFACE) LIS3DH-ClickDemo.spin
+	$(P1BUILD) $(SPIN1_LIB_PATH) -b -D $(IFACE) $(BUILDOPTS) LIS3DH-ClickDemo.spin
 
 LIS3DH-ClickDemo.bin2: LIS3DH-ClickDemo.spin2 $(SPIN2_DRIVER_FN) $(CORE_FN)
-	$(P2BUILD) $(SPIN2_LIB_PATH) -b -2 -D $(IFACE) -o LIS3DH-ClickDemo.bin2 LIS3DH-ClickDemo.spin2
+	$(P2BUILD) $(SPIN2_LIB_PATH) -b -2 -D $(IFACE) $(BUILDOPTS) -o LIS3DH-ClickDemo.bin2 LIS3DH-ClickDemo.spin2
 
 LIS3DH-FreeFallDemo.binary: LIS3DH-FreeFallDemo.spin $(SPIN1_DRIVER_FN) $(CORE_FN)
-	$(P1BUILD) $(SPIN1_LIB_PATH) -b -D $(IFACE) LIS3DH-FreeFallDemo.spin
+	$(P1BUILD) $(SPIN1_LIB_PATH) -b -D $(IFACE) $(BUILDOPTS) LIS3DH-FreeFallDemo.spin
 
 LIS3DH-FreeFallDemo.bin2: LIS3DH-FreeFallDemo.spin2 $(SPIN2_DRIVER_FN) $(CORE_FN)
-	$(P2BUILD) $(SPIN2_LIB_PATH) -b -2 -D $(IFACE) -o LIS3DH-FreeFallDemo.bin2 LIS3DH-FreeFallDemo.spin2
+	$(P2BUILD) $(SPIN2_LIB_PATH) -b -2 -D $(IFACE) $(BUILDOPTS) -o LIS3DH-FreeFallDemo.bin2 LIS3DH-FreeFallDemo.spin2
 
 # Load binaries to RAM (will build first, if necessary)
 loadp1demo: LIS3DH-Demo.binary
