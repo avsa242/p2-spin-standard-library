@@ -5,7 +5,7 @@
     Description: Demo of the LSM9DS1 driver (P2 version)
     Copyright (c) 2022
     Started Aug 12, 2017
-    Updated May 14, 2022
+    Updated Jul 9, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -21,7 +21,7 @@ CON
 ' I2C configuration
     I2C_SCL     = 10
     I2C_SDA     = 11
-    I2C_HZ      = 400_000                       ' 400_000 max
+    I2C_FREQ    = 400_000                       ' 400_000 max
 
 ' SPI configuration
 
@@ -30,6 +30,7 @@ CON
     SPI_SCL     = 10
     SPI_SDA     = 11                            ' define these both the same
     SPI_SDO     = 12                            ' to use 3-wire SPI
+    SPI_FREQ    = 10_000_000                    ' 10_000_000 max
 ' --
 
     DAT_X_COL   = 20
@@ -143,12 +144,12 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-#ifdef LSM9DS1_I2C
-    if imu.startx(I2C_SCL, I2C_SDA, I2C_HZ)
-        ser.strln(string("LSM9DS1 driver started (I2C)"))
-#elseifdef LSM9DS1_SPI
-    if imu.startx(SPI_CS_AG, SPI_CS_M, SPI_SCL, SPI_SDA, SPI_SDO)
+#ifdef LSM9DS1_SPI
+    if imu.startx(SPI_CS_AG, SPI_CS_M, SPI_SCL, SPI_SDA, SPI_SDO, SPI_FREQ)
         ser.strln(string("LSM9DS1 driver started (SPI)"))
+#else
+    if imu.startx(I2C_SCL, I2C_SDA, I2C_FREQ)
+        ser.strln(string("LSM9DS1 driver started (I2C)"))
 #endif
     else
         ser.strln(string("LSM9DS1 driver failed to start - halting"))
@@ -156,22 +157,24 @@ PUB Setup()
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+TERMS OF USE: MIT License
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 }
+
