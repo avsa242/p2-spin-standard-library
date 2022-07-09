@@ -1,6 +1,6 @@
 # l3g4200d-spin Makefile - requires GNU Make, or compatible
 # Variables below can be overridden on the command line
-#	e.g. make IFACE=L3G4200D_SPI3W L3G4200D-Demo.binary
+#	e.g. make IFACE=L3G4200D_SPI L3G4200D-Demo.binary
 
 # P1, P2 device nodes and baudrates
 #P1DEV=
@@ -9,17 +9,12 @@ P1BAUD=115200
 P2BAUD=2000000
 
 # P1, P2 compilers
-#P1BUILD=openspin
+#P1BUILD=flexspin
 P1BUILD=flexspin --interp=rom
 P2BUILD=flexspin -2
 
 # L3G4200D interface: I2C (SPIN or PASM engine), SPI
-# P1:
-IFACE=L3G4200D_I2C_SPIN
-#IFACE=L3G4200D_I2C_PASM
-#IFACE=L3G4200D_SPI
-
-# P2:
+IFACE=L3G4200D_I2C_BC
 #IFACE=L3G4200D_I2C
 #IFACE=L3G4200D_SPI
 
