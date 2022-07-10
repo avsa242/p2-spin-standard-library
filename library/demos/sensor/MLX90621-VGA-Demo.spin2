@@ -6,7 +6,7 @@
         VGA display (P2 version)
     Copyright (c) 2022
     Started: Jun 26, 2020
-    Updated: Feb 3, 2022
+    Updated: Jul 10, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -58,7 +58,7 @@ VAR
 
     word _fx, _fy, _fw, _fh
 
-    byte _framebuffer[BUFFSZ]
+    byte _disp_buff[BUFFSZ]
     byte _mlx_adcres, _mlx_adcref
     byte _invert_x, _col_scl
     byte _hotspot_mark
@@ -185,7 +185,7 @@ PUB Setup()
     ser.strln(string("Serial terminal started"))
 
     setuppalette()
-    vga.start(VGA_BASEPIN, @_framebuffer, @_palette, WIDTH, HEIGHT)
+    vga.start(VGA_BASEPIN, WIDTH, HEIGHT, @_disp_buff)
         ser.strln(string("VGA 8bpp driver started"))
         vga.fontaddress(fnt.baseaddr())
         vga.fontscale(1)
