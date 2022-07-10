@@ -1,7 +1,7 @@
 CON
 
-     _xtlfreq   = cfg._xtlfreq
-     _clkfreq   = cfg._clkfreq_def
+    _xtlfreq   = cfg._xtlfreq
+    _clkfreq   = cfg._clkfreq_def
 
 ' -- User-modifiable constants
     LED         = cfg#LED1
@@ -11,7 +11,7 @@ CON
 OBJ
 
     cfg   : "core.con.boardcfg.p2eval"
-    term  : "com.serial.terminal"
+    term  : "com.serial.terminal.ansi"
     fp    : "math.float.extended"
     fs    : "string.float"
     num   : "string.integer"
@@ -19,16 +19,17 @@ OBJ
 PUB Main() | idx, a
 
     term.start(SER_BAUD)
+    term.clear()
 
-    term.printf("f(x) = log(x), x = (1,20)\n")
-    term.printf("     x   log(x)\n")
+    term.strln(@"f(x) = log(x), x = (1,20)")
+    term.strln(@"     x   log(x)")
 
     repeat idx from 1 to 20
         a := fp.log(fp.ffloat(idx))
 
-        term.str(string("   "))
+        term.str(@"   ")
         term.str(num.decpadded(idx, 3))
-        term.str(string("   "))
+        term.str(@"   ")
         term.str(fs.floattostring(a))
         term.newline()
 
