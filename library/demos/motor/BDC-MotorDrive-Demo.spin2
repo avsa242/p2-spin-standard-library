@@ -6,7 +6,7 @@
         driver
     Copyright 2022
     Started May 15, 2022
-    Updated May 15, 2022
+    Updated Jul 10, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -38,7 +38,7 @@ PUB Main() | duty
 
     setup()
 
-    ser.strln("press a key to start")
+    ser.strln(@"press a key to start")
     ser.charin()
 
     duty := 0
@@ -56,7 +56,7 @@ PUB Main() | duty
             "s":                                ' coast
                 duty := 0
         ser.position(0, 3)
-        ser.printf("Duty: %d.%d%%   ", duty/10, duty//10)
+        ser.printf(@"Duty: %d.%d%%   ", duty/10, duty//10)
         case duty
             1..100_0:
                 mot_l.forward(duty)
@@ -72,7 +72,7 @@ PUB Setup()
 
     ser.start(SER_BAUD)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
+    ser.strln(@"Serial terminal started")
 
     mot_l.start(PWM_XH, PWM_XL, PWM_WH, PWM_WL, PWM_FREQ)
     mot_r.start(PWM_VH, PWM_VL, PWM_UH, PWM_UL, PWM_FREQ)
