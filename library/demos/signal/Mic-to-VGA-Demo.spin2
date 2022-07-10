@@ -6,14 +6,14 @@
         showing a scope output of the audio on an attached VGA display
     Author: Jesse Burt
     Started: May 16, 2020
-    Updated: Oct 4, 2021
+    Updated: Jul 10, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
     _xtlfreq        = cfg._xtlfreq
-    _clkfreq        = cfg._clkfreq_def          ' Must match constant set in VGA driver (default 250MHz)
+    _clkfreq        = cfg._clkfreq_def
 
 ' -- User-modifiable constants
     LED             = cfg.LED1
@@ -54,7 +54,6 @@ OBJ
 
 VAR
 
-    long _palette[256]
     long _audio_stack[100], _gfx_stack[100]
     long _ser_cog, _audio_cog, _vga_cog, _adc_sample
     byte _framebuffer[BUFFSZ], _offscreen[BUFFSZ]
@@ -94,7 +93,7 @@ PUB cog_Graphics()
 ' Run VGA driver and waveform/scope drawing loop
     vga.settimings(10, 33, 16, 96, 48, 640)
     setuppalette()
-    vga.start(VGA_BASE, @_framebuffer, @_palette, WIDTH, HEIGHT)
+    vga.start(VGA_BASE, WIDTH, HEIGHT, @_framebuffer)
     vga.drawto(@_offscreen)
     vga.clear()
 
@@ -119,9 +118,10 @@ PUB Setup()
     repeat until _audio_cog
     ser.printf("Audio cog started (%dHz sample rate)\n", SAMPLE_RATE)
 
-PRI SetupPalette() | i, r, g, b, c
+PRI SetupPalette() | i, r, g, b, c, ptr_pal
 ' Set up palette
     r := g := b := c := 0
+    ptr_pal := vga.paletteptr()
     repeat i from 0 to 255
         case i
             0..31:
@@ -156,6 +156,6 @@ PRI SetupPalette() | i, r, g, b, c
                 r := g := b := 255
 
         c := 0 | (r << 16) | (g << 8) | b
-        _palette[i] := c
-    _palette[0] := $00_00_00_00
+        long[ptr_pal][i] := c
+    long[ptr_pal][0] := $00_00_00_00
 
