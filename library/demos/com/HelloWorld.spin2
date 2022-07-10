@@ -1,7 +1,7 @@
 CON
 
-     _xtlfreq   = cfg._xtlfreq
-     _clkfreq   = cfg._clkfreq_def
+    _xtlfreq   = cfg._xtlfreq
+    _clkfreq   = cfg._clkfreq_def
 
 ' -- User-definable constants
     LED         = cfg.LED1
@@ -11,12 +11,14 @@ CON
 OBJ
 
     cfg : "core.con.boardcfg.p2eval"
-    ser : "com.serial.terminal"
+    ser : "com.serial.terminal.ansi"
 
 PUB Main()
 
     ser.start(SER_BAUD)
+    ser.clear()
 
+    { four ways to show a message: }
     ser.char("H")
     ser.char("e")
     ser.char("l")
@@ -32,6 +34,6 @@ PUB Main()
     ser.newline()
 
     ser.str(string("Hello world!", ser.CR, ser.LF))
-
-    ser.printf("Hello world!\n")
+    ser.strln(@"Hello world!")
+    ser.printf(@"Hello world!\n\r")
     repeat
