@@ -3,9 +3,9 @@
     Filename: 25XXXX-Demo.spin2
     Author: Jesse Burt
     Description: Demo app for the 25xxxx driver
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Nov 09, 2019
-    Updated May 24, 2021
+    Updated Jul 10, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,20 +13,18 @@
 CON
 
     _xtlfreq    = cfg._xtlfreq
-    _clkfreq    = 200_000_000
+    _clkfreq    = 250_000_000
 
     CYCLES_USEC = _clkfreq / 1_000_000
 
 ' -- User-modifiable constants
     LED         = cfg.LED1
-    SER_RX      = cfg.SER_RX
-    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 
-    CS          = 61
-    SCK         = 60
-    MOSI        = 59                            ' SCK +/- 0..3
-    MISO        = 58                            ' SCK +/- 0..3
+    CS          = cfg.FLASH_CS
+    SCK         = cfg.FLASH_CLK
+    MOSI        = cfg.FLASH_DI                  ' SCK +/- 0..3
+    MISO        = cfg.FLASH_DO                  ' SCK +/- 0..3
     SCK_FREQ    = 20_000_000
 ' --
 
@@ -50,11 +48,11 @@ PUB Main() | uid[2], base, seg, s, e
     setup()
 
 ' Read various chip IDs
-    ser.printf("Dev ID: %x\n", flash.deviceid())
-    ser.printf("Mfr ID: %x\n", flash.manufacturerid())
-    ser.printf("JEDEC ID: %x\n", flash.jedecid())
+    ser.printf(@"Dev ID: %x\n\r", flash.deviceid())
+    ser.printf(@"Mfr ID: %x\n\r", flash.manufacturerid())
+    ser.printf(@"JEDEC ID: %x\n\r", flash.jedecid())
     flash.uid(@uid)
-    ser.printf("UID: %x%x\n", uid[0], uid[1])
+    ser.printf(@"UID: %x%x\n\r", uid[0], uid[1])
 
     flash.writesenabled(FALSE)
     messagewritesena()
@@ -85,12 +83,12 @@ PUB Main() | uid[2], base, seg, s, e
             "w":                                ' write a test value to the
                 writetest(base)                 '   current page
             "q":                                ' quit the demo (halt)
-                ser.printf("Halting\n")
+                ser.strln(@"Halting")
                 quit
             other:
 
         messagewritesena()
-        ser.printf("Reading done (%d cycles/%dus).\n", e, cycles_to_us(e))
+        ser.printf(@"Reading done (%d cycles/%dus).\n\r", e, cycles_to_us(e))
         ser.clearline()
 
     ser.showcursor()
@@ -102,26 +100,26 @@ PUB EraseSector(start_addr) | s, e
     messagewritesena()                          ' confirm writes are enabled:
                                                 ' read state and display it
 
-    ser.printf("Erasing...")
+    ser.str(@"Erasing...")
     s := getct()
     flash.erase(flash.SECTOR, start_addr)       ' erase sector (4kB)
     repeat while flash.busy()
     e := getct()-s
-    ser.printf("done (%d cycles/%dus).\n", e, cycles_to_us(e))
+    ser.printf(@"done (%d cycles/%dus).\n\r", e, cycles_to_us(e))
     ser.clearline()
 
 PUB WriteTest(start_addr) | s, e, tmp
 ' Write a test value to flash starting at start_addr
-    tmp := string("TEST")
+    tmp := @"TEST"
     flash.writesenabled(true)
     messagewritesena()
 
-    ser.printf("Writing test value...")
+    ser.str(@"Writing test value...")
     s := getct()
     flash.writeblock(start_addr, strsize(tmp), tmp)
     repeat while flash.busy()
     e := getct()-s
-    ser.printf("done (%d cycles/%dus).\n", e, cycles_to_us(e))
+    ser.printf(@"done (%d cycles/%dus).\n\r", e, cycles_to_us(e))
     ser.clearline()
 
 PRI Cycles_to_uS(cycles): usec
@@ -130,43 +128,45 @@ PRI Cycles_to_uS(cycles): usec
 
 PRI MessageWritesEna()
 ' Display a message indicating flash writes are enabled
-    ser.printf("\nWrites enabled? ")
+    ser.printf(@"\nWrites enabled? ")
     case flash.writesenabled()
         TRUE:
-            ser.printf("Yes\n")
+            ser.strln(@"Yes")
         FALSE:
-            ser.printf("No \n")
+            ser.strln(@"No ")
     ser.clearline()
 
 PUB Setup()
 
     ser.start(SER_BAUD)
     ser.clear()
-    ser.printf("Serial terminal started (P2 @%dMHz)\n", _clkfreq / 1_000_000)
+    ser.strln(@"Serial terminal started")
     if flash.startx(CS, SCK, MOSI, MISO, SCK_FREQ)
-        ser.printf("25xxxx driver started (SPI @%dMHz)\n", SCK_FREQ / 1_000_000)
+        ser.strln(@"25xxxx driver started")
     else
-        ser.printf("25xxxx driver failed to start - halting\n")
+        ser.strln(@"25xxxx driver failed to start - halting")
         repeat
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+TERMS OF USE: MIT License
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 }
+
