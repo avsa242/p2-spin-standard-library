@@ -3,9 +3,9 @@
     Filename: ANSITerminal-Demo.spin2
     Description: Demo of the ANSI serial terminal driver
     Author: Jesse Burt
-    Copyright (c) 2020
+    Copyright (c) 2022
     Created: Jun 18, 2019
-    Updated: Jul 5, 2020
+    Updated: Jul 10, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -17,8 +17,6 @@ CON
 
 ' -- User-modifiable constants
     LED         = cfg.LED1
-    SER_RX      = cfg.SER_RX
-    SER_TX      = cfg.SER_TX
     SER_BAUD    = 2_000_000
 ' --
 
@@ -26,58 +24,57 @@ OBJ
 
     ser         : "com.serial.terminal.ansi"
     cfg         : "core.con.boardcfg.p2eval"
-    time        : "time"
 
 PUB Main() | fg, bg, rx_char, mb, mx, my
 
     setup()
 
-    ser.printf("ANSI serial terminal demo\n\n")
-    ser.printf("NOTE: Not all attributes supported by all terminals.\n\n")
+    ser.strln(@"ANSI serial terminal demo")
+    ser.strln(@"NOTE: Not all attributes supported by all terminals.")
 
     ser.bold()
-    Demo_Text(string("BOLD"))
+    Demo_Text(@"BOLD")
 
     ser.bold(ser.SGR_INTENSITY_FAINT)
-    Demo_Text(string("FAINT"))
+    Demo_Text(@"FAINT")
 
     ser.italic()
-    Demo_Text(string("ITALIC (or INVERSE)"))
+    Demo_Text(@"ITALIC (or INVERSE)")
 
     ser.underline()
-    Demo_Text(string("UNDERLINED"))
+    Demo_Text(@"UNDERLINED")
  
     ser.underline(ser.SGR_UNDERLINE_DBL)
-    Demo_Text(string("DOUBLE UNDERLINED"))
+    Demo_Text(@"DOUBLE UNDERLINED")
 
     ser.blink(ser.SGR_BLINKSLOW)
-    Demo_Text(string("SLOW BLINKING"))
+    Demo_Text(@"SLOW BLINKING")
 
     ser.blink(ser.SGR_BLINKFAST)
-    Demo_Text(string("FAST BLINKING"))
+    Demo_Text(@"FAST BLINKING")
 
     ser.inverse()
-    Demo_Text(string("INVERSE"))
+    Demo_Text(@"INVERSE")
 
     ser.conceal()
-    Demo_Text(string("CONCEALED"))
+    Demo_Text(@"CONCEALED")
 
     ser.strikethrough()
-    Demo_Text(string("STRIKETHROUGH"))
+    Demo_Text(@"STRIKETHROUGH")
 
     ser.framed()
-    Demo_Text(string("FRAMED"))
+    Demo_Text(@"FRAMED")
 
     ser.encircle()
-    Demo_Text(string("ENCIRCLED"))
+    Demo_Text(@"ENCIRCLED")
 
     ser.overline()
-    Demo_Text(string("OVERLINED"))
+    Demo_Text(@"OVERLINED")
 
     repeat bg from 0 to 7
         repeat fg from 0 to 7
             ser.color(fg, bg)
-            ser.printf(" COLORED ")
+            ser.str(@" COLORED ")
         ser.newline()
     ser.color(ser.GREY, ser.BLACK)
 
@@ -88,11 +85,11 @@ PUB Main() | fg, bg, rx_char, mb, mx, my
         ser.movedown()
         waitms(1000)
 
-    ser.printf("Hide Cursor\n")
+    ser.strln(@"Hide Cursor")
     ser.hidecursor()
     waitms(3000)
 
-    ser.printf("Show cursor\n")
+    ser.strln(@"Show cursor")
     ser.showcursor()
     waitms(3000)
 
@@ -107,40 +104,39 @@ PUB Main() | fg, bg, rx_char, mb, mx, my
     ser.newline()
     rx_char := 0
 
-    flashled(LED, 100)
+    repeat
 
 PUB Demo_Text(inp_text)
 
-    ser.printf("This is %s text\n", inp_text)
+    ser.printf(@"This is %s text\n\r", inp_text)
     ser.reset()
 
 PUB Setup()
 
-    repeat until ser.startrxtx (SER_RX, SER_TX, 0, SER_BAUD)
+    ser.start(SER_BAUD)
     ser.reset()
     ser.clear()
-    ser.printf("Serial terminal started\n")
-
-#include "lib.utility.spin2"
+    ser.strln(@"Serial terminal started")
 
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+TERMS OF USE: MIT License
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 }
 
