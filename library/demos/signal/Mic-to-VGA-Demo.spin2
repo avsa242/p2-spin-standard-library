@@ -71,7 +71,7 @@ PUB Main() | adc_min, adc_max
         adc_min := _adc_sample <# adc_min
         adc_max := adc_max #> _adc_sample
         ser.position(0, 4)
-        ser.printf("ADC current: %d  \nmin: %d  \nmax: %d  ", _adc_sample, adc_min, adc_max)
+        ser.printf(@"ADC current: %d  \n\rmin: %d  \n\rmax: %d  ", _adc_sample, adc_min, adc_max)
 
 PUB DrawWave() | x, y, y_offset                 ' XXX Rolls - no triggering
 ' Draw scope of audio input
@@ -108,15 +108,15 @@ PUB Setup()
 
     ser.start(SER_BAUD)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
+    ser.strln(@"Serial terminal started")
 
     cogspin(NEWCOG, cog_graphics(), @_gfx_stack)
     repeat until _vga_cog
-    ser.strln(string("VGA 8bpp driver started"))
+    ser.strln(@"VGA 8bpp driver started")
 
     cogspin(NEWCOG, cog_audio(), @_audio_stack)
     repeat until _audio_cog
-    ser.printf("Audio cog started (%dHz sample rate)\n", SAMPLE_RATE)
+    ser.printf(@"Audio cog started (%dHz sample rate)\n\r", SAMPLE_RATE)
 
 PRI SetupPalette() | i, r, g, b, c, ptr_pal
 ' Set up palette
