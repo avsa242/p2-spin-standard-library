@@ -5,7 +5,7 @@
         outputs it directly to attached headphones or speakers
     Author: Jesse Burt
     Started: May 16, 2020
-    Updated: Feb 14, 2021
+    Updated: Jul 10, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -57,7 +57,7 @@ PUB Main() | adc_min, adc_max
         adc_min := _adc_sample <# adc_min
         adc_max := adc_max #> _adc_sample
         ser.position(0, 4)
-        ser.printf("ADC sample: %d  \nmin: %d  \nmax: %d", _adc_sample, adc_min, adc_max)
+        ser.printf(@"ADC sample: %d  \n\rmin: %d  \n\rmax: %d", _adc_sample, adc_min, adc_max)
 
 PUB cog_Audio()
 ' Secondary cog:
@@ -74,10 +74,10 @@ PUB Setup()
 
     ser.start(SER_BAUD)
     ser.clear()
-    ser.printf("Serial terminal started (P2 @%dMHz)\n", clkfreq / 1_000_000)
+    ser.strln(@"Serial terminal started")
 
     cogspin(NEWCOG, cog_audio(), @_spkr_stack)
     repeat until _spkr_cog                      ' wait for audio cog to start
 
-    ser.printf("Audio cog started (%dHz sample rate, %dx gain)\n", SAMPLE_RATE, MIC_GAIN)
+    ser.printf(@"Audio cog started (%dHz sample rate, %dx gain)\n\r", SAMPLE_RATE, MIC_GAIN)
 
