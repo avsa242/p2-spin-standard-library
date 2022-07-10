@@ -110,7 +110,8 @@ PUB Demo_RunText() | n
 PUB Setup() | i, pclkscale, pclk, sysclk
 
     ser.start(SER_BAUD)
-    ser.printf("Serial terminal started\n")
+    ser.clear()
+    ser.strln(@"Serial terminal started")
 
     pclk := vidmode#PIX_CLKFREQ                 ' pixel clock
     sysclk := clkfreq                           ' system clock
@@ -138,7 +139,7 @@ PUB Setup() | i, pclkscale, pclk, sysclk
 
     ' start up the VGA driver
     vga.start(VGA_PINBASE, @_params, @_screen_buffer)
-    ser.printf("VGA driver started\n")
+    ser.strln(@"VGA driver started")
 
 PRI colorblend(a, b, mix): blended
 

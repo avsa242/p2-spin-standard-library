@@ -4,7 +4,7 @@
     Modified by: Jesse Burt
     Description: Demo of the serial LCD driver (P2 version)
     Started Apr 29, 2006
-    Updated Jul 23, 2020
+    Updated Jul 10, 2022
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is a derivative of Serial_Lcd.spin,
@@ -45,13 +45,13 @@ PUB Main() | idx
     lcd.enablebacklight(true)                               ' backlight on (if available)
     lcd.definechars(0, @bullet)                             ' create custom character 0
     lcd.clear()
-    lcd.printf("LCD DEBUG\r")
+    lcd.printf(@"LCD DEBUG\r")
     lcd.char(0)                                             ' display custom bullet character
-    lcd.printf(" Dec\r")
+    lcd.printf(@" Dec\r")
     lcd.char(0)
-    lcd.printf(" Hex\r")
+    lcd.printf(@" Hex\r")
     lcd.char(0)
-    lcd.printf(" Bin\r")
+    lcd.printf(@" Bin\r")
 
     repeat
         repeat idx from 0 to 255
