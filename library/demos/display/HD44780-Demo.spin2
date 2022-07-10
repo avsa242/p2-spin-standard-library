@@ -19,9 +19,9 @@ CON
     SER_BAUD    = 2_000_000
     LED         = cfg.LED1
 
-    I2C_SCL     = 16
-    I2C_SDA     = 17
-    I2C_HZ      = 100_000                       ' max is 100_000
+    SCL_PIN     = 16
+    SDA_PIN     = 17
+    I2C_FREQ    = 100_000                       ' max is 100_000
     ADDR_BITS   = %111                          ' %000 (def) .. %111
 ' --
 
@@ -37,10 +37,10 @@ PUB Main()
     lcd.reset()
 
     lcd.enablebacklight(1)
-    lcd.str(string("Testing 1 2 3"))
+    lcd.str(@"Testing 1 2 3")
     waitms(2_000)
     lcd.clear()
-    lcd.str(string("Backlight"))
+    lcd.str(@"Backlight")
     repeat 10
         lcd.enablebacklight(0)
         waitms(100)
@@ -54,32 +54,34 @@ PUB Setup()
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
+    ser.strln(@"Serial terminal started")
 
-    if lcd.startx(I2C_SCL, I2C_SDA, I2C_HZ, ADDR_BITS)
-        ser.strln(string("HD44780 driver started (I2C)"))
+    if lcd.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS)
+        ser.strln(@"HD44780 driver started (I2C)")
     else
-        ser.strln(string("HD44780 driver failed to start - halting"))
+        ser.strln(@"HD44780 driver failed to start - halting")
         repeat
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+TERMS OF USE: MIT License
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 }
+
