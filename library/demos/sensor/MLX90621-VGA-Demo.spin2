@@ -20,9 +20,9 @@ CON
     LED             = cfg.LED1
     SER_BAUD        = 2_000_000
 
-    I2C_SCL         = 0
-    I2C_SDA         = 1
-    I2C_HZ          = 1_000_000
+    SCL_PIN         = 0
+    SDA_PIN         = 1
+    I2C_FREQ        = 1_000_000
 
     VGA_BASEPIN     = 32                        ' 0, 8, 16, 24, 32, 40, 48
 ' --
@@ -49,7 +49,6 @@ OBJ
 VAR
 
     long _keyinput_stack[50]
-    long _palette[256]
     long _ir_frame[66]
     long _offset
     long _settings_changed
@@ -128,10 +127,10 @@ PUB UpdateSettings() | col, row, reftmp
     row := (vga.textrows()-1) - 5               ' Position at screen bottom
     vga.fgcolor(vga.MAX_COLOR)
     vga.position(col, row)
-    vga.printf("X-axis invert: %s\n", lookupz(_invert_x: string("No "), string("Yes")))
-    vga.printf("FPS: %dHz   \n", mlx.refreshrate())
-    vga.printf("ADC: %dbits\n", mlx.adcres())
-    vga.printf("ADC reference: %s\n", lookupz(reftmp: string("High"), string("Low  ")))
+    vga.printf(@"X-axis invert: %s\n", lookupz(_invert_x: @"No ", @"Yes"))
+    vga.printf(@"FPS: %dHz   \n", mlx.refreshrate())
+    vga.printf(@"ADC: %dbits\n", mlx.adcres())
+    vga.printf(@"ADC reference: %s\n", lookupz(reftmp: @"High", @"Low  "))
 
     _fx := CENTERX - ((_fw * 16) / 2)           ' Approx center of screen
     _fy := 10
@@ -182,25 +181,25 @@ PUB Setup()
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
+    ser.strln(@"Serial terminal started")
 
     setuppalette()
     vga.start(VGA_BASEPIN, WIDTH, HEIGHT, @_disp_buff)
-        ser.strln(string("VGA 8bpp driver started"))
+        ser.strln(@"VGA 8bpp driver started")
         vga.fontaddress(fnt.baseaddr())
         vga.fontscale(1)
         vga.fontsize(6, 8)
         vga.clear()
 
-    if mlx.startx(I2C_SCL, I2C_SDA, I2C_HZ)
-        ser.printf("MLX90621 driver started\n")
+    if mlx.startx(SCL_PIN, SDA_PIN, I2C_FREQ)
+        ser.strln(@"MLX90621 driver started")
         mlx.defaults()
         mlx.opmode(mlx.CONT)
         _mlx_adcres := 18                       ' Initial sensor settings
         _mlx_refrate := 32
         _mlx_adcref := 1
     else
-        ser.printf("MLX90621 driver failed to start - halting\n")
+        ser.strln(@"MLX90621 driver failed to start - halting")
         repeat
 
     _col_scl := 8
@@ -210,9 +209,10 @@ PUB Setup()
     cogspin(16, cog_keyinput(), @_keyinput_stack)
     _settings_changed := TRUE
 
-PUB SetupPalette() | i, r, g, b, c
+PUB SetupPalette() | i, r, g, b, c, ptr_pal
 ' Set up palette
     r := g := b := c := 0
+    ptr_pal := vga.paletteptr()
     repeat i from 0 to vga.MAX_COLOR
         case i
             0..31:
@@ -247,8 +247,8 @@ PUB SetupPalette() | i, r, g, b, c
                 r := g := b := 255
 
         c := 0 | (r << 16) | (g << 8) | b
-        _palette[i] := c
-    _palette[0] := $00
+        long[ptr_pal][i] := c
+    long[ptr_pal][0] := $00
 
 DAT
 {
