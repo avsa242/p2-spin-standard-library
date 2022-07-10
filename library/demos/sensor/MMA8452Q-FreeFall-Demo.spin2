@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Demo of the MMA8452Q driver
         Free-fall detection functionality (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Nov 9, 2021
-    Updated Nov 9, 2021
+    Updated Jul 10, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,10 +20,9 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-' I2C configuration
     SCL_PIN     = 8
     SDA_PIN     = 9
-    I2C_HZ      = 400_000                       ' max is 400_000
+    I2C_FREQ    = 400_000                       ' max is 400_000
     ADDR_BITS   = 0                             ' 0, 1
 
     INT1        = 10
@@ -52,7 +51,7 @@ PUB Main() | intsource, temp
                                                 ' sensors, set scale factors,
                                                 ' and free-fall parameters
     ser.position(0, 5)
-    ser.str(string("Sensor stable       "))
+    ser.str(@"Sensor stable       ")
 
     ' The demo continuously displays the current accelerometer data.
     ' When the sensor detects free-fall, a message is displayed and
@@ -70,13 +69,13 @@ PUB Main() | intsource, temp
             if (intsource & accel.INT_FFALL)    ' free-fall event
                 temp := accel.infreefall()      ' clear the free-fall interrupt
             ser.position(0, 5)
-            ser.strln(string("Sensor in free-fall!"))
-            ser.str(string("Press any key to reset"))
+            ser.strln(@"Sensor in free-fall!")
+            ser.str(@"Press any key to reset")
             ser.charin()
             ser.positionx(0)
             ser.clearline()
             ser.position(0, 5)
-            ser.str(string("Sensor stable       "))
+            ser.str(@"Sensor stable       ")
             
         if ser.rxcheck() == "c"                 ' press the 'c' key in the demo
             calibrate()                         ' to calibrate sensor offsets
@@ -85,7 +84,7 @@ PUB AccelCalc() | ax, ay, az
 
     repeat until accel.acceldataready()         ' wait for new sensor data set
     accel.accelg(@ax, @ay, @az)                 ' read calculated sensor data
-    ser.str(string("Accel (g):"))
+    ser.str(@"Accel (g):")
     ser.positionx(DAT_X_COL)
     decimal(ax, 1000000)                        ' data is in micro-g's; display
     ser.positionx(DAT_Y_COL)                    ' it as if it were a float
@@ -98,7 +97,7 @@ PUB AccelCalc() | ax, ay, az
 PUB Calibrate()
 
     ser.position(0, 7)
-    ser.str(string("Calibrating..."))
+    ser.str(@"Calibrating...")
     accel.calibrateaccel()
     ser.positionx(0)
     ser.clearline()
@@ -143,34 +142,36 @@ PUB Setup()
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
+    ser.strln(@"Serial terminal started")
 
-    if accel.startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS)
-        ser.strln(string("MMA8452Q driver started"))
+    if accel.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS)
+        ser.strln(@"MMA8452Q driver started")
     else
-        ser.strln(string("MMA8452Q driver failed to start - halting"))
+        ser.strln(@"MMA8452Q driver failed to start - halting")
         repeat
 
     cogspin(NEWCOG, isr, @_isr_stack)                    ' start ISR in another core
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+TERMS OF USE: MIT License
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 }
+
