@@ -1,11 +1,12 @@
 {
     --------------------------------------------
-    Filename: CC2500-SimpleRX.spin
+    Filename: CC2500-SimpleRX.spin2
     Author: Jesse Burt
     Description: Simple receive demo of the cc2500 driver
-    Copyright (c) 2021
+        (P2 version)
+    Copyright (c) 2022
     Started Nov 29, 2020
-    Updated May 16, 2021
+    Updated Jul 10, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,23 +20,26 @@ CON
     SER_BAUD        = 2_000_000
 
 ' CC2500 I/O pins
-    CS_PIN          = 0
-    SCK_PIN         = 1
-    MOSI_PIN        = 2
-    MISO_PIN        = 3
+    CS_PIN          = 3
+    SCK_PIN         = 2
+    MOSI_PIN        = 0
+    MISO_PIN        = 1
+    SPI_FREQ        = 5_000_000
 
     NODE_ADDRESS    = $01                       ' this node's address (1..254)
 ' --
 
+    POS_TONODE      = 0
+    POS_PAYLD       = 1
     MAX_PAYLD       = 255
 
 OBJ
 
-    ser         : "com.serial.terminal.ansi"
-    cfg         : "core.con.boardcfg.p2eval"
-    int         : "string.integer"
-    str         : "string"
-    cc2500      : "wireless.transceiver.cc2500"
+    ser     : "com.serial.terminal.ansi"
+    cfg     : "core.con.boardcfg.p2eval"
+    int     : "string.integer"
+    str     : "string"
+    cc2500  : "wireless.transceiver.cc2500"
 
 VAR
 
@@ -53,7 +57,7 @@ PUB Main() | tmp, rxbytes
 
     ser.clear()
     ser.position(0, 0)
-    ser.printf(string("Receive mode - %dkHz\n"), cc2500.carrierfreq(-2))
+    ser.printf(@"Receive mode - %dkHz\n\r", cc2500.carrierfreq())
 
     repeat
         bytefill(@_pkt_tmp, $00, MAX_PAYLD)     ' clear out buffers 
@@ -71,7 +75,7 @@ PUB Main() | tmp, rxbytes
         cc2500.flushrx()                        ' flush receive buffer
 
         ser.position(0, 3)
-        ser.printf(string("Received (%d): %s"), strsize(@_pkt_tmp), @_pkt_tmp)
+        ser.printf(@"Received (%d): %s", strsize(@_pkt_tmp), @_pkt_tmp)
         ser.clearline()
         ser.newline()
 
@@ -81,41 +85,43 @@ PUB Main() | tmp, rxbytes
         ser.clearline()
         ser.newline()
 
-        ser.strln(string("|  |"))
-        ser.strln(string("|  *- start of payload/data"))
-        ser.strln(string("*---- address packet was sent to"))
+        ser.strln(@"|  |")
+        ser.strln(@"|  *- start of payload/data")
+        ser.strln(@"*---- address packet was sent to")
 
 PUB Setup()
 
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
-    if cc2500.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
-        ser.strln(string("CC2500 driver started"))
+    ser.strln(@"Serial terminal started")
+
+    if cc2500.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SPI_FREQ)
+        ser.strln(@"CC2500 driver started")
     else
-        ser.strln(string("CC2500 driver failed to start - halting"))
+        ser.strln(@"CC2500 driver failed to start - halting")
         repeat
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+TERMS OF USE: MIT License
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 }
 
