@@ -122,22 +122,22 @@ VAR
 
 DAT
   szversion     byte "v0.01", 0
-  szusbstart    byte "USB%u cogID: %u, event pin#: %u, version: %s\n", 0
-  szusbfail     byte "USB%u cog start failed\n", 0
+  szusbstart    byte "USB%u cogID: %u, event pin#: %u, version: %s\n\r", 0
+  szusbfail     byte "USB%u cog start failed\n\r", 0
   szbackspace   byte BSP, " ", BSP, 0
 
 PUB KbMObjTest() | event, data, eventa
   waitms(2000)                            ' Wait a bit for user to get the terminai ready
   ser.StartRXTX(rx_pin, tx_pin, 0, baud)
-  ser.PrintF("Sysclock: %u, baudrate: %u\n", clkfreq, baud)
-  ser.PrintF("Tiny client + USB low/full speed keyboard/mouse %s.\n", @szversion)
+  ser.printf(@"Sysclock: %u, baudrate: %u\n\r", clkfreq, baud)
+  ser.printf(@"Tiny client + USB low/full speed keyboard/mouse %s.\n\r", @szversion)
 
   usb1.start(@usbA)
   if (usbA.byte[COGNUM])
     eventa := usbA.byte[EVTPIN]
-    ser.PrintF(@szusbstart, 1, usbA.byte[COGNUM] - 1, eventa, usb1.getVersion())
+    ser.printf(@szusbstart, 1, usbA.byte[COGNUM] - 1, eventa, usb1.getVersion())
   else
-    ser.PrintF(@szusbfail, 1)
+    ser.printf(@szusbfail, 1)
     repeat                                              ' Nothing to do...
 
 '' Main loop
@@ -192,11 +192,11 @@ PRI handleMouseUpdate(data) | b, x, y
   if (y =< 3 and y => -3)
     y := 0
 
-  ser.Str("Btn: ")
+  ser.Str(@"Btn: ")
   ser.bin(b, 8)
-  ser.Str(", X: ")
+  ser.Str(@", X: ")
   ser.num(x, 10, "+", 3)
-  ser.Str(", Y: ")
+  ser.Str(@", Y: ")
   ser.num(y, 10, "+", 3)
 
 ' Scroll the mouse data if middle button pressed
@@ -208,31 +208,31 @@ PRI handleMouseUpdate(data) | b, x, y
 PRI usbEvent(portptr, portnum, event) | ptr, val
   case event
     DEV_DISCONNECT:
-      ser.PrintF("\nDevice disconnected\n")
+      ser.printf(@"\n\rDevice disconnected\n\r")
       byte[portptr][KBCON] := 0
       byte[portptr][MCON] := 0
     DEV_UNKNOWN:
-      ser.PrintF("Boot protocol keyboard/mouse not found\n")
+      ser.printf(@"Boot protocol keyboard/mouse not found\n\r")
     KB_READY:
-      ser.PrintF("Keyboard configured\n")
+      ser.printf(@"Keyboard configured\n\r")
       byte[portptr][KBCON]++
     M_READY:
-      ser.PrintF("Mouse configured\n")
+      ser.printf(@"Mouse configured\n\r")
       byte[portptr][MCON]++
     KBM_READY:
-      ser.PrintF("Keyboard and mouse configured\n")
+      ser.printf(@"Keyboard and mouse configured\n\r")
       byte[portptr][KBCON]++
       byte[portptr][MCON]++
     USB_ERROR:
       if portnum == 1
         ptr := usb1.getErrorCode()
-      ser.PrintF("\nUSB%u error: %u\n", portnum, long[ptr])
+      ser.printf(@"\nUSB%u error: %u\n\r", portnum, long[ptr])
     USB_DBG_INFO:
       if portnum == 1
         (ptr, val) := usb1.getDebugInfo()
-      ser.PrintF("PC%u: $", portnum)
+      ser.printf(@"PC%u: $", portnum)
       ser.Hex(ptr, 5)
-      ser.Str(", val: ")
+      ser.Str(@", val: ")
       ser.Hex(val)
       ser.newline()
     M_DATA:
@@ -240,22 +240,26 @@ PRI usbEvent(portptr, portnum, event) | ptr, val
         val := usb1.mouse()
         handleMouseUpdate(val)
     other:
-      ser.PrintF("Event%u: %u\n", portnum, event)
+      ser.printf(@"Event%u: %u\n\r", portnum, event)
 {
-+----------------------------------------------------------------------------------------------------------------------+
-|                                             TERMS OF USE: MIT License                                                |
-+----------------------------------------------------------------------------------------------------------------------+
-|Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated          |
-|documentation files (the "Software"), to deal in the Software without restriction, including without limitation the   |
-|rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit|
-|persons to whom the Software is furnished to do so, subject to the following conditions:                              |
-|                                                                                                                      |
-|The above copyright notice and this permission notice shall be included in all copies or substantial portions of the  |
-|Software.                                                                                                             |
-|                                                                                                                      |
-|THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE  |
-|WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR |
-|COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      |
-|OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.      |
-+----------------------------------------------------------------------------------------------------------------------+
+TERMS OF USE: MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 }
+
