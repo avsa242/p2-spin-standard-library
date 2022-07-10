@@ -19,9 +19,9 @@ CON
     SER_BAUD    = 2_000_000
     LED         = cfg.LED1
 
-    I2C_SCL     = 0
-    I2C_SDA     = 1
-    I2C_HZ      = 400_000                       ' 400_000 max
+    SCL_PIN     = 0
+    SDA_PIN     = 1
+    I2C_FREQ    = 400_000                       ' 400_000 max
 ' --
 
 OBJ
@@ -44,7 +44,7 @@ PUB Main() | i, tmp
     bytefill(@_sn, 0, 6)
     iaq.serialnum(@_sn)
 
-    ser.str(string("SN: "))
+    ser.str(@"SN: ")
     repeat i from 0 to 2
         ser.hex(_sn[i], 4)
 
@@ -52,15 +52,15 @@ PUB Main() | i, tmp
 
     repeat
         ser.position(0, 5)
-        ser.str(string("CO2Eq: "))
+        ser.str(@"CO2Eq: ")
         ser.str(int.decpadded(iaq.co2eq, 5))
-        ser.str(string("ppm"))
-        ser.newline
+        ser.str(@"ppm")
+        ser.newline()
 
-        ser.str(string("TVOC: "))
+        ser.str(@"TVOC: ")
         ser.str(int.decpadded(iaq.tvoc, 5))
-        ser.str(string("ppb"))
-        ser.newline
+        ser.str(@"ppb")
+        ser.newline()
         waitms(1000)                       ' 1Hz rate for best performance
 
 PUB Setup()
@@ -68,31 +68,33 @@ PUB Setup()
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
-    if iaq.startx(I2C_SCL, I2C_SDA, I2C_HZ)
-        ser.strln(string("SGP30 driver started"))
+    ser.strln(@"Serial terminal started")
+    if iaq.startx(SCL_PIN, SDA_PIN, I2C_FREQ)
+        ser.strln(@"SGP30 driver started")
     else
-        ser.strln(string("SGP30 driver failed to start - halting"))
+        ser.strln(@"SGP30 driver failed to start - halting")
         repeat
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+TERMS OF USE: MIT License
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 }
+
