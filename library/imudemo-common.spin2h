@@ -5,7 +5,7 @@
     Description: IMU demo - code common to all drivers (P2 version)
     Copyright (c) 2022
     Started Jul 12, 2022
-    Updated Jul 12, 2022
+    Updated Jul 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -38,6 +38,21 @@ PUB Calibrate()
     imu.calibratemag()
     ser.position(0, 7)
     ser.clearline()
+
+PUB Demo() | i
+
+    ser.position(0, 4)
+    repeat i from 0 to 2
+        ser.positionx(15+(15*i))
+        ser.char(i+"X")
+
+    repeat
+        ser.position(0, 5)
+        acceldata()
+        gyrodata()
+        magdata()
+        if (ser.rxcheck() == "c")
+            calibrate()
 
 PUB GyroData() | g[3], i
 ' Display gyroscope data
