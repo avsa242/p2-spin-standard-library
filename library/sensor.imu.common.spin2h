@@ -18,6 +18,12 @@ OBJ
 
     math : "math.int"
 
+VAR
+
+    long _ares, _gres, _mres
+    long _abias[ACCEL_DOF], _gbias[GYRO_DOF], _mbias[MAG_DOF]
+    long _ax, _ay, _az
+
 PUB AccelG(ax, ay, az) | tmp[ACCEL_DOF]
 ' Read the Accelerometer data and scale the outputs to
 '   micro-g's (1_000_000 = 1.000000 g = 9.8 m/s/s)

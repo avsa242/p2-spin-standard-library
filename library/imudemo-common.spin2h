@@ -21,22 +21,22 @@ PUB AccelData() | a[3], i
 
 PUB Calibrate()
 ' Calibrate/set bias offsets
-    ser.position(0, 7)
+    ser.position(0, 8)
     ser.str(@"Calibrating accelerometer...")
     imu.calibrateaccel()
-    ser.position(0, 7)
+    ser.position(0, 8)
     ser.clearline()
 
-    ser.position(0, 7)
+    ser.position(0, 8)
     ser.str(@"Calibrating gyroscope...")
     imu.calibrategyro()
-    ser.position(0, 7)
+    ser.position(0, 8)
     ser.clearline()
 
-    ser.position(0, 7)
+    ser.position(0, 8)
     ser.str(@"Calibrating magnetometer...")
     imu.calibratemag()
-    ser.position(0, 7)
+    ser.position(0, 8)
     ser.clearline()
 
 PUB Demo() | i
