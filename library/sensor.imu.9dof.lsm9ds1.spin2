@@ -5,7 +5,7 @@
     Description: Driver for the ST LSM9DS1 9DoF/3-axis IMU
     Copyright (c) 2022
     Started Aug 12, 2017
-    Updated Jul 2, 2022
+    Updated Jul 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -131,9 +131,6 @@ OBJ
 
 VAR
 
-    long _gres, _gbiasraw[GYRO_DOF]
-    long _ares, _abiasraw[ACCEL_DOF]
-    long _mres[MAG_DOF]
     long _CS_AG, _CS_M
     byte _temp_scale
     byte _spi_wire_md
@@ -142,13 +139,13 @@ PUB Null()
 ' This is not a top-level object
 
 #ifdef LSM9DS1_I2C
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): status
 ' Start using custom I/O pins
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }   I2C_HZ <= core.I2C_MAX_FREQ
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitus(core.TPOR)                   ' startup time
-
+            _addr_bits := (ADDR_BITS << 1)
             if deviceid{} == core.WHOAMI_BOTH_RESP
                 xlgsoftreset()                  ' reset/initialize to
                 magsoftreset()                  ' POR defaults
@@ -254,21 +251,21 @@ PUB AccelBias(axbias, aybias, azbias, rw=0)
 '       of respective variables to hold the returned calibration offset values
     case rw
         R:
-            long[axbias] := _abiasraw[X_AXIS]
-            long[aybias] := _abiasraw[Y_AXIS]
-            long[azbias] := _abiasraw[Z_AXIS]
+            long[axbias] := _abias[X_AXIS]
+            long[aybias] := _abias[Y_AXIS]
+            long[azbias] := _abias[Z_AXIS]
         W:
             case axbias
                 -32768..32767:
-                    _abiasraw[X_AXIS] := axbias
+                    _abias[X_AXIS] := axbias
                 other:
             case aybias
                 -32768..32767:
-                    _abiasraw[Y_AXIS] := aybias
+                    _abias[Y_AXIS] := aybias
                 other:
             case azbias
                 -32768..32767:
-                    _abiasraw[Z_AXIS] := azbias
+                    _abias[Z_AXIS] := azbias
                 other:
 
 PUB AccelData(ax, ay, az) | tmp[2]
@@ -277,9 +274,9 @@ PUB AccelData(ax, ay, az) | tmp[2]
 
     { accel ADC words are 15-bit signed - extend sign and }
     {   cancel out bias }
-    long[ax] := (tmp.word[X_AXIS] signx 15) - _abiasraw[X_AXIS]
-    long[ay] := (tmp.word[Y_AXIS] signx 15) - _abiasraw[Y_AXIS]
-    long[az] := (tmp.word[Z_AXIS] signx 15) - _abiasraw[Z_AXIS]
+    long[ax] := (tmp.word[X_AXIS] signx 15) - _abias[X_AXIS]
+    long[ay] := (tmp.word[Y_AXIS] signx 15) - _abias[Y_AXIS]
+    long[az] := (tmp.word[Z_AXIS] signx 15) - _abias[Z_AXIS]
 
 PUB AccelDataByteOrder(order=-2): curr_order
 ' Byte order of accelerometer output data
@@ -525,29 +522,29 @@ PUB GyroBias(gxbias, gybias, gzbias, rw=0)
 '       of respective variables to hold the returned calibration offset values.
     case rw
         R:
-            long[gxbias] := _gbiasraw[X_AXIS]
-            long[gybias] := _gbiasraw[Y_AXIS]
-            long[gzbias] := _gbiasraw[Z_AXIS]
+            long[gxbias] := _gbias[X_AXIS]
+            long[gybias] := _gbias[Y_AXIS]
+            long[gzbias] := _gbias[Z_AXIS]
         W:
             case gxbias
                 -32768..32767:
-                    _gbiasraw[X_AXIS] := gxbias
+                    _gbias[X_AXIS] := gxbias
                 other:
             case gybias
                 -32768..32767:
-                    _gbiasraw[Y_AXIS] := gybias
+                    _gbias[Y_AXIS] := gybias
                 other:
             case gzbias
                 -32768..32767:
-                    _gbiasraw[Z_AXIS] := gzbias
+                    _gbias[Z_AXIS] := gzbias
                 other:
 
 PUB GyroData(ptr_x, ptr_y, ptr_z) | tmp[2]
 ' Read gyroscope data
     readreg(XLG, core.OUT_X_G_L, 6, @tmp)
-    long[ptr_x] := (tmp.word[X_AXIS] signx 15) - _gbiasraw[X_AXIS]
-    long[ptr_y] := (tmp.word[Y_AXIS] signx 15) - _gbiasraw[Y_AXIS]
-    long[ptr_z] := (tmp.word[Z_AXIS] signx 15) - _gbiasraw[Z_AXIS]
+    long[ptr_x] := (tmp.word[X_AXIS] signx 15) - _gbias[X_AXIS]
+    long[ptr_y] := (tmp.word[Y_AXIS] signx 15) - _gbias[Y_AXIS]
+    long[ptr_z] := (tmp.word[Z_AXIS] signx 15) - _gbias[Z_AXIS]
 
 PUB GyroDataByteOrder(order=-2): curr_order
 ' Byte order of gyroscope output data
@@ -1306,12 +1303,12 @@ PRI readReg(device, reg_nr, nr_bytes, ptr_buff) | cmd_pkt
                 other:
                     return
 #ifdef LSM9DS1_I2C
-            cmd_pkt.byte[0] := core.SLAVE_ADDR_XLG
+            cmd_pkt.byte[0] := (core.SLAVE_ADDR_XLG | _addr_bits)
             cmd_pkt.byte[1] := reg_nr
             i2c.start{}
             i2c.wrblock_lsbf(@cmd_pkt, 2)
             i2c.start{}
-            i2c.write(core.SLAVE_ADDR_XLG | 1)
+            i2c.write(core.SLAVE_ADDR_XLG | _addr_bits | 1)
             i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c.NAK)
             i2c.stop{}
 #elseifdef LSM9DS1_SPI
@@ -1332,12 +1329,12 @@ PRI readReg(device, reg_nr, nr_bytes, ptr_buff) | cmd_pkt
                 other:
                     return
 #ifdef LSM9DS1_I2C
-            cmd_pkt.byte[0] := core.SLAVE_ADDR_MAG
+            cmd_pkt.byte[0] := (core.SLAVE_ADDR_MAG | (_addr_bits << 1))
             cmd_pkt.byte[1] := reg_nr
             i2c.start{}
             i2c.wrblock_lsbf(@cmd_pkt, 2)
             i2c.start{}
-            i2c.write(core.SLAVE_ADDR_MAG | 1)
+            i2c.write(core.SLAVE_ADDR_MAG | (_addr_bits << 1) | 1)
             i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c.NAK)
             i2c.stop{}
 #elseifdef LSM9DS1_SPI
@@ -1359,7 +1356,7 @@ PRI writeReg(device, reg_nr, nr_bytes, ptr_buff) | cmd_pkt
             case reg_nr
 #ifdef LSM9DS1_I2C
                 $04..$0D, $10..$13, $1E..$24, $2E, $30..$37:
-                    cmd_pkt.byte[0] := core.SLAVE_ADDR_XLG
+                    cmd_pkt.byte[0] := (core.SLAVE_ADDR_XLG | _addr_bits)
                     cmd_pkt.byte[1] := reg_nr
                     i2c.start{}
                     i2c.wrblock_lsbf(@cmd_pkt, 2)
@@ -1388,7 +1385,7 @@ PRI writeReg(device, reg_nr, nr_bytes, ptr_buff) | cmd_pkt
             case reg_nr
 #ifdef LSM9DS1_I2C
                 $05..$0A, $0F, $20, $21..$24, $27..$2D, $30..$33:
-                    cmd_pkt.byte[0] := core.SLAVE_ADDR_MAG
+                    cmd_pkt.byte[0] := (core.SLAVE_ADDR_MAG | (_addr_bits << 1))
                     cmd_pkt.byte[1] := reg_nr | core.MB_I2C
                     i2c.start{}
                     i2c.wrblock_lsbf(@cmd_pkt, 2)
