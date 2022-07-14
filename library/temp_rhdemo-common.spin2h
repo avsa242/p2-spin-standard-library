@@ -19,7 +19,7 @@ PUB TempData() | temp, tscl
 ' Display temperature sensor data
     temp := sensr.temperature()
     tscl := lookupz(sensr.tempscale(): "C", "F", "K")
-    ser.printf(@"Temp. (deg %c): %3.3d.%02.2d\n\r", tscl, (temp / 100), (temp // 100))
+    ser.printf(@"Temp. (deg %c): %3.3d.%02.2d\n\r", tscl, (temp / 100), abs(temp // 100))
 
 PUB Demo()
 
