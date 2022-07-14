@@ -2,104 +2,58 @@
     --------------------------------------------
     Filename: SCD30-Demo.spin2
     Author: Jesse Burt
-    Description: Demo of the SCD30 driver (P2 version)
-    Copyright (c) 2021
-    Started Jul 21, 2021
-    Updated Jul 21, 2021
+    Description: SCD30 driver demo (P2 version)
+        * CO2 data output
+    Copyright (c) 2022
+    Started Jul 10, 2021
+    Updated Jul 13, 2022
     See end of file for terms of use.
     --------------------------------------------
+
+    Build-time symbols supported by driver:
+        N/A
 }
 CON
 
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
-' -- User-defined constants
+' -- User-modifiable constants
     SER_BAUD    = 2_000_000
-    LED         = cfg.LED1
 
-    I2C_SCL     = 24
-    I2C_SDA     = 25
-    I2C_HZ      = 100_000                       ' max is 100_000
+    { I2C configuration }
+    SCL_PIN     = 0
+    SDA_PIN     = 1
+    I2C_FREQ    = 100_000                       ' max is 100_000
                                                 ' (Sensirion recommends 50_000)
 
 ' --
 
-    C           = 0
-    F           = 1
-
 OBJ
 
-    cfg     : "core.con.boardcfg.p2eval"
-    ser     : "com.serial.terminal.ansi"
-    env     : "sensor.co2.scd30"
-    int     : "string.integer"
-    sf      : "string.format"
-
-VAR
-
-    byte    _tmp_buff[16]
-
-PUB Main() | co2, temp, rh
-
-    setup()
-
-    env.reset()
-    env.opmode(env.CONT)
-    env.measinterval(2)
-    env.tempscale(C)
-    repeat
-        repeat until env.dataready() == true
-        env.measure()
-        co2 := env.co2ppm()
-        temp := env.temperature()
-        rh := env.humidity()
-
-        ser.position(0, 3)
-        ser.printf(string("CO2: %sppm     \n"), int2dp(co2, 1))
-        ser.printf(string("Temp: %s\n"), int2dp(temp, 2))
-        ser.printf(string("RH: %s%%      \n"), int2dp(rh, 2))
-        waitms(100)
-
-PRI Int2DP(scaled, places): ptr_dp | whole, part, sign, divisor
-' Convert integer to string, with a decimal point 'places' to the left
-'   Example: Int2DP(314159, 5) would return a pointer to a string
-'       containing "3.14159"
-'   Returns: pointer to string representation of number
-    bytefill(@_tmp_buff, 0, 16)                 ' clear working buffer
-    case places
-        0:                                      ' whole; just return the same
-            return int.dec(scaled)              ' number, as a string
-        1..9:
-            if scaled < 0                       ' determine sign character
-                sign := "-"
-            else
-                sign := " "
-
-            divisor := 1                        ' determine divisor based
-            repeat places                       '   on number of places
-                divisor *= 10
-
-            whole := scaled / divisor           ' whole part of the number
-
-            ' fractional part, with leading zeroes added
-            part := int.deczeroed(abs(scaled // divisor), places)
-            ' print formatted string to temporary working buffer
-            sf.sprintf(@_tmp_buff, string("%c%d.%s"), sign, abs(whole), part)
-            return @_tmp_buff                       ' pointer to buffer
+    cfg: "core.con.boardcfg.p2eval"
+    env: "sensor.co2.scd30"
+    ser: "com.serial.terminal.ansi"
 
 PUB Setup()
 
     ser.start(SER_BAUD)
-    waitms(30)
+    waitms(10)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
+    ser.strln(@"Serial terminal started")
 
-    if env.startx(I2C_SCL, I2C_SDA, I2C_HZ)
-        ser.strln(string("SCD30 driver started"))
+    if (env.startx(SCL_PIN, SDA_PIN, I2C_FREQ))
+        ser.strln(@"SCD30 driver started")
     else
-        ser.strln(string("SCD30 driver failed to start - halting"))
+        ser.strln(@"SCD30 driver failed to start - halting")
         repeat
+
+    env.reset()
+    env.opmode(env.CONT)
+    env.measinterval(2)
+    demo()
+
+#include "co2demo-common.spin2h"                ' code common to all IMU demos
 
 DAT
 {
