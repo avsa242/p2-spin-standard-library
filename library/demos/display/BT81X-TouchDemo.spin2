@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2022
     Started Dec 31, 2020
-    Updated Feb 13, 2022
+    Updated Apr 11, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,10 +20,10 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    CS_PIN      = 12
-    SCK_PIN     = 13
-    MOSI_PIN    = 14
-    MISO_PIN    = 15
+    CS_PIN      = 16
+    SCK_PIN     = 17
+    MOSI_PIN    = 18
+    MISO_PIN    = 19
     SCK_FREQ    = 20_000_000                    ' max is 30_000_000
 
     BRIGHTNESS  = 100                           ' Initial brightness (0..128)
@@ -124,7 +124,7 @@ PUB UpdateButton(state) | btn_cx, btn_cy
     btn_cx := CENTERX - (BUTTON_W / 2)
     btn_cy := CENTERY - (BUTTON_H / 2)
 
-    eve.waitidle()                              ' wait for EVE to be ready
+    eve.waitready()                              ' wait for EVE to be ready
     eve.dlstart()                               ' begin list of graphics cmds
     eve.clearcolor(0, 0, 0)
     eve.clear()
@@ -148,7 +148,7 @@ PUB UpdateScrollbar(val) | w, h, x, y, sz
     x := 0+sz
     y := HEIGHT-h-1
 
-    eve.waitidle()
+    eve.waitready()
     eve.dlstart()
     eve.clearcolor(0, 0, 0)
     eve.clear()
@@ -165,7 +165,7 @@ PUB UpdateToggle(t1, t2, t3, t4) | tag, tmp, x, y, w, sw, h
     x := CENTERX-(w/2)                          ' x and y
     y := CENTERY-(h*4)                          '   coords
 
-    eve.waitidle()
+    eve.waitready()
     eve.dlstart()
     eve.clearcolor(0, 0, 0)
     eve.clear()
@@ -181,6 +181,19 @@ PUB UpdateToggle(t1, t2, t3, t4) | tag, tmp, x, y, w, sw, h
     eve.toggle(x, y + (4 * (h*2)), w, h, 0, t4, string("OFF", $FF, "ON"))
     eve.dlend()
 
+PRI TS_Cal()
+' Calibrate the touchscreen (resistive only)
+    eve.touchsens(1200)                         ' typical value, per BRT_AN_033
+    eve.waitready()
+    eve.dlstart()
+    eve.clear()
+    eve.str(80, 30, 27, eve.OPT_CENTER, @"Please tap on the dot")
+    eve.touchcal()
+    eve.dlend()
+    eve.waitready()
+    ser.str(@"Press any key to continue, once touchscreen calibration is complete")
+    ser.charin()
+
 PUB Setup()
 
     ser.start(SER_BAUD)
@@ -192,6 +205,9 @@ PUB Setup()
     else
         ser.str(string("BT81x driver failed to start - halting"))
         repeat
+
+    if (eve.modelid() == eve.BT816)             ' resistive TS?
+        ts_cal()
 
 DAT
 {

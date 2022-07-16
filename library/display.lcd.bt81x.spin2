@@ -7,7 +7,7 @@
         (P2 version)
     Copyright (c) 2022
     Started Dec 31, 2020
-    Updated Feb 13, 2022
+    Updated May 21, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -59,26 +59,26 @@ CON
     OPT_3D              = 0
     OPT_RGB565          = 0
     OPT_MONO            = 1
-    OPT_NODL            = 2
-    OPT_FLAT            = 256
-    OPT_SIGNED          = 256
-    OPT_CENTERX         = 512
-    OPT_CENTERY         = 1024
-    OPT_CENTER          = 1536
-    OPT_RIGHTX          = 2048
-    OPT_NOBACK          = 4096
-    OPT_FILL            = 8192
-    OPT_FLASH           = 64
-    OPT_FORMAT          = 4096
-    OPT_NOTICKS         = 8192
-    OPT_NOHM            = 16384
-    OPT_NOPOINTER       = 16384
-    OPT_NOSECS          = 32768
-    OPT_NOHANDS         = 49152
-    OPT_NOTEAR          = 4
-    OPT_FULLSCREEN      = 8
-    OPT_MEDIAFIFO       = 16
-    OPT_SOUND           = 32
+    OPT_NODL            = (1 << 1)
+    OPT_FLAT            = (1 << 8)
+    OPT_SIGNED          = (1 << 8)
+    OPT_CENTERX         = (1 << 9)
+    OPT_CENTERY         = (1 << 10)
+    OPT_CENTER          = OPT_CENTERX | OPT_CENTERY
+    OPT_RIGHTX          = (1 << 11)
+    OPT_NOBACK          = (1 << 12)
+    OPT_FILL            = (1 << 13)
+    OPT_FLASH           = (1 << 6)
+    OPT_FORMAT          = (1 << 12)
+    OPT_NOTICKS         = (1 << 13)
+    OPT_NOHM            = (1 << 14)
+    OPT_NOPOINTER       = (1 << 14)
+    OPT_NOSECS          = (1 << 15)
+    OPT_NOHANDS         = OPT_NOPOINTER | OPT_NOSECS
+    OPT_NOTEAR          = (1 << 2)
+    OPT_FULLSCREEN      = (1 << 3)
+    OPT_MEDIAFIFO       = (1 << 4)
+    OPT_SOUND           = (1 << 5)
 
 ' Transform and screen rotation
     #0, ROT_LAND, ROT_INV_LAND, ROT_PORT, ROT_INV_PORT, ROT_MIR_LAND,{
@@ -172,7 +172,7 @@ PUB Defaults()
     displaywidth(_disp_width)
     displayheight(_disp_height)
 
-    waitidle()
+    waitready()
     dlstart()
         clearcolor(0, 0, 0)
         clear()
@@ -190,12 +190,18 @@ PUB Preset_HighPerf()
     defaults()
     clockfreq(HIGH)
 
-PUB Box(x1, y1, x2, y2) | tmp
+PUB Box(x1, y1, x2, y2, filled)
 ' Draw a box from x1, y1 to x2, y2 in the current color
-    primitivebegin(RECTS)
-    vertex2f(x1, y1)
-    vertex2f(x2, y2)
-    primitiveend()
+    if (filled)
+        primitivebegin(RECTS)
+        vertex2f(x1, y1)
+        vertex2f(x2, y2)
+        primitiveend()
+    else
+        line(x1, y1, x2, y1)
+        line(x1, y2, x2, y2)
+        line(x1, y1, x1, y2)
+        line(x2, y1, x2, y2)
 
 PUB BoxBeveled(x0, y0, width, height, b_size, b_mask) | corner'XXX optimize: reduce number of repeated calcs below
 ' Draw a box with zero or more beveled corners, specified by b_mask
@@ -418,7 +424,7 @@ PUB DLEnd()
     coproccmd(core.DISPLAY)
     coproccmd(core.CMD_SWAP)
 
-PUB DisplayListSwap(mode): dl_status
+PUB DLSwap(mode): dl_status
 ' Set when the graphics engine will render the screen
 '   Valid values:
 '       DLSWAP_LINE (1): Render screen immediately after current line is
@@ -436,6 +442,14 @@ PUB DisplayListSwap(mode): dl_status
             dl_status := 0
             readreg(core.DLSWAP, 1, @dl_status)
             return dl_status & %11
+
+PUB DisplayReady(): status | cmd_rd, cmd_wr
+' Flag indicating display coprocessor is ready
+'   Returns: TRUE (-1) if coprocessor is idle/ready, FALSE (0) if busy
+    longfill(@cmd_rd, 0, 2)
+    readreg(core.CMD_READ, 4, @cmd_rd)
+    readreg(core.CMD_WRITE, 4, @cmd_wr)
+    return (cmd_rd == cmd_wr)
 
 PUB DisplayTimings(hc, ho, hs0, hs1, vc, vo, vs0, vs1)
 ' Set all display timings
@@ -950,6 +964,11 @@ PUB Toggle(x, y, width, font, opts, state, ptr_str) | i, j
 }       byte[ptr_str][1] << 8 + byte[ptr_str][0])
         ptr_str += 4
 
+PUB TouchCal()
+' Calibrate the touchscreen
+'   NOTE: This is only necessary for resistive touchscreens (BT816)
+    coproccmd(core.CMD_CALIBRATE)
+
 PUB TouchHostMode(state): curr_state
 ' Enable host mode (touchscreen data handled by the MCU, fed to the EVE)
 '   Valid values: TRUE (-1 or 1), FALSE (0)
@@ -1018,6 +1037,19 @@ PUB TouchScreenSupport(): type
 '       1 - Resistive (BT816)
     readreg(core.TOUCH_CFG, 2, @type)
     return (type >> core.WORKMODE) & 1
+
+PUB TouchSens(level): curr_lvl
+' Set touchscreen sensitivity
+'   Valid values:
+'       0 (least sensitive) .. 65535 (most sensitive/all touches valid)
+'   Any other value polls the chip and returns the current setting
+'   NOTE: Only applicable to resistive touchscreens (BT816)
+    case level
+        0..65535:
+            writereg(core.TOUCH_RZTHRESH, 2, @level)
+        other:
+            curr_lvl := 0
+            readreg(core.TOUCH_RZTHRESH, 2, @curr_lvl)
 
 PUB TouchXY()
 ' Coordinates of touch event
@@ -1104,11 +1136,11 @@ PUB VSync1(offs_lines): curr_offs
             readreg(core.VSYNC1, 2, @curr_offs)
             return curr_offs
 
-PUB WaitIdle()
-' Waits until the coprocessor is idle
+PUB WaitReady()
+' Wait until the display is ready
     repeat
         waitms(10)
-    until idle()
+    until displayready()
 
 PUB WidgetBGColor(rgb)
 ' Set background color for widgets (gauges, sliders, etc), as a 24-bit RGB number
@@ -1125,14 +1157,6 @@ PUB WidgetFGColor(rgb)
     rgb := $00_00_00 #> rgb <# $FF_FF_FF
     coproccmd(core.CMD_FGCOLOR)
     coproccmd(rgb)
-
-PUB Idle(): status | cmd_rd, cmd_wr
-' Return idle status
-'   Returns: TRUE (-1) if coprocessor is idle, FALSE (0) if busy
-    longfill(@cmd_rd, 0, 2)
-    readreg(core.CMD_READ, 4, @cmd_rd)
-    readreg(core.CMD_WRITE, 4, @cmd_wr)
-    return (cmd_rd == cmd_wr)
 
 PRI cmd(cmd_word, param) | cmd_pkt, tmp
 
