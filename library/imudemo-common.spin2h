@@ -5,7 +5,7 @@
     Description: IMU demo - code common to all drivers (P2 version)
     Copyright (c) 2022
     Started Jul 12, 2022
-    Updated Jul 13, 2022
+    Updated Jul 17, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -21,23 +21,26 @@ PUB AccelData() | a[3], i
 
 PUB Calibrate()
 ' Calibrate/set bias offsets
-    ser.position(0, 8)
-    ser.str(@"Calibrating accelerometer...")
-    imu.calibrateaccel()
-    ser.position(0, 8)
-    ser.clearline()
+    if (imu.ACCEL_DOF)
+        ser.position(0, 8)
+        ser.str(@"Calibrating accelerometer...")
+        imu.calibrateaccel()
+        ser.position(0, 8)
+        ser.clearline()
 
-    ser.position(0, 8)
-    ser.str(@"Calibrating gyroscope...")
-    imu.calibrategyro()
-    ser.position(0, 8)
-    ser.clearline()
+    if (imu.GYRO_DOF)
+        ser.position(0, 8)
+        ser.str(@"Calibrating gyroscope...")
+        imu.calibrategyro()
+        ser.position(0, 8)
+        ser.clearline()
 
-    ser.position(0, 8)
-    ser.str(@"Calibrating magnetometer...")
-    imu.calibratemag()
-    ser.position(0, 8)
-    ser.clearline()
+    if (imu.MAG_DOF)
+        ser.position(0, 8)
+        ser.str(@"Calibrating magnetometer...")
+        imu.calibratemag()
+        ser.position(0, 8)
+        ser.clearline()
 
 PUB Demo() | i
 
@@ -48,9 +51,12 @@ PUB Demo() | i
 
     repeat
         ser.position(0, 5)
-        acceldata()
-        gyrodata()
-        magdata()
+        if (imu.ACCEL_DOF)
+            acceldata()
+        if (imu.GYRO_DOF)
+            gyrodata()
+        if (imu.MAG_DOF)
+            magdata()
         if (ser.rxcheck() == "c")
             calibrate()
 
