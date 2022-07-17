@@ -9,6 +9,10 @@
     Updated Jul 9, 2022
     See end of file for terms of use.
     --------------------------------------------
+
+    Build-time symbols supported by driver:
+        -DLIS3DH_SPI
+        -DLIS3DH_I2C (default if none specified)
 }
 #include "core.con.click.spin2"
 
@@ -23,24 +27,24 @@ CON
 
     CLICK_BASE  = 0
 
+    { I2C configuration }
+    { custom I/O pin definitions - uncomment the below, and comment out the #include
+        line above to use }
+'    SCL_PIN     = 0
+'    SDA_PIN     = 1
+    I2C_FREQ    = 400_000                       ' max is 400_000
+    ADDR_BITS   = 0                             ' 0, 1
+
     { SPI configuration }
     { custom I/O pin definitions - uncomment the below, and comment out the #include
         line above to use }
 '    CS_PIN      = 0
-'    SCK_PIN     = 1                            ' (SCL)
-'    MOSI_PIN    = 2                            ' (SDA)
-'    MISO_PIN    = 3                            ' (SDO)
+'    SCK_PIN     = 1                             ' SCL
+'    MOSI_PIN    = 2                             ' SDA
+'    MISO_PIN    = 3                             ' SDO
     SPI_FREQ    = 10_000_000                    ' max is 10_000_000
 
-    { I2C configuration }
-    { custom I/O pin definitions - uncomment the below, and comment out the #include
-        line above to use }
-'    SCL_PIN     = 28
-'    SDA_PIN     = 29
-    I2C_HZ      = 400_000
-    I2C_ADDRBITS= 0
-
-    INT1        = 15
+    INT1_PIN    = 15
 
 '   NOTE: If LIS3DH_SPI is #defined, and MOSI_PIN and MISO_PIN are the same,
 '   the driver will attempt to start in 3-wire SPI mode.
@@ -54,7 +58,6 @@ OBJ
 
     cfg     : "core.con.boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    int     : "string.integer"
     accel   : "sensor.accel.3dof.lis3dh"
 
 VAR
@@ -108,15 +111,15 @@ PUB Calibrate()
 
 PRI ISR()
 ' Interrupt service routine
-    pinf(INT1)                                  ' INT1 as input
+    pinf(INT1_PIN)                              ' INT1_PIN as input
     pinl(LED1)                                  ' LED as output
 
     repeat
-        repeat until pinr(INT1) == 1            ' wait for INT1 (active high)
+        repeat until pinr(INT1_PIN) == 1        ' wait for INT1_PIN (active high)
         pinh(LED1)                              ' light LED
         _intflag := 1                           '   set flag
 
-        repeat until pinr(INT1) == 0            ' now wait for it to clear
+        repeat until pinr(INT1_PIN) == 0        ' now wait for it to clear
         pinl(LED1)                              ' turn off LED
         _intflag := 0                           '   clear flag
 
@@ -130,7 +133,7 @@ PUB Setup()
     if accel.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
         ser.strln(string("LIS3DH driver started (SPI)"))
 #else
-    if accel.startx(SCL_PIN, SDA_PIN, I2C_HZ, I2C_ADDRBITS)
+    if accel.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS)
         ser.strln(string("LIS3DH driver started (I2C)"))
 #endif
     else
