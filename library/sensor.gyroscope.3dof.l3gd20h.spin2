@@ -5,7 +5,7 @@
     Description: Driver for the ST L3GD20H 3DoF gyroscope (P2 version)
     Copyright (c) 2022
     Started Jul 11, 2020
-    Updated Jul 9, 2022
+    Updated Jul 19, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -70,9 +70,6 @@ CON
 VAR
 
     long _CS
-    long _gres
-    long _gbiasraw[3]
-    byte _addr_bits
 
 OBJ
 
@@ -86,7 +83,6 @@ OBJ
     i2c : "com.i2c"                             ' I2C engine
 #endif
     core: "core.con.l3gd20h"
-    time: "time"
 
 PUB Null()
 ' This is not a top-level object
@@ -152,7 +148,7 @@ PUB Defaults()
 }'  but to save code space, just soft-reset, instead:
     reset()
 
-PUB Preset_Normal()
+PUB Preset_Active()
 ' Like Defaults(), but
 '   * Normal (active) operating mode
     reset()
@@ -317,24 +313,24 @@ PUB GyroBias(gxbias, gybias, gzbias, rw=R)
 '   NOTE: When rw is set to READ, gxbias, gybias and gzbias must be addresses of respective variables to hold the returned calibration offset values.
     case rw
         R:
-            long[gxbias] := _gbiasraw[X_AXIS]
-            long[gybias] := _gbiasraw[Y_AXIS]
-            long[gzbias] := _gbiasraw[Z_AXIS]
+            long[gxbias] := _gbias[X_AXIS]
+            long[gybias] := _gbias[Y_AXIS]
+            long[gzbias] := _gbias[Z_AXIS]
 
         W:
             case gxbias
                 -32768..32767:
-                    _gbiasraw[X_AXIS] := gxbias
+                    _gbias[X_AXIS] := gxbias
                 other:
 
             case gybias
                 -32768..32767:
-                    _gbiasraw[Y_AXIS] := gybias
+                    _gbias[Y_AXIS] := gybias
                 other:
 
             case gzbias
                 -32768..32767:
-                    _gbiasraw[Z_AXIS] := gzbias
+                    _gbias[Z_AXIS] := gzbias
                 other:
 
 PUB GyroData(ptr_x, ptr_y, ptr_z) | tmp[2]
@@ -342,9 +338,9 @@ PUB GyroData(ptr_x, ptr_y, ptr_z) | tmp[2]
     bytefill(@tmp, 0, 8)
     readreg(core.OUT_X_L, 6, @tmp)
 
-    long[ptr_x] := (tmp.word[X_AXIS] signx 15) - _gbiasraw[X_AXIS]
-    long[ptr_y] := (tmp.word[Y_AXIS] signx 15) - _gbiasraw[Y_AXIS]
-    long[ptr_z] := (tmp.word[Z_AXIS] signx 15) - _gbiasraw[Z_AXIS]
+    long[ptr_x] := (tmp.word[X_AXIS] signx 15) - _gbias[X_AXIS]
+    long[ptr_y] := (tmp.word[Y_AXIS] signx 15) - _gbias[Y_AXIS]
+    long[ptr_z] := (tmp.word[Z_AXIS] signx 15) - _gbias[Z_AXIS]
 
 PUB GyroDataOverrun(): flag
 ' Indicates previously acquired data has been overwritten
