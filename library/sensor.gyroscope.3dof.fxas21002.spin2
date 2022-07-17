@@ -5,7 +5,7 @@
     Description: Driver for the NXP FXAS21002 3DoF Gyroscope (P2 version)
     Copyright (c) 2022
     Started Jun 15, 2021
-    Updated May 13, 2022
+    Updated Jul 17, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -81,8 +81,6 @@ CON
 
 VAR
 
-    long _ares, _gres, _gbiasraw[GYRO_DOF]
-    byte _addr_bits
     byte _opmd_orig
 
 OBJ
@@ -230,29 +228,29 @@ PUB GyroBias(gxbias, gybias, gzbias, rw=R)
 '       of respective variables to hold the returned calibration offset values.
     case rw
         R:
-            long[gxbias] := _gbiasraw[X_AXIS]
-            long[gybias] := _gbiasraw[Y_AXIS]
-            long[gzbias] := _gbiasraw[Z_AXIS]
+            long[gxbias] := _gbias[X_AXIS]
+            long[gybias] := _gbias[Y_AXIS]
+            long[gzbias] := _gbias[Z_AXIS]
         W:
             case gxbias
                 -32768..32767:
-                    _gbiasraw[X_AXIS] := gxbias
+                    _gbias[X_AXIS] := gxbias
                 other:
             case gybias
                 -32768..32767:
-                    _gbiasraw[Y_AXIS] := gybias
+                    _gbias[Y_AXIS] := gybias
                 other:
             case gzbias
                 -32768..32767:
-                    _gbiasraw[Z_AXIS] := gzbias
+                    _gbias[Z_AXIS] := gzbias
                 other:
 
 PUB GyroData(ptr_x, ptr_y, ptr_z) | tmp[2]
 ' Reads the Gyroscope output registers
     readreg(core.OUT_X_MSB, 6, @tmp)
-    long[ptr_x] := ~~tmp.word[X_AXIS] - _gbiasraw[X_AXIS]
-    long[ptr_y] := ~~tmp.word[Y_AXIS] - _gbiasraw[Y_AXIS]
-    long[ptr_z] := ~~tmp.word[Z_AXIS] - _gbiasraw[Z_AXIS]
+    long[ptr_x] := ~~tmp.word[X_AXIS] - _gbias[X_AXIS]
+    long[ptr_y] := ~~tmp.word[Y_AXIS] - _gbias[Y_AXIS]
+    long[ptr_z] := ~~tmp.word[Z_AXIS] - _gbias[Z_AXIS]
 
 PUB GyroDataOverrun(): flag
 ' Flag indicating gyroscope data overrun
