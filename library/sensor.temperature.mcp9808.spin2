@@ -21,12 +21,12 @@ CON
     DEF_HZ      = 100_000
 
 ' Interrupt active states
-    LOW             = 0
-    HIGH            = 1
+    LOW         = 0
+    HIGH        = 1
 
 ' Interrupt modes
-    COMP            = 0
-    INT             = 1
+    COMP        = 0
+    INT         = 1
 
 VAR
 
