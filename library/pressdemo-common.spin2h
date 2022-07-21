@@ -9,16 +9,13 @@
     See end of file for terms of use.
     --------------------------------------------
 }
+#define HAS_DEMO
+#include "tempdemo-common.spin2h"
+
 PUB PressData() | press
 ' Display presserature sensor data
     press := sensr.presspascals()
     ser.printf(@"Press (hPa/mbar): %4.4d.%02.2d\n\r", (press / 1000), abs(press // 1000))
-
-PUB TempData() | temp, tscl
-' Display temperature sensor data
-    temp := sensr.temperature()
-    tscl := lookupz(sensr.tempscale(-2): "C", "F", "K")
-    ser.printf(@"Temp. (deg %c): %3.3d.%02.2d\n\r", tscl, (temp / 100), abs(temp // 100))
 
 PUB Demo()
 
