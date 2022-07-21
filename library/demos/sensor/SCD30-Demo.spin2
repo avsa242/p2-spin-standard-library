@@ -53,7 +53,7 @@ PUB Setup()
     env.measinterval(2)
     demo()
 
-#include "co2demo-common.spin2h"                ' code common to all IMU demos
+#include "co2demo.common.spin2h"                ' code common to all IMU demos
 
 DAT
 {

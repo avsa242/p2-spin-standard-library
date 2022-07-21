@@ -1,6 +1,6 @@
 {
     --------------------------------------------
-    Filename: temp_rhdemo-common.spin2h
+    Filename: temp_rhdemo.common.spin2h
     Author: Jesse Burt
     Description: Temperature/RH sensor demo - code common to all drivers (P2 version)
     Copyright (c) 2022
@@ -10,7 +10,7 @@
     --------------------------------------------
 }
 #define HAS_DEMO
-#include "tempdemo-common.spin2h"
+#include "tempdemo.common.spin2h"
 
 PUB RHData() | rh
 ' Display relative humidity sensor data

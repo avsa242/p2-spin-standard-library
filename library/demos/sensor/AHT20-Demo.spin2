@@ -50,7 +50,7 @@ PUB Setup()
     sensr.tempscale(C)
     demo()
 
-#include "temp_rhdemo-common.spin2h"            ' code common to all temp/RH demos
+#include "temp_rhdemo.common.spin2h"            ' code common to all temp/RH demos
 
 DAT
 {

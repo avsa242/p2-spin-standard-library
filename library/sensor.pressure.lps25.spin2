@@ -9,8 +9,8 @@
     See end of file for terms of use.
     --------------------------------------------
 }
-#include "sensor.pressure-common.spin2h"
-#include "sensor.temp-common.spin2h"
+#include "sensor.pressure.common.spin2h"
+#include "sensor.temp.common.spin2h"
 
 CON
 

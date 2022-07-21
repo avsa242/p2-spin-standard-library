@@ -23,8 +23,8 @@ CON
 ```
 
 }
-#include "sensor.temp-common.spin2h"
-#include "sensor.rh-common.spin2h"
+#include "sensor.temp.common.spin2h"
+#include "sensor.rh.common.spin2h"
 
 {
 TERMS OF USE: MIT License

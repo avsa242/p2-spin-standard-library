@@ -51,7 +51,7 @@ PUB Setup()
                                                 '   sensor power
     demo()
 
-#include "pressdemo-common.spin2h"              ' code common to all pressure demos
+#include "pressdemo.common.spin2h"              ' code common to all pressure demos
 
 DAT
 {

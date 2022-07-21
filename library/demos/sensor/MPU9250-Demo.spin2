@@ -61,7 +61,7 @@ PUB Setup()
 
     demo()
 
-#include "imudemo-common.spin2h"                ' code common to all IMU demos
+#include "imudemo.common.spin2h"                ' code common to all IMU demos
 
 DAT
 {

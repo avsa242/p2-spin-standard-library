@@ -11,7 +11,7 @@
     --------------------------------------------
 }
 { pull in methods common to all Temp drivers }
-#include "sensor.temp-common.spin2h"
+#include "sensor.temp.common.spin2h"
 
 CON
 
