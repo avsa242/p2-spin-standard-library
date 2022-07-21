@@ -5,21 +5,17 @@
     Description: Temperature/RH sensor demo - code common to all drivers (P2 version)
     Copyright (c) 2022
     Started Jul 14, 2022
-    Updated Jul 16, 2022
+    Updated Jul 21, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
+#define HAS_DEMO
+#include "tempdemo-common.spin2h"
+
 PUB RHData() | rh
 ' Display relative humidity sensor data
     rh := sensr.rh()
     ser.printf(@"Rel. humidity (%%): %3.3d.%02.2d\n\r", (rh / 100), (rh // 100))
-
-
-PUB TempData() | temp, tscl
-' Display temperature sensor data
-    temp := sensr.temperature()
-    tscl := lookupz(sensr.tempscale(): "C", "F", "K")
-    ser.printf(@"Temp. (deg %c): %3.3d.%02.2d\n\r", tscl, (temp / 100), abs(temp // 100))
 
 PUB Demo()
 
