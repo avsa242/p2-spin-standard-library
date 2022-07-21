@@ -5,18 +5,22 @@
     Description: IMU demo - code common to all drivers (P2 version)
     Copyright (c) 2022
     Started Jul 12, 2022
-    Updated Jul 17, 2022
+    Updated Jul 21, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
-PUB AccelData() | a[3], i
+PUB AccelData() | axis, a[3], sign
 ' Display accelerometer data
     repeat until imu.acceldataready()
     imu.accelg(@a[imu.X_AXIS], @a[imu.Y_AXIS], @a[imu.Z_AXIS])
-    ser.str(@"Accel (g): ")
-    repeat i from 0 to 2
-        ser.positionx(12+(15*i))
-        ser.printf(@"%3.3d.%06.6d", (a[i]/1_000_000), abs(a[i]//1_000_000))
+    ser.str(@"Accel (g):  ")
+    repeat axis from imu.X_AXIS to imu.Z_AXIS
+        if (a[axis] < 0)
+            sign := "-"
+        else
+            sign := " "
+        ser.printf(@"%c%d.%06.6d     ", sign, abs(a[axis]/1_000_000), {
+}       abs(a[axis]//1_000_000))
     ser.newline()
 
 PUB Calibrate()
@@ -46,7 +50,7 @@ PUB Demo() | i
 
     ser.position(0, 4)
     repeat i from 0 to 2
-        ser.positionx(15+(15*i))
+        ser.positionx(12+(16*i))
         ser.char(i+"X")
 
     repeat
@@ -60,24 +64,32 @@ PUB Demo() | i
         if (ser.rxcheck() == "c")
             calibrate()
 
-PUB GyroData() | g[3], i
+PUB GyroData() | axis, g[3], sign
 ' Display gyroscope data
     repeat until imu.gyrodataready()
     imu.gyrodps(@g[imu.X_AXIS], @g[imu.Y_AXIS], @g[imu.Z_AXIS])
     ser.str(@"Gyro (dps): ")
-    repeat i from 0 to 2
-        ser.positionx(12+(15*i))
-        ser.printf(@"%3.3d.%06.6d", (g[i]/1_000_000), abs(g[i]//1_000_000))
+    repeat axis from imu.X_AXIS to imu.Z_AXIS
+        if (g[axis] < 0)
+            sign := "-"
+        else
+            sign := " "
+        ser.printf(@"%c%d.%06.6d     ", sign, abs(g[axis]/1_000_000), {
+}       abs(g[axis]//1_000_000))
     ser.newline()
 
-PUB MagData() | m[3], i
+PUB MagData() | axis, m[3], sign
 ' Display magnetometer data
     repeat until imu.magdataready()
     imu.maggauss(@m[imu.X_AXIS], @m[imu.Y_AXIS], @m[imu.Z_AXIS])
-    ser.str(@"Mag (Gs): ")
-    repeat i from 0 to 2
-        ser.positionx(12+(15*i))
-        ser.printf(@"%3.3d.%06.6d", (m[i]/1_000_000), abs(m[i]//1_000_000))
+    ser.str(@"Mag (Gs):   ")
+    repeat axis from imu.X_AXIS to imu.Z_AXIS
+        if (m[axis] < 0)
+            sign := "-"
+        else
+            sign := " "
+        ser.printf(@"%c%d.%06.6d     ", sign, abs(m[axis]/1_000_000), {
+}       abs(m[axis]//1_000_000))
     ser.newline()
 
 DAT
