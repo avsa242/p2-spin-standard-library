@@ -229,7 +229,7 @@ PUB WrBlock_MSBF(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
                     pint(SCK)
                     waitx(clk_delay)
 
-#include "com.spi-common.spin2h"                    ' R/W methods common to all SPI engines
+#include "com.spi.common.spin2h"                    ' R/W methods common to all SPI engines
 
 DAT
 {

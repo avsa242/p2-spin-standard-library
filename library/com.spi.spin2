@@ -176,7 +176,7 @@ PRI SPIClockPeriod(SCK_FREQ): bt
     bt := ((clkfreq / SCK_FREQ) / 2)            ' SPI bit time
     bt := bt #> 2                               ' Clamp to min of syclock/2
 
-#include "com.spi-common.spin2h"                ' R/W methods common to all SPI engines
+#include "com.spi.common.spin2h"                ' R/W methods common to all SPI engines
 
 DAT
 {
