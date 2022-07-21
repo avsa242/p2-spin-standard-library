@@ -5,12 +5,12 @@
     Description: Library of generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2022
     Started May 19, 2019
-    Updated Jan 30, 2022
+    Updated Jul 21, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 
-#include "lib.terminal.spin2"                   ' for PrintF(), Str(), etc
+#include "terminal.common.spin2h"               ' for PrintF(), Str(), etc
 
 VAR
 
@@ -296,6 +296,10 @@ PUB Position(x, y)
     _charpx_x := (x * _charcell_w) * _fnt_scl   ' calc pixel position:
     _charpx_y := (y * _charcell_h) * _fnt_scl   ' char cell coords * font dims
 
+PUB R5G6B5_RGB565(r, g, b): rgb565
+' Return 16-bit color in RGB565 format, given red (5), green (6), blue (5) components
+    return ((r << 11) | (g << 5) | b)
+
 PUB RGBW8888_RGB32(r, g, b, w): rgb32
 ' Return 32-bit long from discrete Red, Green, Blue, White color components (values 0..255)
     rgb32.byte[3] := r
@@ -319,6 +323,18 @@ PUB RGBW8888_RGB32_Brightness(r, g, b, w, level): rgb32
         b := b * level / 255
         w := w * level / 255
         return RGBW8888_RGB32(r, g, b, w)
+
+PUB RGB565_R5(rgb565): r5
+' Isolate 5-bit red component of 16-bit RGB565 color
+    return ((rgb565 & $F800) >> 11)
+
+PUB RGB565_G5(rgb565): g5
+' Isolate 6-bit green component of 16-bit RGB565 color
+    return ((rgb565 & $07E0) >> 5)
+
+PUB RGB565_B5(rgb565): b5
+' Isolate 5-bit blue component of 16-bit RGB565 color
+    return (rgb565 & $001F)
 
 PUB RGB565_R8(rgb565): r8
 ' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
