@@ -2,141 +2,68 @@
     --------------------------------------------
     Filename: ICM20649-Demo.spin2
     Author: Jesse Burt
-    Description: Demo of the ICM20649 driver (P2 version)
+    Description: ICM20649 driver demo (P2 version)
+        * 6DoF data output
     Copyright (c) 2022
     Started Sep 4, 2020
-    Updated Apr 23, 2022
+    Updated Jul 13, 2022
     See end of file for terms of use.
     --------------------------------------------
-}
 
+    Build-time symbols supported by driver:
+        -DICM20649_SPI
+        -DICM20649_I2C (default if none specified)
+}
 CON
 
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-' I2C
+    { I2C configuration }
     SCL_PIN     = 0
     SDA_PIN     = 1
-    ADDR_BITS   = 0                             ' optional: 0, 1
-    I2C_FREQ    = 400_000                       ' max: 400_000
+    I2C_FREQ    = 400_000                       ' max is 400_000
+    ADDR_BITS   = 0                             ' 0, 1
 
-' SPI
-    CS_PIN      = 2
-    SCK_PIN     = 3
-    MOSI_PIN    = 4
-    MISO_PIN    = 5
-    SPI_FREQ    = 7_000_000                     ' max: 7_000_000
+    { SPI configuration }
+    CS_PIN      = 0
+    SCK_PIN     = 1
+    MOSI_PIN    = 2
+    MISO_PIN    = 3
+    SPI_FREQ    = 7_000_000                     ' max is 7_000_000
 ' --
-
-    DAT_X_COL   = 20
-    DAT_Y_COL   = DAT_X_COL + 15
-    DAT_Z_COL   = DAT_Y_COL + 15
 
 OBJ
 
-    cfg     : "core.con.boardcfg.p2eval"
-    ser     : "com.serial.terminal.ansi"
-    int     : "string.integer"
-    imu     : "sensor.imu.6dof.icm20649"
-
-PUB Main()
-
-    setup()
-    imu.preset_active()                         ' default settings, but enable
-                                                ' sensor power, and set
-                                                ' scale factors
-    repeat
-        ser.position(0, 3)
-        accelcalc()
-        gyrocalc()
-
-        if ser.rxcheck() == "c"                 ' press the 'c' key in the demo
-            calibrate()                         ' to calibrate sensor offsets
-
-PUB AccelCalc() | ax, ay, az
-
-    repeat until imu.acceldataready()           ' wait for new sensor data set
-    imu.accelg(@ax, @ay, @az)                   ' read calculated sensor data
-    ser.str(string("Accel (g):"))
-    ser.positionx(DAT_X_COL)
-    decimal(ax, 1000000)                        ' data is in micro-g's; display
-    ser.positionx(DAT_Y_COL)                    ' it as if it were a float
-    decimal(ay, 1000000)
-    ser.positionx(DAT_Z_COL)
-    decimal(az, 1000000)
-    ser.clearline()
-    ser.newline()
-
-PUB GyroCalc() | gx, gy, gz
-
-    repeat until imu.gyrodataready()
-    imu.gyrodps(@gx, @gy, @gz)
-    ser.str(string("Gyro (dps):"))
-    ser.positionx(DAT_X_COL)
-    decimal(gx, 1000000)
-    ser.positionx(DAT_Y_COL)
-    decimal(gy, 1000000)
-    ser.positionx(DAT_Z_COL)
-    decimal(gz, 1000000)
-    ser.clearline()
-    ser.newline()
-
-PUB Calibrate()
-
-    ser.position(0, 7)
-    ser.str(string("Calibrating..."))
-    imu.calibrateaccel()
-    imu.calibrategyro()
-    ser.positionx(0)
-    ser.clearline()
-
-PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp, sign
-' Display a scaled up number as a decimal
-'   Scale it back down by divisor (e.g., 10, 100, 1000, etc)
-    whole := scaled / divisor
-    tmp := divisor
-    places := 0
-    part := 0
-    sign := 0
-    if scaled < 0
-        sign := "-"
-    else
-        sign := " "
-
-    repeat
-        tmp /= 10
-        places++
-    until tmp == 1
-    scaled //= divisor
-    part := int.deczeroed(abs(scaled), places)
-
-    ser.char(sign)
-    ser.dec(abs(whole))
-    ser.char(".")
-    ser.str(part)
-    ser.chars(" ", 5)
+    cfg: "core.con.boardcfg.p2eval"
+    imu: "sensor.imu.6dof.icm20649"
+    ser: "com.serial.terminal.ansi"
 
 PUB Setup()
 
     ser.start(SER_BAUD)
-    waitms(30)
+    waitms(10)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
+    ser.strln(@"Serial terminal started")
+
 #ifdef ICM20649_SPI
-    if imu.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SPI_FREQ)
-        ser.str(string("ICM20649 driver started (SPI)"))
+    if (imu.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SPI_FREQ))
 #else
-    if imu.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS)
-        ser.str(string("ICM20649 driver started (I2C)"))
+    if (imu.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS))
 #endif
+        ser.strln(@"ICM20649 driver started")
     else
-        ser.str(string("ICM20649 driver failed to start - halting"))
+        ser.strln(@"ICM20649 driver failed to start - halting")
         repeat
+
+    imu.preset_active()
+
+    demo()
+
+#include "imudemo.common.spin2h"                ' code common to all IMU demos
 
 DAT
 {
@@ -160,3 +87,4 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 }
+
