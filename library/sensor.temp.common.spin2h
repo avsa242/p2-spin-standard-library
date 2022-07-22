@@ -6,7 +6,7 @@
     Description: Routines common to all temperature device drivers
     Copyright (c) 2022
     Started May 13, 2022
-    Updated May 13, 2022
+    Updated Jul 22, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -37,17 +37,32 @@ VAR
     long _last_temp
     byte _temp_scale
 
+#ifdef HAS_COLDJUNC
+PUB CJ_Temp(): cjtemp
+' Current cold-junction temperature
+'   Returns: temperature, in hundredths of a degree
+    return cj_word2temp(cj_data())
+#endif
+
 PUB LastTemp(): temp
 ' Previous Temperature measurement, in hundredths of a degree
 '   Returns: Integer
 '   (e.g., 2105 is equivalent to 21.05 deg C)
     return tempword2deg(_last_temp)
 
+#ifdef HAS_THERMCPL                             { thermocouple drivers }
+PUB TC_Temp(): temp
+' Current thermocouple temperature, in hundredths of a degree
+'   Returns: Integer
+'   (e.g., 2105 is equivalent to 21.05 deg C)
+    return tc_word2temp(tc_data())
+#else                                           { other temp sensor drivers }
 PUB Temperature(): temp
 ' Current Temperature, in hundredths of a degree
 '   Returns: Integer
 '   (e.g., 2105 is equivalent to 21.05 deg C)
     return tempword2deg(tempdata())
+#endif
 
 PUB TempScale(scale=-2): curr_scale
 ' Set temperature scale used by Temperature method
