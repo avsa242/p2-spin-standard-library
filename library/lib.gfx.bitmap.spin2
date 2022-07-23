@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2022
     Started May 19, 2019
-    Updated Jul 21, 2022
+    Updated Jul 23, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -123,7 +123,8 @@ PUB Char(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_
                             if byte[_font_addr][glyph] & decod(glyph_row)
                                 plot(xs, _charpx_y + glyph_row, _fgcolor)
                             else
-                                plot(xs, _charpx_y + glyph_row, _bgcolor)
+                                if (_char_attrs & DRAWBG)
+                                    plot(xs, _charpx_y + glyph_row, _bgcolor)
                 2..8:                           ' scale 2..8x
                     repeat glyph_col from 0 to last_glyph_col
                         xs := _charpx_x + (glyph_col * _fnt_scl)
@@ -135,7 +136,8 @@ PUB Char(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_
                             if byte[_font_addr][glyph] & decod(glyph_row)
                                 box(xs, ys, xe, ye, _fgcolor, true)
                             else
-                                box(xs, ys, xe, ye, _bgcolor, true)
+                                if (_char_attrs & DRAWBG)
+                                    box(xs, ys, xe, ye, _bgcolor, true)
 
             _charpx_x += char_wid               ' inc column after rendering
             if _charpx_x > _charpx_xmax         ' if last column reached,

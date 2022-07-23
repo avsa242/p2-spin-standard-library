@@ -4,7 +4,7 @@
     Description: 8-bits per pixel bitmap VGA driver (320x240)
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Feb 6, 2022
+    Updated: Jul 23, 2022
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is based on raycast5b_SpinDisplay2a.spin2,
@@ -26,6 +26,9 @@ CON
     PTR_FB_PAR  = 5
 
     INTENSITY   = 127                                        ' 0..128
+
+' Character attributes
+    DRAWBG      = 1 << 0
 
 OBJ
 
@@ -73,6 +76,10 @@ PUB Address(addr)
 '   NOTE: Also sets address of (optional) offscreen buffer to the same address
     _ptr_dispbuff := addr
     _ptr_drawbuffer := addr
+
+PUB CharAttrs(attrs)
+' Set character attributes
+    _char_attrs := attrs
 
 PUB Clear()
 ' Clear the display
