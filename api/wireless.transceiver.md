@@ -5,101 +5,119 @@ API for packet radio and other RF transceiver device drivers
 
 Object filename description:
 
-wireless.transceiver.model.int
+`wireless.mode.model.spin2`
 
-_transceiver_ is one of: transceiver, transmitter, receiver
+_mode_ is one of: transceiver, transmitter, receiver, bluetooth, bluetooth-le
 
 _model_ indicates the manufacturer's model number of the device
 
-_int_ indicates the type of interface supported by the driver (e.g., spi, i2c, uart)
+## Base Methods
 
-## Methods
+These are methods that are common to _all_ wireless drivers
 
-| Method                                | Description                                                   |
-| --------------------------------------|-------------------------------------------------------------- |
-|`AbortListen`                          | Aborts listen mode                                            |
-|`AddressCheck(mode)`                   | Validate address on incoming packets                          |
-|`AddressWidth(bytes)`                  | Set width of RX/TX address field                              |
-|`AFCAuto(enabled)`                     | Enable automatic frequency control                            |
-|`AFCComplete`                          | Flag indicating AFC completed                                 |
-|`AFCMethod(method)`                    | Set AFC method                                                |
-|`AFCOffset`                            | Read AFC offset                                               |
-|`AFCStart`                             | Trigger a manual AFC                                          |
-|`AfterRX(next_state)`                  | Define state to transition to after packet rcvd               |
-|`AfterTX(next_state)`                  | Define state to transition to after packet xmit               |
-|`AGCMode(mode)`                        | Automatic Gain Control                                        |
-|`AGCFilterLength(samples)`             | AGC filter sample averaging                                   |
-|`AppendStatus(bool)`                   | Automatically append status bytes to payload                  |
-|`AutoAckEnabledPipes(pipe_mask)`       | Enable auto acknowledgement                                   |
-|`AutoRetransmitCount(tries)`           | Set number of re-transmit attempts                            |
-|`AutoRetransmitDelay(delay_us)`        | Set automatic retransmission delay                            |
-|`BattLow`                              | Flag indicating battery low                                   |
-|`CarrierFreq(freq)`                    | Set carrier/center/base frequency                             |
-|`Channel(number)`                      | Set frequency by index/channel number                         |
-|`CRCCheckEnabled(enabled)`             | Enable CRC generation (TX) and checking (RX)                  |
-|`CRCLength(bytes)`                     | Set CRC encoding scheme length                                |
-|`CrystalOff`                           | Turn off crystal oscillator                                   |
-|`DataRate(bps)`                        | Set OTA data rate                                             |
-|`DataWhitening(enabled)`               | Enable data whitening                                         |
-|`DCBlock(enabled)`                     | Enable DC blocking filter                                     |
-|`DeviceID`                             | Get device part number/ID                                     |
-|`DVGAGain(gain)`                       | Set digital variable gain amplifier maximum level             |
-|`DynamicACK(enabled)`                  | Enable selective auto-ack                                     |
-|`DynamicPayload(mask)`                 | Select data pipes that have dynamic payload length enabled    |
-|`DynPayloadEnabled(enabled)`           | Enable Dynamic Payload Length                                 |
-|`EnableACK(enabled)`                   | Enable payload with ACK                                       |
-|`Encryption(enabled)`                  | Enable encryption/decryption                                  |
-|`EncryptionKey(rw, buff_addr)`         | Set encryption key                                            |
-|`FEC(enabled)`                         | Enable forward error correction                               |
-|`FIFOEmpty`                            | Flag indicating FIFO is empty                                 |
-|`FIFOFull`                             | Flag indicating FIFO is full                                  |
-|`FIFORXBytes`                          | Returns num bytes in RX FIFO                                  |
-|`FIFOThreshold(bytes)`                 | Set threshold for triggering FIFO level interrupt             |
-|`FIFOTXBytes`                          | Returns num bytes in TX FIFO                                  |
-|`FlushRX`                              | Flush receive FIFO                                            |
-|`FlushTX`                              | Flush transmit FIFO                                           |
-|`FreqDeviation(Hz)`                    | Set carrier freq deviation, in Hz                             |
-|`GPIOx(config)`                        | Configure signal output on GPIOx                              |
-|`Idle`                                 | Change transceiver to idle state                              |
-|`IntFreq(Hz)`                          | Set Intermediate Frequency (IF), in Hz                        |
-|`IntMask(mask)`                        | Select Control which events will trigger an interrupt         |
-|`LNAGain(dB)`                          | Set LNA gain                                                  |
-|`LostPackets`                          | Count lost packets                                            |
-|`ManchesterEnc((enabled)`              | Enable Manchester encoding/decoding                           |
-|`MaxRetransReached(clear_intr)`        | Query or clear Maximum number of TX retransmits interrupt     |
-|`Modulation(type)`                     | Set OTA modulation                                            |
-|`NodeAddress(addr)`                    | Set node address                                              |
-|`OpMode(mode)`                         | Set operating mode                                            |
-|`PacketsRetransmitted`                 | Count retransmitted packets                                   |
-|`PayloadLen(length)`                   | Set packet length                                             |
-|`PayloadLenCfg(mode)`                  | Set packet length mode                                        |
-|`PayloadReady(read_clear)`             | Query or clear Data Ready RX FIFO interrupt                   |
-|`PayloadSent(read_clear)`              | Query or clear Data Sent TX FIFO interrupt                    |
-|`PipesEnabled(mask)`                   | Enable data pipes by mask                                     |
-|`PLL_Lock(enabled)`                    | Force PLL lock signal                                         |
-|`PowerUp(enabled)`                     | Power on or off                                               |
-|`PreambleLen(bytes)`                   | Set number of preamble bytes                                  |
-|`RSSI`                                 | Received Signal Strength Indicator                            |
-|`RXAddr(buff_addr, pipe, rw)`          | Set receive address of pipe number                            |
-|`RXBandwidth(Hz)`                      | Set receiver channel filter bandwidth                         |
-|`RXFIFOEmpty`                          | Flag indicating RX FIFO is empty                              |
-|`RXFIFOFull`                           | Flag indicating RX FIFO is full                               |
-|`RXMode`                               | Change chip state to receive                                  |
-|`RXPayload(nr_bytes, ptr)`             | Receive data from FIFO                                        |
-|`RXPipePending`                        | Returns pipe number with pending data                         |
-|`Sleep`                                | Power down chip                                               |
-|`State`                                | Read chip state machine                                       |
-|`SyncMode(mode)`                       | Set sync-word qualifier mode                                  |
-|`SyncWord(sync_word)`                  | Set syncword                                                  |
-|`SyncWordLen(length)`                  | Set syncword length                                           |
-|`SyncWordTolerance(bits)`              | Set syncword qualifier mode                                   |
-|`TESTCW`                               | Enable CW carrier transmit                                    |
-|`TXAddr(ptr)`                          | Set node address to transmit to                               |
-|`TXFIFOEmpty`                          | Flag indicating TX FIFO is empty                              |
-|`TXFIFOFull`                           | Flag indicating TX FIFO is full                               |
-|`TXMode`                               | Change chip state to transmit                                 |
-|`TXPayload(nr_bytes, ptr)`             | Transmit data queued in FIFO                                  |
-|`TXPower(dBm)`                         | Set transmit power                                            |
-|`TXReuse`                              | Flag indicating last payload transmitted is to be re-used     |
-|`WOR`                                  | Set chip to Wake On Radio                                     |
+| Method          | Description                                      | Param     | Returns        |
+| --------------- | ------------------------------------------------ | --------- | -------------- |
+| `Startx()`      | Start driver using explicitly defined settings   | Notes 1-3 | cog id+1       |
+| `Stop()`        | Stop the driver                                  | n/a       | n/a            |
+| `Defaults()`    | Set sensor factory default settings              | n/a       | n/a            |
+
+Notes:
+
+1. For SPI-connected devices:
+	* `Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SPI_FREQ): status`
+	* The preprocessor symbol `MODEL_SPI` __must__ be defined when building, to use.
+	* Replace `MODEL` with the sensor model #. Example: `LSM9DS1_SPI`
+	* 4-wire SPI is used by default. If supported by the device,
+3-wire SPI can be chosen by setting `MOSI_PIN` and `MISO_PIN` to the same I/O pin.
+The `Startx()` method will check for this and set the device's 3-wire SPI mode register.
+
+2. Some drivers may have a `RST_PIN` parameter, for specifying an optional reset pin
+(device-dependent). The pin is only validated in the `Reset()` method, and is ignored if set
+outside the allowable range.
+
+3. `Startx()` returns the launched cog number+1 of com engine used on success.
+
+4. `Startx()` returns `FALSE` (0) if the driver fails to start, for these possible reasons:
+	* No more cogs available
+	* One or more specified I/O pins are outside allowed range
+	* Bus frequency is outside allowed range
+	* If supported by the device, `DeviceID()` didn't return the expected value
+
+5. `Defaults()` may simply call `Reset()`, if sensible, as opposed to calling several other driver
+methods, in order to reduce memory usage.
+
+6. Most (but not all) drivers also provide the following methods:
+| Method          | Description                                      | Param    | Returns         |
+| --------------- | ------------------------------------------------ | -------- | --------------- |
+| `DeviceID()`    | Read model-unique identification register        | n/a      | model/dev ID    |
+| `Reset()`       | Perform a hard or soft-reset of the device       | n/a      | n/a             |
+
+7. Drivers may have one or more `Preset_()` methods, that establish a pre-set combination of
+bitrates, modulation, TX/RX role, etc.
+
+8. `Stop()` performs the following tasks:
+        * Stop any extra cogs that were started (if applicable)
+        * Clear all global variable space used to 0
+
+## Transceivers
+
+| Method          | Description                                      | Param    | Returns         |
+| --------------- | ------------------------------------------------ | -------- | --------------- |
+| `CarrierFreq()` | Set carrier frequency        		     | Hz       | current freq    |
+| `DataRate()`	  | Set RF data rate                                 | bps      | current rate    |
+| `PayloadLen()`  | Set length of static payload/max dyn. payload    | bytes    | current len     |
+| `PayloadReady()`| Flag indicating received payload is ready        | n/a      | boolean         |
+| `PayloadSent()` | Flag indicating payload sent                     | n/a      | boolean         |
+| `RXPayload()`   | Receive payload stored in FIFO                   | note 1   | n/a             |
+| `TXPayload()`   | Queue payload to be transmitted                  | note 2   | n/a             |
+| `TXPower()`     | Set transmit RF power                            | dBm      | current dBm     |
+
+Notes:
+
+1. `RXPayload(nr_bytes, ptr_buff)`: specify number of bytes to receive and a pointer to the buffer
+to store the incoming data.
+
+2. `TXPayload(nr_bytes, ptr_buff)`: specify number of bytes to transmit and a pointer to the buffer
+containing the data to transmit.
+
+3. Methods return the current setting when they're given a parameter that is out of range
+(see [driver-basic-structure.md](driver-basic-structure.md).
+
+4. Other methods availability are device-dependent.
+
+
+
+## BLE
+
+| Method          | Description                                      | Param    | Returns         |
+| --------------- | ------------------------------------------------ | -------- | --------------- |
+| `AdvInterval()` | Set advertising interval                         | msec     | current val     |
+| `AdvType()`     | Set advertising type                             | type     | current type    |
+| `AuthMode()`    | Set authentication mode                          | mode     | current mode    |
+| `Char()`        | Send a single character                          | char     | n/a             |
+| `ConnNotify()`  | Enable (dis)connection notifications             | bool     | current val     |
+| `Count()`       | Number of characters in receive buffer           | n/a      | # chars         |
+| `DataRate()`    | Set serial/on-air data rate                      | bps      | current val     |
+| `DeviceID()`    | Read device identification                       | n/a      | "OK" (ASCII)    |
+| `LastConnected()`| Last connected device's address                 | n/a      | pointer to str  |
+| `NodeAddress()`  | Read device's node address                      | n/a      | pointer to str  |
+| `NodeName()`     | Set BLE module name                             | ptr_str  | pointer to str  |
+| `PinCode()`      | Set PIN code                                    | pin      | current val     |
+| `Reset()`        | Soft-reset device                               | n/a      | n/a             |
+| `ResolveNames()` | Resolve MAC addresses to names                  | bool     | current val     |
+| `Role()`         | Set device role                                 | role     | current val     |
+| `RXCheck()`      | Check for received character (non-blocking)     | n/a      | ASCII char      |
+| `ScanTime()`     | Set length of scan                              | secs     | current val     |
+| `RdStr_Max()`    | Read received string, up to max len             | note 1   | n/a             |
+| `SysLEDMode()`   | Set output mode of module's LED                 | mode     | current val     |
+| `TXPower()`      | Set transmit RF power                           | dBm      | current dBm     |
+| `Unpair()`       | Remove pairing/bonding information              | n/a      | n/a             |
+| `Version()`      | Get firmware version                            | n/a      | ver (int)       |
+| `WorkMode()`     | Set device working mode                         | mode     | current val     |
+
+Notes:
+
+1. `RdStr_Max(ptr_str, max_len)`: pointer to a buffer to read string into, up to max_len bytes
+
+2. This section preliminary (currently only one driver exists)
 
