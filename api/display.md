@@ -7,54 +7,95 @@ Object filename description:
 
 display.type.model.int
 
-_type_ is one of: lcd, ledmatrix, oled, vga
+_type_ is one of: lcd, ledmatrix, oled, vga, lcd-alpha, oled-alpha
 
 _model_ indicates the manufacturer's model number of the display controller
 
-_int_ indicates the type of interface supported by the driver (e.g., spi, i2c, uart), if applicable
 
-NOTE: Most display drivers are extended with the generic bitmap graphics library [API](lib.gfx.bitmap.md), which is included in each supported driver using the preprocessor. This library provides methods for drawing primitives, such as pixels, lines, boxes, circles, text. The use of this requires a display buffer to be allocated at the application level. The size will of course depend on the resolution of the display and color depth. The address of the display buffer is then passed to the graphics library via the display driver's Start()  method.
+## Base Methods
 
-## Methods
+These are methods that are common to _all_ display drivers
 
-| Method                                        | Description                                                                           |
-| ----------------------------------------------|-------------------------------------------------------------------------------------- |
-|`Address (addr)`                               | Set framebuffer/display buffer address                                                |
-|`AddrMode (mode)`                              | Set display internal addressing mode                                                  |
-|`BoxAccel(sx, sy, ex, ey, boxcolor, fillcolor)`| Draw a box, using the display's native/accelerated box function                       |
-|`ChargePumpReg (enabled)`                      | Enable charge pump regulator when disp power enabled                                  |
-|`ClearAccel`                                   | Use the display's accelerated Clear Display function                                  |
-|`ClockDiv (divider)`                           | Set clock frequency divider used by the display controller                            |
-|`ClockFreq (freq)`                             | Set display internal oscillator frequency                                             |
-|`ColorDepth (format)`                          | Set expected color format of pixel data                                               |
-|`COMHighLogicLevel (level)`                    | Set logic high level threshold of COM pins rel. to Vcc                                |
-|`COMPinCfg`                                    | Configure COMmon pins and L/R remap                                                   |
-|`Contrast (level)`                             | Set display contrast/brightness                                                       |
-|`ContrastABC (a, b, c)`                        | Set contrast/brightness level of subpixels a, b, c                                    |
-|`CopyAccel (sx, sy, ex, ey, dx, dy)`           | Use the display's accelerated Copy Region function                                    |
-|`CopyAccelInverted(enabled)`                   | Enable inverted colors, when using CopyAccel()                                        |
-|`CurrentLimit (divisor)`                       | Set master current limit divisor                                                      |
-|`Defaults`                                     | Apply power-on-reset default settings                                                 |
-|`DefaultsCommon`                               | Apply settings that may be more commonly used but differ from factory settings        |
-|`DisplayBounds(sx, sy, ex, ey)`                | Set displayable area                                                                  |
-|`DisplayInverted (enabled)`                    | Invert display colors                                                                 |
-|`DisplayLines (lines)`                         | Set total number of display lines                                                     |
-|`DisplayOffset (lines)`                        | Set display offset/vertical shift                                                     |
-|`DisplayStartLine (line)`                      | Set display start line                                                                |
-|`DisplayVisibility (mode)`                     | Set display visibility                                                                |
-|`FillAccelEnabled (enabled)`                   | Enable the display's fill function, when using BoxAccel()                             |
-|`Interlaced (enabled)`                         | Alternate every other display line                                                    |
-|`LineAccel(sx, sy, ex, ey, rgb)`               | Draw a line, using the display's native/accelerated line function                     |
-|`MirrorH (enabled)`                            | Mirror display, horizontally                                                          |
-|`MirrorV (enabled)`                            | Mirror display, vertically                                                            |
-|`Phase1Period (clks)`                          | Set discharge/phase 1 period, in display clocks                                       |
-|`Phase2Period (clks)`                          | Set charge/phase 2 period, in display clocks                                          |
-|`Phase3Period (clks)`                          | Set second charge/phase 3 period, in display clocks                                   |
-|`PlotAccel (x, y, c)`                          | Draw a pixel, using the display's native/accelerated plot/pixel function              |
-|`Powered (enabled)`                            | Enable display power                                                                  |
-|`PrechargePeriod (phs1_clks, phs2_clks)`       | Set display refresh precharge periods                                                 |
-|`PrechargeLevel (mV)`                          | Set first pre-charge voltage level (phase 2) of segment pins, in millivolts           |
-|`Reset`                                        | Reset the display controller                                                          |
-|`SubpixelOrder (order)`                        | Set subpixel color order                                                              |
-|`Update`                                       | Write the current display buffer to the display                                       |
-|`WriteBuffer (buff_addr, buff_sz)`             | Write alternate buffer to display                                                     |
+| Method          | Description                                      | Param     | Returns        |
+| --------------- | ------------------------------------------------ | --------- | -------------- |
+| `Startx()`      | Start driver using explicitly defined settings   | Notes 1-3 | cog id+1       |
+| `Stop()`        | Stop the driver                                  | n/a       | n/a            |
+| `Defaults()`    | Set display factory default settings             | n/a       | n/a            |
+
+Notes:
+
+1. For SPI-connected displays:
+	* `Startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, SCK_FREQ, WIDTH, HEIGHT, PTR_DISP):
+status`
+	* The preprocessor symbol `MODEL_SPI` __must__ be defined when building, to use.
+	* Replace `MODEL` with the display model #. Example: `SSD130X_SPI`
+
+2. For I2C-connected displays:
+	* `Startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_FREQ, ADDR_BITS, WIDTH, HEIGHT, PTR_DISP): status`
+	* If no particular interface preprocessor symbol is defined when building, the driver will
+default to the PASM-based I2C engine.
+	* Not all devices support alternate I2C addresses.
+
+3. For VGA-connected displays:
+	* `Startx(PINGRP, WIDTH, HEIGHT, PTR_DISP): status`
+
+4. `Startx()` returns the launched cog number+1 of com engine used on success.
+
+5. `Startx()` returns `FALSE` (0) if the driver fails to start, for these possible reasons:
+	* No more cogs available
+	* One or more specified I/O pins are outside allowed range
+	* Bus frequency is outside allowed range
+	* If supported by the device, `DeviceID()` didn't return the expected value
+
+6. `Defaults()` may simply call `Reset()`, if sensible, as opposed to calling several other driver
+methods, in order to reduce memory usage.
+
+7. Some drivers also provide the following methods:
+| Method          | Description                                      | Param    | Returns         |
+| --------------- | ------------------------------------------------ | -------- | --------------- |
+| `Reset()`       | Perform a hard or soft-reset of the device       | n/a      | n/a             |
+
+8. Drivers may have one or more `Preset_()` methods, that establish a set of pre-set settings.
+
+9. `Stop()` performs the following tasks:
+	* Stop any extra cogs that were started (if applicable)
+	* Clear all global variable space used to 0
+
+## Dot-matrix/graphical displays
+
+Most display drivers are extended with the generic bitmap graphics library [API](lib.gfx.bitmap.md)
+which is included in each supported driver using the preprocessor. This library provides methods
+for drawing primitives, such as pixels, lines, boxes, circles, text. The use of this requires a
+display buffer to be allocated at the application level. The size will of course depend on the
+resolution of the display and color depth. The address of the display buffer is then passed to the
+graphics library via the display driver's Start() method.
+
+This library also provides methods common to terminal devices (such as `Str()`, `PrintF()`, etc)
+
+To bypass the use of a buffer, define the preprocessor symbol `GFX_DIRECT` when building.
+The driver's internal equivalents to the drawing primitives in the bitmap graphics library
+will be used instead (some drivers implementations may have limitations in this case).
+
+Notes:
+1. Common parameters in `Startx()`
+	* WIDTH: width of the display, in pixels
+	* HEIGHT: height of the display, in pixels
+	* PTR_DISP: pointer to the display buffer, where rendering occurs
+
+## Small-format dot-matrix displays
+
+LED matrices, Smart-LED (e.g., NeoPixel)
+See Dot-matrix/graphical displays
+
+
+## Electrophoretic/E-Ink/E-Paper displays
+
+See Dot-matrix/graphical displays
+
+
+## Alphanumeric displays
+
+Alphanumeric-only LCD's, OLEDs (e.g., HD44780, US2066)
+
+These drivers are extended with common terminal output methods (such as `Str()`, `PrintF()`, etc)
+
