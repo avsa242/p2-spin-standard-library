@@ -1,0 +1,130 @@
+{
+    --------------------------------------------
+    Filename: memdemo.common.spin2h
+    Author: Jesse Burt
+    Description: Routines common to all memory drivers (P2 version)
+    Copyright (c) 2022
+    Started Jul 30, 2022
+    Updated Jul 30, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+}
+VAR
+
+    word _lastpage
+    word _pagesize
+    byte _pg_buff[512]                          ' reasonable maximum
+
+OBJ
+
+    math : "math.int"
+
+CON
+
+    CYCLES_USEC = _CLKFREQ / 1_000_000          ' calc . cycles in 1 microsec
+
+PUB Demo() | base_page, offs
+
+    _pagesize := mem.page_size() <# 512
+    ser.printf(@"Page size: %d\n\r", _pagesize)
+    bytefill(@_pg_buff, 0, _pagesize)          ' clear out buffer
+    _lastpage := (MEMSIZE / _pagesize)-1
+    base_page := 0
+    mem.rd_block_lsbf(@_pg_buff, base_page, _pagesize)
+    offs := pg2byte_offs(base_page)
+    ser.position(0, 4)
+    ser.strln(string("Keys:"))
+    ser.strln(string("[, ]: go back, forward a page in memory"))
+    ser.strln(string("s, e: go to the first, last page"))
+    ser.strln(string("w: write test: fill current page with random value"))
+    ser.strln(string("x: erase test: fill the current page with the erase value"))
+    ser.strln(string("   (varies among memory types)"))
+    ser.fgcolor(ser#RED)
+    ser.strln(string("Only perform the write or erase test if the data stored on the memory"))
+    ser.strln(string("  isn't important!"))
+    ser.fgcolor(ser#GREY)
+    repeat
+        ser.position(0, 13)
+        { display a hexdump of the current page of memory, but limit it to
+            a reasonable 512 bytes at a time }
+        ser.hexdump(@_pg_buff, offs, 6, _pagesize, 16)
+
+        case ser.charin()
+            "[":                                ' go back a page in memory
+                base_page--
+                if (base_page < 0)
+                    base_page := 0
+            "]":                                ' go forward a page
+                base_page++
+                if (base_page > _lastpage)
+                    base_page := _lastpage
+            "e":                                ' go to the last page
+                base_page := _lastpage
+            "s":                                ' go to the first page
+                base_page := 0
+            "w":                                ' fill page w/test value
+                cycletime(writetest(offs))
+            "x":                                ' erase the current page
+                cycletime(erasetest(offs))
+            other:
+        offs := pg2byte_offs(base_page)
+        cycletime(readtest(offs))
+
+PUB EraseTest(st_addr): etime | stime
+' Erase memory page
+    ser.str(@"Erasing page...")
+
+#ifdef IS_FLASH
+    mem.global_lock(false)
+    mem.writes_enabled(true)
+    stime := cnt
+    mem.erase(st_addr, mem.SECTOR)
+    repeat while mem.busy()
+    etime := cnt-stime
+#else
+    { fill working buffer with erase character }
+    bytefill(@_pg_buff, mem.ERASE_CELL, _pagesize)
+
+    { write the buffer to memory, and track how long it takes }
+    stime := cnt
+    mem.wr_block_lsbf(st_addr, @_pg_buff, _pagesize)
+    etime := cnt-stime
+#endif
+
+PUB ReadTest(st_addr): etime | stime
+' Read memory page
+    bytefill(@_pg_buff, 0, _pagesize)
+    ser.str(@"Reading page...")
+
+    { read memory page to buffer }
+    stime := cnt
+    mem.rd_block_lsbf(@_pg_buff, st_addr, _pagesize)
+    etime := cnt-stime
+
+PUB WriteTest(st_addr): etime | stime, tval
+' Write a random test value to memory page
+    ser.str(@"Writing page...")
+    bytefill(@_pg_buff, math.rndi(255), _pagesize)
+
+#ifdef IS_FLASH
+    mem.global_lock(false)
+    mem.writes_enabled(true)
+#endif
+    { fill page with test character }
+    stime := cnt
+    mem.wr_block_lsbf(st_addr, @_pg_buff, _pagesize)
+#ifdef IS_FLASH
+    repeat while mem.busy()
+#endif
+    etime := cnt-stime
+
+PRI CycleTime(cycles)
+' Display elapsed time in cycles and microseconds
+    ser.printf(@"%d cycles (%dusec)", cycles, (cycles / CYCLES_USEC))
+    ser.clearline()
+    ser.newline()
+
+PRI Pg2Byte_Offs(page_nr): b
+' Get start of page number as a byte offset
+    return (page_nr * _pagesize)
+
