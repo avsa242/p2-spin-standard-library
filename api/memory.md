@@ -46,15 +46,16 @@ Notes:
 
 | Method                                        | Description                                     |
 | --------------------------------------------- | ----------------------------------------------- |
-|`rd_byte(addr)`                                | Read one byte from the memory device            |
-|`rd_block_lsbf(ptr_buff, addr, nr_bytes)`      | Read multiple bytes from memory device (lsb-f)  |
-|`rd_block_msbf(ptr_buff, addr, nr_bytes)`      | Read multiple bytes from memory device (msb-f)  |
-|`rd_long_lsbf(addr)`                           | Read a long from the memory device (lsb-f)      |
-|`rd_long_msbf(addr)`                           | Read a long from the memory device (msb-f)      |
-|`rd_word_lsbf(addr)`                           | Read a word from the memory device (lsb-f)      |
-|`rd_word_msbf(addr)`                           | Read a word from the memory device (msb-f)      |
-|`wr_byte(addr, val)`                           | Write one byte to the memory device             |
-|`wr_block(ptr_buff, addr, nr_bytes)`           | Write multiple bytes to the memory device       |
+|`rd_byte(addr)`                                | Read one byte from the memory                   |
+|`rd_block_lsbf(ptr_buff, addr, nr_bytes)`      | Read multiple bytes from memory (lsb-f)         |
+|`rd_block_msbf(ptr_buff, addr, nr_bytes)`      | Read multiple bytes from memory (msb-f)         |
+|`rd_long_lsbf(addr)`                           | Read a long from the memory (lsb-f)             |
+|`rd_long_msbf(addr)`                           | Read a long from the memory (msb-f)             |
+|`rd_word_lsbf(addr)`                           | Read a word from the memory (lsb-f)             |
+|`rd_word_msbf(addr)`                           | Read a word from the memory (msb-f)             |
+|`wr_byte(addr, val)`                           | Write one byte to the memory                    |
+|`wr_block_lsbf(addr, ptr_buff, nr_bytes)`      | Write multiple bytes to the memory (lsb-f)      |
+|`wr_block_msbf(addr, ptr_buff, nr_bytes)`      | Write multiple bytes to the memory (msb-f)      |
 |`page_size()`                                  | Get memory's size of one page, in bytes         |
 
 Notes:

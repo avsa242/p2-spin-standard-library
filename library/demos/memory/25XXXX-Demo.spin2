@@ -2,150 +2,62 @@
     --------------------------------------------
     Filename: 25XXXX-Demo.spin2
     Author: Jesse Burt
-    Description: Demo app for the 25xxxx driver
+    Description: Simple demo of the 25XXXX NOR Flash driver (P2 version)
+        * Memory hexdump display
     Copyright (c) 2022
-    Started Nov 09, 2019
-    Updated Jul 10, 2022
+    Started Nov 9, 2019
+    Updated Jul 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    _xtlfreq    = cfg._xtlfreq
     _clkfreq    = 250_000_000
-
-    CYCLES_USEC = _clkfreq / 1_000_000
+    _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    LED         = cfg.LED1
     SER_BAUD    = 2_000_000
+    LED         = cfg.LED1
 
-    CS          = cfg.FLASH_CS
-    SCK         = cfg.FLASH_CLK
-    MOSI        = cfg.FLASH_DI                  ' SCK +/- 0..3
-    MISO        = cfg.FLASH_DO                  ' SCK +/- 0..3
-    SCK_FREQ    = 20_000_000
+    { SPI configuration }
+    CS_PIN      = cfg.FLASH_CS
+    SCK_PIN     = cfg.FLASH_CLK
+    MOSI_PIN    = cfg.FLASH_DI                  ' SCK +/- 0..3
+    MISO_PIN    = cfg.FLASH_DO                  ' SCK +/- 0..3
+    SPI_FREQ    = 20_000_000
+
+    { memory size }
+    PART        = 128
+    MULT        = M                             ' K = kilobits, M = megabits
 ' --
 
-    PAGE_SIZE   = 256
-    HEX_COLS    = 16
-    HEX_X       = 0
-    HEX_Y       = 10
+    K           = 1024
+    M           = 1048576
+    MEMSIZE     = (PART * MULT) / 8
 
 OBJ
 
-    ser         : "com.serial.terminal.ansi"
-    cfg         : "core.con.boardcfg.p2eval"
-    flash       : "memory.flash.25xxxx.spi"
-
-VAR
-
-    byte _page[PAGE_SIZE]
-
-PUB Main() | uid[2], base, seg, s, e
-
-    setup()
-
-' Read various chip IDs
-    ser.printf(@"Dev ID: %x\n\r", flash.deviceid())
-    ser.printf(@"Mfr ID: %x\n\r", flash.manufacturerid())
-    ser.printf(@"JEDEC ID: %x\n\r", flash.jedecid())
-    flash.uid(@uid)
-    ser.printf(@"UID: %x%x\n\r", uid[0], uid[1])
-
-    flash.writesenabled(FALSE)
-    messagewritesena()
-
-    seg := base := 0
-    ser.position(0, 10)
-    ser.hidecursor()
-
-' Page method
-    repeat
-        s := getct()
-        flash.readblock(base, PAGE_SIZE, @_page)
-        e := getct()-s
-        ser.position(HEX_X, HEX_Y)
-        ser.hexdump(@_page, base, 6, PAGE_SIZE, HEX_COLS)
-
-        case ser.charin()
-            "[":                                ' read previous flash page
-                base := (base - PAGE_SIZE) #> 0
-            "]":                                ' next page
-                base := (base + PAGE_SIZE) <# $FF_FF_00
-            "e":                                ' last page
-                base := $FF_FF_00
-            "s":                                ' first page
-                base := 0
-            "x":                                ' erase sector (4kBytes)
-                erasesector(base)
-            "w":                                ' write a test value to the
-                writetest(base)                 '   current page
-            "q":                                ' quit the demo (halt)
-                ser.strln(@"Halting")
-                quit
-            other:
-
-        messagewritesena()
-        ser.printf(@"Reading done (%d cycles/%dus).\n\r", e, cycles_to_us(e))
-        ser.clearline()
-
-    ser.showcursor()
-    repeat
-
-PUB EraseSector(start_addr) | s, e
-' Erase a sector starting at flash address start_addr
-    flash.writesenabled(TRUE)                   ' _required_ for any write ops
-    messagewritesena()                          ' confirm writes are enabled:
-                                                ' read state and display it
-
-    ser.str(@"Erasing...")
-    s := getct()
-    flash.erase(flash.SECTOR, start_addr)       ' erase sector (4kB)
-    repeat while flash.busy()
-    e := getct()-s
-    ser.printf(@"done (%d cycles/%dus).\n\r", e, cycles_to_us(e))
-    ser.clearline()
-
-PUB WriteTest(start_addr) | s, e, tmp
-' Write a test value to flash starting at start_addr
-    tmp := @"TEST"
-    flash.writesenabled(true)
-    messagewritesena()
-
-    ser.str(@"Writing test value...")
-    s := getct()
-    flash.writeblock(start_addr, strsize(tmp), tmp)
-    repeat while flash.busy()
-    e := getct()-s
-    ser.printf(@"done (%d cycles/%dus).\n\r", e, cycles_to_us(e))
-    ser.clearline()
-
-PRI Cycles_to_uS(cycles): usec
-' Convert processor cycles to microseconds
-    return cycles / CYCLES_USEC
-
-PRI MessageWritesEna()
-' Display a message indicating flash writes are enabled
-    ser.printf(@"\nWrites enabled? ")
-    case flash.writesenabled()
-        TRUE:
-            ser.strln(@"Yes")
-        FALSE:
-            ser.strln(@"No ")
-    ser.clearline()
+    cfg : "core.con.boardcfg.p2eval"
+    ser : "com.serial.terminal.ansi"
+    mem : "memory.flash.25xxxx"
 
 PUB Setup()
 
     ser.start(SER_BAUD)
+    waitms(30)
     ser.clear()
     ser.strln(@"Serial terminal started")
-    if flash.startx(CS, SCK, MOSI, MISO, SCK_FREQ)
-        ser.strln(@"25xxxx driver started")
+    if mem.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SPI_FREQ)
+        ser.strln(@"25XXXX driver started")
     else
-        ser.strln(@"25xxxx driver failed to start - halting")
+        ser.strln(@"25XXXX driver failed to start - halting")
         repeat
+
+    demo()
+
+#define IS_FLASH
+#include "memdemo.common.spin2h"
 
 DAT
 {

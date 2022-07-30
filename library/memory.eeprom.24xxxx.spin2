@@ -1,60 +1,61 @@
 {
     --------------------------------------------
-    Filename: memory.eeprom.24xxxx.i2c.spin
+    Filename: memory.eeprom.24xxxx.spin2
     Author: Jesse Burt
-    Description: Driver for 24xxxx-series I2C EEPROMs
-    Copyright (c) 2021
+    Description: Driver for 24xxxx series I2C EEPROM (P2 version)
+    Copyright (c) 2022
     Started Oct 26, 2019
-    Updated Jan 1, 2021
+    Updated Jul 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
+#include "memory.common.spin2h"
 
 CON
 
-    SLAVE_WR          = core.SLAVE_ADDR
-    SLAVE_RD          = core.SLAVE_ADDR|1
+    SLAVE_WR    = core.SLAVE_ADDR
+    SLAVE_RD    = core.SLAVE_ADDR|1
 
-    DEF_HZ            = 100_000
-    I2C_MAX_FREQ      = core.I2C_MAX_FREQ
+    DEF_HZ      = 100_000
+    DEF_ADDR    = 0
+    I2C_MAX_FREQ= core.I2C_MAX_FREQ
+
+    ERASE_CELL  = $FF
 
 VAR
 
-    long _ee_max_addr
     byte _page_size                             ' EE page size, in bytes
+    byte _addr_bits
 
 OBJ
 
     i2c : "com.i2c"                             ' bit-banged I2C engine
     core: "core.con.24xxxx"                     ' HW-specific constants
-    time: "time"                                ' timekeeping methods
 
-PUB Null()
-'This is not a top-level object
+PUB null()
+' This is not a top-level object
 
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
+PUB startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ, ADDR_BITS=DEF_ADDR): status
 ' Start using custom I/O settings
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }   I2C_HZ <= core.I2C_MAX_FREQ
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitms(1)
-            eesize(512)                     ' most common P1 EE size
-            if i2c.present(SLAVE_WR)        ' check device bus presence
+            _addr_bits := (ADDR_BITS << 1)
+            ee_size(512)                        ' most common P1 EE size
+            if i2c.present(SLAVE_WR)            ' check device bus presence
                 return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 
-PUB Stop()
-
+PUB stop()
+' Stop the driver
     i2c.deinit()
+    _page_size := 0
 
-PUB EEMaxAddr(): maxaddr
-
-    return _ee_max_addr
-
-PUB EESize(size): curr_eesize
+PUB ee_size(size): curr_eesize
 ' Set EEPROM size, in kilobits
     case size
         1, 2:
@@ -71,87 +72,79 @@ PUB EESize(size): curr_eesize
             _page_size := 256
         other:
             return
-    _ee_max_addr := ((size * 1024) >> 3) - 1
 
-PUB PageSize(): psz
+PUB page_size(): psz
 ' Page size of currently set EEPROM size
     return _page_size
 
-PUB ReadByte(ee_addr): eebyte
-' Read single byte from EEPROM
-    readreg(ee_addr, 1, @eebyte)
+PUB rd_block_lsbf(ptr_buff, addr, nr_bytes) | cmd_pkt
+' Read a block of memory starting at addr, LSB-first
+    cmd_pkt.byte[0] := (SLAVE_WR | _addr_bits)
+    cmd_pkt.byte[1] := addr.byte[1]
+    cmd_pkt.byte[2] := addr.byte[0]
+    i2c.start()
+    i2c.wrblock_lsbf(@cmd_pkt, 3)
 
-PUB ReadBytes(ee_addr, nr_bytes, ptr_buff)
-' Read multiple bytes from EEPROM
-    readreg(ee_addr, nr_bytes, ptr_buff)
+    i2c.start()
+    i2c.write(SLAVE_RD | _addr_bits)
+    i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c.NAK)
+    i2c.stop()
 
-PUB WriteByte(ee_addr, data)
-' Write single byte to EEPROM
-    writereg(ee_addr, 1, @data)
+PUB rd_block_msbf(ptr_buff, addr, nr_bytes) | cmd_pkt
+' Read a block of memory starting at addr, MSB-first
+    cmd_pkt.byte[0] := (SLAVE_WR | _addr_bits)
+    cmd_pkt.byte[1] := addr.byte[1]
+    cmd_pkt.byte[2] := addr.byte[0]
+    i2c.start()
+    i2c.wrblock_lsbf(@cmd_pkt, 3)
 
-PUB WriteBytes(ee_addr, nr_bytes, ptr_buff)
-' Write multiple bytes to EEPROM
-'   Valid values (nr_bytes):
-'       128, 256kbit EE: 1..64
-'       512kbit EE: 1..128
-'       1024kbit, 2048kbit EE: 1..256
-    case nr_bytes
-        1..256:
-            writereg(ee_addr, nr_bytes, ptr_buff)
-        other:
-            return
+    i2c.start()
+    i2c.write(SLAVE_RD | _addr_bits)
+    i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c.NAK)
+    i2c.stop()
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
-' Read nr_bytes from the slave device into ptr_buff
-    case reg_nr
-        0.._ee_max_addr:
-            cmd_pkt.byte[0] := SLAVE_WR
-            cmd_pkt.byte[1] := reg_nr.byte[1]
-            cmd_pkt.byte[2] := reg_nr.byte[0]
-            i2c.start()
-            i2c.wrblock_lsbf(@cmd_pkt, 3)
+PUB wr_block_lsbf(addr, ptr_buff, nr_bytes) | cmd_pkt
+' Write a block of memory starting at addr, LSB-first
+    cmd_pkt.byte[0] := (SLAVE_WR | _addr_bits)
+    cmd_pkt.byte[1] := addr.byte[1]
+    cmd_pkt.byte[2] := addr.byte[0]
+    i2c.start()
+    i2c.wrblock_lsbf(@cmd_pkt, 3)
+    i2c.wrblock_lsbf(ptr_buff, nr_bytes)
+    i2c.stop()
+    waitms(core.T_WR)                           ' Wait "Write cycle time"
 
-            i2c.start()
-            i2c.write(SLAVE_RD)
-            i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c.NAK)
-            i2c.stop()
-        other:
-            return
-
-PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
-' Write nr_bytes from ptr_buff to the slave device
-    case reg_nr
-        0.._ee_max_addr:
-            cmd_pkt.byte[0] := SLAVE_WR
-            cmd_pkt.byte[1] := reg_nr.byte[1]
-            cmd_pkt.byte[2] := reg_nr.byte[0]
-            i2c.start()
-            i2c.wrblock_lsbf(@cmd_pkt, 3)
-            i2c.wrblock_lsbf(ptr_buff, nr_bytes)
-            i2c.stop()
-            waitms(core.T_WR)                   ' Wait "Write cycle time"
-        other:
-            return
-
+PUB wr_block_msbf(addr, ptr_buff, nr_bytes) | cmd_pkt
+' Write a block of memory starting at addr, MSB-first
+    cmd_pkt.byte[0] := (SLAVE_WR | _addr_bits)
+    cmd_pkt.byte[1] := addr.byte[1]
+    cmd_pkt.byte[2] := addr.byte[0]
+    i2c.start()
+    i2c.wrblock_lsbf(@cmd_pkt, 3)
+    i2c.wrblock_msbf(ptr_buff, nr_bytes)
+    i2c.stop()
+    waitms(core.T_WR)                           ' Wait "Write cycle time"
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+TERMS OF USE: MIT License
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 }
+
