@@ -1,0 +1,46 @@
+{
+    --------------------------------------------
+    Filename: powerdemo-common.spin2h
+    Author: Jesse Burt
+    Description: Power sensor demo - code common to all drivers (P2 version)
+    Started Jul 31, 2022
+    Updated Jul 31, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+}
+PUB power_data()
+
+    ser.printf(@"Voltage: %d.%03.3dv\n\r", (pwr.voltage() / 1000), (pwr.voltage() // 1000))
+    ser.printf(@"Current: %d.%03.3dA\n\r", (pwr.current() / 10000), abs((pwr.current() // 10000)))
+    ser.printf(@"Power: %d.%03.3dW\n\r", (pwr.power() / 1000), (pwr.power() // 1000))
+
+{ define demo() only if something #including this file doesn't already provide one }
+#ifndef HAS_DEMO
+PUB demo()
+
+    repeat
+        ser.position(0, 3)
+        power_data()
+        waitms(250)
+#endif
+
+DAT
+{
+Copyright (c) 2022 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+
