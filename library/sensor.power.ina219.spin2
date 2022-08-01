@@ -1,15 +1,14 @@
 {
     --------------------------------------------
-    Filename: sensor.power.ina219.i2c.spin2
+    Filename: sensor.power.ina219.spin2
     Author: Jesse Burt
-    Description: Driver of the TI INA219 current/power monitor IC
-        (P2 version)
-    Copyright (c) 2021
+    Description: Driver of the TI INA219 current/power monitor IC (P2 version)
     Started Sep 18, 2019
-    Updated Oct 23, 2021
+    Updated Jul 31, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
+#include "sensor.power.common.spin2h"
 
 CON
 
@@ -63,10 +62,10 @@ VAR
     long _vmax_shunt
     long _addr_bits
 
-PUB Null()
+PUB null()
 ' This is not a top-level object
 
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
+PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
 ' Start using custom settings
     ' validate I/O pins, bus speed and I2C address option bits
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
@@ -76,56 +75,64 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
             _addr_bits := ADDR_BITS << 1
             ' test device bus presence
             if i2c.present(SLAVE_WR | _addr_bits)
-                if deviceid() == core.DEVID_RESP
+                if (device_id() == core.DEVID_RESP)
                     return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 
-PUB Stop()
-
+PUB stop()
+' Stop the driver
     i2c.deinit()
 
-PUB Defaults()
+PUB defaults()
 ' Factory default settings
 '   POR settings:
-'   BusVoltageRange(32)
-'   ShuntVoltageRange(320)
-'   BusADCRes(12)
-'   ShuntADCRes(12)
-'   OpMode(BOTH_CONT)
+'   bus_voltage_range(32)
+'   shunt_voltage_range(320)
+'   bus_adc_res(12)
+'   shunt_adc_res(12)
+'   opmode(BOTH_CONT)
     reset()
 
-PUB Preset320S_2A_100mohm()
-' Preset:       'XXX for coming up with a value for CurrentBias()
+PUB preset_320S_2A_100mohm()
+' Preset:       'XXX for coming up with a value for current_scale()
 '   32V bus voltage range
 '   320mV shunt voltage range
 '   12bit shunt ADC res
 '   2A maximum current
 '   100mOhm shunt resistor
-    shuntresistance(100)
+    shunt_resistance(100)
     _i_max := 2 * 1_000
     _i_lsb := _i_max / 32768
     _p_lsb := _i_lsb * 20
     _vmax_shunt := _i_max * _shunt_res
 
-    busvoltagerange(32)
-    shuntvoltagerange(320)
-    shuntadcres(12)
-    shuntsamples(1)
-    busadcres(12)
+    bus_voltage_range(32)
+    shunt_voltage_range(320)
+    shunt_adc_res(12)
+    shunt_samples(1)
+    bus_adc_res(12)
 
-PUB BusVoltage(): v
-' Read bus voltage
-'   Returns: Voltage in millivolts
-    v := 0
-    readreg(core.BUS_VOLTAGE, 2, @v)
-    v sar= 3                                    ' chop off the 3 LSBs (not part
-    v *= 4                                      ' of the measurement), but
-                                                ' preserve the sign
+PUB adc2amps(adc_word): a
+' Convert current ADC word to amperage
+    return (adc_word signx 15) * 1_00
 
-PUB BusADCRes(adcres=-2): curr_res
+PUB adc2shunt_volts(adc_word): v
+' Convert shunt voltage ADC word to voltage
+    return ((adc_word signx 15) * 10)
+
+PUB adc2volts(adc_word): v
+' Convert bus voltage ADC word to voltage
+    { discard 3 LSBs (not part of the measurement), but preserve the sign }
+    return ((adc_word sar 3) * 4_000)
+
+PUB adc2watts(adc_word): w
+' Convert power ADC word to wattage
+    return (adc_word * 20_00)
+
+PUB bus_adc_res(adcres=-2): curr_res
 ' Set bus ADC resolution, in bits
 '   Valid values: 9, 10, 11, *12
 '   Any other value polls the chip and returns the current setting
@@ -141,7 +148,7 @@ PUB BusADCRes(adcres=-2): curr_res
     adcres := ((curr_res & core.BADC_MASK) | adcres) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @adcres)
 
-PUB BusVoltageRange(range=-2): curr_rng
+PUB bus_voltage_range(range=-2): curr_rng
 ' Set bus voltage range
 '   Valid values: 16, *32
 '   Any other value polls the chip and returns the current setting
@@ -157,13 +164,12 @@ PUB BusVoltageRange(range=-2): curr_rng
     range := ((curr_rng & core.BRNG_MASK) | range) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @range)
 
-PUB Current(): a
+PUB current_data(): a
 ' Read current
 '   Returns: Current in milliamps
     readreg(core.CURRENT, 2, @a)
-    return (a signx 15)
 
-PUB CurrentScale(val=-2): curr_val
+PUB current_scale(val=-2): curr_val
 ' Set current scale, in LSBs
 '   Valid values: *0..65534 (even numbers only)
 '   Any other value polls the chip and returns the current setting
@@ -178,7 +184,7 @@ PUB CurrentScale(val=-2): curr_val
             readreg(core.CALIBRATION, 2, @curr_val)
             return
 
-PUB DeviceID(): id
+PUB device_id(): id
 ' Read device ID
 '   Returns: POR value of the configuration register
 '   NOTE: This method performs a soft-reset of the chip and reads the value of
@@ -187,7 +193,7 @@ PUB DeviceID(): id
     reset()
     readreg(core.CONFIG, 2, @id)
 
-PUB OpMode(mode): curr_mode
+PUB opmode(mode): curr_mode
 ' Set device operating mode
 '   Valid values:
 '       SLEEP (0): Power-down
@@ -210,27 +216,22 @@ PUB OpMode(mode): curr_mode
     mode := ((curr_mode & core.MODE_MASK) | mode)
     writereg(core.CONFIG, 1, @mode)
 
-PUB PowerData(): pwr_adc
+PUB power_data(): pwr_adc
 ' Read power ADC data
 '   Returns: s16
     pwr_adc := 0
     readreg(core.POWER, 2, @pwr_adc)
 
-PUB Power(): w
-' Read power
-'   Returns: Power in milliwatts
-    return powerdata() * 2
-
-PUB Reset() | tmp
+PUB reset() | tmp
 ' Perform a soft-reset of the chip
     tmp := (1 << core.RST)
     writereg(core.CONFIG, 2, @tmp)
 
-PUB ShuntADCRes(adc_res=-2): curr_res
+PUB shunt_adc_res(adc_res=-2): curr_res
 ' Set shunt ADC resolution, in bits
 '   Valid values: 9, 10, 11, *12
 '   Any other value polls the chip and returns the current setting
-'   NOTE: This setting and ShuntSamples() are mutually exclusive. If both
+'   NOTE: This setting and shunt_samples() are mutually exclusive. If both
 '       methods are called, the most recent will be the setting used.
     curr_res := 0
     readreg(core.CONFIG, 2, @curr_res)
@@ -244,7 +245,7 @@ PUB ShuntADCRes(adc_res=-2): curr_res
     adc_res := ((curr_res & core.SADC_MASK) | adc_res) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @adc_res)
 
-PUB ShuntResistance(r_shunt): curr_res
+PUB shunt_resistance(r_shunt): curr_res
 ' Set value of shunt resistor, in milliohms
     case r_shunt
         1..1_000:
@@ -252,14 +253,14 @@ PUB ShuntResistance(r_shunt): curr_res
         other:
             return _shunt_res
 
-PUB ShuntSamples(samples=-2): curr_smp
+PUB shunt_samples(samples=-2): curr_smp
 ' Set number of shunt ADC samples to take when averaging
 '   Valid values: 1, 2, 4, 8, 16, 32, 64, 128
 '   Any other value polls the chip and returns the current setting
 '   NOTE: All averaging modes are performed at 12-bit resolution
 '   NOTE: Conversion time is approx 532uSec * number of samples
 '   NOTE: 1 effectively disables averaging
-'   NOTE: This setting and ShuntADCRes() are mutually exclusive. If both
+'   NOTE: This setting and shunt_adc_res() are mutually exclusive. If both
 '       methods are called, the most recent will be the setting used.
     curr_smp := 0
     readreg(core.CONFIG, 2, @curr_smp)
@@ -278,13 +279,17 @@ PUB ShuntSamples(samples=-2): curr_smp
     samples := ((curr_smp & core.SADC_MASK) | samples) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @samples)
 
-PUB ShuntVoltage(): v
+PUB shunt_voltage_data(): adc_word
+' Read shunt voltage ADC word
+    adc_word := 0
+    readreg(core.SHUNT_VOLTAGE, 2, @adc_word)
+
+PUB shunt_voltage(): v
 ' Read shunt voltage
 '   Returns: Voltage in microvolts
-    readreg(core.SHUNT_VOLTAGE, 2, @v)
-    return (v signx 15) * 10
+    return adc2shunt_volts(shunt_voltage_data())
 
-PUB ShuntVoltageRange(range=-2): curr_rng
+PUB shunt_voltage_range(range=-2): curr_rng
 ' Set shunt voltage range, in millivolts
 '   Valid values: 40, 80, 160, *320
 '   Any other value polls the chip and returns the current setting
@@ -300,6 +305,11 @@ PUB ShuntVoltageRange(range=-2): curr_rng
 
     range := ((curr_rng & core.PG_MASK) | range) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @range)
+
+PUB voltage_data(): v
+' Read bus voltage
+    v := 0
+    readreg(core.BUS_VOLTAGE, 2, @v)
 
 PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
 ' read nr_bytes from device into ptr_buff
@@ -333,22 +343,21 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright (c) 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+

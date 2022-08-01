@@ -1,15 +1,15 @@
 {
     --------------------------------------------
-    Filename: sensor.power.ina260.i2c.spin2
+    Filename: sensor.power.ina260.spin2
     Author: Jesse Burt
-    Description: Driver for the TI INA260 Precision Current and Power Monitor IC
-        (P2 version)
-    Copyright (c) 2021
+    Description: Driver for the TI INA260 Precision Current and Power Monitor IC (P2 version)
+    Copyright (c) 2022
     Started Nov 13, 2019
-    Updated Aug 20, 2021
+    Updated Aug 1, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
+#include "sensor.power.common.spin2h"
 
 CON
 
@@ -50,12 +50,12 @@ CON
     CURR_VOLT_CONT  = %111
 
 ' Interrupt/alert pin sources
-    INT_CONV_READY  = 1
-    INT_POWER_HI    = 2
-    INT_BUSVOLT_LO  = 4
-    INT_BUSVOLT_HI  = 8
-    INT_CURRENT_LO  = 16
-    INT_CURRENT_HI  = 32
+    INT_CURRENT_HI  = 1 << 5
+    INT_CURRENT_LO  = 1 << 4
+    INT_BUSVOLT_HI  = 1 << 3
+    INT_BUSVOLT_LO  = 1 << 2
+    INT_POWER_HI    = 1 << 1
+    INT_CONV_READY  = 1 << 0
 
 ' Interrupt/alert pin level/polarity
     INTLVL_LO       = 0
@@ -70,45 +70,50 @@ OBJ
     i2c : "com.i2c"
     core: "core.con.ina260"
 
-PUB Null()
+PUB null()
 ' This is not a top-level object
 
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
+PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
 ' Start using custom settings
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }   I2C_HZ <= core.I2C_MAX_FREQ and lookdown(ADDR_BITS: %0000..%1111)
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitus(core.T_POR)
-            _addr_bits := ADDR_BITS << 1
-            if i2c.present(SLAVE_WR | _addr_bits)' test device bus presence
-                reset()
-                if deviceid() == core.DEVID_RESP
-                return
+            _addr_bits := (ADDR_BITS << 1)
+            reset()
+            if (device_id() == core.DEVID_RESP)
+            return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 
-PUB Stop()
-
+PUB stop()
+' Stop the driver
     i2c.deinit()
 
-PUB BusVoltage(): v
-' Read the measured bus voltage, in microvolts
-'   NOTE: If averaging is enabled, this will return the averaged value
-'   NOTE: Full-scale range is 40_960_000uV
-    v := 0
-    readreg(core.BUS_VOLTAGE, 2, @v)
-    return (v & $7fff) * 1_250
+PUB adc2amps(adc_word): a
+' Convert current ADC word to amperage
+'   Returns: current in microamperes
+    return (adc_word signx 15) * 1_250
 
-PUB Current(): a
+PUB adc2volts(adc_word): v
+' Convert bus voltage ADC word to voltage
+'   Returns: voltage in microvolts
+    return (adc_word & $7fff) * 1_250
+
+PUB adc2watts(adc_word): w
+' Convert power ADC word to wattage
+'   Returns: power in microwatts
+    return (adc_word * 10_000)
+
+PUB current_data(): a
 ' Read the measured current, in microamperes
 '   NOTE: If averaging is enabled, this will return the averaged value
     a := 0
     readreg(core.CURRENT, 2, @a)
-    return (a signx 15) * 1_250
 
-PUB CurrentConvTime(ctime=-2): curr_set
+PUB current_conv_time(ctime=-2): curr_set
 ' Set conversion time for shunt current measurement, in microseconds
 '   Valid values: 140, 204, 332, 588, *1100, 2116, 4156, 8244
 '   Any other value polls the chip and returns the current setting
@@ -125,20 +130,28 @@ PUB CurrentConvTime(ctime=-2): curr_set
     ctime := ((curr_set & core.ISHCT_MASK) | ctime) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @ctime)
 
-PUB DeviceID(): id
+PUB data_ready(): flag
+' Flag indicating data from the last conversion is available for reading
+'   Returns: TRUE (-1) if data available, FALSE (0) otherwise
+    flag := 0
+    readreg(core.ENABLE, 2, @flag)
+    return ((flag & core.DRDY) <> 0)
+
+PUB device_id(): id
 ' Read device ID
 '   Returns:
 '       Most-significant word: Die ID
 '       Least-significant word: Mfr ID
-    return (dieid() << 16) | mfrid()
+    id := 0
+    return (die_id() << 16) | mfr_id()
 
-PUB DieID(): id
+PUB die_id(): id
 ' Read the Die ID from the chip
 '   Returns: $2270
     id := 0
     readreg(core.DIE_ID, 2, @id)
 
-PUB IntActiveState(state=-2): curr_state
+PUB int_active_state(state=-2): curr_state
 ' Set interrupt active level/polarity
 '   Valid values:
 '      *INTLVL_LO   (0) Active low
@@ -156,7 +169,33 @@ PUB IntActiveState(state=-2): curr_state
     state := ((curr_state & core.APOL_MASK) | state) & core.ENABLE_MASK
     writereg(core.ENABLE, 2, @state)
 
-PUB IntsLatched(state=-2): curr_state
+PUB int_mask(mask=-2): curr_mask
+' Set interrupt mask
+'   Valid values:
+'       Bits: 5..0
+'       5: Over current limit
+'       4: Under current limit
+'       3: Bus voltage over-voltage
+'       2: Bus voltage under-voltage
+'       1: Power over-limit
+'       0: Conversion ready
+'   Any other value polls the chip and returns the current setting
+'   NOTE: If multiple sources are enabled, the highest significant bit function
+'    takes priority
+'   NOTE: INT_ symbols can optionally be used to define sources
+'    (defined near top of this file)
+    curr_mask := 0
+    readreg(core.ENABLE, 2, @curr_mask)
+    case mask
+        %000000..%111111:
+            mask <<= core.ALERTS
+        other:
+            return (curr_mask >> core.ALERTS) & core.ALERTS_BITS
+
+    mask := ((curr_mask & core.ALERTS_MASK) | mask) & core.ENABLE_MASK
+    writereg(core.ENABLE, 2, @mask)
+
+PUB ints_latched(state=-2): curr_state
 ' Enable latching of interrupts
 '   Valid values:
 '       TRUE (-1 or 1): Active interrupts remain asserted until cleared manually
@@ -172,32 +211,7 @@ PUB IntsLatched(state=-2): curr_state
     state := ((curr_state & core.LEN_MASK) | state) & core.ENABLE_MASK
     writereg(core.ENABLE, 2, @state)
 
-PUB IntSource(src=-2): curr_src
-' Set interrupt/alert pin assertion source
-'   Valid values:
-'       INT_CURRENT_HI  (32)    Over current limit
-'       INT_CURRENT_LO  (16)    Under current limit
-'       INT_BUSVOLT_HI  (8)     Bus voltage over-voltage
-'       INT_BUSVOLT_LO  (4)     Bus voltage under-voltage
-'       INT_POWER_HI    (2)     Power over-limit
-'       INT_CONV_READY  (1)     Conversion ready
-'       Example:
-'           IntSource(INT_BUSVOLT_HI) or IntSource(8)
-'               would trigger an alert when the bus voltage exceeded the set threshold
-'   Any other value polls the chip and returns the current setting
-    curr_src := 0
-    readreg(core.ENABLE, 2, @curr_src)
-    case src
-        INT_CONV_READY, INT_POWER_HI, INT_BUSVOLT_LO, INT_BUSVOLT_HI,{
-}       INT_CURRENT_LO, INT_CURRENT_HI:
-            src <<= core.ALERTS
-        other:
-            return (curr_src >> core.ALERTS) & core.ALERTS_BITS
-
-    src := ((curr_src & core.ALERTS_MASK) | src) & core.ENABLE_MASK
-    writereg(core.ENABLE, 2, @src)
-
-PUB IntThresh(thresh=-2): curr_thr
+PUB int_thresh(thresh=-2): curr_thr
 ' Set interrupt/alert threshold
 '   Valid values: 0..65535
 '   Any other value polls the chip and returns the current setting
@@ -209,13 +223,13 @@ PUB IntThresh(thresh=-2): curr_thr
             readreg(core.ALERT_LIMIT, 2, @curr_thr)
             return curr_thr
 
-PUB MfrID(): id
+PUB mfr_id(): id
 ' Read the Manufacturer ID from the chip
 '   Returns: $5449
     id := 0
     readreg(core.MFR_ID, 2, @id)
 
-PUB OpMode(mode=-2): curr_mode
+PUB opmode(mode=-2): curr_mode
 ' Set operation mode
 '   Valid values:
 '       POWERDN (0): Power-down/shutdown
@@ -242,33 +256,27 @@ PUB OpMode(mode=-2): curr_mode
     mode := ((curr_mode & core.MODE_MASK) | mode) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @mode)
 
-PUB Power(): p
+PUB power_data(): p
 ' Read the power measured by the chip, in microwatts
 '   NOTE: If averaging is enabled, this will return the averaged value
 '   NOTE: The maximum value returned is 419_430_000
     p := 0
     readreg(core.POWER, 2, @p)
-    return (p * 10_000)
 
-PUB PowerDataReady(): flag
-' Flag indicating data from the last conversion is available for reading
-'   Returns: TRUE (-1) if data available, FALSE (0) otherwise
-    readreg(core.ENABLE, 2, @flag)
-    return (((flag >> core.CVRF) & 1) == 1)
-
-PUB PowerOverflowed(): flag
+PUB power_overflowed(): flag
 ' Flag indicating power data exceeded the maximum measurable value
 '   (419_430_000uW/419.43W)
+    flag := 0
     readreg(core.ENABLE, 2, @flag)
-    return (((flag >> core.OVF) & 1) == 1)
+    return ((flag & core.OVERFL) <> 0)
 
-PUB Reset() | tmp
+PUB reset() | tmp
 ' Reset the chip
 '   NOTE: Equivalent to Power-On Reset
-    tmp := 1 << core.RESET
+    tmp := core.SOFT_RES
     writereg(core.CONFIG, 2, @tmp)
 
-PUB SamplesAveraged(samples=-2): curr_smp
+PUB samples_averaged(samples=-2): curr_smp
 ' Set number of samples used for averaging measurements
 '   Valid values: *1, 4, 16, 64, 128, 256, 512, 1024
 '   Any other value polls the chip and returns the current setting
@@ -285,7 +293,14 @@ PUB SamplesAveraged(samples=-2): curr_smp
     samples := ((curr_smp & core.AVG_MASK) | samples) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @samples)
 
-PUB VoltageConvTime(ctime=-2): curr_time
+PUB voltage_data(): v
+' Read the measured bus voltage, in microvolts
+'   NOTE: If averaging is enabled, this will return the averaged value
+'   NOTE: Full-scale range is 40_960_000uV
+    v := 0
+    readreg(core.BUS_VOLTAGE, 2, @v)
+
+PUB voltage_conv_time(ctime=-2): curr_time
 ' Set conversion time for bus voltage measurement, in microseconds
 '   Valid values: 140, 204, 332, 588, *1100, 2116, 4156, 8244
 '   Any other value polls the chip and returns the current setting
@@ -337,22 +352,21 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright (c) 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+

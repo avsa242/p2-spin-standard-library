@@ -2,10 +2,9 @@
     --------------------------------------------
     Filename: core.con.ina260.spin
     Author: Jesse Burt
-    Description: Low-level constants
-    Copyright (c) 2021
+    Description: INA260-specific constants
     Started Nov 13, 2019
-    Updated May 16, 2021
+    Updated Jul 31, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -41,6 +40,7 @@ CON
         VBUSCT_MASK     = (VBUSCT << VBUSCT) ^ CONFIG_MASK
         ISHCT_MASK      = (ISHCT << ISHCT) ^ CONFIG_MASK
         MODE_MASK       = MODE_BITS ^ CONFIG_MASK
+        SOFT_RES        = (1 << RESET)
 
     CURRENT             = $01
 
@@ -74,7 +74,9 @@ CON
         OVF_MASK        = (1 << OVF) ^ ENABLE_MASK
         APOL_MASK       = (1 << APOL) ^ ENABLE_MASK
         LEN_MASK        = (1 << LEN) ^ ENABLE_MASK
-        ALERTS_MASK     = ALERTS_BITS ^ ENABLE_MASK
+        ALERTS_MASK     = (ALERTS_BITS << ALERTS) ^ ENABLE_MASK
+        DRDY            = (1 << CNVR)
+        OVERFL          = (1 << OVF)
 
     ALERT_LIMIT         = $07
 
@@ -82,29 +84,26 @@ CON
 
     DIE_ID              = $FF
 
-#ifndef __propeller2__
-PUB Null
+PUB null{}
 ' This is not a top-level object
-#endif
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright (c) 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+
