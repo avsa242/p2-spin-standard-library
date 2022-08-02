@@ -1,15 +1,16 @@
 {
     --------------------------------------------
-    Filename: time.rtc.pcf8563.i2c.spin2
+    Filename: time.rtc.pcf8563.spin2
     Author: Jesse Burt
-    Description: Driver for the PCF8563 Real Time Clock
-        (P2 version)
+    Description: Driver for the PCF8563 Real Time Clock (P2 version)
     Copyright (c) 2022
     Started Sep 6, 2020
-    Updated Jul 9, 2022
+    Updated Aug 2, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
+
+#include "time.rtc.common.spin2h"
 
 CON
 
@@ -19,9 +20,13 @@ CON
     DEF_HZ              = 100_000
     I2C_MAX_FREQ        = core.I2C_MAX_FREQ
 
-' /INT pin active state
+    { /INT pin active state }
     WHEN_TF_ACTIVE      = 0
     INT_PULSES          = 1 << core.TI_TP
+
+    { Operating modes }
+    CLKRUN              = 0
+    CLKSTOP             = 1
 
 VAR
 
@@ -35,39 +40,40 @@ OBJ
     i2c : "com.i2c"                             ' I2C engine
     core: "core.con.pcf8563.spin"               ' HW-specific constants
 
-PUB Null()
+PUB null()
 ' This is not a top-level object
 
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
+PUB startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
 ' Start using custom I/O pins and bus speed (default 100kHz)
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }   I2C_HZ <= core.I2C_MAX_FREQ
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitms(1)
-            if i2c.present(SLAVE_WR)            ' test device bus presence
+            if (i2c.present(SLAVE_WR))          ' test device bus presence
                 return status
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 
-PUB Stop()
-
+PUB stop()
+' Stop the driver
     i2c.deinit()
+    bytefill(@_secs, 0, 8)
 
-PUB Defaults()
+PUB defaults()
 ' Factory default settings
-    clockoutfreq(32768)
+    clkout_freq(32768)
 
-PUB ClockDataOk(): flag
+PUB clk_data_ok(): flag
 ' Flag indicating battery voltage ok/clock data integrity ok
 '   Returns:
 '       TRUE (-1): Battery voltage ok, clock data integrity guaranteed
 '       FALSE (0): Battery voltage low, clock data integrity not guaranteed
-    pollrtc()
+    poll_rtc()
     return _clkdata_ok == 0
 
-PUB ClockOutFreq(freq): curr_freq
+PUB clkout_freq(freq): curr_freq
 ' Set frequency of CLKOUT pin, in Hz
 '   Valid values: 0, 1, 32, 1024, 32768
 '   Any other value polls the chip and returns the current setting
@@ -82,18 +88,10 @@ PUB ClockOutFreq(freq): curr_freq
             curr_freq &= core.FD_BITS
             return lookupz(curr_freq: 32768, 1024, 32, 1)
 
-    freq := ((curr_freq & core.FD_MASK & core.FE_MASK) | freq) & core.CTRL_CLKOUT_MASK
+    freq := ((curr_freq & core.FD_MASK & core.FE_MASK) | freq)
     writereg(core.CTRL_CLKOUT, 1, @freq)
 
-PUB Date(): curr_day
-' Get current date/day of month
-    return bcd2int(_days & core.DAYS_MASK)
-
-PUB Hours(): curr_hr
-' Get current hour
-    return bcd2int(_hours & core.HOURS_MASK)
-
-PUB IntClear(mask) | tmp
+PUB int_clear(mask) | tmp
 ' Clear interrupts, using a bitmask
 '   Valid values:
 '       Bits: 1..0
@@ -111,12 +109,12 @@ PUB IntClear(mask) | tmp
         other:
             return
 
-PUB Interrupt(): flags
+PUB interrupt(): flags
 ' Flag indicating one or more interrupts asserted
     readreg(core.CTRLSTAT2, 1, @flags)
     flags := (flags >> core.TF) & core.IF_BITS
 
-PUB IntMask(mask=-2): curr_mask
+PUB int_mask(mask=-2): curr_mask
 ' Set interrupt mask
 '   Valid values:
 '       Bits: 1..0
@@ -129,10 +127,10 @@ PUB IntMask(mask=-2): curr_mask
         other:
             return curr_mask & core.IE_BITS
 
-    mask := ((curr_mask & core.IE_MASK) | mask) & core.CTRLSTAT2_MASK
+    mask := ((curr_mask & core.IE_MASK) | mask)
     writereg(core.CTRLSTAT2, 1, @mask)
 
-PUB IntPinState(state=-2): curr_state
+PUB int_pin_state(state=-2): curr_state
 ' Set interrupt pin active state
 '   WHEN_TF_ACTIVE (0): /INT is active when timer interrupt asserted
 '   INT_PULSES (1): /INT pulses at rate set by TimerClockFreq()
@@ -143,28 +141,38 @@ PUB IntPinState(state=-2): curr_state
         other:
             return (curr_state >> core.TI_TP) & 1
 
-    state := ((curr_state & core.TI_TP_MASK) | state) & core.CTRLSTAT2_MASK
+    state := ((curr_state & core.TI_TP_MASK) | state)
     writereg(core.CTRLSTAT2, 1, @state)
 
-PUB Month(): curr_month
-' Get current month
-    return bcd2int(_months & core.CENTMONTHS_MASK)
+PUB opmode(mode): curr_mode
+' Set RTC internal operating mode
+'   CLKRUN (0): normal operation; RTC source clock runs
+'   CLKSTOP (1): RTC clock is stopped (32.768kHz CLKOUT still available)
+    curr_mode := 0
+    readreg(core.CTRLSTAT1, 1, @curr_mode)
+    case mode
+        CLKRUN, CLKSTOP:
+            mode <<= core.STOP
+        other:
+            return ((curr_mode >> core.STOP) & 1)
 
-PUB Minutes(): curr_min
-' Get current minute
-    return bcd2int(_mins & core.MINUTES_MASK)
+    mode := ((curr_mode & core.STOP_MASK) | mode)
+    writereg(core.CTRLSTAT1, 1, @mode)
 
-PUB PollRTC()
+PUB poll_rtc()
 ' Read the time data from the RTC and store it in hub RAM
 ' Update the clock integrity status bit from the RTC
     readreg(core.VL_SECS, 7, @_secs)
     _clkdata_ok := (_secs >> core.VL) & 1       ' Clock integrity bit
+    _secs &= core.SECS_BITS
+    _mins &= core.MINUTES_MASK
+    _hours &= core.HOURS_MASK
+    _days &= core.DAYS_MASK
+    _wkdays &= core.WEEKDAYS_MASK
+    _months &= core.CENTMONTHS_MASK
+    _years &= core.YEARS_MASK
 
-PUB Seconds(): curr_sec
-' Get current second
-    return bcd2int(_secs & core.SECS_BITS)
-
-PUB SetDate(d)
+PUB set_date(d)
 ' Set date/day of month
 '   Valid values: 1..31
 '   Any other value is ignored
@@ -175,7 +183,7 @@ PUB SetDate(d)
         other:
             return
 
-PUB SetHours(h)
+PUB set_hours(h)
 ' Set hours
 '   Valid values: 0..23
 '   Any other value is ignored
@@ -186,7 +194,7 @@ PUB SetHours(h)
         other:
             return
 
-PUB SetMinutes(m)
+PUB set_minutes(m)
 ' Set minutes
 '   Valid values: 0..59
 '   Any other value is ignored
@@ -197,7 +205,7 @@ PUB SetMinutes(m)
         other:
             return
 
-PUB SetMonth(m)
+PUB set_month(m)
 ' Set month
 '   Valid values: 1..12
 '   Any other value is ignored
@@ -208,7 +216,7 @@ PUB SetMonth(m)
         other:
             return
 
-PUB SetSeconds(s)
+PUB set_seconds(s)
 ' Set seconds
 '   Valid values: 0..59
 '   Any other value is ignored
@@ -219,7 +227,7 @@ PUB SetSeconds(s)
         other:
             return
 
-PUB SetWeekday(w)
+PUB set_weekday(w)
 ' Set day of week
 '   Valid values: 1..7
 '   Any other value is ignored
@@ -230,7 +238,7 @@ PUB SetWeekday(w)
         other:
             return
 
-PUB SetYear(y)
+PUB set_year(y)
 ' Set 2-digit year
 '   Valid values: 0..99
 '   Any other value is ignored
@@ -241,13 +249,13 @@ PUB SetYear(y)
         other:
             return
 
-PUB Timer(val=-2): curr_val
+PUB timer(val=-2): curr_val
 ' Set countdown timer value
 '   Valid values: 0..255
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The countdown period in seconds is equal to
-'       Timer() / TimerClockFreq()
-'       e.g., if Timer() is set to 255, and TimerClockFreq() is set to 1,
+'       timer() / timer_clk_freq()
+'       e.g., if timer() is set to 255, and timer_clk_freq() is set to 1,
 '       the period is 255 seconds
     case val
         0..255:
@@ -257,12 +265,12 @@ PUB Timer(val=-2): curr_val
                 curr_val := 0                           ' 2 reads to check for
                 readreg(core.TIMER, 1, @curr_val.byte[0]) ' consistent results
                 readreg(core.TIMER, 1, @curr_val.byte[1]) '
-                if curr_val.byte[0] == curr_val.byte[1]
+                if (curr_val.byte[0] == curr_val.byte[1])
                     curr_val.byte[1] := 0
                     quit
             return curr_val & core.TIMER_MASK
 
-PUB TimerClockFreq(freq=-2): curr_freq
+PUB timer_clk_freq(freq=-2): curr_freq
 ' Set timer source clock frequency, in Hz
 '   Valid values:
 '       1_60 (1/60Hz), 1, 64, 4096
@@ -276,10 +284,10 @@ PUB TimerClockFreq(freq=-2): curr_freq
             curr_freq &= core.TD_BITS
             return lookupz(curr_freq: 4096, 64, 1, 1_60)
 
-    freq := ((curr_freq & core.TD_MASK) | freq) & core.CTRL_TIMER_MASK
+    freq := ((curr_freq & core.TD_MASK) | freq)
     writereg(core.CTRL_TIMER, 1, @freq)
 
-PUB TimerEnabled(state=-2): curr_state
+PUB timer_enabled(state=-2): curr_state
 ' Enable timer
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
@@ -291,27 +299,11 @@ PUB TimerEnabled(state=-2): curr_state
         other:
             return ((curr_state >> core.TE) & 1) == 1
 
-    if state == 0                               ' If disabling the timer,
-        timerclockfreq(1_60)                    ' set freq to 1/60Hz for
+    if (state == 0)                             ' If disabling the timer,
+        timer_clk_freq(1_60)                    ' set freq to 1/60Hz for
                                                 ' lowest power usage
-    state := ((curr_state & core.TE_MASK) | state) & core.CTRL_TIMER_MASK
+    state := ((curr_state & core.TE_MASK) | state)
     writereg(core.CTRL_TIMER, 1, @state)
-
-PUB Weekday(): curr_wkday
-' Get current weekday
-    return bcd2int(_wkdays & core.WEEKDAYS_MASK) + 1
-
-PUB Year(): curr_yr
-' Get current year
-    return bcd2int(_years & core.YEARS_MASK)
-
-PRI bcd2int(bcd): int
-' Convert BCD (Binary Coded Decimal) to integer
-    return ((bcd >> 4) * 10) + (bcd // 16)
-
-PRI int2bcd(int): bcd
-' Convert integer to BCD (Binary Coded Decimal)
-    return ((int / 10) << 4) + (int // 10)
 
 PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from device into ptr_buff
@@ -348,24 +340,21 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 
