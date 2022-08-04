@@ -1,73 +1,66 @@
 {
     --------------------------------------------
-    Filename: char.types.spin2
-    Description: Functions to test individual character types.
-    Author: Brett Weir
-    Modified by: Jesse Burt
-    Started: Jan, 2016
-    Updated: Jun 23, 2020
+    Filename: char.type.new.spin2
+    Author: Jesse Burt
+    Description: Character processing and formatting routines (P2 version)
+    Copyright (c) 2022
+    Started Dec 14, 2019
+    Updated May 29, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 
-PUB IsAlphaNumeric(c): result
-' Check if character is alphanumeric.
-    return lookdown(c: "0".."9", "a".."z", "A".."Z")
+#ifndef TERMCODES_H
+#include "termcodes.spin2h"
+#endif
 
-PUB IsAlpha(c): result
-' Check if character is alphabetic.
+PUB IsAlpha(ch): flag
+' Test if character is alphabetic
+'   Returns: TRUE if alphabetic, FALSE otherwise
+    return (lookdown(ch: "A".."Z", "a".."z") <> 0)
 
-    return lookdown(c: "a".."z", "A".."Z")
+PUB IsAlphanumeric(ch): flag
+' Test if character is alphanumeric
+'   Returns: TRUE if alphanumeric, FALSE otherwise
+    return (lookdown(ch: "0".."9", "A".."Z", "a".."z") <> 0)
 
-PUB IsDigit(c): result
-' Check if character is decimal.
-    return lookdown(c: "0".."9")
+PUB IsDigit(ch): flag
+' Test if character is a digit
+'   Returns: TRUE if ch is a digit, FALSE otherwise
+    return (lookdown(ch: "0".."9") <> 0)
 
-PUB IsLower(c): result
-' Check if character is lowercase.
-    return lookdown(c: "a".."z")
+PUB IsLower(ch): flag
+' Test if character is lowercase
+'   Returns: TRUE if lowercase, FALSE otherwise
+    return (lookdown(ch: "a".."z") <> 0)
 
-PUB IsUpper(c): result
-' Check if character is uppercase.
-    return lookdown(c: "A".."Z")
+PUB IsSpace(ch): flag
+' Test if character is a space (0x20), tab (\t) or newline (\n)
+'   ch: Character to be tested
+'   Returns: TRUE if ch is a space, tab or line-feed
+    return (lookdown(ch: " ", TB, LF) <> 0)
 
-PUB IsSpace(c): result
-' Check if character is whitespace.
-    return lookdown(c: " ", 9, 10, 13)
+PUB IsUpper(ch): flag
+' Test if character is uppercase
+    return (lookdown(ch: "A".."Z") <> 0)
 
-PUB Upper(c): result
-' Convert character to uppercase.
-    if IsLower(c)
-        return c - 32
+PUB IsXDigit(ch): flag
+' Test if character is a hexadecimal digit
+'   ch: Character to be tested
+'   Returns: TRUE if ch is a hex digit
+    return (lookdown(ch: "0".."9", "A".."F", "a".."f") <> 0)
+
+PUB ToLower(ch): lc
+' Convert character to lowercase
+    if isupper(ch)
+        return (ch + 32)
     else
-        return c
+        return ch
 
-PUB Lower(c): result
-' Convert character to lowercase.
-    if IsUpper(c)
-        return c + 32
+PUB ToUpper(ch): uc
+' Convert character to uppercase
+    if islower(ch)
+        return (ch - 32)
     else
-        return c
-
-DAT
-{
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
-
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
-}
+        return ch
 
