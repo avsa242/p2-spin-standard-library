@@ -3,12 +3,13 @@
     Filename: signal.adc.ads1115.i2c.spin2
     Author: Jesse Burt
     Description: Driver for the TI ADS1115 ADC (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Apr 2, 2021
-    Updated Nov 15, 2021
+    Updated Aug 4, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
+#include "signal.adc.common.spin2h"
 
 CON
 
@@ -18,11 +19,11 @@ CON
     DEF_HZ          = 100_000
     I2C_MAX_FREQ    = core.I2C_MAX_FREQ
 
-' Operation modes
+    { Operation modes }
     CONT            = 0
     SINGLE          = 1
 
-' Interrupt active state
+    { Interrupt active state }
     LOW             = 0
     HIGH            = 1
 
@@ -38,10 +39,10 @@ OBJ
     core: "core.con.ads1115"                    ' HW-specific constants
     u64 : "math.unsigned64"                     ' unsigned 64-bit int math
 
-PUB Null()
+PUB null()
 ' This is not a top-level object
 
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ, ADDR_BITS=0): status
+PUB startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ, ADDR_BITS=0): status
 ' Start using custom I/O settings and bus speed
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }   I2C_HZ <= core.I2C_MAX_FREQ
@@ -49,7 +50,7 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ, ADDR_BITS=0): status
             if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
                 waitus(core.T_POR)
                 _addr_bits := ADDR_BITS << 1
-                if i2c.present(SLAVE_WR | _addr_bits)
+                if (i2c.present(SLAVE_WR | _addr_bits))
                     defaults()
                     return
     ' if this point is reached, something above failed
@@ -64,10 +65,10 @@ PUB Stop()
 PUB Defaults()
 ' Set factory defaults
     opmode(SINGLE)
-    adcscale(2_048)
-    adcdatarate(128)
+    adc_scale(2_048)
+    adc_data_rate(128)
 
-PUB ADCChannelEnabled(ch): curr_ch
+PUB adc_chan_enabled(ch): curr_ch
 ' Set active ADC channel
 '   Valid values: 0..3
 '   Any other value polls the chip and returns the current setting
@@ -82,7 +83,7 @@ PUB ADCChannelEnabled(ch): curr_ch
     ch := ((curr_ch & core.MUX_MASK) | ch)
     writereg(core.CONFIG, 2, @ch)
 
-PUB ADCData(): adc_word
+PUB adc_data(): adc_word
 ' Read measurement from channel ch
 '   Valid values: *0, 1, 2, 3
 '   Any other value is ignored
@@ -90,7 +91,7 @@ PUB ADCData(): adc_word
     adc_word signx= 15                          ' extend sign bit
     _last_adc := adc_word
 
-PUB ADCDataRate(rate): curr_rate
+PUB adc_data_rate(rate): curr_rate
 ' Set ADC sample rate, in Hz
 '   Valid values: 8, 16, 32, 64, *128, 250, 475, 860
 '   Any other value polls the chip and returns the current setting
@@ -107,14 +108,14 @@ PUB ADCDataRate(rate): curr_rate
     rate := ((curr_rate & core.DR_MASK & core.OS_MASK) | rate)
     writereg(core.CONFIG, 2, @rate)
 
-PUB ADCDataReady(): flag
+PUB adc_data_ready(): flag
 ' Flag indicating measurement is complete
 '   Returns: TRUE (-1) if measurement is complete, FALSE otherwise
     flag := 0
     readreg(core.CONFIG, 2, @flag)
     return ((flag >> core.OS) & 1) == 1
 
-PUB ADCScale(scale): curr_scl
+PUB adc_scale(scale): curr_scl
 ' Set full-scale range of the ADC, in millivolts
 '   Valid values:
 '       256, 512, 1024, *2048, 4096, 6144
@@ -127,7 +128,7 @@ PUB ADCScale(scale): curr_scl
     case scale
         256, 512, 1_024, 2_048, 4_096, 6_144:
             scale := lookdownz(scale: 6_144, 4_096, 2_048, 1_024, 0_512, 0_256)
-            ' set scaling factor
+            { set scaling factor }
             _uvolts_lsb := lookupz(scale: 187_5000, 125_0000, 62_5000, {
 }           31_2500, 15_6250, 7_8125)
             scale <<= core.PGA
@@ -139,11 +140,11 @@ PUB ADCScale(scale): curr_scl
     scale := ((curr_scl & core.PGA_MASK) | scale)
     writereg(core.CONFIG, 2, @scale)
 
-PUB ADCWord2Volts(adc_word): volts
+PUB adc2volts(adc_word): volts
 ' Scale ADC word to microvolts
     return u64.multdiv(adc_word, _uvolts_lsb, 1_0000)
 
-PUB IntActiveState(state): curr_state
+PUB int_active_state(state): curr_state
 ' Set interrupt pin active state/logic level
 '   Valid values: LOW (0), HIGH (1)
 '   Any other value polls the chip and returns the current setting
@@ -158,7 +159,7 @@ PUB IntActiveState(state): curr_state
     state := ((curr_state & core#COMP_POL_MASK) | state)
     writereg(core#CONFIG, 2, @state)
 
-PUB IntPersistence(cycles): curr_cyc
+PUB int_persistence(cycles): curr_cyc
 ' Set minimum number of measurements beyond threshold required to assert
 '   an interrupt
 '   Valid values: 1, 2, 4
@@ -175,7 +176,7 @@ PUB IntPersistence(cycles): curr_cyc
     cycles := ((curr_cyc & core#COMP_QUE_MASK) | cycles)
     writereg(core#CONFIG, 2, @cycles)
 
-PUB IntsLatched(state): curr_state
+PUB ints_latched(state): curr_state
 ' Enable latching of interrupts
 '   Valid values:
 '       TRUE (-1 or 1): Active interrupts remain asserted until cleared manually
@@ -192,48 +193,48 @@ PUB IntsLatched(state): curr_state
     state := ((curr_state & core.COMP_LAT_MASK) | state)
     writereg(core.CONFIG, 2, @state)
 
-PUB IntThreshHi(thresh): curr_thr
+PUB int_thresh_hi(thresh): curr_thr
 ' Set voltage interrupt high threshold, in microvolts
 '   Valid values: 0..5_800000 (0..5.8V)
 '   Any other value polls the chip and returns the current setting
-'   NOTE: This value should always be higher than IntThreshLow(),
+'   NOTE: This value should always be higher than int_thresh_low(),
 '   for proper operation
     case thresh
         0..5_800000:                            ' supply max + input abs. max
-            thresh := volts2adcword(thresh)
+            thresh := volts2adc(thresh)
             writereg(core#HI_THRESH, 2, @thresh)
         other:
             curr_thr := 0
             readreg(core#HI_THRESH, 2, @curr_thr)
-            return adcword2volts(curr_thr)
+            return adc2volts(curr_thr)
 
-PUB IntThreshLow(thresh): curr_thr
+PUB int_thresh_low(thresh): curr_thr
 ' Set voltage interrupt low threshold, in microvolts
 '   Valid values: 0..5_800000 (0..5.8V)
 '   Any other value polls the chip and returns the current setting
-'   NOTE: This value should always be lower than IntThreshHi(),
+'   NOTE: This value should always be lower than int_thresh_hi(),
 '   for proper operation
     case thresh
         0..5_800000:                            ' supply max + input abs. max
-            thresh := volts2adcword(thresh)
+            thresh := volts2adc(thresh)
             writereg(core#LO_THRESH, 2, @thresh)
         other:
             curr_thr := 0
             readreg(core#LO_THRESH, 2, @curr_thr)
-            return adcword2volts(curr_thr)
+            return adc2volts(curr_thr)
 
-PUB LastVoltage(): volts
+PUB last_voltage(): volts
 ' Return last ADC reading, in microvolts
-    return adcword2volts(_last_adc)
+    return adc2volts(_last_adc)
 
-PUB Measure() | tmp
+PUB measure() | tmp
 ' Trigger a measurement, when in single-shot mode
     tmp := 0
     readreg(core.CONFIG, 2, @tmp)
     tmp |= (1 << core.OS)
     writereg(core.CONFIG, 2, @tmp)
 
-PUB OpMode(mode): curr_mode
+PUB opmode(mode): curr_mode
 ' Set operation mode
 '   Valid values:
 '       CONT (0): Continuous measurement mode
@@ -249,12 +250,7 @@ PUB OpMode(mode): curr_mode
     mode := ((curr_mode & core.MODE_MASK) | mode)
     writereg(core.CONFIG, 2, @mode)
 
-PUB Voltage(): volts
-' Return ADC reading, in microvolts
-'   NOTE: Measurement returned is from channel set with ADCChannelEnabled()
-    return adcword2volts(adcdata())
-
-PUB Volts2ADCWord(volts): adc_word
+PUB volts2adc(volts): adc_word
 ' Scale microvolts to ADC word
     return u64.multdiv(volts, 1_0000, _uvolts_lsb)
 
@@ -262,7 +258,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from reg_nr into ptr_buff
     case reg_nr
         $00..$03:
-            cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
+            cmd_pkt.byte[0] := (SLAVE_WR | _addr_bits)
             cmd_pkt.byte[1] := reg_nr
             i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 2)
@@ -278,7 +274,7 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Write nr_bytes from ptr_buff to the slave device
     case reg_nr
         $01..$03:
-            cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
+            cmd_pkt.byte[0] := (SLAVE_WR | _addr_bits)
             cmd_pkt.byte[1] := reg_nr
             i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 2)
@@ -289,22 +285,21 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+
