@@ -6,27 +6,29 @@
         Analog to Digital Converters (P2 version)
     Copyright (c) 2022
     Started Nov 26, 2019
-    Updated Jul 3, 2022
+    Updated Aug 6, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
+#include "signal.adc.common.spin2h"
 
 VAR
 
     long _CS
-    word _adc_ref
+    long _adc_ref
     byte _ch
 
 OBJ
 
     spi : "com.spi.bitbang"
     core: "core.con.mcp320x"
+    u64 : "math.unsigned64"
 
-PUB Null()
+PUB null()
 ' This is not a top-level object
 
-PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=1_000_000): status
-
+PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=1_000_000): status
+' Start the driver, using custom I/O settings
     if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
 }   lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63)
         if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, SCK_FREQ))
@@ -39,19 +41,19 @@ PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=1_000_000): status
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 
-PUB Stop()
-
+PUB stop()
+' Stop the driver
     spi.deinit()
     _CS := 0
     _adc_ref := 0
     _ch := 0
 
-PUB Defaults()
+PUB defaults()
 ' Factory defaults
-    adcchannel(0)
-    refvoltage(3_300)
+    adc_chan_enabled(0)
+    ref_voltage(3_300000)
 
-PUB ADCChannel(ch)
+PUB adc_chan_enabled(ch)
 ' Set ADC channel for subsequent reads
 '   Valid values: 0, 1
 '   Any other value returns the current setting
@@ -61,7 +63,7 @@ PUB ADCChannel(ch)
         other:
             return _ch
 
-PUB ADCData(): adc_word | cfg
+PUB adc_data(): adc_word | cfg
 ' ADC data word
 '   Returns: 12-bit ADC word
     case _ch
@@ -75,38 +77,37 @@ PUB ADCData(): adc_word | cfg
     adc_word := (spi.rdbits_msbf(13) & $fff)    ' 1 null bit + 12 data bits
     pinh(_CS)
 
-PUB RefVoltage(v=-2): curr_v
-' Set ADC reference/supply voltage (Vdd), in millivolts
-'   Valid values: 2_700..5_500
+PUB adc2volts(adc_word): volts
+' Scale ADC word to microvolts
+    return u64.multdiv(_adc_ref, adc_word, 4096)
+
+PUB ref_voltage(v=-2): curr_v
+' Set ADC reference/supply voltage (Vdd), in microvolts
+'   Valid values: 2_700_000..5_500_000 (2.7 .. 5.5V)
 '   Any other value returns the current setting
     case v
-        2_700..5_500:
+        2_700_000..5_500_000:
             _adc_ref := v
         other:
             return _adc_ref
 
-PUB Volts(): v
-' Return ADC reading, in milli-volts
-    return (_adc_ref * adcdata()) / 4096
-
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+
