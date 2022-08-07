@@ -5,7 +5,7 @@
     Description: Driver for the Sensirion SCD30 CO2 sensor (P2 version)
     Copyright (c) 2022
     Started Jul 21, 2021
-    Updated Aug 6, 2022
+    Updated Aug 7, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -148,7 +148,10 @@ PUB co2_bias(ppm): curr_ppm
 PUB co2_data(): f_co2
 ' CO2 data
 '   Returns: IEEE-754 float
-    return _co2
+    if (data_ready())
+        read_meas()
+    else
+        return _co2
 
 PUB data_ready(): flag
 ' Flag indicating data ready
@@ -172,8 +175,66 @@ PUB meas_interval(t_int): curr_t
         other:
             return curr_t
 
-PUB measure() | meas_tmp[5], crc_tmp
+PUB measure()
 ' Read measurement data
+
+PUB opmode(mode): curr_mode
+' Set operating mode
+'   Valid values:
+'      *STANDBY (0): stop measuring
+'       CONT (1): continuous measurement
+'   Any other value returns the current setting
+    curr_mode := _opmode
+    case mode
+        CONT:
+            writereg(core.CONTMEAS, 2, @_presscomp)
+        STANDBY:
+            writereg(core.STOPMEAS, 0, 0)
+        other:
+            return curr_mode
+    _opmode := mode
+
+PUB reset()
+' Reset the device
+    writereg(core.SOFTRESET, 0, 0)
+    waitus(core.T_RES)
+
+PUB rhdata(): rh_adc
+' Relative humidity data
+'   Returns: IEEE-754 float
+    if (data_ready())
+        read_meas()
+    else
+        return _rh
+
+PUB rhword2pct(adc_word): rh
+' Convert ADC word to RH data
+    return fm.ftrunc(fm.fmul(adc_word, 100.0))
+
+PUB tempdata(): temp_adc
+' Temperature data
+'   Returns: IEEE-754 float
+    if (data_ready())
+        read_meas()
+    else
+        return _temp
+
+PUB tempword2deg(adc_word): temp
+' Convert ADC word to temperature data
+    return fm.ftrunc(fm.fmul(adc_word, 100.0))
+
+PUB version(): ver
+' Firmware version
+'   Returns: word [MSB:major..LSB:minor]
+'   Known values: $03_42
+    ver := 0
+    readreg(core.FWVER, 3, @ver)
+
+    return ver
+
+PRI read_meas() | meas_tmp[5], crc_tmp
+' Read measurements and cache in RAM
+'   NOTE: Valid data will be returned only if the data_ready() signal is TRUE
     readreg(core.READMEAS, 18, @meas_tmp)
     _co2.byte[3] := meas_tmp.byte[17]
     _co2.byte[2] := meas_tmp.byte[16]
@@ -207,54 +268,6 @@ PUB measure() | meas_tmp[5], crc_tmp
     ifnot crc.sensirioncrc8(@_rh.byte[2], 2) == crc_tmp.byte[1] and {
 }   crc.sensirioncrc8(@_rh, 2) == crc_tmp.byte[0]
         return EBADCRC
-
-PUB opmode(mode): curr_mode
-' Set operating mode
-'   Valid values:
-'      *STANDBY (0): stop measuring
-'       CONT (1): continuous measurement
-'   Any other value returns the current setting
-    curr_mode := _opmode
-    case mode
-        CONT:
-            writereg(core.CONTMEAS, 2, @_presscomp)
-        STANDBY:
-            writereg(core.STOPMEAS, 0, 0)
-        other:
-            return curr_mode
-    _opmode := mode
-
-PUB reset()
-' Reset the device
-    writereg(core.SOFTRESET, 0, 0)
-    waitus(core.T_RES)
-
-PUB rhdata(): rh_adc
-' Relative humidity data
-'   Returns: IEEE-754 float
-    return _rh
-
-PUB rhword2pct(adc_word): rh
-' Convert ADC word to RH data
-    return fm.ftrunc(fm.fmul(adc_word, 100.0))
-
-PUB tempdata(): temp_adc
-' Temperature data
-'   Returns: IEEE-754 float
-    return _temp
-
-PUB tempword2deg(adc_word): temp
-' Convert ADC word to temperature data
-    return fm.ftrunc(fm.fmul(adc_word, 100.0))
-
-PUB version(): ver
-' Firmware version
-'   Returns: word [MSB:major..LSB:minor]
-'   Known values: $03_42
-    ver := 0
-    readreg(core.FWVER, 3, @ver)
-
-    return ver
 
 PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp_buff, crc_tmp
 ' Read nr_bytes from the device into ptr_buff
