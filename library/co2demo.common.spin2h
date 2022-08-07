@@ -5,13 +5,12 @@
     Description: CO2 sensor demo - code common to all drivers (P2 version)
     Copyright (c) 2022
     Started Jul 13, 2022
-    Updated Aug 6, 2022
+    Updated Aug 7, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 PUB CO2Data() | co2
 ' Display CO2 sensor data
-    repeat until env.data_ready()
     env.measure()
     co2 := env.co2ppm()
     ser.printf(@"CO2 (ppm): %5.5d.%0d\n\r", (co2 / 10), (co2 // 10))
