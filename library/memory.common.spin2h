@@ -5,86 +5,73 @@
     Description: Routines common to all memory drivers
     Copyright (c) 2022
     Started Jul 30, 2022
-    Updated Jul 30, 2022
+    Updated Aug 9, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 
 PUB rd_byte(addr): b
-' Read a byte of data from flash
+' Read a byte of data from memory
     b := 0
     return rd_block_msbf(@b, addr, 1)
 
 PUB rd_long_lsbf(addr): l
-' Read one long from the flash chip, LSB-first
+' Read one long from memory, LSB-first
     l := 0
     return rd_block_lsbf(@l, addr, 4)
 
 PUB rd_long_msbf(addr): l
-' Read one long from the flash chip, LSB-first
+' Read one long from memory, MSB-first
     l := 0
     return rd_block_msbf(@l, addr, 4)
 
 PUB rd_word_lsbf(addr): w
-' Read one word from the flash chip, LSB-first
+' Read one word from memory, LSB-first
     w := 0
     return rd_block_lsbf(@w, addr, 2)
 
 PUB rd_word_msbf(addr): w
-' Read one word from the flash chip, LSB-first
+' Read one word from memory, MSB-first
     w := 0
     return rd_block_msbf(@w, addr, 2)
 
 PUB wr_byte(addr, val)
-' Write one byte to the flash chip
-'   NOTE: WriteEnable() must be called first before performing any writes
-'       The request will be ignored, otherwise
+' Write one byte to memory
     wr_block_lsbf(addr, @val, 1)
 
 PUB wr_long_lsbf(addr, val)
-' Write one long to the flash chip, LSB-first
-'   NOTE: WriteEnable() must be called first before performing any writes
-'       The request will be ignored, otherwise
+' Write one long to memory, LSB-first
     wr_block_lsbf(addr, @val, 4)
 
 PUB wr_long_msbf(addr, val)
-' Write one long to the flash chip, MSB-first
-'   NOTE: WriteEnable() must be called first before performing any writes
-'       The request will be ignored, otherwise
+' Write one long to memory, MSB-first
     wr_block_msbf(addr, @val, 4)
 
 PUB wr_word_lsbf(addr, val)
-' Write one word to the flash chip, LSB-first
-'   NOTE: WriteEnable() must be called first before performing any writes
-'       The request will be ignored, otherwise
+' Write one word to memory, LSB-first
     wr_block_lsbf(addr, @val, 2)
 
 PUB wr_word_msbf(addr, val)
-' Write one word to the flash chip, MSB-first
-'   NOTE: WriteEnable() must be called first before performing any writes
-'       The request will be ignored, otherwise
+' Write one word to memory, MSB-first
     wr_block_msbf(addr, @val, 2)
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 
