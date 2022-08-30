@@ -1,0 +1,72 @@
+{
+    --------------------------------------------
+    Filename: input.encoder.quadrature.spin2
+    Author: Jesse Burt
+    Description: Quadrature/grey code encoder driver
+    Copyright (c) 2022
+    Started Aug 30, 2022
+    Updated Aug 30, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+VAR
+
+    byte _ENC_BASEPIN
+
+PUB startx(ENC_BASEPIN, nr_enc, smp_per): status | pin
+' Start driver using custom I/O settings
+'   ENC_BASEPIN: lowest numbered I/O pin of first encoder
+'   nr_enc: number of encoders
+'   smp_per: sample period of encoder, in system ticks (suggested start: clkfreq()/100)
+'   NOTE: all encoders must be connected to sequential pin pairs, and each encoder connected
+'       to the next pair of pins (e.g., 0+1, 2+3, 4+5, etc.)
+'       To use sparsely connected encoders, start multiple copies of this object,
+'       one for each consecutively connected 'set' of encoders)
+    if (lookdown(ENC_BASEPIN: 0..62) and nr_enc)
+        _ENC_BASEPIN := ENC_BASEPIN
+        pin := 0
+        repeat nr_enc
+            { set up absolute position reader }
+            pinstart(ENC_BASEPIN + (pin * 2), P_QUADRATURE | P_PLUS1_B, 0, 0)
+
+            { set up delta position reader }
+            pinstart(ENC_BASEPIN + ((pin * 2) + 1), P_QUADRATURE | P_MINUS1_B, smp_per, 0)
+
+            pin++
+        { this doesn't use another cog, but just to follow convention, return the ID+1
+            of the cog this is being run in }
+        return (cogid() + 1)
+    else
+    ' if this point is reached, something above failed
+    ' Double check I/O pin assignments, connections, power
+        return FALSE
+
+PUB pos_abs(enc_nr): p
+' Get absolute position of given encoder number (0..number of encoders-1)
+    return rdpin(_ENC_BASEPIN + (enc_nr * 2))
+
+PUB pos_delta(enc_nr): p
+' Get relative/delta position of given encoder number (0..number of encoders-1)
+    return rdpin(_ENC_BASEPIN + ((enc_nr * 2) + 1))
+
+DAT
+{
+Copyright 2022 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+
