@@ -19,7 +19,7 @@ PUB startx(ENC_BASEPIN, nr_enc, smp_per): status | pin
 '   ENC_BASEPIN: lowest numbered I/O pin of first encoder
 '   nr_enc: number of encoders
 '   smp_per: sample period of encoder, in system ticks
-'       suggested start: clkfreq()/100
+'       suggested start: clkfreq/100
 '           Higher values = more sensitive, lower = less sensitive
 '   NOTE: all encoders must be connected to sequential pin pairs, and each encoder connected
 '       to the next pair of pins (e.g., 0+1, 2+3, 4+5, etc.)
