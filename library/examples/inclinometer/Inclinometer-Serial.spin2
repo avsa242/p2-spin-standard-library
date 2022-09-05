@@ -1,0 +1,114 @@
+{
+    --------------------------------------------
+    Filename: Inclinometer-Serial.spin2
+    Author: Jesse Burt
+    Description: Simple inclinometer using an LSM9DS1 IMU
+        (serial display)
+    Copyright (c) 2022
+    Started Jan 29, 2020
+    Updated Sep 5, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+}
+CON
+
+    _clkfreq    = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
+
+' -- User-modifiable constants
+    LED         = cfg.LED1
+    SER_BAUD    = 2_000_000
+
+    { SPI configuration }
+    CS_M_PIN    = 0
+    CS_AG_PIN   = 1
+    SCK_PIN     = 2                             ' SCL
+    MOSI_PIN    = 3                             ' SDA/SDIO
+    MISO_PIN    = 4                             ' SDO/SDIO
+    SPI_FREQ    = 5_000_000
+    ' NOTE: Set MOSI_PIN and MISO_PIN to the same pin to use 3-wire SPI
+
+    { I2C configuration }
+    SCL_PIN     = 0
+    SDA_PIN     = 1
+    I2C_FREQ    = 400_000                       ' 400kHz max
+    ADDR_BITS   = 0                             ' 0, 1
+' --
+
+OBJ
+
+    cfg     : "core.con.boardcfg.p2eval"
+    ser     : "com.serial.terminal.ansi"
+    imu     : "sensor.imu.9dof.lsm9ds1"
+
+PUB main() | pitch, roll
+
+    setup()
+
+    { set the accelerometer to a lower, less noisy data rate }
+    imu.preset_active()
+    imu.acceldatarate(59)
+    imu.accelhighres(true)
+    imu.fifoenabled(false)
+    repeat
+        repeat until imu.acceldataready()
+        ser.position(0, 3)
+
+        { clamp angles to +/- 90deg }
+        pitch := -90_000 #> imu.pitch() <# 90_000
+        roll := -90_000 #> imu.roll() <# 90_000
+
+        ser.printf(@"Pitch: %d.%1.1d    \n\r", pitch/1000, abs(pitch//1000)/10)
+        ser.printf(@"Roll: %d.%1.1d    \n\r", roll/1000, abs(roll//1000)/10)
+
+        { Press 'z' to reset the inclinometer's 'zero'
+          Ensure the chip is lying on a flat surface and the package top
+          is facing up }
+        if (ser.rxcheck() == "z")
+            set_zero()
+
+PRI set_zero()
+' Re-set the 'zero' of the inclinometer (set accelerometer bias offsets)
+    ser.position(0, 7)
+    ser.str(@"Setting zero...")
+    imu.calibrateaccel()
+    ser.positionx(0)
+    ser.clearline()
+
+PUB setup()
+
+    ser.start(SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.strln(@"Serial terminal started")
+
+#ifdef LSM9DS1_SPI
+    if imu.startx(CS_AG_PIN, CS_M_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SPI_FREQ)
+#else
+    if imu.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS)
+#endif
+        ser.strln(@"LSM9DS1 driver started")
+    else
+        ser.strln(@"LSM9DS1 driver failed to start - halting")
+        repeat
+
+DAT
+{
+Copyright 2022 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+
