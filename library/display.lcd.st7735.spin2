@@ -800,7 +800,6 @@ PUB PowerControl2(v25, vgh, vgl) | tmp
 
     case vgh
         AVDD_X2_VGH25, AVDD_X3, AVDD_X3_VGH25:
-            vgh := lookdownz(vgh: AVDD_X2_VGH25, AVDD_X3, AVDD_X3_VGH25) & core.VGHBT_BITS
         other:
             return
 
