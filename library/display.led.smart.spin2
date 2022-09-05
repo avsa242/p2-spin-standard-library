@@ -17,6 +17,31 @@ CON
     BYTESPERPX      = 4
     MAX_COLOR       = 16_777_215
 
+' Character attributes
+    DRAWBG      = (1 << 0)
+
+    BLACK       = $00_00_00_00
+    RED         = $FF_00_00_00
+    GREEN       = $00_FF_00_00
+    BLUE        = $00_00_FF_00
+    WHITE       = $FF_FF_FF_00
+    WHITE2      = $00_00_00_FF
+    CYAN        = $00_FF_FF_00
+    MAGENTA     = $FF_00_FF_00
+    YELLOW      = $FF_FF_00_00
+    CHARTREUSE  = $7F_FF_00_00
+    ORANGE      = $FF_60_00_00
+    AQUAMARINE  = $7F_FF_D4_00
+    PINK        = $FF_5F_5F_00
+    TURQUOISE   = $3F_E0_C0_00
+    REALWHITE   = $C8_FF_FF_00
+    INDIGO      = $3F_00_7F_00
+    VIOLET      = $BF_7F_BF_00
+    MAROON      = $32_00_10_00
+    BROWN       = $0E_06_00_00
+    CRIMSON     = $DC_28_3C_00
+    PURPLE      = $8C_00_FF_00
+
     ' TH+TL should be 1250ns +/- 600ns
     ' TH and TL each should be within 150ns of spec
     WS2811          = $2811
@@ -91,7 +116,10 @@ VAR
     long _mdl_t0h, _mdl_t0l, _mdl_t1h, _mdl_t1l, _mdl_per, _mptr_update, _model
     long _t0h, _t0l, _t1h, _t1l, _smled_pin, _tres
 
-PUB Startx(SMLED_PIN, WIDTH, HEIGHT, MODEL, PTR_DISP)
+PUB null()
+' This is not a top-level object
+
+PUB startx(SMLED_PIN, WIDTH, HEIGHT, MODEL, PTR_DISP)
 ' Start smart-LED engine
 '   Valid values:
 '       SMLED_PIN: I/O pin connected to smart-LED strip/array (0..63)
@@ -105,36 +133,39 @@ PUB Startx(SMLED_PIN, WIDTH, HEIGHT, MODEL, PTR_DISP)
 }   (WIDTH * HEIGHT) <= 1024
         _smled_pin := SMLED_PIN
         setmodel(MODEL)
-        address(PTR_DISP)
         _disp_width := width
         _disp_height := height
         _disp_xmax := _disp_width - 1
         _disp_ymax := _disp_height - 1
         _buff_sz := _nr_pix := (WIDTH * HEIGHT)
         _bytesperln := _disp_width * BYTESPERPX
-
+        address(PTR_DISP)
         pinl(_smled_pin)
         return _cog := (cogid() + 1)
     return FALSE
 
-PUB Stop()
+PUB stop()
 ' Deinitialize engine
     pinf(_smled_pin)
     longfill(@_ptr_drawbuffer, 0, 22)
 
-PUB Address(addr)
+PUB address(addr)
 ' Set address of display buffer
     case addr
-        0..$7ffff:
+        0..$7ffff-_buff_sz:
             _ptr_drawbuffer := addr
         other:
             return _ptr_drawbuffer
 
-PUB Clear()
+PUB charattrs(attrs)
+' Set character attributes
+    _char_attrs := attrs
+
+PUB clear()
 ' Clear the display buffer
     longfill(_ptr_drawbuffer, _bgcolor, _nr_pix)
 
-PUB Plot(x, y, color)
+PUB plot(x, y, color)
 ' Plot pixel at (x, y) in color
     if (x < 0 or x > _disp_xmax) or (y < 0 or y > _disp_ymax)
         return                                  ' coords out of bounds, ignore
@@ -147,7 +178,7 @@ PUB Plot(x, y, color)
 #endif
 
 #ifndef GFX_DIRECT
-PUB Point(x, y): pix_clr
+PUB point(x, y): pix_clr
 ' Get color of pixel at x, y
     x := 0 #> x <# _disp_xmax
     y := 0 #> y <# _disp_ymax
@@ -155,7 +186,7 @@ PUB Point(x, y): pix_clr
     return long[_ptr_drawbuffer][x + (y * _disp_width)]
 #endif
 
-PUB SetClock(freq) | bitper
+PUB setclock(freq) | bitper
 ' Set clock frequency used to calculate timings
 '   Most strips operate at 800_000 (800kHz)
     bitper := clkfreq / freq                    ' get bit period for freq
@@ -165,7 +196,7 @@ PUB SetClock(freq) | bitper
     _t1h := (((_mdl_t1h / _mdl_per) * bitper) / 1_000)
     _t1l := (((_mdl_t1l / _mdl_per) * bitper) / 1_000)
 
-PUB SetModel(model): curr_model
+PUB setmodel(model): curr_model
 ' Set model of smart-LED array
 '   Valid values:
 '       WS2811 ($2811)
@@ -237,12 +268,12 @@ PUB SetModel(model): curr_model
     setclock(800_000)
     return model
 
-PUB Update()
+PUB update()
 ' Send display buffer to smart-LED array
-'   Call method pointed to, set by SetModel()
+'   Call method pointed to, set by setmodel()
     _mptr_update()
 
-PUB UpdateGRB24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
+PUB updategrb24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
 ' Update G-R-B 24bpp smart-LED array
     longmove(@t0h, @_t0h, 6)                    ' copy timings to local vars
 
@@ -269,7 +300,7 @@ PUB UpdateGRB24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
     pinl(smled_pin)                             ' reset code (end of array)
     waitus(tres)
 
-PUB UpdateGRB32() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
+PUB updategrb32() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
 ' Update G-R-B 32bpp smart-LED array
     longmove(@t0h, @_t0h, 6)                    ' copy timings to local vars
 
@@ -296,7 +327,7 @@ PUB UpdateGRB32() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
     pinl(smled_pin)                             ' reset code (end of array)
     waitus(tres)
 
-PUB UpdateRGB24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit
+PUB updatergb24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit
 ' Update R-G-B 24bpp smart-LED array
     longmove(@t0h, @_t0h, 6)                    ' copy timings to local vars
 
@@ -321,33 +352,32 @@ PUB UpdateRGB24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit
     waitus(tres)
 
 #ifndef GFX_DIRECT
-PRI memFill(xs, ys, val, count)
+PRI memfill(xs, ys, val, count)
 ' Fill region of display buffer memory
 '   xs, ys: Start of region
 '   val: Color
 '   count: Number of consecutive memory locations to write
-    longfill(_ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
+    longfill(_ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), ((val >> 8) & $FF) | {
+}   ((val << 8) & $FF00), count)
 #endif
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 
