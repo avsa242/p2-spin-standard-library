@@ -5,11 +5,12 @@
     Description: Driver for the ST LSM9DS1 9DoF/3-axis IMU
     Copyright (c) 2022
     Started Aug 12, 2017
-    Updated Jul 13, 2022
+    Updated Sep 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 #include "sensor.imu.common.spin2h"
+#include "sensor.temp.common.spin2h"
 
 CON
 
@@ -132,7 +133,6 @@ OBJ
 VAR
 
     long _CS_AG, _CS_M
-    byte _temp_scale
     byte _spi_wire_md
 
 PUB Null()
@@ -1122,11 +1122,6 @@ PUB MagSoftreset() | tmp
     writereg(MAG, core.CTRL_REG2_M, 1, @tmp)    ' to come out of reset
     spimode(_spi_wire_md)
 
-PUB Temperature(): temp
-' Get temperature from chip
-'   Returns: Temperature in hundredths of a degree in chosen scale
-    return adc2temp(tempdata())
-
 PUB TempCompensation(enable=-2): curr_setting
 ' Enable on-chip temperature compensation for magnetometer readings
 '   Valid values: TRUE (-1 or 1) or FALSE
@@ -1146,17 +1141,16 @@ PUB TempDataReady(): flag
     readreg(XLG, core.STATUS_REG, 1, @flag)
     return (((flag >> core.TDA) & 1) == 1)
 
-PUB TempScale(scale=-2): curr_scl
-' Set temperature scale used by Temperature method
-'   Valid values:
-'      *C (0): Celsius
-'       F (1): Fahrenheit
-'   Any other value returns the current setting
-    case scale
-        C, F:
-            _temp_scale := scale
+PUB TempWord2Deg(adc_word): temp
+' Convert temperature ADC word to degrees in chosen scale
+    temp := ((adc_word * 10) / 16) + 2500
+    case _temp_scale
+        C:
+            return
+        F:
+            return ((temp * 90) / 50) + 32_00
         other:
-            return _temp_scale
+            return FALSE
 
 PUB XLGDataRate(rate=-2): curr_rate
 ' Set output data rate of accelerometer and gyroscope, in Hz
@@ -1194,18 +1188,6 @@ PUB XLGSoftreset() | tmp
     tmp := core.XLG_SW_RESET | (1 << core.BOOT)
     writereg(XLG, core.CTRL_REG8, 1, @tmp)
     waitms(10)
-
-PRI adc2temp(temp_word): temp_cal
-' Calculate temperature, using temperature word
-'   Returns: temperature, in hundredths of a degree, in chosen scale
-    temp_cal := ((temp_word * 10) / 16) + 2500
-    case _temp_scale
-        C:
-            return
-        F:
-            return ((temp_cal * 90) / 50) + 32_00
-        other:
-            return FALSE
 
 PRI addressAutoInc(state): curr_state
 ' Enable automatic address increment, for multibyte transfers (SPI and I2C)
@@ -1417,24 +1399,21 @@ PRI writeReg(device, reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 
