@@ -45,7 +45,7 @@ CON
         ID          = 0
         ID_BITS     = %11
         AM_MASK     = (1 << AM) ^ DATA_ENT_MD_MASK
-        ID_MASK     = 1 ^ DATA_ENT_MD_MASK
+        ID_MASK     = ID_BITS ^ DATA_ENT_MD_MASK
 
     SWRESET         = $12
 
@@ -53,11 +53,11 @@ CON
 
     VCI_DET         = $15
 
-    TEMPSENS_CTRL_W = $1A
+    TEMP_CTRL_W     = $1A
 
-    TEMPSENS_CTRL_R = $1B
+    TEMP_CTRL_R     = $1B
 
-    TEMPSENS_CMD_W  = $1C
+    TEMP_CMD_W      = $1C
 
     MASTER_ACT      = $20
 
@@ -131,6 +131,26 @@ CON
 
     NOOP            = $FF
 
-PUB Null{}
+PUB null{}
 ' This is not a top-level object
+
+DAT
+{
+Copyright 2022 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
 
