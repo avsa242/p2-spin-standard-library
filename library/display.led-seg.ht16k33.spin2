@@ -1,7 +1,7 @@
 {
     --------------------------------------------
     Filename: display.led-seg.ht16k33.spin2
-    Description: Driver for HT16K33-based LED segment displays (P2 version)
+    Description: Driver for HT16K33-based displays (P2 version, segment type)
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Jun 22, 2021
@@ -9,35 +9,15 @@
     See end of file for terms of use.
     --------------------------------------------
 }
-
-CON
-
-    SLAVE_WR    = core.SLAVE_ADDR
-    SLAVE_RD    = core.SLAVE_ADDR|1
-
-    DEF_HZ      = 100_000
-
-' Display visibility
-    OFF         = 0
-    ON          = 1
-
+#include "ht16k33-common.spin2h"
+#include "terminal.common.spin2h"
 VAR
 
     long _col, _row, _disp_width, _disp_height, _disp_xmax, _disp_ymax    
     word _disp_buff[7]                           ' 112 bits/segments
-    byte _dispsetup
-    byte _addr_bits
     byte _lastchar
 
-OBJ
-
-    i2c     : "com.i2c"                         ' I2C engine
-    core    : "core.con.ht16k33"                ' HW-specific constants
-
-PUB Null()
-' This is not a top-level object
-
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT): status
+PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT): status
 ' SCL_PIN, SDA_PIN, I2C_HZ: I2C bus I/O pins and speed
 ' ADDR_BITS: specify LSBs of slave address (%000..%111)
 ' WIDTH, HEIGHT: dimensions of display, in digits/characters
@@ -45,7 +25,7 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT): status
 }   I2C_HZ <= core.I2C_MAX_FREQ
         if lookdown(ADDR_BITS: %000..%111)
             if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
-                waitus(core.T_POR)              ' wait for device startup
+                waitus(core.T_POR)         ' wait for device startup
                 _addr_bits := ADDR_BITS << 1
                 _disp_width := WIDTH
                 _disp_height := HEIGHT
@@ -59,49 +39,7 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT): status
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 
-PUB Stop()
-
-    displayvisibility(FALSE)
-    oscenabled(FALSE)
-    waitms(100)
-    i2c.deinit()
-
-PUB Defaults()
-
-    oscenabled(TRUE)
-    brightness(15)
-    displayvisibility(TRUE)
-
-PUB BlinkRate(rate)
-' Set blink rate of display, in Hz
-'   Valid values: 0_5 (0.5), 1, 2
-'   Any other value disables blinking
-    case rate
-        0:
-            rate := 0
-        0_5:
-            rate := %11 << core.BLINK
-        1:
-            rate := %10 << core.BLINK
-        2:
-            rate := %01 << core.BLINK
-        other:
-            return
-
-    _dispsetup := ((_dispsetup & core.BLINK_MASK) | rate)
-    writereg(core.DISPSETUP, _dispsetup)
-
-PUB Brightness(level)
-' Set display brightness
-'   Valid values: 0..15
-'   Any other value is ignored
-    case level
-        0..15:
-        other:
-            return
-    writereg(core.BRIGHTNESS, level)
-
-PUB Char(c) | cmd_pkt, i
+PUB char(c) | cmd_pkt, i
 ' Write character to display
 '   NOTE: Interprets control characters
     case c
@@ -110,7 +48,7 @@ PUB Char(c) | cmd_pkt, i
             updatebuff(" ")                     '   and display a SPACE over it
         LF:
             movedown()
-        CB:                                     ' clear/form feed
+        FF:                                     ' clear/form feed
             clear()
         CR:
             positionx(0) 
@@ -139,82 +77,57 @@ PUB Char(c) | cmd_pkt, i
         i2c.wrword_lsbf(_disp_buff[i])
     i2c.stop()
 
-PUB Clear()
+PUB clear()
 ' Clear display
     repeat 7
         char(" ")
     position(0, 0)
 
-PUB DisplayVisibility(state)
-' Enable display visibility
-'   Valid values: TRUE/ON (-1 or 1), FALSE/OFF (0)
-'   Any other value is ignored
-'   NOTE: This doesn't affect display RAM contents;
-'       only whether it's currently displayed or not
-    case abs(state)
-        OFF, ON:
-            state := abs(state)
-        other:
-            return
-
-    _dispsetup := ((_dispsetup & core.ONOFF_MASK) | state)
-    writereg(core.DISPSETUP, _dispsetup)
-
-PUB MoveDown()
+PUB movedown()
 ' Move cursor down one row
 '   NOTE: Wraps around to the first row
     _row++
     if _row > _disp_ymax
         _row := 0
 
-PUB MoveLeft()
+PUB moveleft()
 ' Move cursor left one column
 '   NOTE: Wraps around to the last column
     _col--
     if _col < 0
         _col := _disp_xmax
 
-PUB MoveRight()
+PUB moveright()
 ' Move cursor right one column
 '   NOTE: Wraps around to the first column
     _col++
     if _col > _disp_xmax
         _col := 0
 
-PUB MoveUp()
+PUB moveup()
 ' Move cursor up one row
 '   NOTE: Wraps around to the last row
     _row--
     if _row < 0
         _row := _disp_ymax
 
-PUB OscEnabled(state)
-' Enable the oscillator
-'   Valid values: TRUE (-1 or 1), FALSE (0)
-'   Any other value is ignored
-    case abs(state)
-        0, 1: state := abs(state)
-        other:
-            return
-    writereg(core.OSCILLATOR, state)
-
-PUB Position(x, y)
+PUB position(x, y)
 ' Set cursor position
     if (x >= 0) and (x <= _disp_xmax) and (y >= 0) and (y <= _disp_ymax)
         _col := x
         _row := y
 
-PUB PositionX(x)
+PUB positionx(x)
 ' Set cursor X position
     if (x >= 0) and (x <= _disp_xmax)
         _col := x
 
-PUB PositionY(y)
+PUB positiony(y)
 ' Set cursor Y position
     if (y >= 0) and (y <= _disp_ymax)
         _row := y
 
-PRI nextDigit()
+PRI nextdigit()
 ' Advance to next display digit
 '   NOTE:
 '       * Wraps around to the first column
@@ -224,7 +137,7 @@ PRI nextDigit()
         _col := 0
         movedown()
 
-PRI prevDigit()
+PRI prevdigit()
 ' Move back to previous display digit
 '   NOTE:
 '       * Wraps around to the last column
@@ -234,7 +147,7 @@ PRI prevDigit()
         _col := _disp_xmax
         moveup()
 
-PRI updateBuff(c)
+PRI updatebuff(c)
 ' Update display buffer with character 'c'
     if c == "."
         ' if drawing a period/decimal point, OR it in with the current digit's
@@ -243,19 +156,6 @@ PRI updateBuff(c)
     else
         ' otherwise, just write the digit data
         _disp_buff[(_row * _disp_width) + _col] := _fnt_tbl[c-32]
-
-PRI writeReg(reg_nr, ptr_buff) | cmd_pkt[2], i
-' Write reg_nr to device from ptr_buff
-    case reg_nr
-        core.OSCILLATOR, core.DISPSETUP, core.ROWINT, {
-        } core.BRIGHTNESS:                      ' Control registers
-            cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
-            cmd_pkt.byte[1] := reg_nr | ptr_buff
-            i2c.start()
-            i2c.wrblock_lsbf(@cmd_pkt, 2)
-            i2c.stop()
-        other:
-            return
 
 DAT
 
@@ -362,26 +262,24 @@ _fnt_tbl    word    %0000_0000_0000_0000    ' (SP) - 32/$20
             word    %0000_0000_1100_0000    ' ~
             word    %0000_0000_0000_0000    ' (DEL)
 
-#include "lib.terminal.spin2"
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+
