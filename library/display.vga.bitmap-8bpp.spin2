@@ -4,7 +4,7 @@
     Description: 8-bits per pixel bitmap VGA driver (320x240)
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Sep 3, 2022
+    Updated: Sep 6, 2022
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is based on raycast5b_SpinDisplay2a.spin2,
@@ -27,9 +27,6 @@ CON
 
     INTENSITY   = 127                                        ' 0..128
 
-' Character attributes
-    DRAWBG      = 1 << 0
-
 OBJ
 
     smartpins   : "core.con.smartpins"
@@ -42,7 +39,7 @@ VAR
     long _ptr_dispbuff
     byte _vsync_pin
 
-PUB Start(BASEPIN, WIDTH, HEIGHT, ptr_dispbuff): okay
+PUB start(BASEPIN, WIDTH, HEIGHT, ptr_dispbuff): okay
 
     _ptr_palette := @_palette
     _params[HSYNC_PAR] := BASEPIN
@@ -62,47 +59,43 @@ PUB Start(BASEPIN, WIDTH, HEIGHT, ptr_dispbuff): okay
     _cog := okay := coginit(16, @DisplayEntry, @_params) + 1
     return
 
-PUB Stop()
+PUB stop()
 
     if _cog
         cogstop(_cog-1)
 
-PUB Defaults()
+PUB defaults()
 ' Default timings for 640x480 signalling
     SetTimings(10, 33, 16, 96, 48, 640)
 
-PUB Address(addr)
+PUB address(addr)
 ' Set address of display buffer
 '   NOTE: Also sets address of (optional) offscreen buffer to the same address
     _ptr_dispbuff := addr
     _ptr_drawbuffer := addr
 
-PUB CharAttrs(attrs)
-' Set character attributes
-    _char_attrs := attrs
-
-PUB Clear()
+PUB clear()
 ' Clear the display
     longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 
-PUB DrawTo(addr)
+PUB drawto(addr)
 ' Set address of (optional) draw/render buffer
 '   NOTE: This is typically used as an offscreen buffer,
 '       to subsequently be copied to the display or "live" buffer,
 '       once a complete frame is rendered.
     _ptr_drawbuffer := addr
 
-PUB MirrorH(state)
+PUB mirrorh(state)
 ' dummy method
 
-PUB MirrorV(state)
+PUB mirrorv(state)
 ' dummy method
 
-PUB PalettePtr(): addr
+PUB paletteptr(): addr
 ' Pointer to palette data
     return @_palette
 
-PUB Plot(x, y, color)
+PUB plot(x, y, color)
 ' Plot pixel at (x, y) in color
     if (x < 0 or x > _disp_xmax) or (y < 0 or y > _disp_ymax)
         return                                  ' coords out of bounds, ignore
@@ -114,7 +107,7 @@ PUB Plot(x, y, color)
 #endif
 
 #ifndef GFX_DIRECT
-PUB Point(x, y): pix_clr
+PUB point(x, y): pix_clr
 ' Get color of pixel at x, y
     x := 0 #> x <# _disp_xmax
     y := 0 #> y <# _disp_ymax
@@ -122,7 +115,7 @@ PUB Point(x, y): pix_clr
     return byte[_ptr_drawbuffer][x + (y * _disp_width)]
 #endif
 
-PUB SetTimings(vfront, vback, hfront, hsync, hback, hvisible)
+PUB settimings(vfront, vback, hfront, hsync, hback, hvisible)
 ' Set video timings
 '   vfront:     Vertical front porch
 '   vback:      Vertical back porch
@@ -137,18 +130,18 @@ PUB SetTimings(vfront, vback, hfront, hsync, hback, hvisible)
     _hb := STREAMER_SETUP | (1 << streamer.LUTBASE) + hback/2
     _hv := STREAMER_SETUP | (1 << streamer.LUTBASE) + hvisible/2
 
-PUB Update()
+PUB update()
 ' Write the draw buffer to the display
 '   NOTE: This is only required when using double-buffering
     longmove(_ptr_dispbuff, _ptr_drawbuffer, _buff_sz/4)
 
-PUB WaitVSync()
+PUB waitvsync()
 ' Wait for vertical sync signal to be high
     repeat until _pinr(_params[VSYNC_PAR]) == 0
     repeat until _pinr(_params[VSYNC_PAR]) == 1
 
 #ifndef GFX_DIRECT
-PRI memFill(xs, ys, val, count)
+PRI memfill(xs, ys, val, count)
 ' Fill region of display buffer memory
 '   xs, ys: Start of region
 '   val: Color
@@ -281,24 +274,23 @@ CON
 
     STREAMER_SETUP  = streamer.RFLONG_LUT_8BIT | streamer.X3X2X1X0 | streamer.OUT_DISABLE
 
+DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 

@@ -5,7 +5,7 @@
     Description: Driver for various smart LED arrays
     Copyright (c) 2022
     Started Jun 13, 2021
-    Updated Feb 6, 2022
+    Updated Sep 6, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,9 +16,6 @@ CON
 
     BYTESPERPX      = 4
     MAX_COLOR       = 16_777_215
-
-' Character attributes
-    DRAWBG      = (1 << 0)
 
     BLACK       = $00_00_00_00
     RED         = $FF_00_00_00
@@ -156,10 +153,6 @@ PUB address(addr)
             _ptr_drawbuffer := addr
         other:
             return _ptr_drawbuffer
-
-PUB charattrs(attrs)
-' Set character attributes
-    _char_attrs := attrs
 
 PUB clear()
 ' Clear the display buffer

@@ -5,23 +5,20 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Oct 11, 2018
-    Updated: Aug 21, 2022
+    Updated: Sep 6, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 
 #define 1BPP
 #define MEMMV_NATIVE bytemove
-#include "ht16k33-common.spin2h"
+#include "ht16k33.common.spin2h"
 #include "lib.gfx.bitmap.spin2"
 
 CON
 
     MAX_COLOR   = 1
     BYTESPERPX  = 1
-
-    { character attributes }
-    DRAWBG      = (1 << 0)
 
 PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT, ptr_dispbuff): status
 ' width, height: dimensions of matrix, in pixels
@@ -59,10 +56,6 @@ PUB address(addr): curr_addr
             return _ptr_drawbuffer
         other:
             return _ptr_drawbuffer
-
-PUB charattrs(attrs)
-' Set character attributes
-    _char_attrs := attrs
 
 #ifndef GFX_DIRECT
 PUB clear()
