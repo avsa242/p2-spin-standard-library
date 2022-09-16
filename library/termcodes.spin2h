@@ -1,0 +1,90 @@
+#ifndef TERMCODES_H
+#define TERMCODES_H
+#endif
+
+CON
+
+    NUL             = 0     ' null
+    HM              = 1     ' home cursor
+    SOH             = 1     ' start of heading
+    STX             = 2     ' start of text
+    ETX             = 3     ' end of text
+    EOT             = 4     ' end of transmission
+    ENQ             = 5     ' enquiry
+    ACK             = 6     ' acknowledge
+    BEL             = 7     ' bell
+    BS              = 8     ' backspace
+    TB              = 9     ' tab
+    HT              = 9     ' horizontal tab
+    LF              = 10    ' line feed
+    VT              = 11    ' vertical tab
+    NP              = 12    ' new page
+    FF              = 12    ' form feed
+    CB              = 12    ' clear
+    CR              = 13    ' carriage return
+    SO              = 14    ' shift out
+    SI              = 15    ' shift in
+    DLE             = 16    ' data link escape
+    DC1             = 17    ' device control 1
+    DC2             = 18    ' device control 2
+    DC3             = 19    ' device control 3
+    DC4             = 20    ' device control 4
+    NAK             = 21    ' negative acknowledge
+    SYN             = 22    ' synchronous idle
+    ETB             = 23    ' end of transmission block
+    CAN             = 24    ' cancel
+    EM              = 25    ' end of medium
+    SUB_            = 26    ' substitute (SUB)
+    ESC             = 27    ' escape
+    DEL             = 127   ' delete
+
+' line-drawing characters
+    LSHADE          = 176
+    MSHADE          = 177
+    DSHADE          = 178
+    SVERT           = 179
+    SVERT_L         = 180
+    SVERT_DL        = 181
+    DVERT_SL        = 182
+    DDOWN_SL        = 183
+    SDOWN_DL        = 184
+    DVERT_DL        = 185
+    DVERT           = 186
+    DDOWN_DL        = 187
+    DUP_DL          = 188
+    DUP_SL          = 189
+    SUP_DL          = 190
+    SDOWN_SL        = 191
+    SUP_SR          = 192
+    SUP_SHORIZ      = 193
+    SDOWN_SHORIZ    = 194
+    SVERT_SRIGHT    = 195
+    SHORIZ          = 196
+    SVERT_SHORIZ    = 197
+    SVERT_DRIGHT    = 198
+    DVERT_SRIGHT    = 199
+    DUP_DRIGHT      = 200
+    DDOWN_DRIGHT    = 201
+    DUP_DHORIZ      = 202
+    DDOWN_DHORIZ    = 203
+    DVERT_DRIGHT    = 204
+    DHORIZ          = 205
+    DVERT_DHORIZ    = 206
+    SUP_DHORIZ      = 207
+    DUP_SHORIZ      = 208
+    SDOWN_DHORIZ    = 209
+    DDOWN_SHORIZ    = 210
+    DUP_SRIGHT      = 211
+    SUP_DRIGHT      = 212
+    DDOWN_SRIGHT    = 213
+    DVERT_SHORIZ    = 214
+    SVERT_DHORIZ    = 215
+    SUP_SLEFT       = 216
+    SDOWN_SRIGHT    = 217
+    FBLOCK          = 218
+    BHBLOCK         = 219
+    LHBLOCK         = 220
+    RHBLOCK         = 221
+    THBLOCK         = 222
+
+    
