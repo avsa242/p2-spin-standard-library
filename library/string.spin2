@@ -137,6 +137,13 @@ PUB Dec(val): dec_str
     itoa(val, @_tmp_buff)
     return @_tmp_buff
 
+PUB Decz(val, digits): dec_str
+' Convert decimal value to string representation, with zero padding
+'   val: value to convert
+'   Returns: pointer to string representation of value
+    itoaz(val, @_tmp_buff, digits)
+    return @_tmp_buff
+
 PUB EndsWith(ptr_str, ptr_substr): ends
 ' Check if the string ptr_str ends with string ptr_substr
 '   ptr_str: string to check
@@ -349,7 +356,7 @@ PUB ItoA(num, ptr_str) | str0, dvsr, temp
         byte[ptr_str++] := temp + "0"
         num -= temp * dvsr
         dvsr /= 10
-    byte[ptr_str++] := 0
+    byte[ptr_str++] := NUL
     return ptr_str - str0 - 1
 
 PUB ItoAz(num, ptr_str, digits) | str0, dvsr, temp
@@ -365,8 +372,6 @@ PUB ItoAz(num, ptr_str, digits) | str0, dvsr, temp
         num := -num
     elseif (num == 0)
         byte[ptr_str++] := "0"
-        byte[ptr_str] := NUL
-        return 1
     dvsr := 1_000_000_000
     repeat while (dvsr > num)
         dvsr /= 10
