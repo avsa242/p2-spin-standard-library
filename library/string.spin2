@@ -5,7 +5,7 @@
     Description: String processing and formatting (P2 version)
     Copyright (c) 2022
     Started May 29, 2022
-    Updated Sep 17, 2022
+    Updated Sep 18, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -154,7 +154,7 @@ PUB EndsWith(ptr_str, ptr_substr): ends
     ends := (ptr_str + strsize(ptr_str) - strsize(ptr_substr))
     return (ends == find(ends, ptr_substr))
 
-PUB Fill(ptr_str, char)
+PUB Fill(ptr_str, char): ptr
 ' Fill string with char
 '   ptr_str: string to fill
 '   char: character to fill string with
@@ -183,7 +183,7 @@ PUB Find(ptr_str, ptr_srchstr): ptr_match | i, srch_sz, mismatch
                 ifnot (mismatch~)               ' flag is clear
                     return ptr_str              ' return updated pointer
 
-PUB FindChar(ptr_str, char)
+PUB FindChar(ptr_str, char): ptr
 ' Find first occurrence of character in string
 '   Returns: pointer to character within ptr_str if found, or 0 if not found
     repeat strsize(ptr_str--)
@@ -297,7 +297,7 @@ PUB IsDigit(ptr_str): flag
 
     return true
 
-PUB IsEmpty(ptr_str): empty
+PUB IsEmpty(ptr_str): flag
 ' Flag indicating string contains no characters
 '   Returns:
 '       TRUE (-1) if string is empty, FALSE (0) otherwise
@@ -333,10 +333,11 @@ PUB IsUpper(ptr_str): flag
 
     return true
 
-PUB ItoA(num, ptr_str) | str0, dvsr, temp
+PUB ItoA(num, ptr_str): ptr | str0, dvsr, temp
 ' Convert number (signed) to string representation
 '   num: integer value to convert
 '   ptr_str: string to copy output to
+'   Returns: pointer to converted string
     str0 := ptr_str
     if (num < 0)
         byte[ptr_str++] := "-"
@@ -359,10 +360,11 @@ PUB ItoA(num, ptr_str) | str0, dvsr, temp
     byte[ptr_str++] := NUL
     return ptr_str - str0 - 1
 
-PUB ItoAz(num, ptr_str, digits) | str0, dvsr, temp
+PUB ItoAz(num, ptr_str, digits): ptr | str0, dvsr, temp
 ' Convert number (signed) to string representation, with zero padding
 '   num: integer value to convert
 '   ptr_str: string to copy output to
+'   Returns: pointer to converted string
     str0 := ptr_str
     if (num < 0)
         byte[ptr_str++] := "-"
@@ -456,9 +458,6 @@ PUB ReplaceAll(ptr_str, ptr_substr, ptr_newsubstr)
 '   ptr_str: string to find substrings to replace
 '   ptr_substr: string to replace
 '   ptr_newsubstr: string to replace existing string with
-'   Returns:
-'       pointer to next character after string of characters replaced
-'       zero, if none replaced
 '   NOTE: Will not enlarge or shrink a string of characters
     repeat while(ptr_str)
         ptr_str := replace(ptr_str, ptr_substr, ptr_newsubstr)
@@ -700,7 +699,7 @@ PUB SPrintF10(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, ar
 ' 10-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
-PUB StartsWith(ptr_str, ptr_substr): starts
+PUB StartsWith(ptr_str, ptr_substr): flag
 ' Flag indicating string at ptr_str starts with the string at ptr_substr
 '   Returns:
 '       TRUE (-1): ptr_substr starts with ptr_substr
@@ -790,25 +789,23 @@ PRI IgnoreSpace(ptr_str): ptr_new
             other:
                 return ptr_str
 
+DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 
