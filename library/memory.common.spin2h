@@ -5,7 +5,7 @@
     Description: Routines common to all memory drivers
     Copyright (c) 2022
     Started Jul 30, 2022
-    Updated Aug 9, 2022
+    Updated Sep 21, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -13,27 +13,27 @@
 PUB rd_byte(addr): b
 ' Read a byte of data from memory
     b := 0
-    return rd_block_msbf(@b, addr, 1)
+    rd_block_msbf(@b, addr, 1)
 
 PUB rd_long_lsbf(addr): l
 ' Read one long from memory, LSB-first
     l := 0
-    return rd_block_lsbf(@l, addr, 4)
+    rd_block_lsbf(@l, addr, 4)
 
 PUB rd_long_msbf(addr): l
 ' Read one long from memory, MSB-first
     l := 0
-    return rd_block_msbf(@l, addr, 4)
+    rd_block_msbf(@l, addr, 4)
 
 PUB rd_word_lsbf(addr): w
 ' Read one word from memory, LSB-first
     w := 0
-    return rd_block_lsbf(@w, addr, 2)
+    rd_block_lsbf(@w, addr, 2)
 
 PUB rd_word_msbf(addr): w
 ' Read one word from memory, MSB-first
     w := 0
-    return rd_block_msbf(@w, addr, 2)
+    rd_block_msbf(@w, addr, 2)
 
 PUB wr_byte(addr, val)
 ' Write one byte to memory
