@@ -6,7 +6,7 @@
     Description: Routines common to all pressure sensor device drivers (P2 version)
     Copyright (c) 2022
     Started Jul 21, 2022
-    Updated Jul 21, 2022
+    Updated Sep 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -29,17 +29,17 @@ VAR
 
     long _last_pressure
 
-PUB LastPress(): pressure
+PUB last_press(): pressure
 ' Previous pressure measurement, in tenths of a Pascal
 '   Returns: Integer
 '   (e.g., 1004100 = 100,410.0 Pa)
-    return pressword2pa(_last_pressure)
+    return press_word2pa(_last_pressure)
 
-PUB PressPascals(): press_p
+PUB press_pascals(): press_p
 ' Read pressure data, in tenths of a Pascal
 '   Returns: Integer
 '   (e.g., 1004100 = 100,410.0 Pa)
-    return pressword2pa(pressdata())
+    return press_word2pa(press_data())
 
 {
 TERMS OF USE: MIT License
