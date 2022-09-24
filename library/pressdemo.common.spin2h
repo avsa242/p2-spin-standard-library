@@ -12,18 +12,18 @@
 #define HAS_DEMO
 #include "tempdemo.common.spin2h"
 
-PUB PressData() | press
+PUB press_data() | press
 ' Display presserature sensor data
-    press := sensr.presspascals()
+    press := sensr.press_pascals()
     ser.printf(@"Press (hPa/mbar): %4.4d.%02.2d\n\r", (press / 1000), abs(press // 1000))
 
-PUB Demo()
+PUB demo()
 
     repeat
-        repeat until sensr.pressdataready()
+        repeat until sensr.press_data_rdy()
         ser.position(0, 3)
-        pressdata()
-        tempdata()
+        press_data()
+        temp_data()
         waitms(250)
 
 DAT
