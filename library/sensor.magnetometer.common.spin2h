@@ -1,0 +1,99 @@
+{
+    --------------------------------------------
+    Filename: sensor.magnetometer.common.spinh
+    Author: Jesse Burt
+    Description: Routines common to all sensor.magnetometer device drivers
+    Copyright (c) 2022
+    Started Aug 31, 2022
+    Updated Aug 31, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+
+    NOTE: This file must be included by the compiler using the
+        #include preprocessor directive, _outside_ of any existing
+        block designators (CON, VAR, OBJ, PUB, PRI, DAT)
+}
+
+VAR
+
+    long _mres[MAG_DOF]
+    long _mbias[MAG_DOF]
+
+    byte _addr_bits 'XXX move this back to the driver
+
+PUB calibrate_mag{} | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[MAG_DOF], samples
+' Calibrate the magnetometer
+    longfill(@axis, 0, 10)                      ' initialize vars to 0
+
+    { save current settings }
+    orig_scl := mag_scale(-2)
+    orig_dr := mag_data_rate(-2)
+
+    mag_bias(0, 0, 0, W)                         ' clear existing bias
+
+    { set sensor to driver-specific scale and data rate }
+    mag_scale(CAL_M_SCL)
+    mag_data_rate(CAL_M_DR)
+    samples := CAL_M_DR                         ' samples = DR, for 1 sec time
+
+    { accumulate and average approx. 1sec worth of samples }
+    repeat samples
+        repeat until mag_data_rdy{}
+        mag_data(@tmpx, @tmpy, @tmpz)
+        tmp[X_AXIS] += tmpx
+        tmp[Y_AXIS] += tmpy
+        tmp[Z_AXIS] += tmpz
+
+    { calculate averages }
+    repeat axis from X_AXIS to Z_AXIS
+        tmp[axis] /= samples
+
+    { update offsets }
+    mag_bias(tmp[X_AXIS], tmp[Y_AXIS], tmp[Z_AXIS], W)
+
+    { restore existing settings }
+    mag_scale(orig_scl)
+    mag_data_rate(orig_dr)
+
+PUB mag_gauss(mx, my, mz) | tmp[MAG_DOF]
+' magnetometer data scaled to micro-gauss
+    mag_data(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
+    long[mx] := magx_word2gauss(tmp[X_AXIS])
+    long[my] := magy_word2gauss(tmp[Y_AXIS])
+    long[mz] := magz_word2gauss(tmp[Z_AXIS])
+
+PUB mag_tesla(ptr_x, ptr_y, ptr_z) | tmp[MAG_DOF]
+' magnetometer data scaled to micro-Teslas
+    mag_data(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
+    long[ptr_x] := magx_word2tesla(tmp[X_AXIS])
+    long[ptr_y] := magy_word2tesla(tmp[Y_AXIS])
+    long[ptr_z] := magz_word2tesla(tmp[Z_AXIS])
+
+PUB magx_word2gauss(mag_word): mag_gauss
+' Convert magnetometer X-axis ADC word to Gauss
+    return (mag_word * _mres[X_AXIS])
+
+PUB magy_word2gauss(mag_word): mag_gauss
+' Convert magnetometer Y-axis ADC word to Gauss
+    return (mag_word * _mres[Y_AXIS])
+
+PUB magz_word2gauss(mag_word): mag_gauss
+' Convert magnetometer Z-axis ADC word to Gauss
+    return (mag_word * _mres[Z_AXIS])
+
+PUB magx_word2tesla(mag_word): mag_tesla
+' Convert magnetometer X-axis ADC word to Teslas
+    return (mag_word * _mres[X_AXIS]) / 10_000
+
+PUB magy_word2tesla(mag_word): mag_tesla
+' Convert magnetometer Y-axis ADC word to Teslas
+    return (mag_word * _mres[Y_AXIS]) / 10_000
+
+PUB magz_word2tesla(mag_word): mag_tesla
+' Convert magnetometer Z-axis ADC word to Teslas
+    return (mag_word * _mres[Z_AXIS]) / 10_000
+
+PUB yaw{}
+' Get yaw/heading angle of magnetometer, in degrees
+'   XXX TBD
+

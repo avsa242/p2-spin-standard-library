@@ -1,0 +1,67 @@
+{
+    --------------------------------------------
+    Filename: sensor.gyroscope.common.spinh
+    Author: Jesse Burt
+    Description: Routines common to all sensor.gyroscope device drivers
+    Copyright (c) 2022
+    Started Aug 31, 2022
+    Updated Sep 30, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+
+    NOTE: This file must be included by the compiler using the
+        #include preprocessor directive, _outside_ of any existing
+        block designators (CON, VAR, OBJ, PUB, PRI, DAT)
+}
+
+VAR
+
+    long _gres
+    long _gbias[GYRO_DOF]
+
+PUB calibrate_gyro() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[GYRO_DOF], samples
+' Calibrate the gyroscope
+    longfill(@axis, 0, 10)                      ' initialize vars to 0
+
+    { save current settings }
+    orig_scl := gyro_scale()
+    orig_dr := gyro_data_rate()
+
+    gyro_bias(0, 0, 0, W)                        ' clear existing bias
+
+    { set sensor to driver-specific scale and data rate }
+    gyro_scale(CAL_G_SCL)
+    gyro_data_rate(CAL_G_DR)
+    samples := CAL_G_DR                         ' samples = DR, for 1 sec time
+
+    { accumulate and average approx. 1sec worth of samples }
+    repeat samples
+        repeat until gyro_data_rdy()
+        gyro_data(@tmpx, @tmpy, @tmpz)
+        tmp[X_AXIS] += tmpx
+        tmp[Y_AXIS] += tmpy
+        tmp[Z_AXIS] += tmpz
+
+    { calculate averages }
+    repeat axis from X_AXIS to Z_AXIS
+        tmp[axis] /= samples
+
+    { update offsets }
+    gyro_bias(tmp[X_AXIS], tmp[Y_AXIS], tmp[Z_AXIS], W)
+
+    { restore existing settings }
+    gyro_scale(orig_scl)
+    gyro_data_rate(orig_dr)
+
+PUB gyro_dps(gx, gy, gz) | tmp[GYRO_DOF]
+' Read the Gyroscope output registers and scale the outputs to
+'   micro degrees per second
+    gyro_data(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
+    long[gx] := gyro_word2dps(tmp[X_AXIS])
+    long[gy] := gyro_word2dps(tmp[Y_AXIS])
+    long[gz] := gyro_word2dps(tmp[Z_AXIS])
+
+PUB gyro_word2dps(gyro_word): gyro_dps
+' Convert gyroscope ADC word to degrees per second
+    return (gyro_word * _gres)
+
