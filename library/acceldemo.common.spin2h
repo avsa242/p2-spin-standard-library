@@ -5,7 +5,7 @@
     Description: Accelerometer demo - code common to all drivers (P2 version)
     Copyright (c) 2022
     Started Jul 12, 2022
-    Updated Oct 1, 2022
+    Updated Oct 2, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,16 +14,16 @@ PUB cal_accel()
 ' Calibrate the accelerometer
     ser.position(0, 5)
     ser.str(@"Calibrating accelerometer...")
-    accel.calibrate_accel()
+    sensor.calibrate_accel()
     ser.position(0, 5)
     ser.clearline()
 
 PUB show_accel_data() | axis, a[3], sign
 ' Display accelerometer data
-    repeat until accel.accel_data_rdy()
-    accel.accel_g(@a[accel.X_AXIS], @a[accel.Y_AXIS], @a[accel.Z_AXIS])
-    ser.str(@"Accel (g):  ")
-    repeat axis from accel.X_AXIS to accel.Z_AXIS
+    repeat until sensor.accel_data_rdy()
+    sensor.accel_g(@a[sensor.X_AXIS], @a[sensor.Y_AXIS], @a[sensor.Z_AXIS])
+    ser.str(string("Accel (g):  "))
+    repeat axis from sensor.X_AXIS to sensor.Z_AXIS
         if (a[axis] < 0)
             sign := "-"
         else
