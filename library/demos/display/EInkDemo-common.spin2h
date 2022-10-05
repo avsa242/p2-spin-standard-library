@@ -6,7 +6,7 @@
         (common code)
     Copyright (c) 2022
     Started Jul 2, 2022
-    Updated Jul 2, 2022
+    Updated Oct 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -31,11 +31,11 @@ DAT
 
     _test_txt byte "HELLO WORLD", 0
 
-PUB Demo() | i
+PUB demo() | i
 
     ser.position(0, 3)
 
-    repeat until epaper.displayready()          ' Wait for display to be ready
+    repeat until epaper.disp_rdy()              ' Wait for display to be ready
 
     epaper.bgcolor(epaper.WHITE)                ' set BG color for text, and
     epaper.clear()                              '   also Clear() color
@@ -57,9 +57,9 @@ PUB Demo() | i
     hrule()                                     ' draw rulers at screen edges
     vrule()
 
-    epaper.update()                             ' Update the display
+    epaper.show()                               ' Update the display
 
-PUB HRule() | x, grad_len
+PUB hrule() | x, grad_len
 ' Draw a simple rule along the x-axis
     grad_len := 5
 
@@ -69,7 +69,7 @@ PUB HRule() | x, grad_len
         else                                    ' major ticks
             epaper.line(x, 0, x, grad_len*2, epaper.INVERT)
 
-PUB VRule() | y, grad_len
+PUB vrule() | y, grad_len
 ' Draw a simple rule along the y-axis
     grad_len := 5
 
@@ -81,24 +81,21 @@ PUB VRule() | y, grad_len
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 
