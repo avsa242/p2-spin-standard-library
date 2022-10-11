@@ -5,48 +5,15 @@
     Description: IMU demo - code common to all drivers (P2 version)
     Copyright (c) 2022
     Started Jul 12, 2022
-    Updated Jul 21, 2022
+    Updated Oct 11, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
-PUB AccelData() | axis, a[3], sign
-' Display accelerometer data
-    repeat until imu.acceldataready()
-    imu.accelg(@a[imu.X_AXIS], @a[imu.Y_AXIS], @a[imu.Z_AXIS])
-    ser.str(@"Accel (g):  ")
-    repeat axis from imu.X_AXIS to imu.Z_AXIS
-        if (a[axis] < 0)
-            sign := "-"
-        else
-            sign := " "
-        ser.printf(@"%c%d.%06.6d     ", sign, abs(a[axis]/1_000_000), {
-}       abs(a[axis]//1_000_000))
-    ser.newline()
+#include "acceldemo.common.spin2h"
+#include "gyrodemo.common.spin2h"
+#include "magdemo.common.spin2h"
 
-PUB Calibrate()
-' Calibrate/set bias offsets
-    if (imu.ACCEL_DOF)
-        ser.position(0, 8)
-        ser.str(@"Calibrating accelerometer...")
-        imu.calibrateaccel()
-        ser.position(0, 8)
-        ser.clearline()
-
-    if (imu.GYRO_DOF)
-        ser.position(0, 8)
-        ser.str(@"Calibrating gyroscope...")
-        imu.calibrategyro()
-        ser.position(0, 8)
-        ser.clearline()
-
-    if (imu.MAG_DOF)
-        ser.position(0, 8)
-        ser.str(@"Calibrating magnetometer...")
-        imu.calibratemag()
-        ser.position(0, 8)
-        ser.clearline()
-
-PUB Demo() | i
+PUB demo() | i
 
     ser.position(0, 4)
     repeat i from 0 to 2
@@ -56,41 +23,15 @@ PUB Demo() | i
     repeat
         ser.position(0, 5)
         if (imu.ACCEL_DOF)
-            acceldata()
+            show_accel_data()
         if (imu.GYRO_DOF)
-            gyrodata()
+            show_gyro_data()
         if (imu.MAG_DOF)
-            magdata()
+            show_mag_data()
         if (ser.rxcheck() == "c")
-            calibrate()
-
-PUB GyroData() | axis, g[3], sign
-' Display gyroscope data
-    repeat until imu.gyrodataready()
-    imu.gyrodps(@g[imu.X_AXIS], @g[imu.Y_AXIS], @g[imu.Z_AXIS])
-    ser.str(@"Gyro (dps): ")
-    repeat axis from imu.X_AXIS to imu.Z_AXIS
-        if (g[axis] < 0)
-            sign := "-"
-        else
-            sign := " "
-        ser.printf(@"%c%d.%06.6d     ", sign, abs(g[axis]/1_000_000), {
-}       abs(g[axis]//1_000_000))
-    ser.newline()
-
-PUB MagData() | axis, m[3], sign
-' Display magnetometer data
-    repeat until imu.magdataready()
-    imu.maggauss(@m[imu.X_AXIS], @m[imu.Y_AXIS], @m[imu.Z_AXIS])
-    ser.str(@"Mag (Gs):   ")
-    repeat axis from imu.X_AXIS to imu.Z_AXIS
-        if (m[axis] < 0)
-            sign := "-"
-        else
-            sign := " "
-        ser.printf(@"%c%d.%06.6d     ", sign, abs(m[axis]/1_000_000), {
-}       abs(m[axis]//1_000_000))
-    ser.newline()
+            cal_accel()
+            cal_gyro()
+            cal_mag()
 
 DAT
 {
