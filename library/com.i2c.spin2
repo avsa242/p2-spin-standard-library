@@ -4,7 +4,7 @@
     Description: Bitbanged I2C driver for the P2X8C4M64P
     Author: Jesse Burt
     Created: Jun 15, 2019
-    Updated: Jul 3, 2022
+    Updated: Oct 11, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -30,7 +30,7 @@ VAR
     long _SCL, _SDA                             ' Bus pins
     long _bit_lo, _bit_hi, _bittm_base
 
-PUB Init(SCL, SDA, HZ=DEF_HZ): status
+PUB init(SCL, SDA, HZ=DEF_HZ): status
 ' Initialize I2C engine using custom I2C pins
 '   SCL, SDA: 0..63 (each unique)
 '   HZ: 1..1_000_000
@@ -47,33 +47,33 @@ PUB Init(SCL, SDA, HZ=DEF_HZ): status
 
     return cogid()+1                            ' return current cog id
 
-PUB DeInit()
+PUB deinit()
 ' Deinitialize - clear out hub vars
     longfill(@_SCL, 0, 2)
 
-PUB Present(slave_addr): status
+PUB present(slave_addr): status
 ' Pings device, returns true if ACK
     start()
     return (write(slave_addr) == ACK)
 
-PUB Rd_Byte(ackbit): i2cbyte
+PUB rd_byte(ackbit): i2cbyte
 ' Read byte from I2C bus
     rdblock_lsbf(@i2cbyte, 1, ackbit)
 
-PUB RdBlock_LSBF(ptr_buff, nr_bytes, ack_last) | SCL, SDA, bit_lo, bit_hi, bytenum, i2cbyte
+PUB rdblock_lsbf(ptr_buff, nr_bytes, ack_last) | SCL, SDA, bit_lo, bit_hi, bytenum, i2cbyte
 ' Read nr_bytes from I2C bus into ptr_buff, LSByte-first
 '   ack_last: send ACK/NAK after last byte read
 '       (ACK will be sent for all prior bytes)
     longmove(@SCL, @_SCL, 4)
-    ack_last := (ack_last <> 0)                     ' if <> 0, then it's a 1
+    ack_last := (ack_last <> 0)                 ' if <> 0, then it's a 1
 
     repeat bytenum from 0 to nr_bytes-1
-        pinf(SDA)                                   ' prep SDA for reading bits
-        waitclkstretch()
+        pinf(SDA)                               ' prep SDA for reading bits
+        wait_clk_stretch()
 
         repeat 8
             pinf(SCL)
-            i2cbyte := (i2cbyte << 1) | pinr(SDA)   ' read the bit
+            i2cbyte := (i2cbyte << 1) | pinr(SDA)' read the bit
             waitx(bit_hi)
             pinl(SCL)
             waitx(bit_lo)
@@ -89,20 +89,20 @@ PUB RdBlock_LSBF(ptr_buff, nr_bytes, ack_last) | SCL, SDA, bit_lo, bit_hi, byten
 
         byte[ptr_buff][bytenum] := i2cbyte
 
-PUB RdBlock_MSBF(ptr_buff, nr_bytes, ack_last) | SCL, SDA, bit_lo, bit_hi, bytenum, i2cbyte
+PUB rdblock_msbf(ptr_buff, nr_bytes, ack_last) | SCL, SDA, bit_lo, bit_hi, bytenum, i2cbyte
 ' Read nr_bytes from I2C bus into ptr_buff, MSByte-first
 '   ack_last: send ACK/NAK after last byte read
 '       (ACK will be sent for all prior bytes)
     longmove(@SCL, @_SCL, 4)
-    ack_last := (ack_last <> 0)                     ' if <> 0, then it's a 1
+    ack_last := (ack_last <> 0)                 ' if <> 0, then it's a 1
 
     repeat bytenum from nr_bytes-1 to 0
-        pinf(SDA)                                   ' prep SDA for reading bits
-        waitclkstretch()
+        pinf(SDA)                               ' prep SDA for reading bits
+        wait_clk_stretch()
 
         repeat 8
             pinf(SCL)
-            i2cbyte := (i2cbyte << 1) | pinr(SDA)   ' read the bit
+            i2cbyte := (i2cbyte << 1) | pinr(SDA)' read the bit
             waitx(bit_hi)
             pinl(SCL)
             waitx(bit_lo)
@@ -111,30 +111,30 @@ PUB RdBlock_MSBF(ptr_buff, nr_bytes, ack_last) | SCL, SDA, bit_lo, bit_hi, byten
         '   ACK, unless it's the last byte
         '   then, it's the user's decision
         ((bytenum == 0) & ack_last) ? (pinf(SDA)) : (pinl(SDA))
-        pinf(SCL)                                   ' clock it out
+        pinf(SCL)                               ' clock it out
         waitx(bit_hi)
         pinl(SCL)
         waitx(bit_lo)
 
         byte[ptr_buff][bytenum] := i2cbyte
 
-PUB RdLong_LSBF(ackbit): i2c2long
+PUB rdlong_lsbf(ackbit): i2c2long
 ' Read long from I2C bus, least-significant byte first
     rdblock_lsbf(@i2c2long, 4, ackbit)
 
-PUB RdLong_MSBF(ackbit): i2c2long
+PUB rdlong_msbf(ackbit): i2c2long
 ' Read long from I2C bus, least-significant byte first
     rdblock_msbf(@i2c2long, 4, ackbit)
 
-PUB RdWord_LSBF(ackbit): i2c2word
+PUB rdword_lsbf(ackbit): i2c2word
 ' Read word from I2C bus, least-significant byte first
     rdblock_lsbf(@i2c2word, 2, ackbit)
 
-PUB RdWord_MSBF(ackbit): i2c2word
+PUB rdword_msbf(ackbit): i2c2word
 ' Read word from I2C bus, least-significant byte first
     rdblock_msbf(@i2c2word, 2, ackbit)
 
-PUB Read(ackbit): i2cbyte
+PUB read(ackbit): i2cbyte
 ' Read byte from I2C bus
 '   Valid values:
 '       ackbit:
@@ -142,7 +142,7 @@ PUB Read(ackbit): i2cbyte
 '           NAK (non-zero): Don't acknowledge byte
     rdblock_lsbf(@i2cbyte, 1, ackbit)
 
-PUB Reset() | SCL, SDA, bit_lo, bit_hi
+PUB reset() | SCL, SDA, bit_lo, bit_hi
 ' Reset I2C bus
     longmove(@SCL, @_SCL, 4)
     repeat 9                                    ' send up to 9 clock pulses
@@ -153,20 +153,20 @@ PUB Reset() | SCL, SDA, bit_lo, bit_hi
         if (pinr(SDA)) == HIGH                  ' if SDA is released,
             quit                                '   our work is done - return
 
-PUB Start()
+PUB start()
 ' Create start or re-start condition (S, Sr)
 '   NOTE: This method supports clock stretching;
 '       waits while SCL pin is held low
     pinf(_SDA)                                  ' Float pins
     pinf(_SCL)
-    waitclkstretch()
+    wait_clk_stretch()
     waitx(_bittm_base)
     pinl(_SDA)                                  ' SDA low
     waitx(_bittm_base)
     pinl(_SCL)                                  ' SCL low
     waitx(_bittm_base)
 
-PUB Stop()
+PUB stop()
 ' Create I2C Stop condition (P)
 '   NOTE: This method supports clock stretching;
 '       waits while SDA pin is held low
@@ -174,12 +174,12 @@ PUB Stop()
     waitx(_bittm_base)
     pinf(_SCL)                                  ' Float SCL
     waitx(_bittm_base)
-    waitclkstretch()
+    wait_clk_stretch()
     pinf(_SDA)                                  ' Float SDA
 
     waitx(_bittm_base)
 
-PUB Wait(slave_addr): ackbit
+PUB wait(slave_addr): ackbit
 ' Wait for I2C device by repeatedly polling it
 '   NOTE: This method will wait indefinitely,
 '   if the device doesn't respond
@@ -188,7 +188,7 @@ PUB Wait(slave_addr): ackbit
         ackbit := write(slave_addr)
     until (ackbit == ACK)
 
-PUB WaitTimeout(slave_addr, usec): status
+PUB wait_timeout(slave_addr, usec): status
 ' Wait for I2C device by repeatedly polling it,
 '   up to a maximum timeout of 'usec' microseconds
 '   Returns:
@@ -203,11 +203,11 @@ PUB WaitTimeout(slave_addr, usec): status
 
     return NAK
 
-PUB Wr_Byte(b): ackbit
+PUB wr_byte(b): ackbit
 ' Write byte to I2C bus
     return wrblock_lsbf(@b, 1)
 
-PUB Wr_ByteX(b, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, i2cbyte
+PUB wr_bytex(b, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, i2cbyte
 ' Repeatedly write byte to bus
 '   b: byte to write
 '   nr_bytes: number of bytes to write
@@ -217,21 +217,21 @@ PUB Wr_ByteX(b, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, i2cbyte
         i2cbyte := (b << 24)
         repeat 8
             ((i2cbyte rol= 1) & 1) ? (pinf(SDA)) : (pinl(SDA))
-            waitx(bit_lo)                           ' clock out bit
+            waitx(bit_lo)                       ' clock out bit
             pinf(SCL)
             waitx(bit_hi)
             pinl(SCL)
-        pinf(SDA)                                   ' release SDA
+        pinf(SDA)                               ' release SDA
 
         waitx(bit_lo)
-        waitclkstretch()
+        wait_clk_stretch()
         waitx(bit_hi)
-        ackbit := pinr(SDA)                         ' read ack bit
+        ackbit := pinr(SDA)                     ' read ack bit
         pinl(SCL)
 
         waitx(bit_lo)
 
-PUB WrBlock_LSBF(ptr_buff, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, bytenum, i2cbyte
+PUB wrblock_lsbf(ptr_buff, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, bytenum, i2cbyte
 ' Write nr_bytes to I2C bus from ptr_buff, LSByte-first
 '   Returns: ack bit of last byte written
     longmove(@SCL, @_SCL, 4)
@@ -239,24 +239,24 @@ PUB WrBlock_LSBF(ptr_buff, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, bytenum
     repeat bytenum from 0 to nr_bytes-1
         ' align byte with long bit 31
         i2cbyte := (byte[ptr_buff][bytenum] << 24)
-        repeat 8                                    ' output eight bits, MSB first
+        repeat 8                                ' output eight bits, MSB first
             ((i2cbyte rol= 1) & 1) ? (pinf(SDA)) : (pinl(SDA))
-            waitx(bit_lo)                           ' clock out bit
+            waitx(bit_lo)                       ' clock out bit
             pinf(SCL)
             waitx(bit_hi)
             pinl(SCL)
 
-        pinf(SDA)                                   ' release SDA
+        pinf(SDA)                               ' release SDA
 
         waitx(bit_lo)
-        waitclkstretch()
+        wait_clk_stretch()
         waitx(bit_hi)
-        ackbit := pinr(SDA)                         ' read ack bit
+        ackbit := pinr(SDA)                     ' read ack bit
         pinl(SCL)
 
         waitx(bit_lo)
 
-PUB WrBlock_MSBF(ptr_buff, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, bytenum, i2cbyte
+PUB wrblock_msbf(ptr_buff, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, bytenum, i2cbyte
 ' Write nr_bytes to I2C bus from ptr_buff, MSByte-first
 '   Returns: ack bit of last byte written
     longmove(@SCL, @_SCL, 4)
@@ -264,32 +264,32 @@ PUB WrBlock_MSBF(ptr_buff, nr_bytes): ackbit | SCL, SDA, bit_lo, bit_hi, bytenum
     repeat bytenum from nr_bytes-1 to 0
         ' align byte with long bit 31
         i2cbyte := (byte[ptr_buff][bytenum] << 24)
-        repeat 8                                    ' output eight bits, MSB first
+        repeat 8                                ' output eight bits, MSB first
             ((i2cbyte rol= 1) & 1) ? (pinf(SDA)) : (pinl(SDA))
-            waitx(bit_lo)                           ' clock out bit
+            waitx(bit_lo)                       ' clock out bit
             pinf(SCL)
             waitx(bit_hi)
             pinl(SCL)
 
-        pinf(SDA)                                   ' release SDA
+        pinf(SDA)                               ' release SDA
 
         waitx(bit_lo)
-        waitclkstretch()
+        wait_clk_stretch()
         waitx(bit_hi)
-        ackbit := pinr(SDA)                         ' read ack bit
+        ackbit := pinr(SDA)                     ' read ack bit
         pinl(SCL)
 
         waitx(bit_lo)
 
-PUB WrLong_LSBF(long2i2c): ackbit
+PUB wrlong_lsbf(long2i2c): ackbit
 ' Write long to I2C bus, least-significant byte first
     return wrblock_lsbf(@long2i2c, 4)
 
-PUB WrLong_MSBF(long2i2c): ackbit
+PUB wrlong_msbf(long2i2c): ackbit
 ' Write long to I2C bus, most-significant byte first
     return wrblock_msbf(@long2i2c, 4)
 
-PUB WrLongX_LSBF(l, nr_longs): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
+PUB wrlongx_lsbf(l, nr_longs): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
 ' Repeatedly write LSB-first long to bus
 '   l: long to write
 '   nr_longs: number of longs to write
@@ -299,24 +299,24 @@ PUB WrLongX_LSBF(l, nr_longs): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
         repeat tmp from 0 to 3
             ' align byte with long bit 31
             i2cbyte := (l.byte[tmp] << 24)
-            repeat 8                                    ' output eight bits, MSB first
+            repeat 8                            ' output eight bits, MSB first
                 ((i2cbyte rol= 1) & 1) ? (pinf(SDA)) : (pinl(SDA))
-                waitx(bit_lo)                           ' clock out bit
+                waitx(bit_lo)                   ' clock out bit
                 pinf(SCL)
                 waitx(bit_hi)
                 pinl(SCL)
 
-            pinf(SDA)                                   ' release SDA
+            pinf(SDA)                           ' release SDA
 
             waitx(bit_lo)
-            waitclkstretch()
+            wait_clk_stretch()
             waitx(bit_hi)
-            ackbit := pinr(SDA)                         ' read ack bit
+            ackbit := pinr(SDA)                 ' read ack bit
             pinl(SCL)
 
             waitx(bit_lo)
 
-PUB WrLongX_MSBF(l, nr_longs): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
+PUB wrLongx_msbf(l, nr_longs): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
 ' Repeatedly write MSB-first long to bus
 '   l: long to write
 '   nr_longs: number of longs to write
@@ -326,32 +326,32 @@ PUB WrLongX_MSBF(l, nr_longs): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
         repeat tmp from 3 to 0
             ' align byte with long bit 31
             i2cbyte := (l.byte[tmp] << 24)
-            repeat 8                                    ' output eight bits, MSB first
+            repeat 8                            ' output eight bits, MSB first
                 ((i2cbyte rol= 1) & 1) ? (pinf(SDA)) : (pinl(SDA))
-                waitx(bit_lo)                           ' clock out bit
+                waitx(bit_lo)                   ' clock out bit
                 pinf(SCL)
                 waitx(bit_hi)
                 pinl(SCL)
 
-            pinf(SDA)                                   ' release SDA
+            pinf(SDA)                           ' release SDA
 
             waitx(bit_lo)
-            waitclkstretch()
+            wait_clk_stretch()
             waitx(bit_hi)
-            ackbit := pinr(SDA)                         ' read ack bit
+            ackbit := pinr(SDA)                 ' read ack bit
             pinl(SCL)
 
             waitx(bit_lo)
 
-PUB WrWord_LSBF(word2i2c): ackbit
+PUB wrword_lsbf(word2i2c): ackbit
 ' Write word to I2C bus, least-significant byte first
     return wrblock_lsbf(@word2i2c, 2)
 
-PUB WrWord_MSBF(word2i2c): ackbit
+PUB wrword_msbf(word2i2c): ackbit
 ' Write word to I2C bus, most-significant byte first
     return wrblock_msbf(@word2i2c, 2)
 
-PUB WrWordX_LSBF(w, nr_words): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
+PUB wrwordx_lsbf(w, nr_words): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
 ' Repeatedly write LSB-first word to bus
 '   w: word to write
 '   nr_words: number of words to write
@@ -361,24 +361,24 @@ PUB WrWordX_LSBF(w, nr_words): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
         repeat tmp from 0 to 1
             ' align byte with long bit 31
             i2cbyte := (w.byte[tmp] << 24)
-            repeat 8                                    ' output eight bits, MSB first
+            repeat 8                            ' output eight bits, MSB first
                 ((i2cbyte rol= 1) & 1) ? (pinf(SDA)) : (pinl(SDA))
-                waitx(bit_lo)                           ' clock out bit
+                waitx(bit_lo)                   ' clock out bit
                 pinf(SCL)
                 waitx(bit_hi)
                 pinl(SCL)
 
-            pinf(SDA)                                   ' release SDA
+            pinf(SDA)                           ' release SDA
 
             waitx(bit_lo)
-            waitclkstretch()
+            wait_clk_stretch()
             waitx(bit_hi)
-            ackbit := pinr(SDA)                         ' read ack bit
+            ackbit := pinr(SDA)                 ' read ack bit
             pinl(SCL)
 
             waitx(bit_lo)
 
-PUB WrWordX_MSBF(w, nr_words): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
+PUB wrwordx_msbf(w, nr_words): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
 ' Repeatedly write MSB-first word to bus
 '   w: word to write
 '   nr_words: number of words to write
@@ -388,51 +388,49 @@ PUB WrWordX_MSBF(w, nr_words): ackbit | SCL, SDA, bit_lo, bit_hi, tmp, i2cbyte
         repeat tmp from 1 to 0
             ' align byte with long bit 31
             i2cbyte := (w.byte[tmp] << 24)
-            repeat 8                                    ' output eight bits, MSB first
+            repeat 8                            ' output eight bits, MSB first
                 ((i2cbyte rol= 1) & 1) ? (pinf(SDA)) : (pinl(SDA))
-                waitx(bit_lo)                           ' clock out bit
+                waitx(bit_lo)                   ' clock out bit
                 pinf(SCL)
                 waitx(bit_hi)
                 pinl(SCL)
 
-            pinf(SDA)                                   ' release SDA
+            pinf(SDA)                           ' release SDA
 
             waitx(bit_lo)
-            waitclkstretch()
+            wait_clk_stretch()
             waitx(bit_hi)
-            ackbit := pinr(SDA)                         ' read ack bit
+            ackbit := pinr(SDA)                 ' read ack bit
             pinl(SCL)
 
             waitx(bit_lo)
 
-PUB Write(i2cbyte): ackbit | SCL, SDA, bit_lo, bit_hi
+PUB write(i2cbyte): ackbit | SCL, SDA, bit_lo, bit_hi
 ' Write byte to I2C bus
     return wrblock_lsbf(@i2cbyte, 1)
 
-PRI WaitClkStretch()
+PRI wait_clk_stretch()
 ' Wait for slave device using clock-stretching
     pinf(_SCL)                                  ' let SCL float
     repeat until pinr(_SCL) == HIGH             ' wait until slave releases it
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+
