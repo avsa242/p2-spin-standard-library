@@ -5,7 +5,7 @@
     Description: Temperature sensor demo - code common to all drivers (P2 version)
     Copyright (c) 2022
     Started Jul 16, 2022
-    Updated Sep 25, 2022
+    Updated Oct 11, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,11 +14,11 @@ VAR
 
     byte _tc_type
 
-PUB temp_data() | tscl, cj_temp, tc_temp
+PUB show_temp_data() | tscl, cj_temp, tc_temp
 ' Display temperature sensor data
-    tscl := lookupz(sensr.temp_scale(): "C", "F", "K")
-    cj_temp := sensr.cj_temp()
-    tc_temp := sensr.tc_temp()
+    tscl := lookupz(sensor.temp_scale(): "C", "F", "K")
+    cj_temp := sensor.cj_temp()
+    tc_temp := sensor.tc_temp()
     ser.printf(@"Temp (deg %c):\n\r", tscl)
     ser.printf(@"Cold junction: %3.3d.%02.2d\n\r", (cj_temp / 100), abs(cj_temp // 100))
     ser.printf(@"Thermocouple (%c): %3.3d.%02.2d\n\r", tc_type(_tc_type), {
@@ -27,22 +27,22 @@ PUB temp_data() | tscl, cj_temp, tc_temp
 PUB tc_type(val): t
 ' Return thermocouple type as ASCII character, given sensor-specific value for type
     case val
-        sensr.TYPE_B: t := "B"
-        sensr.TYPE_E: t := "E"
-        sensr.TYPE_J: t := "J"
-        sensr.TYPE_K: t := "K"
-        sensr.TYPE_N: t := "N"
-        sensr.TYPE_R: t := "R"
-        sensr.TYPE_S: t := "S"
-        sensr.TYPE_T: t := "T"
+        sensor.TYPE_B: t := "B"
+        sensor.TYPE_E: t := "E"
+        sensor.TYPE_J: t := "J"
+        sensor.TYPE_K: t := "K"
+        sensor.TYPE_N: t := "N"
+        sensor.TYPE_R: t := "R"
+        sensor.TYPE_S: t := "S"
+        sensor.TYPE_T: t := "T"
         other: t := "?"
 
 #else                                           { other temperature sensor drivers }
 
-PUB temp_data() | temp, tscl
+PUB show_temp_data() | temp, tscl
 ' Display temperature sensor data
-    temp := sensr.temperature()
-    tscl := lookupz(sensr.temp_scale(): "C", "F", "K")
+    temp := sensor.temperature()
+    tscl := lookupz(sensor.temp_scale(): "C", "F", "K")
     ser.printf(@"Temp. (deg %c): %3.3d.%02.2d\n\r", tscl, (temp / 100), abs(temp // 100))
 #endif
 
@@ -51,20 +51,20 @@ PUB temp_data() | temp, tscl
 PUB demo()
 
 #ifdef HAS_THERMCPL
-    _tc_type := sensr.tc_type()                 ' read back and cache it
+    _tc_type := sensor.tc_type()                 ' read back and cache it
 #endif
     repeat
         ser.position(0, 3)
-        temp_data()
+        show_temp_data()
         waitms(250)
 #endif
 
 CON
 
     { temperature scales }
-    C   = sensr.C
-    F   = sensr.F
-    K   = sensr.K
+    C   = sensor.C
+    F   = sensor.F
+    K   = sensor.K
 
 DAT
 {
