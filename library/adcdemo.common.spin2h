@@ -6,7 +6,7 @@
     Description: ADC demo common code
     Copyright (c) 2022
     Started Aug 4, 2022
-    Updated Aug 4, 2022
+    Updated Oct 11, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -29,7 +29,7 @@ CON
 
     VF  = 1_000_000
 
-PUB demo{}
+PUB show_adc_data{}
 
     repeat
         ser.position(0, 3)
