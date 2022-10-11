@@ -4,21 +4,16 @@
     Author: Eric Smith
     Modified by: Jesse Burt
     Description: Low-level UART serial driver
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Jun 28, 2019
-    Updated Dec 20, 2021
+    Updated Oct 11, 2022
     See end of file for terms of use.
     --------------------------------------------
 
-    NOTE: This is a modified version of SmartSerial.spin,
-        originally by Eric Smith. The original header is
-        preserved below.
+    NOTE: This is based on SmartSerial.spin,
+        originally by Eric Smith.
 }
-'
-' SmartSerial.spin2
-' simple smart pin serial object for P2 eval board
-' implements a subset of FullDuplexSerial functionality
-'
+
 CON
 
     WORDLEN = 8-1                               ' serial word length, in bits-1
@@ -27,17 +22,19 @@ VAR
 
     long _rx_pin, _tx_pin
 
-PUB Start(bps=-1): status
+PUB start = init_def
+PUB init_def(bps=-1): status
 ' Start using P2 default serial pins
-    return startrxtx(63, 62, 0, bps)
+    return init(63, 62, 0, bps)
 
-PUB StartRxTx(rxpin, txpin, mode, bps=-1): status | bitperiod, bit_mode
+PUB startrxtx = init
+PUB init(rxpin, txpin, mode, bps=-1): status | bitperiod, bit_mode
 ' Start using custom I/O pins and configuration
 '   rxpin: receive pin
 '   txpin: transmit pin
 '   mode: unused; currently for compatibility only
 '   bps: bits per second/baud (-1 to attempt auto-baud)
-    if bps == -1
+    if (bps == -1)
         bitperiod := autobaud(rxpin)
     else
         bitperiod := (clkfreq / bps)
@@ -45,34 +42,40 @@ PUB StartRxTx(rxpin, txpin, mode, bps=-1): status | bitperiod, bit_mode
     _rx_pin := rxpin
     _tx_pin := txpin
 
-    bit_mode := (bitperiod << 16) + WORDLEN
+    bit_mode := ((bitperiod << 16) + WORDLEN)
 
-    if lookdown(txpin: 0..63)
+    if (lookdown(txpin: 0..63))
         pinf(txpin)
         wrpin(txpin, P_ASYNC_TX | P_OE)
         wxpin(txpin, bit_mode)
         pinl(txpin)
 
-    if lookdown(rxpin: 0..63)
+    if (lookdown(rxpin: 0..63))
         pinf(rxpin)
         wrpin(rxpin, P_ASYNC_RX)
         wxpin(rxpin, bit_mode)
         pinl(rxpin)
 
-    return cogid()+1
+    return (cogid() + 1)
 
-PUB Char(val)
-' Send one character
-    wypin(_tx_pin, val)
-    txflush()
+PUB tx = putchar
+PUB char = putchar
+PUB putchar(ch)
+' Send single-byte character (blocking)
+'   ch: character (ASCII byte value) to send
+    wypin(_tx_pin, ch)
+    tx_flush()
 
-PUB CharIn(): rxbyte
-' Receive a byte (waits until one ready)
+PUB rx = getchar
+PUB charin = getchar
+PUB getchar(): ch
+' Receive a single byte (blocking)
+'   Returns: $00..$FF
     repeat
-        rxbyte := rxcheck()
-    while rxbyte == -1
+        ch := rx_check()
+    while (ch == -1)
 
-PUB RXCheck(): rxbyte
+PUB rx_check(): rxbyte
 ' Check if byte received (never waits)
 '   Returns:
 '       -1 if no byte, otherwise byte
@@ -80,7 +83,7 @@ PUB RXCheck(): rxbyte
     if pinr(_rx_pin)
         return (rdpin(_rx_pin) >> 24)
 
-PUB TXFlush()
+PUB tx_flush()
 ' Flush transmit buffer
     repeat until pinr(_tx_pin)
 
@@ -103,47 +106,46 @@ PRI autobaud(pin): bitperiod | a, b, c, port, mask
 '   or CR ($0d) which has 1 bit low after the high bit
 '
     org
-        test port, #1 wc                                    ' Set C to distinguish INA/OUTA
-        test port, #2 wz                                    ' set Z (match on =)
+        test    port, #1 wc                     ' Set C to distinguish INA/OUTA
+        test    port, #2 wz                     ' set Z (match on =)
 
-        setpat mask, #0                                     ' Wait for pin lo (start bit)
+        setpat  mask, #0                        ' Wait for pin lo (start bit)
         waitpat
-        setpat mask, mask                                   ' Wait for pin hi (first 1)
+        setpat  mask, mask                      ' Wait for pin hi (first 1)
         waitpat
-        getct a
-        setpat mask, #0                                     ' Wait for pin lo again (following 0)
+        getct   a
+        setpat  mask, #0                        ' Wait for pin lo again (following 0)
         waitpat
-        getct b
-        setpat mask,mask                                    ' Wait for pin hi again (end of 0 sequence)
+        getct   b
+        setpat  mask,mask                       ' Wait for pin hi again (end of 0 sequence)
         waitpat
-        getct c
+        getct   c
     end
-    bitperiod := b - a                                      ' Length of first 1 bit sequence
-    c := c - b                                              ' Length of following 0
-    if c < bitperiod
+    bitperiod := (b - a)                        ' Length of first 1 bit sequence
+    c := (c - b)                                ' Length of following 0
+    if (c < bitperiod)
         bitperiod := c
 
 ' Now want to wait for idle
     waitx(16 * bitperiod)
     return bitperiod
 
+DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
