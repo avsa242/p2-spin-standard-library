@@ -4,7 +4,7 @@
     Author: Jesse Burt
     Description: Power sensor demo - code common to all drivers (P2 version)
     Started Jul 31, 2022
-    Updated Jul 31, 2022
+    Updated Oct 11, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,11 +14,11 @@ CON
     CF  = 1000000
     PF  = 1000000
 
-PUB power_data()
+PUB show_power_data()
 
-    ser.printf(@"Voltage: %d.%06.6dv\n\r", (pwr.voltage() / VF), (pwr.voltage() // VF))
-    ser.printf(@"Current: %d.%06.6dA\n\r", (pwr.current() / CF), abs((pwr.current() // CF)))
-    ser.printf(@"Power: %d.%06.6dW\n\r", (pwr.power() / PF), (pwr.power() // PF))
+    ser.printf(@"Voltage: %d.%06.6dv\n\r", (sensor.voltage() / VF), (sensor.voltage() // VF))
+    ser.printf(@"Current: %d.%06.6dA\n\r", (sensor.current() / CF), abs((sensor.current() // CF)))
+    ser.printf(@"Power: %d.%06.6dW\n\r", (sensor.power() / PF), (sensor.power() // PF))
 
 { define demo() only if something #including this file doesn't already provide one }
 #ifndef HAS_DEMO
@@ -27,7 +27,7 @@ PUB demo()
     repeat
         ser.position(0, 3)
         power_data()
-        waitms(250)
+        show_waitms(250)
 #endif
 
 DAT
