@@ -5,7 +5,7 @@
     Description: 8-bit parallel I/O engine for LCDs (P2 version)
     Copyright (c) 2022
     Started Jan 10, 2022
-    Updated Jun 12, 2022
+    Updated Oct 11, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,9 +16,9 @@ CON
     CMD         = 1
     DATA        = 2
     BLKDAT      = 3
-    BLKWDMSBF   = 4
-    BLKWDLSBF   = 5
-    WORDREP_MSBF= 6
+    BLKWD_MSBF  = 4
+    BLKWD_LSBF  = 5
+    WORDX_MSBF  = 6
 
 VAR
 
@@ -26,10 +26,10 @@ VAR
     long _io_cmd, _ptr_buff, _xfer_cnt
     long _DATA, _CS, _DC, _WR, _RD
 
-PUB Null()
+PUB null()
 ' This is not a top-level object
 
-PUB Init(D_BASEPIN, CS_PIN, DC_PIN, WR_PIN, RD_PIN): status
+PUB init(D_BASEPIN, CS_PIN, DC_PIN, WR_PIN, RD_PIN): status
 ' Initialize engine
 '   D_BASEPIN: first of 8 I/O pin block
 '   CS_PIN: CS / CSX (chip select)
@@ -43,28 +43,28 @@ PUB Init(D_BASEPIN, CS_PIN, DC_PIN, WR_PIN, RD_PIN): status
 
     return status
 
-PUB DeInit()
+PUB deinit()
 ' Deinitialize engine
 '   Stop running cog and clear variables
-    if _cog
+    if (_cog)
         cogstop(_cog-1)
         longfill(@_cog, 0, 86)                  ' clear global vars
 
-PUB WrByte_CMD(c)
+PUB wrbyte_cmd(c)
 ' Write command (8-bits)
     _xfer_cnt := 1                              ' set data size
     _ptr_buff := c                              ' command byte
     _io_cmd := CMD                              ' signal command to engine
     repeat until (_io_cmd == IDLE)              ' wait for engine to finish
 
-PUB WrByte_DAT(d)
+PUB wrbyte_dat(d)
 ' Write data (8-bits)
     _xfer_cnt := 1
     _ptr_buff := d
     _io_cmd := DATA
     repeat until (_io_cmd == IDLE)
 
-PUB WrBlock_DAT(ptr_buff, nr_bytes)
+PUB wrblock_dat(ptr_buff, nr_bytes)
 ' Write block of data
 '   ptr_buff: pointer to buffer of data
 '   nr_bytes: number of bytes to write to display
@@ -72,29 +72,29 @@ PUB WrBlock_DAT(ptr_buff, nr_bytes)
     _io_cmd := BLKDAT                           '   params
     repeat until (_io_cmd == IDLE)
 
-PUB WrBlkWord_LSBF(ptr_buff, nr_words)
+PUB wrblkword_lsbf(ptr_buff, nr_words)
 ' Write block of words (MSByte-first)
 '   ptr_buff: pointer to buffer of data
 '   nr_words: number of words to write to display
     longmove(@_ptr_buff, @ptr_buff, 2)
-    _io_cmd := BLKWDLSBF
+    _io_cmd := BLKWD_LSBF
     repeat until (_io_cmd == IDLE)
 
-PUB WrBlkWord_MSBF(ptr_buff, nr_words)
+PUB wrblkword_msbf(ptr_buff, nr_words)
 ' Write block of words (MSByte-first)
 '   ptr_buff: pointer to buffer of data
 '   nr_words: number of words to write to display
     longmove(@_ptr_buff, @ptr_buff, 2)
-    _io_cmd := BLKWDMSBF
+    _io_cmd := BLKWD_MSBF
     repeat until (_io_cmd == IDLE)
 
-PUB WrWordX_DAT(dw, nr_words)
+PUB wrwordx_dat(dw, nr_words)
 ' Repeatedly write word dw, nr_words times
     longmove(@_ptr_buff, @dw, 2)
-    _io_cmd := WORDREP_MSBF
+    _io_cmd := WORDX_MSBF
     repeat until (_io_cmd == IDLE)
 
-PRI Parallel_Eng() | ptr_data, i, ptr_buff, D7_0, CS, DC, WRX, RDX, xcnt
+PRI parallel_eng() | ptr_data, i, ptr_buff, D7_0, CS, DC, WRX, RDX, xcnt
 ' 8-bit parallel engine
     longmove(@D7_0, @_DATA, 5)                  ' cache local copies of pins
 
@@ -133,7 +133,7 @@ PRI Parallel_Eng() | ptr_data, i, ptr_buff, D7_0, CS, DC, WRX, RDX, xcnt
                     pint(WRX)
                     pint(WRX)
                 _io_cmd := IDLE
-            BLKWDMSBF:
+            BLKWD_MSBF:
             ' write a block of MSByte-first data words
                 ptr_buff := _ptr_buff
                 xcnt := _xfer_cnt-1
@@ -146,7 +146,7 @@ PRI Parallel_Eng() | ptr_data, i, ptr_buff, D7_0, CS, DC, WRX, RDX, xcnt
                     pint(WRX)
                     pint(WRX)
                 _io_cmd := IDLE
-            BLKWDLSBF:
+            BLKWD_LSBF:
             ' write a block of LSByte-first data words
                 ptr_buff := _ptr_buff
                 xcnt := _xfer_cnt-1
@@ -159,7 +159,7 @@ PRI Parallel_Eng() | ptr_data, i, ptr_buff, D7_0, CS, DC, WRX, RDX, xcnt
                     pint(WRX)
                     pint(WRX)
                 _io_cmd := IDLE
-            WORDREP_MSBF:
+            WORDX_MSBF:
             ' repeatedly write the same data word, xcnt times
                 ptr_buff := _ptr_buff
                 xcnt := _xfer_cnt
@@ -179,23 +179,21 @@ PRI Parallel_Eng() | ptr_data, i, ptr_buff, D7_0, CS, DC, WRX, RDX, xcnt
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+
