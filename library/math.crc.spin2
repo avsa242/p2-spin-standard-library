@@ -5,7 +5,7 @@
     Description: A collection of CRC routines
     Copyright (c) 2022
     Started Nov 19, 2017
-    Updated Apr 16, 2022
+    Updated Oct 12, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -22,11 +22,11 @@ CON
     POLY16_XYZMODEM = $1021
     POLY32_ZMODEM   = $EDB88320
 
-PUB ASAIRCRC8(ptr_data, len): crc
+PUB asaircrc8(ptr_data, len): crc
 ' CRC8 for ASAIR temp/RH sensors
     return crc8(ptr_data, len, $ff, 0, POLY8_ASAIR, false, false)
 
-PUB InetChksum(ptr_buff, len, pshdr_chk): cksum | i
+PUB inet_chksum(ptr_buff, len, pshdr_chk): cksum | i
 ' Checksum used in various internet datagrams
 '   ptr_buff: pointer to buffer of data to calculate checksum
 '   len: length of data
@@ -48,7 +48,7 @@ PUB InetChksum(ptr_buff, len, pshdr_chk): cksum | i
     cksum += pshdr_chk
     cksum.word[0] += cksum.word[1]
 
-PUB MeasCRC8(data, len): crc | currbyte, i, j
+PUB meas_crc8(data, len): crc | currbyte, i, j
 ' Measurement specialties CRC8
     crc := $00
     repeat i from 0 to len-1
@@ -63,7 +63,7 @@ PUB MeasCRC8(data, len): crc | currbyte, i, j
     crc ^= $00
     return crc & $FF
 
-PUB SDCRC7(ptr_data, len): crc | byte_nr, bit_nr, curr_byte
+PUB sd_crc7(ptr_data, len): crc | byte_nr, bit_nr, curr_byte
 ' MMC/SD CRC7
     crc := $00
     repeat byte_nr from 0 to len-1
@@ -76,7 +76,7 @@ PUB SDCRC7(ptr_data, len): crc | byte_nr, bit_nr, curr_byte
 
     return ((crc << 1) | 1) & $FF
 
-PUB SensirionCRC8(data, len): crc | currbyte, i, j
+PUB sensirion_crc8(data, len): crc | currbyte, i, j
 
     crc := $FF
     repeat i from 0 to len-1
@@ -91,7 +91,7 @@ PUB SensirionCRC8(data, len): crc | currbyte, i, j
     crc ^= $00
     return crc & $ff
 
-PUB SiLabsCRC8(data, len): crc | currbyte, i, j
+PUB silabs_crc8(data, len): crc | currbyte, i, j
 
     crc := $00
     repeat i from 0 to len-1
@@ -106,7 +106,7 @@ PUB SiLabsCRC8(data, len): crc | currbyte, i, j
     crc ^= $00
     return crc & $FF
 
-PUB DallasMaximCRC8(data, len): crc | currbyte, i, j, mix
+PUB dallas_maxim_crc8(data, len): crc | currbyte, i, j, mix
 
     crc := $00
     repeat i from 0 to len-1
@@ -120,7 +120,7 @@ PUB DallasMaximCRC8(data, len): crc | currbyte, i, j, mix
 
     return
 
-PUB DallasMaximCRC16(data, len): crc | currbyte, i, j, mix
+PUB dallas_maxim_crc16(data, len): crc | currbyte, i, j, mix
 
     crc := $00
     repeat i from 0 to len-1
@@ -134,19 +134,19 @@ PUB DallasMaximCRC16(data, len): crc | currbyte, i, j, mix
 
     return
 
-PUB XYZMCRC16(ptr_data, len): crc
+PUB xyzm_crc16(ptr_data, len): crc
 ' X/Y/ZModem 16bit CRC
 '   ptr_data: pointer to data
 '   data_len: length of data, in bytes
     return crc16(ptr_data, len, $0000, 0, POLY16_XYZMODEM, false, false)
 
-PUB ZMCRC32(ptr_data, len): crc
+PUB zm_crc32(ptr_data, len): crc
 ' ZModem 32bit CRC
 '   ptr_data: pointer to data
 '   data_len: length of data, in bytes
     return crc32(ptr_data, len, $FFFFFFFF, true, POLY32_ZMODEM, false, false)
 
-PUB CRC8(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr_byte, bit
+PUB crc8(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr_byte, bit
 ' Calculate CRC8
 '   ptr_data: pointer to data
 '   data_len: length of data, in bytes (u31)
@@ -172,7 +172,7 @@ PUB CRC8(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr
 
     return (crc ^ xorout) & $ff
 
-PUB CRC16(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr_byte, bit
+PUB crc16(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr_byte, bit
 ' Calculate CRC16
 '   ptr_data: pointer to data
 '   data_len: length of data, in bytes
@@ -180,7 +180,7 @@ PUB CRC16(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | cur
 '   poly: polynomial to use in CRC calculation
 '   reflect: whether to bitwise-reverse data bytes read
     crc := init                                 ' initialize CRC
-    if ireflect                                 ' reflect initial value?
+    if (ireflect)                               ' reflect initial value?
         crc rev= 15
 
     repeat curr_byte from 0 to data_len-1
@@ -191,12 +191,12 @@ PUB CRC16(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | cur
             else
                 crc := (crc << 1)
 
-    if oreflect                                 ' reflect final value?
+    if (oreflect)                               ' reflect final value?
         crc ><= 16
 
     return ((crc ^ xorout) & $ffff)
 
-PUB CRC32(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr_byte, bit
+PUB crc32(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr_byte, bit
 ' Calculate CRC32
 '   ptr_data: pointer to data
 '   data_len: length of data, in bytes (u31)
@@ -206,7 +206,7 @@ PUB CRC32(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | cur
 '   ireflect: bitwise reverse initial value? (bool)
 '   oreflect: bitwise reverse final value? (bool)
     crc := init                                 ' initialize CRC
-    if ireflect                                 ' reflect initial value?
+    if (ireflect)                               ' reflect initial value?
         crc rev= 31
     data_len--                                  ' pre-calc for loop
     repeat curr_byte from 0 to data_len
@@ -217,29 +217,28 @@ PUB CRC32(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | cur
             else
                 crc := (crc >> 1)
 
-    if oreflect                                 ' reflect final value?
+    if (oreflect)                               ' reflect final value?
         crc ><= 32
 
     return crc ^ xorout
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+
