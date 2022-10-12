@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Apr 15, 2020
-    Updated: Jul 4, 2022
+    Updated: Oct 12, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -26,7 +26,10 @@ OBJ
 
     sp      : "core.con.smartpins"
 
-PUB Init(SCK, MOSI, MISO, SPI_MODE=0, SCK_FREQ=1_000_000): status | MISO_rel, MOSI_rel
+PUB null()
+' This is not a top-level object
+
+PUB init(SCK, MOSI, MISO, SPI_MODE=0, SCK_FREQ=1_000_000): status | MISO_rel, MOSI_rel
 ' SCK: SPI Clock
 ' MOSI: Master Out Slave In
 ' MISO: Master In Slave Out
@@ -41,9 +44,9 @@ PUB Init(SCK, MOSI, MISO, SPI_MODE=0, SCK_FREQ=1_000_000): status | MISO_rel, MO
     longmove(@_SCK, @SCK, 3)
 
     pinstart(SCK, sp.TRANSITION_OUT | sp.SMART_OUT_DRIVE | sp.OUTPUT_ENABLED,{
-    } spiclockperiod(SCK_FREQ), 0)              ' Setup SCK in transition mode
+    } spi_clk_period(SCK_FREQ), 0)              ' Setup SCK in transition mode
 
-    if lookdown(MISO: 0..63)                    ' MISO optional
+    if (lookdown(MISO: 0..63))                  ' MISO optional
         case SCK-MISO                           ' Check: within 3 of SCK?
             1, 2, 3:                            ' MISO pin is lower than SCK
                 MISO_rel := lookup(SCK-MISO:{
@@ -83,13 +86,13 @@ PUB Init(SCK, MOSI, MISO, SPI_MODE=0, SCK_FREQ=1_000_000): status | MISO_rel, MO
     rdpin(MISO)
     return cogid()+1                            ' Parent cogid; return nonzero
 
-PUB DeInit()
+PUB deinit()
 ' Reset smart pins - restore I/O pin control to "classic" digital DIR/IN/OUT mode
     pinclear(_SCK)
     pinclear(_MISO)
     pinclear(_MOSI)
 
-PUB RdBlock_LSBF(ptr_buff, nr_bytes) | SCK, MOSI, MISO, b_num, tmp  'XXX UNTESTED
+PUB rdblock_lsbf(ptr_buff, nr_bytes) | SCK, MOSI, MISO, b_num, tmp  'XXX UNTESTED
 ' Read block of data from SPI bus, least-significant byte first
 ' Read a byte from SPI slave
     longmove(@SCK, @_SCK, 3)
@@ -105,7 +108,7 @@ PUB RdBlock_LSBF(ptr_buff, nr_bytes) | SCK, MOSI, MISO, b_num, tmp  'XXX UNTESTE
         tmp := (tmp rev 31) & $FF                   ' Reverse bit order and discard
         byte[ptr_buff][b_num] := tmp
 
-PUB RdBlock_MSBF(ptr_buff, nr_bytes) | SCK, MOSI, MISO, b_num, tmp  'XXX UNTESTED
+PUB rdblock_msbf(ptr_buff, nr_bytes) | SCK, MOSI, MISO, b_num, tmp  'XXX UNTESTED
 ' Read block of data from SPI bus, most-significant byte first
    longmove(@SCK, @_SCK, 3)
     tmp := 0
@@ -120,7 +123,7 @@ PUB RdBlock_MSBF(ptr_buff, nr_bytes) | SCK, MOSI, MISO, b_num, tmp  'XXX UNTESTE
         tmp := (tmp rev 31) & $FF                   ' Reverse bit order and discard
         byte[ptr_buff][b_num] := tmp
 
-PUB WrBlock_LSBF(ptr_buff, nr_bytes) | SCK, MOSI, MISO, b_num
+PUB wrblock_lsbf(ptr_buff, nr_bytes) | SCK, MOSI, MISO, b_num
 ' Write block of data to SPI bus from ptr_buff, least-significant byte first
     longmove(@SCK, @_SCK, 3)
 
@@ -131,7 +134,7 @@ PUB WrBlock_LSBF(ptr_buff, nr_bytes) | SCK, MOSI, MISO, b_num
         repeat until pinr(SCK)
         wypin(MOSI, 0)
 
-PUB WrBlock_MSBF(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
+PUB wrblock_msbf(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
 ' Write block of data to SPI bus from ptr_buff, most-significant byte first
     longmove(@SCK, @_SCK, 3)
 
@@ -142,7 +145,7 @@ PUB WrBlock_MSBF(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
         repeat until pinr(SCK)
 
 #define HAS_WR_BYTEX
-PUB Wr_ByteX(byte2spi, nr_bytes) | SCK, MOSI, MISO
+PUB wr_bytex(byte2spi, nr_bytes) | SCK, MOSI, MISO
 ' Repeatedly write byte2spi to SPI bus, nr_bytes times
     longmove(@SCK, @_SCK, 3)                    ' copy hub vars to locals
 
@@ -154,7 +157,7 @@ PUB Wr_ByteX(byte2spi, nr_bytes) | SCK, MOSI, MISO
         wypin(MOSI, 0)
 
 #define HAS_WRWORDX_MSBF
-PUB WrWordX_MSBF(word2spi, nr_words) | SCK, MOSI, MISO
+PUB wrwordx_msbf(word2spi, nr_words) | SCK, MOSI, MISO
 ' Repeatedly write word2spi to SPI bus, nr_words times
     longmove(@SCK, @_SCK, 3)                    ' copy hub vars to locals
 
@@ -171,7 +174,7 @@ PUB WrWordX_MSBF(word2spi, nr_words) | SCK, MOSI, MISO
         repeat until pinr(SCK)
         wypin(MOSI, 0)
 
-PRI SPIClockPeriod(SCK_FREQ): bt
+PRI spi_clk_period(SCK_FREQ): bt
 ' Calculate SPI clock period
     bt := ((clkfreq / SCK_FREQ) / 2)            ' SPI bit time
     bt := bt #> 2                               ' Clamp to min of syclock/2
@@ -180,24 +183,21 @@ PRI SPIClockPeriod(SCK_FREQ): bt
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 

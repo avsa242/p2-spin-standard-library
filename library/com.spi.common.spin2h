@@ -1,10 +1,10 @@
 {
     --------------------------------------------
-    Filename: com.spi-common.spin2h
+    Filename: com.spi.common.spin2h
     Author: Jesse Burt
     Description: Routines common to all SPI engines (P2 version)
     Started Jun 27, 2022
-    Updated Oct 11, 2022
+    Updated Oct 12, 2022
     Copyright (c) 2022
     See end of file for terms of use.
     --------------------------------------------
@@ -92,7 +92,7 @@ PUB wrword_msbf(word2spi)
 ' Write word to SPI bus, most-significant byte first
     wrblock_msbf(@word2spi, 2)
 
-#ifndef HAS_WRWORDx_lsbf
+#ifndef HAS_WRWORDX_LSBF
 PUB wrwordx_lsbf(w, nr_words)
 ' Repeatedly write LSB-first word to bus
 '   w: word to write
@@ -101,7 +101,7 @@ PUB wrwordx_lsbf(w, nr_words)
         wrblock_lsbf(@w, 2)
 #endif
 
-#ifndef HAS_WRWORDx_msbf
+#ifndef HAS_WRWORDX_MSBF
 PUB wrwordx_msbf(w, nr_words)
 ' Repeatedly write MSB-first word to bus
 '   w: word to write
