@@ -14,7 +14,7 @@ VAR
 
     long _HS_LFT, _LS_LFT, _HS_RT, _LS_RT, _pwm_frame_per
 
-PUB Start(HS_LFT, LS_LFT, HS_RT, LS_RT, PWM_FREQ=20_000)
+PUB startx(HS_LFT, LS_LFT, HS_RT, LS_RT, PWM_FREQ=20_000)
 ' Start h-bridge driver
 '   HS_LFT, LS_LFT: high side left, low side left I/O pins
 '   HS_RT, LS_RT: high side right, low side right I/O pins
@@ -34,7 +34,7 @@ PUB Start(HS_LFT, LS_LFT, HS_RT, LS_RT, PWM_FREQ=20_000)
         pinstart(_HS_RT, P_PWM_SAWTOOTH | P_OE, _pwm_frame_per, 0)
         pinstart(_LS_RT, P_PWM_SAWTOOTH | P_OE, _pwm_frame_per, 0)
 
-PUB Stop()
+PUB stop()
 ' Stop h-bridge driver
     coast()
 
@@ -50,14 +50,14 @@ PUB Stop()
     pinl(_HS_RT)
     pinl(_LS_RT)
 
-PUB Coast()
+PUB coast()
 ' Stop motor effort (allow to coast or free-wheel)
     wypin(_HS_LFT, 0)
     wypin(_LS_LFT, 0)
     wypin(_HS_RT, 0)
     wypin(_LS_RT, 0)
 
-PUB Forward(duty)
+PUB forward(duty)
 ' Command motor forward, in tenths of a percent duty cycle
 '   (e.g., 50_5 == 50.5%)
     wypin(_HS_RT, 0)
@@ -65,7 +65,7 @@ PUB Forward(duty)
     wypin(_LS_LFT, 0)
     wypin(_HS_LFT, 0 #> duty <# 100_0)
 
-PUB Reverse(duty)
+PUB reverse(duty)
 ' Command motor reverse, in tenths of a percent duty cycle
 '   (e.g., 50_5 == 50.5%)
     wypin(_HS_RT, 0 #> duty <# 100_0)
@@ -74,26 +74,22 @@ PUB Reverse(duty)
     wypin(_HS_LFT, 0)
 
 DAT
-
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 
