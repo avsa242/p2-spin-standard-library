@@ -6,7 +6,7 @@
         Conway's Game of Life demo for the P2 8x7 LED Matrix.
     Modified by: Jesse Burt
     Created: Jun 17, 2019
-    Updated: Jul 8, 2020
+    Updated: Oct 14, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -18,16 +18,16 @@ CON
     FIRSTCHAR   = 32
     LASTCHAR    = 126
 
-PUB Null()
+PUB null()
 ' This is not a top-level object
 
-PUB BaseAddr(): result
+PUB ptr(): p
 ' Return base address of font table
-    return @fontaddr
+    return @table
 
 DAT
 
-fontaddr
+table
 
 ' space
     byte %00000

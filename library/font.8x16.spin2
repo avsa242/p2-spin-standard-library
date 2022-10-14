@@ -5,7 +5,7 @@
     Modified by: Jesse Burt
     Description: 8x16 font
     Started Nov 23, 2019
-    Updated Jul 2, 2022
+    Updated Oct 14, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -20,25 +20,25 @@ CON
     FIRSTCHAR   = 32
     LASTCHAR    = 126
 
-PUB Null()
+PUB null()
 ' This is not a top-level object
 
-PUB Baseaddr(): addr
+PUB ptr(): p
 ' Return base address of font table
-    return @fontbase
+    return @table
 
 PUB reverse_font() | i, j, k
 ' Reverse byte order of font table in RAM
     repeat i from 0 to 95 * 16 - 1
-        k := word[@fontbase][i]
+        k := word[@table][i]
         k := k rev 15
-        word[@fontbase][i] := k << 8 | k >> 8
+        word[@table][i] := k << 8 | k >> 8
 
 DAT
 ' Big-endian 8x16 font
     long  0
 
-fontbase  byte  $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00 '  <Space>
+table  byte  $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00 '  <Space>
 	      byte  $00, $00, $00, $00, $07, $00, $0F, $80, $0F, $80, $0F, $80, $0F, $80, $0F, $80, $07, $00, $07, $00, $00, $00, $00, $00, $07, $00, $07, $00, $07, $00, $00, $00 ' !
 	      byte  $00, $00, $0E, $38, $0E, $38, $0E, $38, $0E, $38, $06, $30, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00 ' "
 	      byte  $00, $00, $0C, $30, $0C, $30, $0C, $30, $7F, $FE, $7F, $FE, $0C, $30, $0C, $30, $0C, $30, $0C, $30, $7F, $FE, $7F, $FE, $0C, $30, $0C, $30, $0C, $30, $00, $00 ' #
@@ -139,25 +139,21 @@ fontbase  byte  $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,
 	      byte  $00, $00, $00, $00, $1F, $80, $01, $C0, $01, $C0, $01, $C0, $00, $E0, $00, $38, $00, $38, $00, $E0, $01, $C0, $01, $C0, $01, $C0, $1F, $80, $00, $00, $00, $00 ' }
 	      byte  $00, $00, $00, $00, $1F, $1C, $3B, $9C, $39, $DC, $38, $F8, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00 ' ~
 
+DAT
 {
-TERMS OF USE: MIT License
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 

@@ -6,7 +6,7 @@
         SSD1331 OLED driver
     Modified by: Jesse Burt
     Created: Apr 26, 2018
-    Updated: Jul 8, 2020
+    Updated: Oct 14, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,10 +19,10 @@ CON
     FIRSTCHAR   = 0
     LASTCHAR    = 127
 
-PUB Null()
+PUB null()
 ' This is not a top-level object
 
-PUB BaseAddr(): ptr
+PUB ptr(): p
 ' Return base address of font table
     return @table
 
