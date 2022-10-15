@@ -56,7 +56,7 @@ CON
 
 OBJ
 
-    cfg     : "core.con.boardcfg.p2eval"
+    cfg     : "boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     accel   : "sensor.accel.3dof.lis3dh"
 

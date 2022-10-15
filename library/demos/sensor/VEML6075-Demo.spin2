@@ -26,7 +26,7 @@ CON
 
 OBJ
 
-    cfg     : "core.con.boardcfg.p2eval"
+    cfg     : "boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     veml6075: "sensor.uv.veml6075"
     int     : "string.integer"

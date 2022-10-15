@@ -45,7 +45,7 @@ VAR
 
 OBJ
 
-    cfg : "core.con.boardcfg.p2eval"    ' Clock setup, I/O pins, etc
+    cfg : "boardcfg.p2eval"    ' Clock setup, I/O pins, etc
     ser : "com.serial.terminal.ansi"
     imu : "sensor.imu.6dof.fxos8700"
     int : "string.integer"

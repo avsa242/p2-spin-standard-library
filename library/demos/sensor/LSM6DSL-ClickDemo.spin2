@@ -47,7 +47,7 @@ CON
 
 OBJ
 
-    cfg     : "core.con.boardcfg.p2eval"
+    cfg     : "boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     imu     : "sensor.imu.6dof.lsm6dsl"
 

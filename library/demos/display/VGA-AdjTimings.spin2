@@ -42,7 +42,7 @@ VAR
 
 OBJ
 
-    cfg : "core.con.boardcfg.p2eval"
+    cfg : "boardcfg.p2eval"
     ser : "com.serial.terminal.ansi"
     vga : "display.vga.bitmap-8bpp"
     fnt : "font.5x8"

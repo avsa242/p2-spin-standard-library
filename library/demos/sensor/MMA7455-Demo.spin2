@@ -30,7 +30,7 @@ CON
 
 OBJ
 
-    cfg: "core.con.boardcfg.p2eval"
+    cfg: "boardcfg.p2eval"
     imu: "sensor.accel.3dof.mma7455"
     ser: "com.serial.terminal.ansi"
 

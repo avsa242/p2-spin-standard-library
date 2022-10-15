@@ -47,7 +47,7 @@ CON
 OBJ
 
     ser     : "com.serial.terminal.ansi"
-    cfg     : "core.con.boardcfg.p2eval"
+    cfg     : "boardcfg.p2eval"
     vga     : "display.vga.bitmap-8bpp"
     spkr    : "signal.dac.audio"
     mic     : "signal.adc.audio"

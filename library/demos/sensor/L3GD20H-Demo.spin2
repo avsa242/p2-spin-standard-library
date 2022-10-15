@@ -38,7 +38,7 @@ CON
 
 OBJ
 
-    cfg: "core.con.boardcfg.p2eval"
+    cfg: "boardcfg.p2eval"
     imu: "sensor.gyroscope.3dof.l3gd20h"
     ser: "com.serial.terminal.ansi"
 

@@ -1,53 +1,54 @@
 {
     --------------------------------------------
-    Filename: core.con.boardcfg.kiss.spin2
+    Filename: boardcfg.kiss.spin2
     Author: Jesse Burt
     Description: Board configuration for Benezan Electronics KISS Eval board
-    Copyright (c) 2021
+        https://forums.parallax.com/discussion/172225/kiss-eval-board-general-discussion/p1
+    Copyright (c) 2022
     Started Nov 11, 2021
-    Updated Nov 11, 2021
+    Updated Oct 15, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
-CON
-' KISS Eval board
-' https://forums.parallax.com/discussion/172225/kiss-eval-board-general-discussion/p1
-' Clock settings
-    _xtlfreq    = 25_000_000
-    _clkfreq_def= 200_000_000
+#include "p2x8c4m64p.common.spin2h"
 
+CON
+    { --- clock settings --- }
+    _xtlfreq    = 25_000_000
+    _clkfreq    = 200_000_000
+
+    { --- pin definitions --- }
+    { LED }
     LED1        = 57
 
-    SD_MISO     = 58    ' uSD card slot (KISS0001 only)
+    { micro-SD socket - SPI (KIS0001 only) }
+    SD_MISO     = 58
     SD_MOSI     = 59
     SD_CS       = 60
     SD_CLK      = 61
 
-    FLASH_DO    = 58    ' SPI Flash
+    { SPI flash }
+    FLASH_DO    = 58
     FLASH_DI    = 59
     FLASH_CLK   = 60
     FLASH_CS    = 61
 
-    SER_TX      = 62    ' UART pins
-    SER_RX      = 63
-
+DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }

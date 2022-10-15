@@ -37,7 +37,7 @@ CON
 
 OBJ
 
-    cfg : "core.con.boardcfg.p2eval"
+    cfg : "boardcfg.p2eval"
     time: "time"
     oled: "display.oled-alpha.us2066"
     ser : "com.serial.terminal.ansi"

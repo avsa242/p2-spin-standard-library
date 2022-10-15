@@ -31,7 +31,7 @@ CON
 
 OBJ
 
-    cfg:    "core.con.boardcfg.p2eval"
+    cfg:    "boardcfg.p2eval"
     sensr:  "sensor.thermocouple.max31856"
     ser:    "com.serial.terminal.ansi"
 

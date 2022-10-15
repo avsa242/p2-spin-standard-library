@@ -28,7 +28,7 @@ CON
 
 OBJ
 
-    cfg     : "core.con.boardcfg.p2eval"
+    cfg     : "boardcfg.p2eval"
     disp    : "display.ledmatrix.charlieplexed"
 
 VAR

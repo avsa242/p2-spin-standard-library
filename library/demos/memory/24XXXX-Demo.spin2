@@ -34,7 +34,7 @@ CON
 
 OBJ
 
-    cfg : "core.con.boardcfg.p2eval"
+    cfg : "boardcfg.p2eval"
     ser : "com.serial.terminal.ansi"
     mem : "memory.eeprom.24xxxx"
 

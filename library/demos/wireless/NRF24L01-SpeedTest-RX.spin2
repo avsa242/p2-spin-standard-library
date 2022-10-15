@@ -34,7 +34,7 @@ CON
 
 OBJ
 
-    cfg         : "core.con.boardcfg.p2eval"
+    cfg         : "boardcfg.p2eval"
     ser         : "com.serial.terminal.ansi"
     nrf24       : "wireless.transceiver.nrf24l01"
 

@@ -1,6 +1,6 @@
 {
     --------------------------------------------
-    Filename: core.con.boardcfg.p2edge.spin2
+    Filename: boardcfg.p2edge.spin2
     Author: Jesse Burt
     Description: Board configuration for Parallax P2 Edge (no PSRAM, no uSD)
         Includes constants for IO Pins for onboard peripherals

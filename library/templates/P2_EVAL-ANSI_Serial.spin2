@@ -23,7 +23,7 @@ CON
 OBJ
 
     ser : "com.serial.terminal.ansi"
-    cfg : "core.con.boardcfg.p2eval"
+    cfg : "boardcfg.p2eval"
 
 VAR
 

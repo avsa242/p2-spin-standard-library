@@ -32,7 +32,7 @@ VAR
 
 OBJ
 
-    cfg : "core.con.boardcfg.p2eval"
+    cfg : "boardcfg.p2eval"
 
 PUB Main()
 

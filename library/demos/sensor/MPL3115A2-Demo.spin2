@@ -30,7 +30,7 @@ CON
 
 OBJ
 
-    cfg:    "core.con.boardcfg.p2eval"
+    cfg:    "boardcfg.p2eval"
     sensr:  "sensor.pressure.mpl3115a2"
     ser:    "com.serial.terminal.ansi"
 
