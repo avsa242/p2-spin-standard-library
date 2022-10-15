@@ -1,12 +1,11 @@
 {
     --------------------------------------------
     Filename: com.serial.spin2
-    Author: Eric Smith
-    Modified by: Jesse Burt
+    Author: Jesse Burt
     Description: Low-level UART serial driver
     Copyright (c) 2022
     Started Jun 28, 2019
-    Updated Oct 11, 2022
+    Updated Oct 15, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -76,7 +75,7 @@ PUB getchar(): ch
     while (ch == -1)
 
 PUB rx_check(): rxbyte
-' Check if byte received (never waits)
+' Check if byte received (non-blocking)
 '   Returns:
 '       -1 if no byte, otherwise byte
     rxbyte := -1

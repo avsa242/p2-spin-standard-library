@@ -1,12 +1,12 @@
 {
     --------------------------------------------
-    Filename: lib.ansiterminal.spin2
-    Description: Library to add ANSI terminal functionality to a
+    Filename: ansiterminal.common.spin2h
+    Description: Add ANSI terminal functionality to a
         terminal driver (P2 version)
     Requires: Terminal driver that provides the following methods:
-        Char(ch)    - Output one character to terminal
-        CharIn()    - Read one character from terminal
-        Dec(num)    - Output a decimal number to terminal
+        putchar(ch) - Output one character to terminal
+        getchar()   - Read one character from terminal
+        dec(num)    - Output a decimal number to terminal
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Jun 18, 2019
@@ -113,9 +113,9 @@ CON
 PUB bgcolor(bcolor)
 ' Set background color
     csi()
-    char(";")
+    putchar(";")
     dec(BG + bcolor)
-    char("m")
+    putchar("m")
 
 PUB blink(mode=5)
 ' Set Blink attribute
@@ -139,71 +139,74 @@ PUB box(x0, y0, x1, y1, brd_fg, brd_bg, filled) | inwidth, inheight, inbot, into
         false:                                  ' not filled:
             bgcolor(brd_bg)
             fgcolor(brd_fg)
-            position(x0, y0)                    ' draw top:
-            semigfx(true)                       '   enable semigfx mode
-            char(UPPLT)                         '   upper-left corner
+            pos_xy(x0, y0)                      ' draw top:
+            semi_gfx_ena(true)                  '   enable semi_gfx_ena mode
+            putchar(UPPLT)                      '   upper-left corner
             repeat inwidth
-                char(HLINE)                     '   fill horiz. lines
-            char(UPPRT)                         '   upper-right corner
+                putchar(HLINE)                  '   fill horiz. lines
+            putchar(UPPRT)                      '   upper-right corner
 
-            position(x0, y1)                    ' draw bottom
-            char(LOWLT)
+            pos_xy(x0, y1)                      ' draw bottom
+            putchar(LOWLT)
             repeat inwidth
-                char(HLINE)
-            char(LOWRT)
+                putchar(HLINE)
+            putchar(LOWRT)
 
             repeat y from intop to inbot        ' draw left side
-                position(x0, y)
-                char(VLINE)                     '   v-lines
+                pos_xy(x0, y)
+                putchar(VLINE)                  '   v-lines
 
             repeat y from intop to inbot        ' draw right side
-                position(x1, y)
-                char(VLINE)
-            semigfx(false)                      ' done. turn off semigfx mode
+                pos_xy(x1, y)
+                putchar(VLINE)
+            semi_gfx_ena(false)                 ' done. turn off semi_gfx_ena mode
 
         true:                                   ' filled:
             bgcolor(brd_bg)
             fgcolor(brd_fg)
-            position(x0, y0)                    ' set window pos
-            semigfx(true)                       ' turn on semigfx mode
+            pos_xy(x0, y0)                      ' set window pos
+            semi_gfx_ena(true)                  ' turn on semi_gfx_ena mode
 
-            char(UPPLT)                         ' top row:
+            putchar(UPPLT)                      ' top row:
             repeat inwidth                      '   fill with horiz. lines
-                char(HLINE)
-            char(UPPRT)
+                putchar(HLINE)
+            putchar(UPPRT)
 
             repeat y from intop to inbot        ' middle rows:
-                position(x0, y)                 '   left border
-                char(VLINE)                     '   vert. lines
+                pos_xy(x0, y)                   '   left border
+                putchar(VLINE)                  '   vert. lines
                 repeat inwidth
-                    char(" ")                   '   fill line with spaces
-                char(VLINE)                     '   right border
-            position(x0, y)
-            char(LOWLT)                         ' bottom row
+                    putchar(" ")                '   fill line with spaces
+                putchar(VLINE)                  '   right border
+            pos_xy(x0, y)
+            putchar(LOWLT)                      ' bottom row
             repeat inwidth
-                char(HLINE)
-            char(LOWRT)
-            semigfx(false)                      ' done. turn off semigfx mode
+                putchar(HLINE)
+            putchar(LOWRT)
+            semi_gfx_ena(false)                 ' done. turn off semi_gfx_ena mode
 
 PUB clear()
 ' Clear the terminal
-    clearmode(CLR_ALL_HOME)
+    clear_mode(CLR_ALL_HOME)
 
+PUB clearline = clearln
 PUB clearln()
 ' Clear current line of terminal
-    clearlinex(CLR_CUR_TO_END)
+    clearlnx(CLR_CUR_TO_END)
 
+PUB clearlinex = clearlnx
 PUB clearlnx(mode)
 ' Clear line using explicitly set mode
     csi()
     dec(mode)
-    char("K")
+    putchar("K")
 
+PUB clearmode = clear_mode
 PUB clear_mode(mode)
 ' Clear screen using explicitly set mode
     csi()
     dec(mode)
-    char("J")
+    putchar("J")
     if (mode == CLR_ALL_HOME)
         position (0, 0)
 
@@ -211,14 +214,15 @@ PUB color(fcolor, bcolor)
 ' Set foreground and background colors
     csi()
     dec(FG + fcolor)
-    char(";")
+    putchar(";")
     dec(BG + bcolor)
-    char("m")
+    putchar("m")
 
 PUB conceal(mode=8)
 ' Set Conceal attribute
     sgr(mode)
 
+PUB cursorpositionreporting = curs_pos_report_ena
 PUB curs_pos_report_ena(enabled)
 ' Enable/disable mouse cursor position reporting
     csi()
@@ -228,17 +232,19 @@ PUB curs_pos_report_ena(enabled)
         OTHER:
             str(string("?1000;1006;1015h"))
 
+PUB cursornextline = curs_next_line
 PUB curs_next_line(rows)
 ' Move cursor to beginning of next row, or 'rows' number of rows down
     csi()
     dec(rows)
-    char("E")
+    putchar("E")
 
+PUB cursorprevline = curs_prev_line
 PUB curs_prev_line(rows)
 ' Move cursor to beginning of previous row, or 'rows' number of rows up
     csi()
     dec(rows)
-    char("F")
+    putchar("F")
 
 PUB encircle()
 ' Set Encircle attribute
@@ -248,22 +254,23 @@ PUB fgcolor(fcolor)
 ' Set foreground color
     csi()
     dec(FG + fcolor)
-    char("m")
+    putchar("m")
 
 PUB framed()
 ' Set framed attribute
     sgr(SGR_FRAMED)
 
+PUB hidecursor
 PUB hide_curs()
 ' Hide cursor
     csi()
-    char("?")
+    putchar("?")
     dec(25)
-    char("l")
+    putchar("l")
     
 PUB home()
 ' Move cursor to home/upper-left position
-    position(0, 0)
+    pos_xy(0, 0)
 
 PUB inverse(mode=7)
 ' Set inverse attribute
@@ -273,6 +280,7 @@ PUB italic()
 ' Set italicized attribute
     sgr(SGR_ITALIC)
 
+PUB mousecursorposition = mouse_curs_pos
 PUB mouse_curs_pos() | b, x, y
 ' Report Current mouse position (press mouse button to update)
 '   Returns: Button pressed, X, Y coordinates (packed into long)
@@ -302,71 +310,81 @@ PUB mouse_curs_pos() | b, x, y
     y := charin-33                              '   to 0, 0 instead of 1, 1
     result := (b << 16) | (y << 8) | x          ' Pack into the return value
 
+PUB movedown = move_down
 PUB move_down(rows=1)
 ' Move cursor down 1 or more rows
     csi()
     dec(rows)
-    char("B")
+    putchar("B")
 
+PUB moveleft = move_left
 PUB move_left(columns=1)
 ' Move cursor back/left 1 or more columns
     csi()
     dec(columns)
-    char("D")
+    putchar("D")
 
+PUB moveright = move_right
 PUB move_right(columns=1)
 ' Move cursor forward/right 1 or more columns
     csi()
     dec(columns)
-    char("C")
+    putchar("C")
 
+PUB moveup = move_up
 PUB move_up(rows=1)
 ' Move cursor up 1 or more rows
     csi()
     dec(rows)
-    char("A")
+    putchar("A")
 
 PUB overline()
 ' Set Overline attribute
     sgr(SGR_OVERLINED)
 
+PUB position = pos_xy
 PUB pos_xy(x, y)
 ' position cursor at column x, row y (from top-left)
     csi()
     dec(y+1)                                    ' 1-base coordinates
-    char(";")
+    putchar(";")
     dec(x+1)
-    char("f")
+    putchar("f")
 
+PUB positionx = pos_x
 PUB pos_x(column)
 ' Set horizontal position of cursor
     csi()
     dec(column+1)                               ' 1-base coordinate
-    char("G")
+    putchar("G")
 
+PUB positiony = pos_y
 PUB pos_y(y)
 ' Set vertical position of cursor
     csi()
     dec(y+1)                                    ' 1-base coordinate
-    char("d")
+    putchar("d")
 
 PUB reset()
 ' Reset terminal attributes
     csi()
-    char("m")
+    putchar("m")
 
+PUB scrolldown = scroll_down
 PUB scroll_down(lines=1)
 ' Scroll display down 1 or more lines
     csi()
     dec(lines)
-    char("T")
+    putchar("T")
 
+PUB scrollup = scroll_up
 PUB scroll_up(lines=1)
 ' Scroll display up 1 or more lines
     csi()
     dec(lines)
-    char("S")
+    putchar("S")
 
+PUB semigfx = semi_gfx_ena
 PUB semi_gfx_ena(enabled=1)
 ' Enable semi-graphics (e.g., line-drawing) mode
     case abs(enabled)
@@ -375,17 +393,19 @@ PUB semi_gfx_ena(enabled=1)
         0:
             str(string(ESC, "(", "B"))
 
+PUB showcursor = show_cursor
 PUB show_cursor()
 ' Show cursor
     csi()
-    char("?")
+    putchar("?")
     dec(25)
-    char("h")
+    putchar("h")
 
 PUB strikethru(mode=9)
 ' Set strike-through attribute
     sgr(mode)
 
+PUB textwindow = text_win
 PUB text_win(ptr_titlestr, x, y, w, h, brd_fg, brd_bg, ttl_fg)
 ' Draw a window with title string and border
 '   x, y: upper-left coords of window
@@ -396,7 +416,7 @@ PUB text_win(ptr_titlestr, x, y, w, h, brd_fg, brd_bg, ttl_fg)
     bgcolor(brd_bg)
     fgcolor(ttl_fg)
 
-    position(x+2, y)                        ' display window title
+    pos_xy(x+2, y)                              ' display window title
     str(ptr_titlestr)
 
 PUB underline(mode=4)
@@ -405,14 +425,14 @@ PUB underline(mode=4)
 
 PRI csi()
 ' Command Sequence Introducer
-    char(ESC)
-    char("[")
+    putchar(ESC)
+    putchar("[")
 
 PRI sgr(mode)
 ' Select Graphic Rendition
     csi()
     dec(mode)
-    char("m")
+    putchar("m")
 
 DAT
 {
