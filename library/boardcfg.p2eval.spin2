@@ -7,7 +7,7 @@
         Parallax #64000-ES
     Copyright (c) 2022
     Started Jun 15, 2019
-    Updated Oct 15, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,7 +16,7 @@
 CON
     { --- clock settings --- }
     _xtlfreq    = 20_000_000
-    _clkfreq    = 180_000_000
+    _clkfreq_def= 180_000_000
 
     { --- pin definitions --- }
     { 8x blue LEDs }
