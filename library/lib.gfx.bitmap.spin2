@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2022
     Started May 19, 2019
-    Updated Sep 6, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -37,12 +37,12 @@ VAR
     byte _charcell_xmax, _charcell_ymax
     byte _char_hspace, _char_vspace
 
-PUB BGColor(col): curr_clr
+PUB bgcolor(col): curr_clr
 ' Set background color for subsequent drawing
     return _bgcolor := col
 
 #ifndef GFX_DIRECT
-PUB Bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs
+PUB bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs
 ' Copy a bitmap to the display buffer
 '   ptr_bmap: pointer to bitmap data
 '   (xs, ys): upper-left corner of bitmap
@@ -59,7 +59,7 @@ PUB Bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs
 #endif
 
 #ifndef GFX_DIRECT
-PUB Box(x0, y0, x1, y1, color, filled=FALSE) | x, y
+PUB box(x0, y0, x1, y1, color, filled=FALSE) | x, y
 ' Draw a box
 '   x0, y0: Start coordinates
 '   x1, y1: End coordinates
@@ -101,7 +101,8 @@ PUB Box(x0, y0, x1, y1, color, filled=FALSE) | x, y
 #endif
 
 #ifndef GFX_DIRECT
-PUB Char(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_row, glyph, char_ht, char_wid
+PUB char = putchar
+PUB putchar(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_row, glyph, char_ht, char_wid
 ' Write a character to the display
     last_glyph_col := _font_width-1             ' last column of pixels in font
     last_glyph_row := _font_height-1            '   definition
@@ -158,7 +159,7 @@ PUB charattrs(attrs)
 ' Set character attributes
     _char_attrs := attrs
 
-PUB Circle(x0, y0, radius, color, filled=FALSE) | x, y, err, cdx, cdy, cht
+PUB circle(x0, y0, radius, color, filled=FALSE) | x, y, err, cdx, cdy, cht
 ' Draw a circle
 '   x0, y0: Coordinates
 '   radius: Circle radius
@@ -198,14 +199,14 @@ PUB Circle(x0, y0, radius, color, filled=FALSE) | x, y, err, cdx, cdy, cht
                     plot(x0 + x, y0 + y, color)
 
 #ifndef GFX_DIRECT
-PUB Copy(sx, sy, ex, ey, dx, dy) | x, y, tmp
+PUB copy(sx, sy, ex, ey, dx, dy) | x, y, tmp
 ' Copy rectangular region at (sx, sy, ex, ey) to (dx, dy)
     repeat y from sy to ey
         repeat x from sx to ex
             tmp := point(x, y)
             plot((dx + x)-sx, (dy + y)-sy, tmp)
 
-PUB Cut(sx, sy, ex, ey, dx, dy) | x, y, tmp
+PUB cut(sx, sy, ex, ey, dx, dy) | x, y, tmp
 ' Copy rectangular region at (sx, sy, ex, ey) to (dx, dy)
 '   Subsequently clears original region (sx, sy, ex, ey) to background color
     repeat y from sy to ey
@@ -215,11 +216,11 @@ PUB Cut(sx, sy, ex, ey, dx, dy) | x, y, tmp
             plot(x, y, _bgcolor)                            ' Cut the original region
 #endif
 
-PUB FGColor(col): curr_clr
+PUB fgcolor(col): curr_clr
 ' Set foreground color of subsequent drawing operations
     return _fgcolor := col
 
-PUB FontAddress(addr): curr_addr
+PUB fontaddress(addr): curr_addr
 ' Set address of font definition
     case addr
         $0004..$7FFFF:
@@ -227,11 +228,11 @@ PUB FontAddress(addr): curr_addr
         OTHER:
             return _font_addr
 
-PUB FontHeight(): curr_ht
+PUB fontheight(): curr_ht
 ' Return the set font height
     return _font_height
 
-PUB FontScale(fntscale): curr_scl
+PUB fontscale(fntscale): curr_scl
 ' Set font rendering scale factor
 '   Valid values: 1..8
 '   Any other value returns the current scale
@@ -241,7 +242,7 @@ PUB FontScale(fntscale): curr_scl
         other:
             return _fnt_scl
 
-PUB FontSize(width, height)
+PUB fontsize(width, height)
 ' Set expected dimensions of font glyphs, in pixels
 '   NOTE: This doesn't have to be the same as the size of the font glyphs.
 '       e.g., if you have a 5x8 font, you may want to set the width to 6 or 8.
@@ -255,17 +256,17 @@ PUB FontSize(width, height)
     _charcell_xmax := (_disp_width / _charcell_w)
     _charcell_ymax := (_disp_height / _charcell_h)
 
-PUB FontSpacing(h, v)
+PUB fontspacing(h, v)
 ' Set spacing between character cells (horizontally, vertically)
     _char_hspace := h
     _char_vspace := v
 
-PUB FontWidth(): curr_wid
+PUB fontwidth(): curr_wid
 ' Return the set font width
     return _font_width
 
 #ifndef GFX_DIRECT
-PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
+PUB line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 ' Draw line from x1, y1 to x2, y2, in color c
     if (x1 == x2) or (y1 == y2)
         if (x1 == x2)                           ' draw vertical line
@@ -300,25 +301,25 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
                 y1 += sy
 #endif
 
-PUB Position(x, y)
+PUB position(x, y)
 ' Set text draw position, in character-cell col and row
     x := 0 #> x <# _charcell_xmax               ' clamp to min/max coordinates
     y := 0 #> y <# _charcell_ymax
     _charpx_x := (x * _charcell_w) * _fnt_scl   ' calc pixel position:
     _charpx_y := (y * _charcell_h) * _fnt_scl   ' char cell coords * font dims
 
-PUB R5G6B5_RGB565(r, g, b): rgb565
+PUB r5g6b5_rgb565(r, g, b): rgb565
 ' Return 16-bit color in RGB565 format, given red (5), green (6), blue (5) components
     return ((r << 11) | (g << 5) | b)
 
-PUB RGBW8888_RGB32(r, g, b, w): rgb32
+PUB rgbW8888_RGB32(r, g, b, w): rgb32
 ' Return 32-bit long from discrete Red, Green, Blue, White color components (values 0..255)
     rgb32.byte[3] := r
     rgb32.byte[2] := g
     rgb32.byte[1] := b
     rgb32.byte[0] := w
 
-PUB RGBW8888_RGB32_Brightness(r, g, b, w, level): rgb32
+PUB rgbw8888_rgb32_brightness(r, g, b, w, level): rgb32
 ' Return 32-bit long from discrete Red, Green, Blue, White color components
 '   and clamp all color channels to maximum level or brightness
 '   Valid values:
@@ -335,32 +336,32 @@ PUB RGBW8888_RGB32_Brightness(r, g, b, w, level): rgb32
         w := w * level / 255
         return RGBW8888_RGB32(r, g, b, w)
 
-PUB RGB565_R5(rgb565): r5
+PUB rgb565_r5(rgb565): r5
 ' Isolate 5-bit red component of 16-bit RGB565 color
     return ((rgb565 & $F800) >> 11)
 
-PUB RGB565_G5(rgb565): g5
+PUB rgb565_g5(rgb565): g5
 ' Isolate 6-bit green component of 16-bit RGB565 color
     return ((rgb565 & $07E0) >> 5)
 
-PUB RGB565_B5(rgb565): b5
+PUB rgb565_b5(rgb565): b5
 ' Isolate 5-bit blue component of 16-bit RGB565 color
     return (rgb565 & $001F)
 
-PUB RGB565_R8(rgb565): r8
+PUB rgb565_r8(rgb565): r8
 ' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
     return (((rgb565 & $F800) >> 11) * 527 + 23 ) >> 6
 
-PUB RGB565_G8(rgb565): g8
+PUB rgb565_g8(rgb565): g8
 ' Isolate green component of 16-bit RGB565 color and return value scaled to 8-bit range
     return (((rgb565 & $7E0) >> 5)  * 259 + 33 ) >> 6
 
-PUB RGB565_B8(rgb565): b8
+PUB rgb565_b8(rgb565): b8
 ' Isolate blue component of 16-bit RGB565 color and return value scaled to 8-bit range
     return ((rgb565 & $1F) * 527 + 23 ) >> 6
 
 #ifndef GFX_DIRECT
-PUB Scale(sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
+PUB scale(sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
 ' Scale a region of the display up by size
     repeat y from sy to ey
         repeat x from sx to ex
@@ -371,7 +372,7 @@ PUB Scale(sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
 #endif
 
 #ifndef GFX_DIRECT
-PUB ScrollDown(sx, sy, ex, ey) | scr_width, src, dest, x, y
+PUB scrolldown(sx, sy, ex, ey) | scr_width, src, dest, x, y
 ' Scroll a region of the display down by 1 pixel
     scr_width := ex-sx
     repeat y from ey-1 to sy
@@ -385,7 +386,7 @@ PUB ScrollDown(sx, sy, ex, ey) | scr_width, src, dest, x, y
         MEMMV_NATIVE(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #endif
 
-PUB ScrollLeft(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
+PUB scrollleft(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
 ' Scroll a region of the display left by 1 pixel
     scr_width := ex-sx
     repeat y from sy to ey
@@ -398,7 +399,7 @@ PUB ScrollLeft(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
         MEMMV_NATIVE(_ptr_drawbuffer+dest, _ptr_drawbuffer+src, scr_width)
 #endif
 
-PUB ScrollRight(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
+PUB scrollright(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
 ' Scroll a region of the display right by 1 pixel
     scr_width := ex-sx
     repeat y from sy to ey
@@ -411,7 +412,7 @@ PUB ScrollRight(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
         MEMMV_NATIVE(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #endif
 
-PUB ScrollUp(sx, sy, ex, ey) | scr_width, src, dest, x, y
+PUB scrollup(sx, sy, ex, ey) | scr_width, src, dest, x, y
 ' Scroll a region of the display up by 1 pixel
     scr_width := ex-sx
     repeat y from sy+1 to ey
@@ -424,32 +425,31 @@ PUB ScrollUp(sx, sy, ex, ey) | scr_width, src, dest, x, y
 #endif
 #endif
 
-PUB TextCols(): cols
+PUB textcols(): cols
 ' Returns number of displayable text columns, based on set display width, font width, and scale
     return (_disp_width / _charcell_w) / _fnt_scl
 
-PUB TextRows(): rows
+PUB textrows(): rows
 ' Returns number of displayable text rows, based on set display height, font height, and scale
     return (_disp_height / _charcell_h) / _fnt_scl
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+
