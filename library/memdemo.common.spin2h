@@ -5,7 +5,7 @@
     Description: Routines common to all memory drivers (P2 version)
     Copyright (c) 2022
     Started Jul 30, 2022
-    Updated Oct 12, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -63,12 +63,12 @@ PUB demo() | base_page, offs
             "s":                                ' go to the first page
                 base_page := 0
             "w":                                ' fill page w/test value
-                cycletime(writetest(offs))
+                cycle_time(write_test(offs))
             "x":                                ' erase the current page
-                cycletime(erasetest(offs))
+                cycle_time(erase_test(offs))
             other:
         offs := pg2byte_offs(base_page)
-        cycletime(readtest(offs))
+        cycle_time(read_test(offs))
 
 PUB erase_test(st_addr): etime | stime
 ' Erase memory page
