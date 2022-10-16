@@ -35,7 +35,7 @@ CON
 OBJ
 
     cfg:    "boardcfg.p2eval"
-    sensr:  "sensor.light.vcnl4200"
+    sensor:  "sensor.light.vcnl4200"
     ser:    "com.serial.terminal.ansi"
 
 PUB Setup()
@@ -45,13 +45,13 @@ PUB Setup()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    if (sensr.startx(SCL_PIN, SDA_PIN, I2C_FREQ))
+    if (sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ))
         ser.strln(@"VCNL4200 driver started")
     else
         ser.strln(@"VCNL4200 driver failed to start - halting")
         repeat
 
-    sensr.preset_als_prox()
+    sensor.preset_als_prox()
     demo()
 
 #include "luxdemo.common.spin2h"                ' code common to all lux demos

@@ -32,7 +32,7 @@ CON
 OBJ
 
     cfg:    "boardcfg.p2eval"
-    sensr:  "sensor.thermocouple.max31856"
+    sensor:  "sensor.thermocouple.max31856"
     ser:    "com.serial.terminal.ansi"
 
 PUB Setup()
@@ -42,20 +42,20 @@ PUB Setup()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    if (sensr.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN))
+    if (sensor.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN))
         ser.strln(@"MAX31856 driver started")
     else
         ser.strln(@"MAX31856 driver failed to start - halting")
         repeat
 
-    sensr.tempscale(sensr#C)                    ' C, F, K
-    sensr.tc_type(sensr#TYPE_K)
+    sensor.tempscale(sensor#C)                    ' C, F, K
+    sensor.tc_type(sensor#TYPE_K)
     ' TYPE_B (0), TYPE_E (1), TYPE_J (2), TYPE_K (3)
     ' TYPE_N (4), TYPE_R (5), TYPE_S (6), TYPE_T (7)
 
-    sensr.cj_bias(0)                            ' -8_0000..7_9375 (= x.xxxx C)
-    sensr.notchfilter(60)                       ' 50, 60 (Hz)
-    sensr.opmode(sensr.CONT)
+    sensor.cj_bias(0)                            ' -8_0000..7_9375 (= x.xxxx C)
+    sensor.notchfilter(60)                       ' 50, 60 (Hz)
+    sensor.opmode(sensor.CONT)
     demo()
 
 #include "tempdemo.common.spin2h"               ' code common to all temp demos

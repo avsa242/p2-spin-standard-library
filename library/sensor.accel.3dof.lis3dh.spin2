@@ -71,7 +71,7 @@ OBJ
 
 { SPI? }
 #ifdef LIS3DH_SPI
-    spi : "com.spi.bitbang"                     ' bitbanged SPI engine
+    spi : "com.spi.10mhz"                     ' bitbanged SPI engine
 #else
 { no, not SPI - default to I2C }
 #define LIS3DH_I2C

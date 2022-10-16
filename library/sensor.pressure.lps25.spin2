@@ -49,7 +49,7 @@ OBJ
 
 { SPI? }
 #ifdef LPS25_SPI
-    spi : "com.spi.bitbang"                     ' bitbanged SPI engine
+    spi : "com.spi.10mhz"                     ' bitbanged SPI engine
 #else
 { no, not SPI - default to I2C }
 #define LPS25_I2C

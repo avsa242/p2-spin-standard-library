@@ -60,7 +60,7 @@ VAR
 OBJ
 
     core    : "core.con.max31856"               ' HW-specific constants
-    spi     : "com.spi.bitbang"                 ' SPI engine (~10MHz)
+    spi     : "com.spi.10mhz"                 ' SPI engine (~10MHz)
 
 PUB Null()
 ' This is not a top-level object

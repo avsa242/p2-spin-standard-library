@@ -75,7 +75,7 @@ OBJ
 
 { SPI? }
 #ifdef L3G4200D_SPI
-    spi : "com.spi.bitbang"                     ' SPI engine
+    spi : "com.spi.10mhz"                     ' SPI engine
 #else
 { no, not SPI - default to I2C }
 #define L3G4200D_I2C

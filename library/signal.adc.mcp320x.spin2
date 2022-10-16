@@ -20,7 +20,7 @@ VAR
 
 OBJ
 
-    spi : "com.spi.bitbang"
+    spi : "com.spi.10mhz"
     core: "core.con.mcp320x"
     u64 : "math.unsigned64"
 

@@ -30,7 +30,7 @@ CON
 OBJ
 
     cfg:    "boardcfg.p2eval"
-    sensr:  "sensor.temp_rh.htu21d"
+    sensor:  "sensor.temp_rh.htu21d"
     ser:    "com.serial.terminal.ansi"
 
 PUB Setup()
@@ -40,13 +40,13 @@ PUB Setup()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    if (sensr.startx(SCL_PIN, SDA_PIN, I2C_FREQ))
+    if (sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ))
         ser.strln(@"HTU21D driver started")
     else
         ser.strln(@"HTU21D driver failed to start - halting")
         repeat
 
-    sensr.tempscale(sensr.C)
+    sensor.tempscale(sensor.C)
     demo()
 
 #include "temp_rhdemo.common.spin2h"             ' code common to all temp/RH demos

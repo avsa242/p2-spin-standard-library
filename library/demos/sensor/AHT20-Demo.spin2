@@ -30,7 +30,7 @@ CON
 OBJ
 
     cfg:    "boardcfg.p2eval"
-    sensr:  "sensor.temp_rh.aht20"
+    sensor:  "sensor.temp_rh.aht20"
     ser:    "com.serial.terminal.ansi"
 
 PUB Setup()
@@ -40,14 +40,14 @@ PUB Setup()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    if (sensr.startx(SCL_PIN, SDA_PIN, I2C_FREQ))
+    if (sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ))
         ser.strln(@"AHT20 driver started")
     else
         ser.strln(@"AHT20 driver failed to start - halting")
         repeat
 
-    sensr.reset()
-    sensr.tempscale(C)
+    sensor.reset()
+    sensor.tempscale(C)
     demo()
 
 #include "temp_rhdemo.common.spin2h"            ' code common to all temp/RH demos

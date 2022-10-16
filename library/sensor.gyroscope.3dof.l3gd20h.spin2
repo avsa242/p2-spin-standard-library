@@ -76,7 +76,7 @@ OBJ
 { SPI? }
 #ifdef L3GD20H_SPI
 { decide: Bytecode SPI engine, or PASM? Default is PASM if BC isn't specified }
-    spi : "com.spi.bitbang"                     ' bit-banged SPI engine
+    spi : "com.spi.10mhz"                     ' bit-banged SPI engine
 #else
 { no, not SPI - default to I2C }
 #define L3GD20H_I2C

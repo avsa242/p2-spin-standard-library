@@ -22,7 +22,7 @@ VAR
 OBJ
 
 ' choose an SPI engine below
-'    spi : "com.spi.bitbang"                     ' bit-banged SPI engine (~6.5MHz)
+'    spi : "com.spi.10mhz"                     ' bit-banged SPI engine (~6.5MHz)
 '    spi : "com.spi.25mhz"                             ' smart-pin SPI engine (25MHz+)
     core: "core.con.your_spi_device_here"       ' hw-specific low-level const's
 

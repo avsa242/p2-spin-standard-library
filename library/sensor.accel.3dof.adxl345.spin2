@@ -87,7 +87,7 @@ OBJ
 
 { SPI? }
 #ifdef ADXL345_SPI
-    spi : "com.spi.bitbang"                     ' bit-banged SPI engine
+    spi : "com.spi.10mhz"                     ' bit-banged SPI engine
 #else
 { no, not SPI - default to I2C }
 #define ADXL345_I2C

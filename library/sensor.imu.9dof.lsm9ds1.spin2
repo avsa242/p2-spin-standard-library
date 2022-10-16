@@ -122,7 +122,7 @@ OBJ
 
 { SPI? }
 #ifdef LSM9DS1_SPI
-    spi : "com.spi.bitbang"                     ' bitbanged SPI engine
+    spi : "com.spi.10mhz"                     ' bitbanged SPI engine
 #else
 { no, not SPI - default to I2C }
 #define LSM9DS1_I2C

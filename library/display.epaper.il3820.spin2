@@ -34,7 +34,7 @@ VAR
 
 OBJ
 
-    spi : "com.spi.bitbang-fast"
+    spi : "com.spi.10mhz-fast"
     core: "core.con.il3820"
 
 PUB Null()
