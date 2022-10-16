@@ -1,6 +1,6 @@
 {
     --------------------------------------------
-    Filename: com.spi.bitbang.spin2
+    Filename: com.spi.10mhz.spin2
     Description: SPI engine (bit-banged) for the Propeller 2
     Author: Jesse Burt
     Created: Nov 9, 2019

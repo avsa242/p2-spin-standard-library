@@ -5,7 +5,7 @@
     Description: Low-level UART serial driver
     Copyright (c) 2022
     Started Jun 28, 2019
-    Updated Oct 15, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -74,6 +74,7 @@ PUB getchar(): ch
         ch := rx_check()
     while (ch == -1)
 
+PUB rxcheck = rx_check
 PUB rx_check(): rxbyte
 ' Check if byte received (non-blocking)
 '   Returns:
