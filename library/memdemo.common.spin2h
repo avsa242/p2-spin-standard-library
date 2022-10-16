@@ -76,7 +76,7 @@ PUB erase_test(st_addr): etime | stime
 
 #ifdef IS_FLASH
     mem.global_lock(false)
-    mem.writes_enabled(true)
+    mem.writes_ena(true)
     stime := cnt
     mem.erase(st_addr, mem.SECTOR)
     repeat while mem.busy()
@@ -108,7 +108,7 @@ PUB write_test(st_addr): etime | stime, tval
 
 #ifdef IS_FLASH
     mem.global_lock(false)
-    mem.writes_enabled(true)
+    mem.writes_ena(true)
 #endif
     { fill page with test character }
     stime := cnt
