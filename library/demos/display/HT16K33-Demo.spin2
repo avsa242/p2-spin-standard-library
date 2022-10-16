@@ -394,7 +394,7 @@ PUB Setup()
         ser.strln(string("HT16K33 driver started"))
         disp.defaults()
         disp.fontsize(6, 8)
-        disp.fontaddress(fnt.baseaddr())
+        disp.fontaddress(fnt.ptr())
         disp.charattrs(disp.DRAWBG)
     else
         ser.str(string("HT16K33 driver failed to start - halting"))

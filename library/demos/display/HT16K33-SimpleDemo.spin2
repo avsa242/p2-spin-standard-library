@@ -48,7 +48,7 @@ PUB Main() | i
     setup()
     matrix.defaults()
     matrix.fontsize(6, 8)
-    matrix.fontaddress(fnt.baseaddr())
+    matrix.fontaddress(fnt.ptr())
 
     matrix.fgcolor(1)                           ' fg/bg color of following text
     matrix.bgcolor(0)                           '   (colors: -1, 0, 1)

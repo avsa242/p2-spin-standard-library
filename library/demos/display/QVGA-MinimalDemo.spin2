@@ -52,7 +52,7 @@ PUB Main()
     disp.fontspacing(1, 1)
     disp.fontscale(1)
     disp.fontsize(fnt.WIDTH, fnt.HEIGHT)
-    disp.fontaddress(fnt.baseaddr())
+    disp.fontaddress(fnt.ptr())
     disp.clear()
 
     { draw some text }

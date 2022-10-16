@@ -53,7 +53,7 @@ PUB Main()
         epaper.fontspacing(1, 0)
         epaper.fontsize(fnt.WIDTH, fnt.HEIGHT)
         epaper.fontscale(1)
-        epaper.fontaddress(fnt.baseaddr())
+        epaper.fontaddress(fnt.ptr())
     else
         ser.printf(@"%s driver failed to start - halting", @_drv_name)
         repeat
