@@ -101,6 +101,7 @@ PUB box(x0, y0, x1, y1, color, filled=FALSE) | x, y
 #endif
 
 #ifndef GFX_DIRECT
+PUB tx = putchar
 PUB char = putchar
 PUB putchar(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_row, glyph, char_ht, char_wid
 ' Write a character to the display
@@ -155,7 +156,8 @@ PUB putchar(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_gly
                     scrollup(0, 0, _disp_xmax, _disp_ymax)
 #endif
 
-PUB charattrs(attrs)
+PUB charattrs = char_attrs
+PUB char_attrs(attrs)
 ' Set character attributes
     _char_attrs := attrs
 
@@ -220,7 +222,8 @@ PUB fgcolor(col): curr_clr
 ' Set foreground color of subsequent drawing operations
     return _fgcolor := col
 
-PUB fontaddress(addr): curr_addr
+PUB fontaddress = font_addr
+PUB font_addr(addr): curr_addr
 ' Set address of font definition
     case addr
         $0004..$7FFFF:
@@ -228,11 +231,13 @@ PUB fontaddress(addr): curr_addr
         OTHER:
             return _font_addr
 
-PUB fontheight(): curr_ht
+PUB fontheight = font_height
+PUB font_height(): curr_ht
 ' Return the set font height
     return _font_height
 
-PUB fontscale(fntscale): curr_scl
+PUB fontscale = font_scl
+PUB font_scl(fntscale): curr_scl
 ' Set font rendering scale factor
 '   Valid values: 1..8
 '   Any other value returns the current scale
@@ -242,7 +247,8 @@ PUB fontscale(fntscale): curr_scl
         other:
             return _fnt_scl
 
-PUB fontsize(width, height)
+PUB fontsize = font_sz
+PUB font_sz(width, height)
 ' Set expected dimensions of font glyphs, in pixels
 '   NOTE: This doesn't have to be the same as the size of the font glyphs.
 '       e.g., if you have a 5x8 font, you may want to set the width to 6 or 8.
@@ -256,12 +262,14 @@ PUB fontsize(width, height)
     _charcell_xmax := (_disp_width / _charcell_w)
     _charcell_ymax := (_disp_height / _charcell_h)
 
-PUB fontspacing(h, v)
+PUB fontspacing = font_spacing
+PUB font_spacing(h, v)
 ' Set spacing between character cells (horizontally, vertically)
     _char_hspace := h
     _char_vspace := v
 
-PUB fontwidth(): curr_wid
+PUB fontwidth = font_width
+PUB font_width(): curr_wid
 ' Return the set font width
     return _font_width
 
@@ -301,7 +309,8 @@ PUB line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
                 y1 += sy
 #endif
 
-PUB position(x, y)
+PUB position = pos_xy
+PUB pos_xy(x, y)
 ' Set text draw position, in character-cell col and row
     x := 0 #> x <# _charcell_xmax               ' clamp to min/max coordinates
     y := 0 #> y <# _charcell_ymax
@@ -372,7 +381,8 @@ PUB scale(sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
 #endif
 
 #ifndef GFX_DIRECT
-PUB scrolldown(sx, sy, ex, ey) | scr_width, src, dest, x, y
+PUB scrolldown = scroll_down
+PUB scroll_down(sx, sy, ex, ey) | scr_width, src, dest, x, y
 ' Scroll a region of the display down by 1 pixel
     scr_width := ex-sx
     repeat y from ey-1 to sy
@@ -386,7 +396,8 @@ PUB scrolldown(sx, sy, ex, ey) | scr_width, src, dest, x, y
         MEMMV_NATIVE(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #endif
 
-PUB scrollleft(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
+PUB scrollleft = scroll_left
+PUB scroll_left(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
 ' Scroll a region of the display left by 1 pixel
     scr_width := ex-sx
     repeat y from sy to ey
@@ -399,7 +410,8 @@ PUB scrollleft(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
         MEMMV_NATIVE(_ptr_drawbuffer+dest, _ptr_drawbuffer+src, scr_width)
 #endif
 
-PUB scrollright(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
+PUB scrollright = scroll_right
+PUB scroll_right(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
 ' Scroll a region of the display right by 1 pixel
     scr_width := ex-sx
     repeat y from sy to ey
@@ -412,7 +424,8 @@ PUB scrollright(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
         MEMMV_NATIVE(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #endif
 
-PUB scrollup(sx, sy, ex, ey) | scr_width, src, dest, x, y
+PUB scrollup = scroll_up
+PUB scroll_up(sx, sy, ex, ey) | scr_width, src, dest, x, y
 ' Scroll a region of the display up by 1 pixel
     scr_width := ex-sx
     repeat y from sy+1 to ey
@@ -425,11 +438,13 @@ PUB scrollup(sx, sy, ex, ey) | scr_width, src, dest, x, y
 #endif
 #endif
 
-PUB textcols(): cols
+PUB textcols = text_cols
+PUB text_cols(): cols
 ' Returns number of displayable text columns, based on set display width, font width, and scale
     return (_disp_width / _charcell_w) / _fnt_scl
 
-PUB textrows(): rows
+PUB textrows = text_rows
+PUB text_rows(): rows
 ' Returns number of displayable text rows, based on set display height, font height, and scale
     return (_disp_height / _charcell_h) / _fnt_scl
 
