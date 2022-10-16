@@ -105,7 +105,7 @@ OBJ
 
 { SPI? }
 #ifdef LSM6DSL_SPI
-    spi : "com.spi"                             ' PASM SPI engine
+    spi : "com.spi.25mhz"                             ' PASM SPI engine
 #else
 { no, not SPI - default to I2C }
 #define LSM6DSL_I2C

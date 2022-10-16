@@ -114,7 +114,7 @@ VAR
 
 OBJ
 
-    spi : "com.spi"
+    spi : "com.spi.25mhz"
     core: "core.con.bt81x"
 
 VAR

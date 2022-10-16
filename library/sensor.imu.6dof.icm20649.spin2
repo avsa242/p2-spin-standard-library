@@ -82,7 +82,7 @@ VAR
 OBJ
 { SPI? }
 #ifdef ICM20649_SPI
-    spi : "com.spi"                             ' SPI engine
+    spi : "com.spi.25mhz"                             ' SPI engine
 #else
 #define ICM20649_I2C
 { no, not SPI - default to I2C }

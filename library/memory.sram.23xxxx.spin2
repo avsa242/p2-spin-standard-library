@@ -27,7 +27,7 @@ VAR
 
 OBJ
 
-    spi : "com.spi"                             ' smart-pin SPI engine
+    spi : "com.spi.25mhz"                             ' smart-pin SPI engine
     core: "core.con.23xxxx"                     ' hw-specific constants
 
 PUB null()

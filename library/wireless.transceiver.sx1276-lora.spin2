@@ -90,7 +90,7 @@ VAR
 
 OBJ
 
-    spi : "com.spi"
+    spi : "com.spi.25mhz"
     core: "core.con.sx1276"
     u64 : "math.unsigned64"
 

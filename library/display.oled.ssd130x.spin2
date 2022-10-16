@@ -42,7 +42,7 @@ OBJ
 #ifdef SSD130X_I2C
     i2c : "com.i2c"                             ' I2C engine (~1MHz)
 #elseifdef SSD130X_SPI
-    spi : "com.spi"                             ' SPI engine (up to ~16MHz)
+    spi : "com.spi.25mhz"                             ' SPI engine (up to ~16MHz)
 #endif
 
 VAR

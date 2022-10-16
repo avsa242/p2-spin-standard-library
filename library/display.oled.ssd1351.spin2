@@ -52,7 +52,7 @@ CON
 OBJ
 
     core    : "core.con.ssd1351"                ' HW-specific constants
-    spi     : "com.spi"                         ' Smart-pin SPI engine (20MHz+)
+    spi     : "com.spi.25mhz"                         ' Smart-pin SPI engine (20MHz+)
 
 VAR
 
