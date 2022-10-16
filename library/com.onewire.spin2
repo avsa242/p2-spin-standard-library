@@ -4,7 +4,7 @@
     Description: OneWire Bus engine
     Author: Jesse Burt
     Created May 31, 2020
-    Updated Oct 15, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -42,7 +42,7 @@ PUB init(OW_PIN): status
     if (lookdown(OW_PIN: 0..63))
         _DQ := OW_PIN
         pinf(_DQ)
-        return (getcog + 1)
+        return (cogid() + 1)
     else
         return FALSE
 
@@ -143,26 +143,26 @@ PUB search(flags, max_addrs, ptr_addr): nr_found | bit, rom[2], disc, discmark, 
                     %00:                        ' conflict
                         if (bit == disc)
                         ' We tried a zero here last time, try a one now
-                            setbit64(@rom, bit, 1)
+                            set_bit64(@rom, bit, 1)
                         elseif (bit > disc)
-                            setbit64(@rom, bit, 0)
+                            set_bit64(@rom, bit, 0)
                             discmark := bit
-                        elseif (getbit64(@rom, bit) == 0)
+                        elseif (get_bit64(@rom, bit) == 0)
                             discmark := bit
                     %01:                        ' all devices read 1
-                        setbit64(@rom, bit, 1)
+                        set_bit64(@rom, bit, 1)
                     %10:                        ' all devices read 0
-                        setbit64(@rom, bit, 0)
+                        set_bit64(@rom, bit, 0)
                     %11:                        ' no response
                         return
             else
             ' Bit is locked. Ignore the device.
                 rd_bits(2)
             ' Reply, selecting only devices that match this bit.
-            wr_bits(getbit64(@rom, bit), 1)
+            wr_bits(get_bit64(@rom, bit), 1)
         ' At the end of every iteration, we've discovered one device's address.
         if (flags & CHECK_CRC)                  ' check CRC?
-            if (crc.dallasmaximcrc8(@rom, 8) == GOOD)
+            if (crc.dallas_maxim_crc8(@rom, 8) == GOOD)
                 longmove(ptr_addr, @rom, 2)
                 ptr_addr += 8
                 nr_found++
