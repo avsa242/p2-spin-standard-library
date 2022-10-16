@@ -6,7 +6,7 @@
         * Object temp data output
     Copyright (c) 2022
     Started Mar 17, 2019
-    Updated Jul 20, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -33,7 +33,7 @@ OBJ
     sensor:  "sensor.temperature.mlx90614"
     ser:    "com.serial.terminal.ansi"
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(10)
@@ -46,7 +46,7 @@ PUB Setup()
         ser.strln(@"MLX90614 driver failed to start - halting")
         repeat
 
-    sensor.tempscale(sensor.C)
+    sensor.temp_scale(sensor.C)
     demo()
 
 #include "tempdemo.common.spin2h"               ' code common to all temp/RH demos

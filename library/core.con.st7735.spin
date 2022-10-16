@@ -5,7 +5,7 @@
     Description: ST7735-specific constants
     Copyright (c) 2022
     Started Mar 07, 2020
-    Updated Sep 5, 2022
+    Updated Oct 8, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -120,6 +120,7 @@ CON
 '-- cmd byte 3
         MODE        = 6
         MODE_BITS   = %11
+        MODE_RSVD   = %100                      ' reserved bit
 
     PWCTR2          = $C1
     PWCTR2_MASK     = $CF

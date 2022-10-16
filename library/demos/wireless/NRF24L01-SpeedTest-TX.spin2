@@ -6,7 +6,7 @@
         TX Mode (P2 version)
     Copyright (c) 2022
     Started Apr 30, 2020
-    Updated Jul 3, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -44,25 +44,25 @@ VAR
     byte _txdata[PKTLEN]
     byte _addr[5]
 
-PUB Main() | i
+PUB main() | i
 
     setup()
 
     bytemove(@_addr, string($E7, $E7, $E7, $E7, $E7), 5)
-    nrf24.nodeaddress(@_addr)                   ' set transmitter address
+    nrf24.node_addr(@_addr)                     ' set transmitter address
 
     nrf24.channel(CHANNEL)
-    nrf24.txmode()
+    nrf24.tx_mode()
     nrf24.powered(true)
-    nrf24.payloadlen(PKTLEN, 0)                 ' set pipe 0 to 32 bytes width
+    nrf24.payld_len(PKTLEN, 0)                  ' set pipe 0 to 32 bytes width
 
 ' Experiment with these to observe effect on throughput
 '   NOTE: The receiver's settings _must_ match these (except txpower())
-    nrf24.datarate(2_000_000)                   ' 250_000, 1_000_000, 2_000_000
-    nrf24.txpower(0)                            ' -18, -12, -6, 0 (dBm)
-    nrf24.crccheckenabled(true)
-    nrf24.crclength(1)                          ' 1, 2 bytes
-    nrf24.autoackenabledpipes(%000011)          ' pipe mask [5..0]
+    nrf24.data_rate(2_000_000)                  ' 250_000, 1_000_000, 2_000_000
+    nrf24.tx_pwr(0)                             ' -18, -12, -6, 0 (dBm)
+    nrf24.crc_check_ena(true)
+    nrf24.crc_len(1)                            ' 1, 2 bytes
+    nrf24.auto_ack_pipes_ena(%000011)           ' pipe mask [5..0]
 
     repeat i from 0 to PKTLEN-1                 ' fill transmit buffer with
         _txdata.byte[i] := 32+i                 ' ASCII 32..32+(PKTLEN-1)
@@ -75,17 +75,17 @@ PUB Main() | i
         ser.hex(_addr[i], 2)                    ' transmitted to
     ser.newline()
 
-    nrf24.flushtx()
-    if nrf24.autoackenabledpipes()              ' decide which loop to run
+    nrf24.flush_tx()
+    if (nrf24.auto_ack_pipes_ena())             ' decide which loop to run
         repeat                                  ' based on whether auto-ack
-            if nrf24.maxretransreached()        ' is enabled...
-                nrf24.intclear(%001)
-            nrf24.txpayload(PKTLEN, @_txdata)
+            if (nrf24.max_retrans_reached())    ' is enabled...
+                nrf24.int_clr(%001)
+            nrf24.tx_payld(PKTLEN, @_txdata)
     else                                        ' ...or not
         repeat
-            nrf24.txpayload(PKTLEN, @_txdata)
+            nrf24.tx_payld(PKTLEN, @_txdata)
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(30)
@@ -98,23 +98,23 @@ PUB Setup()
         ser.strln(@"NRF24L01+ driver failed to start - halting")
         repeat
 
+DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+

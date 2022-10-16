@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Jun 22, 2021
-    Updated: Aug 16, 2022
+    Updated: Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -39,26 +39,26 @@ OBJ
     disp: "display.led-seg.ht16k33"
     fs  : "string.float"
     
-PUB Main() | i, b
+PUB main() | i, b
 
     setup()
 
-    disp.blinkrate(2)
-    demomsg(string("DEMO"))
+    disp.blink_rate(2)
+    demo_msg(string("DEMO"))
     waitms(2_000)
-    disp.blinkrate(0)
+    disp.blink_rate(0)
     waitms(1_000)
 
-    demomsg(string("CHAR"))
+    demo_msg(string("CHAR"))
 
     repeat i from 32 to 126
-        disp.position(0, 0)
+        disp.pos(0, 0)
         disp.char(i)
         waitms(100)
     waitms(2_000)
 
 
-    demomsg(string("STR"))
+    demo_msg(string("STR"))
 
     disp.str(string("This"))
     waitms(1_000)
@@ -76,30 +76,30 @@ PUB Main() | i, b
     waitms(2_000)
 
 
-    demomsg(string("HEX"))
+    demo_msg(string("HEX"))
 
     repeat i from 0 to $1ff
-        disp.position(0, 0)
+        disp.pos(0, 0)
         disp.hex(i, 4)
     waitms(2_000)
 
-    demomsg(string("BIN"))
+    demo_msg(string("BIN"))
 
     repeat i from 0 to %1111
-        disp.position(0, 0)
+        disp.pos(0, 0)
         disp.printf(@"%04.4b", i)
         waitms(200)
     waitms(2_000)
 
-    demomsg(string("DEC"))
+    demo_msg(string("DEC"))
 
     repeat i from 0 to 1000
-        disp.position(0, 0)
+        disp.pos(0, 0)
         disp.printf(@"%4.4d", i)
     waitms(2_000)
 
 { ' XXX disabled, for now - floating point support isn't currently functional
-    demomsg(string("FLT"))
+    demo_msg(string("FLT"))
 
     disp.str(fs.floattostring(3.141))
     waitms(1_000)
@@ -111,20 +111,20 @@ PUB Main() | i, b
     waitms(2_000)
 }
 
-    demomsg(string("TYPE"))
+    demo_msg(string("TYPE"))
 
     repeat
-        b := ser.charin
+        b := ser.charin()
         disp.char(b)
 
-PRI DemoMsg(ptr_str)
+PRI demo_msg(ptr_str)
 ' Clear the display, show a message, wait 2 seconds, then clear again
     disp.clear()
     disp.str(ptr_str)
     waitms(2_000)
     disp.clear
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(30)

@@ -5,7 +5,7 @@
     Description: Driver for Sitronix ST7735-based displays (P2 version)
     Copyright (c) 2022
     Started Mar 7, 2020
-    Updated Sep 6, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -60,7 +60,7 @@ VAR
     byte _CS, _RESET, _DC
     byte _offs_x, _offs_y
 
-'   Shadow registers
+    { Shadow registers }
     byte _colmod, _madctl, _opmode
 
 OBJ
@@ -69,13 +69,13 @@ OBJ
     core: "core.con.st7735"                     ' HW-specific constants
 
 PUB null()
-'This is not a top-level object
+' This is not a top-level object
 
 PUB startx(CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RESET_PIN, SCK_FREQ, WIDTH, HEIGHT, ptr_drawbuff): status
 ' Start using custom I/O settings
-'   NOTE: RES_PIN is optional, but recommended (pin # only validated in Reset())
-    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
-}   lookdown(SDA_PIN: 0..63) and lookdown(DC_PIN: 0..63)
+'   NOTE: RES_PIN is optional, but recommended (pin # only validated in reset())
+    if (lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
+}   lookdown(DC_PIN: 0..63))
         if (status := spi.init(SCK_PIN, SDA_PIN, -1, core.SPI_MODE, SCK_FREQ))
             _RESET := RESET_PIN
             _DC := DC_PIN
@@ -99,8 +99,8 @@ PUB startx(CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RESET_PIN, SCK_FREQ, WIDTH, HEIGHT,
     return FALSE
 
 PUB stop()
-
-    displayvisibility(ALL_OFF)
+' Stop the driver
+    disp_vis_ena(ALL_OFF)
     powered(FALSE)
     spi.deinit()
 
@@ -109,73 +109,70 @@ PUB defaults()
     reset()
     powered(TRUE)
 
-    frameratectrl(1, 44, 45, 0, 0, 0)
-    frameratectrl(1, 44, 45, 0, 0, 0)
-    frameratectrl(1, 44, 45, 1, 44, 45)
+    frame_rate_ctrl(1, 44, 45, 0, 0, 0)
+    frame_rate_ctrl(1, 44, 45, 0, 0, 0)
+    frame_rate_ctrl(1, 44, 45, 1, 44, 45)
 
-    inversionctrl(%011)
+    inversion_ctrl(%011)
 
-    powercontrol1(4_900, 4_600, -4_600, AUTO)
-    powercontrol2(2_400, AVDD_X3, -10_000)
-    powercontrol(NORMAL, MEDLOW, SMALL, 1, 1, 1, 1, 1)
-    powercontrol(PARTIAL, MEDLOW, SMALL, 2, 4, 2, 1, 2)
-    powercontrol(IDLE, MEDLOW, SMALL, 2, 2, 2, 2, 2)
-    comvoltagelevel(-0_525)
+    pwr_ctrl1(4_900, 4_600, -4_600, AUTO)
+    pwr_ctrl2(2_400, AVDD_X3, -10_000)
+    pwr_ctrl(NORMAL, MEDLOW, SMALL, 1, 1, 1, 1, 1)
+    pwr_ctrl(PARTIAL, MEDLOW, SMALL, 2, 4, 2, 1, 2)
+    pwr_ctrl(IDLE, MEDLOW, SMALL, 2, 2, 2, 2, 2)
+    com_voltage(-0_525)
 
-    displayinverted(FALSE)
+    disp_inverted(FALSE)
 
-    mirrorh(FALSE)
-    mirrorv(FALSE)
-    subpixelorder(RGB)
+    mirror_h(FALSE)
+    mirror_v(FALSE)
+    subpix_order(RGB)
 
-    colordepth(16)
-    displayoffset(2, 3)
-    displaybounds(0, 0, 127, 127)
+    color_depth(16)
+    disp_offset(2, 3)
+    disp_area(0, 0, 127, 127)
 
-    gammatablep(@gammatable_pos)
-    gammatablen(@gammatable_neg)
+    gamma_tbl_pos(@gammatable_pos)
+    gamma_tbl_neg(@gammatable_neg)
 
-    partialarea(0, 161)                     ' Can be 0, 159 also, depending on configuration of GM pins
+    disp_part_area(0, 161)                      ' Can be 0, 159 also, depending on GM pins config
     opmode(NORMAL)
-    displayvisibility(NORMAL)
+    disp_vis_ena(NORMAL)
 
 PUB preset_greentab128x128()
 ' Like defaults, but with settings applicable to green-tabbed 128x128 displays
     reset()
     powered(TRUE)
 
-    frameratectrl(1, 44, 45, 0, 0, 0)
-    frameratectrl(1, 44, 45, 0, 0, 0)
-    frameratectrl(1, 44, 45, 1, 44, 45)
+    frame_rate_ctrl(1, 44, 45, 0, 0, 0)
+    frame_rate_ctrl(1, 44, 45, 0, 0, 0)
+    frame_rate_ctrl(1, 44, 45, 1, 44, 45)
 
-    inversionctrl(%011)
+    inversion_ctrl(%011)
 
-    powercontrol1(5_000, 4_600, -4_600, AUTO)
-    powercontrol2(2_400, AVDD_X3, -10_000)
-    powercontrol(NORMAL, MEDLOW, SMALL, 1, 1, 1, 1, 1)
-    powercontrol(PARTIAL, MEDLOW, SMALL, 2, 2, 2, 1, 2)
-    powercontrol(IDLE, MEDLOW, SMALL, 2, 4, 2, 4, 2)
-    comvoltagelevel(-0_525)
+    pwr_ctrl1(5_000, 4_600, -4_600, AUTO)
+    pwr_ctrl2(2_400, AVDD_X3, -10_000)
+    pwr_ctrl(NORMAL, MEDLOW, SMALL, 1, 1, 1, 1, 1)
+    pwr_ctrl(PARTIAL, MEDLOW, SMALL, 2, 2, 2, 1, 2)
+    pwr_ctrl(IDLE, MEDLOW, SMALL, 2, 4, 2, 4, 2)
+    com_voltage(-0_525)
 
-    displayinverted(FALSE)
+    disp_inverted(FALSE)
 
-    mirrorh(TRUE)
-    mirrorv(TRUE)
-    subpixelorder(RGB)
+    mirror_h(TRUE)
+    mirror_v(TRUE)
+    subpix_order(RGB)
 
-    colordepth(16)
-    displayoffset(2, 3)
-    displaybounds(0, 0, _disp_xmax, _disp_ymax)
+    color_depth(16)
+    disp_offset(2, 3)
+    disp_area(0, 0, _disp_xmax, _disp_ymax)
 
-    gammatablep(@gammatable_pos)
-    gammatablen(@gammatable_neg)
+    gamma_tbl_pos(@gammatable_pos)
+    gamma_tbl_neg(@gammatable_neg)
 
-    partialarea(0, _disp_ymax)
+    disp_part_area(0, _disp_ymax)
     opmode(NORMAL)
-    displayvisibility(NORMAL)
-
-PUB contrast(level)
-' Dummy method
+    disp_vis_ena(NORMAL)
 
 PUB address(addr=-2): curr_addr
 ' Set framebuffer/display buffer address
@@ -192,14 +189,14 @@ PUB bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs, nr_pix
 '   (xs, ys): upper-left corner of bitmap
 '   bm_wid: width of bitmap, in pixels
 '   bm_lns: number of lines in bitmap
-    displaybounds(xs, ys, xs+(bm_wid-1), ys+(bm_lns-1))
+    disp_area(xs, ys, xs + (bm_wid - 1), ys + (bm_lns - 1))
     pinl(_CS)
     pinw(_DC, core.CMD)
     spi.wr_byte(core.RAMWR)
 
     ' calc total number of pixels to write, based on dims and color depth
     ' clamp to a minimum of 1 to avoid odd behavior
-    nr_pix := 1 #> ((xs + bm_wid-1) * (ys + bm_lns-1) * BYTESPERPX)
+    nr_pix := 1 #> ((xs + bm_wid - 1) * (ys + bm_lns - 1) * BYTESPERPX)
 
     pinw(_DC, core.DATA)
     spi.wrblock_lsbf(ptr_bmap, nr_pix)
@@ -215,7 +212,7 @@ PUB box(x1, y1, x2, y2, color, fill) | cmd_pkt[3]
 '   fill: filled flag (0: no fill, nonzero: fill)
     if (x2 < x1) or (y2 < y1)
         return
-    if fill
+    if (fill)
         ' filled box: set the display's draw boundaries to the size of
         ' the box, and send enough data to draw H * W pixels
         cmd_pkt.byte[0] := core.CASET           ' D/C L
@@ -248,28 +245,28 @@ PUB box(x1, y1, x2, y2, color, fill) | cmd_pkt[3]
     else
         ' no-fill box: set the display's draw boundaries to just the
         ' 1-pixel wide/tall segment, and send enough data to draw it
-        displaybounds(x1, y1, x2, y1)           ' top
+        disp_area(x1, y1, x2, y1)               ' top
         pinl(_CS)
         pinw(_DC, core.CMD)
         spi.wr_byte(core.RAMWR)
         pinw(_DC, core.DATA)
         spi.wrwordx_msbf(color, (x2-x1)+1)
 
-        displaybounds(x1, y2, y2, y2)           ' bottom
+        disp_area(x1, y2, y2, y2)               ' bottom
         pinl(_CS)
         pinw(_DC, core.CMD)
         spi.wr_byte(core.RAMWR)
         pinw(_DC, core.DATA)
         spi.wrwordx_msbf(color, (x2-x1)+1)
 
-        displaybounds(x1, y1, x1, y2)           ' left
+        disp_area(x1, y1, x1, y2)               ' left
         pinl(_CS)
         pinw(_DC, core.CMD)
         spi.wr_byte(core.RAMWR)
         pinw(_DC, core.DATA)
         spi.wrwordx_msbf(color, (y2-y1)+1)
 
-        displaybounds(x2, y1, x2, y2)           ' right
+        disp_area(x2, y1, x2, y2)               ' right
         pinl(_CS)
         pinw(_DC, core.CMD)
         spi.wr_byte(core.RAMWR)
@@ -279,7 +276,9 @@ PUB box(x1, y1, x2, y2, color, fill) | cmd_pkt[3]
 #endif
 
 #ifdef GFX_DIRECT
-PUB char(ch) | gl_c, gl_r, lastgl_c, lastgl_r
+PUB tx = putchar
+PUB char = putchar
+PUB putchar(ch) | gl_c, gl_r, lastgl_c, lastgl_r
 ' Draw character from currently loaded font
     lastgl_c := _font_width-1
     lastgl_r := _font_height-1
@@ -288,26 +287,26 @@ PUB char(ch) | gl_c, gl_r, lastgl_c, lastgl_r
             _charpx_x := 0
         LF:
             _charpx_y += _charcell_h
-            if _charpx_y > _charpx_xmax
+            if (_charpx_y > _charpx_xmax)
                 _charpx_y := 0
         0..127:                                 ' validate ASCII code
-            ' walk through font glyph data
-            repeat gl_c from 0 to lastgl_c      ' column
-                repeat gl_r from 0 to lastgl_r  ' row
-                    ' if the current offset in the glyph is a set bit, draw it
-                    if byte[_font_addr][(ch << 3) + gl_c] & (decod(gl_r))
+            { walk through font glyph data }
+            repeat gl_c from 0 to lastgl_c
+                repeat gl_r from 0 to lastgl_r
+                    { if the current offset in the glyph is a set bit, draw it }
+                    if (byte[_font_addr][(ch << 3) + gl_c] & (decod(gl_r)))
                         plot((_charpx_x + gl_c), (_charpx_y + gl_r), _fgcolor)
                     else
-                    ' otherwise, draw the background color, if enabled
-                        if _char_attrs & DRAWBG
+                    { otherwise, draw the background color, if enabled }
+                        if (_char_attrs & DRAWBG)
                             plot((_charpx_x + gl_c), (_charpx_y + gl_r), _bgcolor)
-            ' move the cursor to the next column, wrapping around to the left,
-            ' and wrap around to the top of the display if the bottom is reached
+            { move the cursor to the next column, wrapping around to the left, }
+            { and wrap around to the top of the display if the bottom is reached }
             _charpx_x += _charcell_w
-            if _charpx_x > _charpx_xmax
+            if (_charpx_x > _charpx_xmax)
                 _charpx_x := 0
                 _charpx_y += _charcell_h
-            if _charpx_y > _charpx_ymax
+            if (_charpx_y > _charpx_ymax)
                 _charpx_y := 0
         other:
             return
@@ -316,7 +315,7 @@ PUB char(ch) | gl_c, gl_r, lastgl_c, lastgl_r
 #ifdef GFX_DIRECT
 PUB clear()
 ' Clear the display directly, bypassing the display buffer
-    displaybounds(0, 0, _disp_xmax, _disp_ymax)
+    disp_area(0, 0, _disp_xmax, _disp_ymax)
     pinw(_DC, core.CMD)
     pinl(_CS)
     spi.wr_byte(core.RAMWR)
@@ -329,30 +328,22 @@ PUB clear()
     wordfill(_ptr_drawbuffer, _bgcolor, _buff_sz/2)
 #endif
 
-PUB colordepth(format=-2): curr_fmt
+PUB color_depth(format)
 ' Set expected color format of pixel data, in bits per pixel
 '   Valid values: 12, 16, 18
-'   Any other value returns the current setting
     case format
         12, 16, 18:
             format := lookdown(format: 0, 0, 12, 0, 16, 18)
             writereg(core.COLMOD, 1, @format)
-        other:
-            return lookup(_colmod & core.IFPF_BITS: 0, 0, 12, 0, 16, 18)
 
-PUB comvoltagelevel(level)
+PUB com_voltage(level)
 ' Set VCOM voltage level, in millivolts
 '   Valid values:
-'       -0_425..-2_000 (in increments of 25mV)   Default: -0_525
-'   NOTE: Values are rounded to the nearest 25mV
-    case level
-        -0_425..-2_000:
-            level := (-level / 25) - 17
-            writereg(core.VMCTR1, 1, @level)
-        other:
-            return
+'       -0_425..-2_000 (rounded to nearest 25mV; clamped to range; POR: -0_525)
+    level := (-(-2_000 #> level <# -0_425) / 25) - 17
+    writereg(core.VMCTR1, 1, @level)
 
-PUB displaybounds(sx, sy, ex, ey) | tmp, tmpx, tmpy, cmd_pkt[3]
+PUB disp_area(sx, sy, ex, ey) | tmp, tmpx, tmpy, cmd_pkt[3]
 ' Set display start (sx, sy) and end (ex, ey) drawing boundaries
     if (sx >= 0 and ex <= _disp_xmax) and (sy >= 0 and ey <= _disp_ymax)
         ' the ST7735 requires (ex, ey) be greater than (sx, sy)
@@ -361,11 +352,11 @@ PUB displaybounds(sx, sy, ex, ey) | tmp, tmpx, tmpy, cmd_pkt[3]
         sy += _offs_y
         ex += _offs_x
         ey += _offs_y
-        if ex < sx                              ' ex is less than sx?
+        if (ex < sx)                            ' ex is less than sx?
             tmp := sx                           '   swap them
             sx := ex
             ex := tmp
-        if ey < sy                              ' ey is less than sy?
+        if (ey < sy)                            ' ey is less than sy?
             tmp := sy                           '   swap them
             sy := ey
             ey := tmp
@@ -381,36 +372,28 @@ PUB displaybounds(sx, sy, ex, ey) | tmp, tmpx, tmpy, cmd_pkt[3]
         writereg(core.CASET, 4, @tmpx)
         writereg(core.RASET, 4, @tmpy)
 
-PUB displayinverted(state)
+PUB disp_inverted(state)
 ' Invert display colors
-    case abs(state)
-        0:
-            displayvisibility(NORMAL)
-        1:
-            displayvisibility(INVERTED)
-        other:
-            return
+'   Valid values:
+'       TRUE (non-zero), FALSE (0)
+    if (state)
+        disp_vis_ena(INVERTED)
+    else
+        disp_vis_ena(NORMAL)
 
-PUB displayoffset(x, y)
+PUB disp_offset(x, y)
 ' Set display offset
-    _offs_x := 0 #> x <# 127
-    _offs_y := 0 #> y <# 159
+    _offs_x := (0 #> x <# 127)
+    _offs_y := (0 #> y <# 159)
 
-PUB displayrotate(state): curr_state
+PUB disp_rot(state)
 ' Rotate display
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value returns the current setting
-    curr_state := _madctl
-    case abs(state)
-        0, 1:
-            state := abs(state) << core.MV
-        other:
-            return (((curr_state >> core.MV) & 1) == 1)
-
-    _madctl := ((curr_state & core.MV_MASK) | state)
+    _madctl := ((_madctl & core.MV_MASK) | (((state <> 0) & 1) << core#MV))
     writereg(core.MADCTL, 1, @_madctl)
 
-PUB displayvisibility(mode) | inv_state
+PUB disp_vis_ena(mode) | inv_state
 ' Set display visiblity
 '   NOTE: Doesn't affect display RAM contents.
 '   NOTE: There is a mandatory 120ms delay imposed by calling this method
@@ -430,97 +413,60 @@ PUB displayvisibility(mode) | inv_state
     writereg(inv_state, 0, 0)
     waitms(120)
 
-PUB frameratectrl(ln_per, f_porch, b_porch, lim_ln_per, lim_f_porch, lim_b_porch): curr_frmr | tmp[2], nr_bytes
+PUB frame_rate_ctrl(ln_per, f_porch, b_porch, lim_ln_per, lim_f_porch, lim_b_porch) | tmp[2], nr_bytes
 ' Set frame frequency
 '   Valid values:
 '       ln_per: 0..15
 '       f_porch: 0..63
 '       b_porch: 0..63
-'       lim_* variants (effective when in Line Inversion Mode - set only in OpMode(PARTIAL)) - same as above
-'           - ignored when opmode is 1 or 2
-'   Any other value for opmode returns the last calculated frame frequency
-'   Any other values for other parameters are ignored
-    curr_frmr := 0
+'       lim_* variants (effective when in Line Inversion Mode - used only in opmode(PARTIAL))
+'           (same as above)
+'           - ignored when opmode is NORMAL or IDLE
     case _opmode
         NORMAL, IDLE:
             nr_bytes := 3
         PARTIAL:
             nr_bytes := 6
         other:
-            return _framerate
-
-    case ln_per
-        0..15:
-            tmp.byte[0] := ln_per
-        other:
             return
 
-    case f_porch
-        0..63:
-            tmp.byte[1] := f_porch
-        other:
-            return
+    tmp.byte[0] := (0 #> ln_per <# 15)
+    tmp.byte[1] := (0 #> f_porch <# 63)
+    tmp.byte[2] := (0 #> b_porch <# 63)
 
-    case b_porch
-        0..63:
-            tmp.byte[2] := b_porch
-        other:
-            return
+    if (_opmode == PARTIAL)
+        tmp.byte[3] := (0 #> lim_ln_per <# 15)
+        tmp.byte[4] := (0 #> lim_f_porch <# 63)
+        tmp.byte[5] := (0 #> lim_b_porch <# 63)
 
-    if _opmode == PARTIAL
-        case lim_ln_per
-            0..15:
-                tmp.byte[3] := lim_ln_per
-            other:
-                return
-
-        case lim_f_porch
-            0..63:
-                tmp.byte[4] := lim_f_porch
-            other:
-                return
-
-        case lim_b_porch
-            0..63:
-                tmp.byte[5] := lim_b_porch
-            other:
-                return
-
-    curr_frmr := _framerate := core.FOSC / ((ln_per * 2 + 40) * {
-}   (_disp_height + f_porch + b_porch))
-
+    _framerate := (core.FOSC / ((ln_per * 2 + 40) * (_disp_height + f_porch + b_porch)))
     writereg(core.FRMCTR1 + _opmode, nr_bytes, @tmp)
 
-PUB gammatablen(ptr_buff)
+PUB gamma_tbl_neg(ptr_buff)
 ' Modify gamma table (negative polarity)
     writereg(core.GMCTRN1, 16, ptr_buff)
 
-PUB gammatablep(ptr_buff)
+PUB gamma_tbl_pos(ptr_buff)
 ' Modify gamma table (positive polarity)
     writereg(core.GMCTRP1, 16, ptr_buff)
 
-PUB inversionctrl(mask)
+PUB inversion_ctrl(mask)
 ' Set display inversion mode control bitmask
 '   Valid values: %000..%111
 '       0: Dot inversion
 '       1: Line inversion
 '       Bits 321:
-'           3 - Inversion setting in OpMode(NORMAL) (default: 0)
-'           2 - Inversion setting in OpMode(IDLE) (default: 1)
-'           1 - Inversion setting in OpMode(PARTIAL) (default: 1)
-'   Any other value is ignored
-    case mask
-        %000..%111:
-        other:
-            return
-
+'           3 - Inversion setting in OpMode(NORMAL) (PORT: 0)
+'           2 - Inversion setting in OpMode(IDLE) (PORT: 1)
+'           1 - Inversion setting in OpMode(PARTIAL) (POR: 1)
+    mask &= %111
     writereg(core.INVCTR, 1, @mask)
 
 #ifdef GFX_DIRECT
 PUB line(x1, y1, x2, y2, color) | sx, sy, ddx, ddy, err, e2
 ' Draw line from x1, y1 to x2, y2
     if (x1 == x2)
-        displaybounds(x1, y1, x1, y2)           ' vertical
+        disp_area(x1, y1, x1, y2)               ' vertical
         pinl(_CS)
         pinw(_DC, core.CMD)
         spi.wr_byte(core.RAMWR)
@@ -529,7 +475,7 @@ PUB line(x1, y1, x2, y2, color) | sx, sy, ddx, ddy, err, e2
         pinh(_CS)
         return
     if (y1 == y2)
-        displaybounds(x1, y1, x2, y1)           ' horizontal
+        disp_area(x1, y1, x2, y1)               ' horizontal
         pinl(_CS)
         pinw(_DC, core.CMD)
         spi.wr_byte(core.RAMWR)
@@ -545,7 +491,6 @@ PUB line(x1, y1, x2, y2, color) | sx, sy, ddx, ddy, err, e2
     sx := -1
     if (x1 < x2)
         sx := 1
-
     sy := -1
     if (y1 < y2)
         sy := 1
@@ -553,42 +498,24 @@ PUB line(x1, y1, x2, y2, color) | sx, sy, ddx, ddy, err, e2
     repeat until ((x1 == x2) and (y1 == y2))
         plot(x1, y1, color)
         e2 := err << 1
-
-        if e2 > -ddy
+        if (e2 > -ddy)
             err -= ddy
             x1 += sx
-
-        if e2 < ddx
+        if (e2 < ddx)
             err += ddx
             y1 += sy
 #endif
 
-PUB mirrorh(state=-2): curr_state
+PUB mirror_h(state)
 ' Mirror the display, horizontally
-'   Valid values: TRUE (-1 or 1), FALSE (0)
-'   Any other value is ignored
-    curr_state := _madctl
-    case abs(state)
-        0, 1:
-            state := abs(state) << core.MX
-        other:
-            return (((curr_state >> core.MX) & 1) == 1)
-
-    _madctl := ((_madctl & core.MX_MASK) | state)
+'   Valid values: TRUE (non-zero), FALSE (0)
+    _madctl := ((_madctl & core.MX_MASK) | (((state <> 0) & 1) << core#MX))
     writereg(core.MADCTL, 1, @_madctl)
 
-PUB mirrorv(state=-2): curr_state
+PUB mirror_v(state)
 ' Mirror the display, vertically
-'   Valid values: TRUE (-1 or 1), FALSE (0)
-'   Any other value is ignored
-    curr_state := _madctl
-    case abs(state)
-        0, 1:
-            state := abs(state) << core.MY
-        other:
-            return (((curr_state >> core.MY) & 1) == 1)
-
-    _madctl := ((_madctl & core.MY_MASK) | state)
+'   Valid values: TRUE (non-zero), FALSE (0)
+    _madctl := ((_madctl & core.MY_MASK) | (((state <> 0) & 1) << core#MY))
     writereg(core.MADCTL, 1, @_madctl)
 
 PUB opmode(mode)
@@ -611,29 +538,29 @@ PUB opmode(mode)
 
     _opmode := mode
 
-PUB partialarea(sy, ey) | tmp
+PUB disp_part_area(sy, ey) | tmp
 ' Define visible area (rows) of display when operating in partial-display mode
     tmp.byte[0] := 0
-    tmp.byte[1] := sy & $FF
+    tmp.byte[1] := (sy & $FF)
     tmp.byte[2] := 0
-    tmp.byte[3] := ey & $FF
+    tmp.byte[3] := (ey & $FF)
 
     writereg(core.PTLAR, 4, @tmp)
 
 PUB plot(x, y, color) | tmp, xs, ys, xe, ye, cmd_pkt[3]
 ' Plot pixel at (x, y) in color
-    if (x < 0 or x > _disp_xmax) or (y < 0 or y > _disp_ymax)
+    if ((x < 0 or x > _disp_xmax) or (y < 0 or y > _disp_ymax))
         return                                  ' coords out of bounds, ignore
 #ifdef GFX_DIRECT
 ' direct to display
-    cmd_pkt.byte[0] := core.CASET           ' D/C L
-    cmd_pkt.byte[1] := x+_offs_x            ' D/C H
-    cmd_pkt.byte[2] := x+_offs_x
-    cmd_pkt.byte[3] := core.RASET           ' D/C L
-    cmd_pkt.byte[4] := y+_offs_y            ' D/C H
-    cmd_pkt.byte[5] := y+_offs_y
-    cmd_pkt.byte[6] := core.RAMWR           ' D/C L
-    cmd_pkt.byte[7] := color.byte[1]        ' D/C H
+    cmd_pkt.byte[0] := core.CASET               ' D/C L
+    cmd_pkt.byte[1] := (x + _offs_x)            ' D/C H
+    cmd_pkt.byte[2] := (x + _offs_x)
+    cmd_pkt.byte[3] := core.RASET               ' D/C L
+    cmd_pkt.byte[4] := (y + _offs_y)            ' D/C H
+    cmd_pkt.byte[5] := (y + _offs_y)
+    cmd_pkt.byte[6] := core.RAMWR               ' D/C L
+    cmd_pkt.byte[7] := color.byte[1]            ' D/C H
     cmd_pkt.byte[8] := color.byte[0]
     pinw(_DC, core.CMD)
     pinl(_CS)
@@ -659,24 +586,21 @@ PUB plot(x, y, color) | tmp, xs, ys, xe, ye, cmd_pkt[3]
 #ifndef GFX_DIRECT
 PUB point(x, y): pix_clr
 ' Get color of pixel at x, y
-    x := 0 #> x <# _disp_xmax
-    y := 0 #> y <# _disp_ymax
+    x := (0 #> x <# _disp_xmax)
+    y := (0 #> y <# _disp_ymax)
 
     return word[_ptr_drawbuffer][x + (y * _disp_width)]
 #endif
 
 PUB powered(state)
 ' Enable display power
-    case abs(state)
-        0, 1:
-            state := abs(state) + core.SLPIN
-        other:
-            return
-
-    writereg(state, 0, 0)
+'   Valid values:
+'       TRUE (non-zero), FALSE (0)
+'   NOTE: This incurs a 120ms delay after calling
+    writereg((((state <> 0) & 1) + core#SLPIN), 0, 0)
     waitms(120)
 
-PUB powercontrol(mode, ap, sap, bclkdiv1, bclkdiv2, bclkdiv3, bclkdiv4, bclkdiv5) | tmp
+PUB pwr_ctrl(mode, ap, sap, bclkdiv1, bclkdiv2, bclkdiv3, bclkdiv4, bclkdiv5) | tmp
 ' Set partial mode/full-colors power control
 '   Valid values:
 '       mode: Settings applied to operating mode
@@ -692,21 +616,9 @@ PUB powercontrol(mode, ap, sap, bclkdiv1, bclkdiv2, bclkdiv3, bclkdiv4, bclkdiv5
 '           1_5:        BCLK / 1.5
 '           2:          BCLK / 2
 '           4:          BCLK / 4
-    case mode
-        0..2:
-        other:
-            return
-
-    case ap
-        OFF, SMALL, MEDLOW, MED, MEDHI, LARGE:
-        other:
-            return
-
-    case sap
-        OFF, SMALL, MEDLOW, MED, MEDHI, LARGE:
-            sap <<= core.SAP
-        other:
-            return
+    mode := (NORMAL #> mode <# PARTIAL)
+    ap := (OFF #> ap <# LARGE)
+    sap := ((OFF #> sap <# LARGE) << core#SAP)
 
     case bclkdiv1
         1, 1_5, 2, 4:
@@ -738,77 +650,41 @@ PUB powercontrol(mode, ap, sap, bclkdiv1, bclkdiv2, bclkdiv3, bclkdiv4, bclkdiv5
         other:
             return
 
-    tmp.byte[0] := ap | sap | (bclkdiv5 << core.DCMSB)
-    tmp.byte[1] := (bclkdiv4 << 6) | (bclkdiv3 << 4) | (bclkdiv2 << 2) | bclkdiv1
+    tmp.byte[0] := (ap | sap | (bclkdiv5 << core.DCMSB))
+    tmp.byte[1] := ((bclkdiv4 << 6) | (bclkdiv3 << 4) | (bclkdiv2 << 2) | bclkdiv1)
     writereg(core.PWCTR3 + mode, 2, @tmp)
 
-PUB powercontrol1(avdd, gvdd, gvcl, mode) | tmp
+PUB pwr_ctrl1(avdd, gvdd, gvcl, mode) | tmp
 ' Set LCD supply voltages, in millivolts
 '   Valid values:
-'       avdd: 4_500..5_100, in increments of 100 (default: 4_900)
-'       gvdd: 3_150..4_700, in increments of 50 (default: 4_600)
-'       gvcl: -4_700..-3_150, in increments of 50 (default: -4_600)
-'       mode: 2, 3, AUTO (0) (default: AUTO)
-'   Any other value is ignored
-    case avdd
-        4_500..5_100:
-            avdd := ((avdd / 100) - 45) << core.AVDD
-        other:
-            return
-
-    case gvdd
-        3_150..4_700:
-            gvdd := ((4_700 - gvdd) / 50) & core.VRHP_BITS
-        other:
-            return
-
-    case gvcl
-        -4_700..-3_150:
-            gvcl := ((4_700 - (-gvcl)) / 50) & core.VRHN_BITS
-        other:
-            return
-
-    case mode
-        2, 3, AUTO:
-            mode := lookdownz(mode: 2, 3, AUTO) << core.MODE
-            mode |= %000100
-
-    tmp.byte[0] := avdd | gvdd
-    tmp.byte[1] := gvcl
-    tmp.byte[2] := mode
+'       avdd: 4_500..5_100, (rounded to nearest 100mV; clamped to range; POR: 4_900)
+'       gvdd: 3_150..4_700, (rounded to nearest 50mV; clamped to range; POR: 4_600)
+'       gvcl: -4_700..-3_150, (rounded to nearest 50mV; clamped to range; POR: -4_600)
+'       mode: 2, 3, AUTO (0) (POR: AUTO)
+    avdd := ((((4_500 #> avdd <# 5_100) / 100) - 45) << core.AVDD)
+    gvdd := ((4_700 - (3_150 #> gvdd <# 4_700)) / 50) & core.VRHP_BITS
+    tmp.byte[0] := (avdd | gvdd)
+    tmp.byte[1] := ((4_700 - (-(-4_700 #> gvcl <# -3_150))) / 50) & core.VRHN_BITS
+    tmp.byte[2] := (((0 #> lookdownz(mode: 2, 3, AUTO) <# 2) << core.MODE) | core#MODE_RSVD)
 
     writereg(core.PWCTR1, 3, @tmp)
 
-PUB powercontrol2(v25, vgh, vgl) | tmp
+PUB pwr_ctrl2(v25, vgh, vgl) | tmp
 ' Set LCD supply voltages, in millivolts
 '   Valid values:
-'       V25: 2_100, 2_200, 2_300, 2_400 (default: 2_400)
-'       VGH: AVDD_X2_VGH25 (0), AVDD_X3 (1), AVDD_X3_VGH25 (2) (default: AVDD_X3)
-'       VGL: -13_000, -12_500, -10_000, -7_500 (default: -10_000)
-    case v25
-        2_100, 2_200, 2_300, 2_400:
-            v25 := ((v25/100)-21) << core.VGH25
-        other:
-            return
-
-    case vgh
-        AVDD_X2_VGH25, AVDD_X3, AVDD_X3_VGH25:
-        other:
-            return
-
-    case vgl
-        -13_000, -12_500, -10_000, -7_500:
-            vgl := lookdownz(vgl: -7_500, -10_000, -12_500, -13_000) << core.VGLSEL
-        other:
-            return
-
-    tmp := v25 | vgh | vgl
+'       V25: 2_100, 2_200, 2_300, 2_400 (clamped to range; POR: 2_400)
+'       VGH: AVDD_X2_VGH25 (0), AVDD_X3 (1), AVDD_X3_VGH25 (2) (clamped to range; POR: AVDD_X3)
+'       VGL: -13_000, -12_500, -10_000, -7_500 (clamped to range; POR: -10_000)
+    v25 := ((((2_100 #> v25 <# 2_400) / 100) - 21) << core.VGH25)
+    vgh := (AVDD_X2_VGH25 #> vgh <# AVDD_X3_VGH25)
+    vgl := ((0 #> lookdownz(vgl: -7_500, -10_000, -12_500, -13_000) <# 3) << core.VGLSEL)
+    tmp := (v25 | vgh | vgl)
 
     writereg(core.PWCTR2, 1, @tmp)
 
 PUB reset()
 ' Reset the display controller
-    if lookdown(_RESET: 0..63)                  ' I/O pin defined - hard reset
+    if (lookdown(_RESET: 0..63))                ' I/O pin defined - hard reset
         pinh(_RESET)
         waitus(10)
         pinl(_RESET)
@@ -818,23 +694,7 @@ PUB reset()
     else                                        ' no I/O pin defined - do
         writereg(core.SOFT_RESET, 0, 0)         '   soft reset instead
 
-PUB subpixelorder(order=-2): curr_ord
-' Set subpixel color order
-'   Valid values:
-'       RGB (0): Red-Green-Blue order
-'       BGR (1): Blue-Green-Red order
-'   Any other value returns the current setting
-    curr_ord := _madctl
-    case order
-        0, 1:
-            order <<= core.RGB
-        other:
-            return ((curr_ord >> core.RGB) & 1)
-
-    _madctl := ((curr_ord & core.RGB_MASK) | order)
-    writereg(core.MADCTL, 1, @_madctl)
-
-PUB update()
+PUB show()
 ' Write the draw buffer to the display
 #ifndef GFX_DIRECT
     pinw(_DC, core.CMD)
@@ -844,6 +704,14 @@ PUB update()
     spi.wrblock_lsbf(_ptr_drawbuffer, _buff_sz)
     pinh(_CS)
 #endif
+
+PUB subpix_order(order)
+' Set subpixel color order
+'   Valid values:
+'       RGB (0): Red-Green-Blue order
+'       BGR (1): Blue-Green-Red order
+    _madctl := ((_madctl & core.RGB_MASK) | ((0 #> order <# 1) << core#RGB))
+    writereg(core.MADCTL, 1, @_madctl)
 
 #ifndef GFX_DIRECT
 PRI memfill(xs, ys, val, count)

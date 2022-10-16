@@ -6,35 +6,45 @@
         Will display data from all 6 data pipes
     Copyright (c) 2022
     Started Nov 23, 2019
-    Updated Jul 3, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    _xtlfreq        = cfg._xtlfreq
-    _clkfreq        = cfg._clkfreq_def
+    _clkfreq    = cfg#_clkfreq_def
+    _xtlfreq    = cfg#_xtlfreq
 
 ' -- User-modifiable constants
-    LED             = cfg.LED1
-    SER_BAUD        = 2_000_000
+    LED         = cfg.LED1
+    SER_BAUD    = 2_000_000
 
-    CE_PIN          = 20
-    CS_PIN          = 21
-    SCK_PIN         = 18
-    MOSI_PIN        = 16                        ' MOSI and MISO must be within
-    MISO_PIN        = 17                        '   3 pins +/- of SCK
-    SCK_FREQ        = 10_000_000                ' 10_000_000 max
+    { SPI configuration }
+    BASEPIN         = 16
 
-    CHANNEL         = 2                         ' 0..125
+    CE_PIN          = BASEPIN+4
+    CS_PIN          = BASEPIN+5
+    SCK_PIN         = BASEPIN+2
+    MOSI_PIN        = BASEPIN+0
+    MISO_PIN        = BASEPIN+1
+{
+    CE_PIN      = 0
+    CS_PIN      = 1
+    SCK_PIN     = 2
+    MOSI_PIN    = 3                             ' MOSI and MISO must be within
+    MISO_PIN    = 4                             '   3 pins +/- of SCK
+}
+    SCK_FREQ    = 10_000_000                    ' 10_000_000 max
+
+    CHANNEL     = 2                             ' 0..125
 ' --
 
 OBJ
 
-    ser         : "com.serial.terminal.ansi"
-    cfg         : "boardcfg.p2eval"
-    nrf24       : "wireless.transceiver.nrf24l01"
+    ser  : "com.serial.terminal.ansi"
+    cfg  : "boardcfg.p2eval"
+    nrf24: "wireless.transceiver.nrf24l01"
 
 VAR
 
@@ -42,17 +52,17 @@ VAR
     byte _payld_len
     byte _addr[5]
 
-PUB Main() | i, payld_cnt, recv_pipe, pipe_nr
+PUB main() | payld_cnt, recv_pipe, pipe_nr
 
     setup()                                     ' start serial term. and nRF24
 
-' -- User-modifiable settings
+' -- User-modifiable settings (NOTE: These settings _must_ match the transmit side) }
     nrf24.channel(CHANNEL)
 
-    _payld_len := 8                             ' 1..32 (_must_ match TX side)
+    _payld_len := 8                             ' 1..32
 
-    ' Set receive address (note: order in string() is LSB, ..., MSB)
-    nrf24.rxaddr(string($e7, $e7, $e7, $e7, $e7), 0, nrf24#WRITE)
+    { set receive address (note: order in string() is LSB, ..., MSB) }
+    nrf24.rx_addr(string($e7, $e7, $e7, $e7, $e7), 0, nrf24.WRITE)
 
     ' choose a receive mode preset (250kbps, 1Mbps, 2Mbps)
     '   with optional Auto-Ack/ShockBurst  (power-on default)
@@ -64,74 +74,69 @@ PUB Main() | i, payld_cnt, recv_pipe, pipe_nr
 '    nrf24.preset_rx2m_noaa()                    ' 2Mbps, No Auto-Ack
 ' --
 
+    { set all pipes to the same payload length }
     repeat pipe_nr from 0 to 5
-        nrf24.payloadlen(_payld_len, pipe_nr)   ' Set all pipes the same len
+        nrf24.payld_len(_payld_len, pipe_nr)
 
     ser.clear()
     ser.position(0, 0)
-    ser.printf(@"Receive mode (channel %d)\n", nrf24.channel())
-    ser.printf(@"Listening for transmitters...")
+    ser.printf(@"Receive mode (channel %d)\n\r", nrf24.channel())
+    ser.strln(@"Listening for transmitters...")
 
     payld_cnt := 0
     repeat
-        bytefill(@_payload, $00, 32)            ' Clear RX local buffer
-        repeat                                  ' Wait to proceed...
-            ser.position(0, 5)
+        { clear local buffer and wait until a payload is received }
+        bytefill(@_payload, 0, 32)
+        repeat
+            ser.position(0, 3)
             ser.printf(@"Payloads received: %d ", payld_cnt)
-        until nrf24.payloadready()              ' ...until payload received
+        until nrf24.payld_rdy()
 
-        recv_pipe := nrf24.rxpipepending()      ' Which pipe is the data in?
-        ' copy the address of the pipe the data was received in
-        nrf24.rxaddr(@_addr, recv_pipe, nrf24.READ)
-        nrf24.rxpayload(_payld_len, @_payload)  ' Retrieve payload into hub
-        payld_cnt++                             ' Received payload counter
+        { check which pipe the data was received in and retrieve the payload into local buffer }
+        recv_pipe := nrf24.rx_pipe_pending()
+        nrf24.rx_addr(@_addr, recv_pipe, nrf24.READ)
+        nrf24.rx_payld(_payld_len, @_payload)
+        payld_cnt++
 
-        ser.position(0, 8 + (recv_pipe * 4))    ' Use the pipe number for the
+        { display payload received through each pipe number on a separate line }
+        ser.position(0, 5 + (recv_pipe * 4))
         ser.printf(@"Received packet on pipe %d ", recv_pipe)
-                                                '   payload display position
-
-        ser.char(@"(")
-        repeat i from 4 to 0                    ' Show the pipe's address
-            ser.hex(_addr[i], 2)                ' (2..4 are only 1-byte)
-        ser.char(@")")
-
-        ser.position(0, 9 + (recv_pipe * 4))
+        ser.printf(@"(%02.2x:%02.2x:%02.2x:%02.2x:%02.2x)\n\r", {
+}       _addr[4], _addr[3], _addr[2], _addr[1], _addr[0])
         ser.hexdump(@_payload, 0, 4, _payld_len, _payld_len)
 
-        nrf24.intclear(%100)                    ' Clear interrupt
-        nrf24.flushrx()                         ' Flush FIFO
+        { clear interrupt and receive buffer for next loop }
+        nrf24.int_clr(nrf24.INT_PAYLD_RDY)
+        nrf24.flush_rx()
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
-    ser.clear()
-    ser.printf(@"Serial terminal started\n")
 
     if nrf24.startx(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
-        ser.printf(@"nRF24L01+ driver started\n")
+        ser.strln(@"nRF24L01+ driver started")
     else
-        ser.printf(@"nRF24L01+ driver failed to start - halting\n")
+        ser.strln(@"nRF24L01+ driver failed to start - halting")
         repeat
 
 DAT
 
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+

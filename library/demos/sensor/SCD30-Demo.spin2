@@ -6,7 +6,7 @@
         * CO2 data output
     Copyright (c) 2022
     Started Jul 10, 2021
-    Updated Aug 6, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -35,7 +35,7 @@ OBJ
     env: "sensor.co2.scd30"
     ser: "com.serial.terminal.ansi"
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(10)
@@ -48,9 +48,7 @@ PUB Setup()
         ser.strln(@"SCD30 driver failed to start - halting")
         repeat
 
-    env.reset()
-    env.opmode(env.CONT)
-    env.meas_interval(2)
+    env.preset_active()
     demo()
 
 #include "co2demo.common.spin2h"                ' code common to all IMU demos

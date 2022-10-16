@@ -7,7 +7,7 @@
         (P2 version)
     Copyright (c) 2022
     Started Feb 10, 2021
-    Updated Jul 10, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -38,54 +38,53 @@ OBJ
     cfg     : "boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
-    int     : "string.integer"
     vcnl    : "sensor.light.vcnl4200"
 
 VAR
 
     long _isr_stack[50], _interrupt
 
-PUB Main()
+PUB main()
 
     setup()
 
-    vcnl.preset_proxlongrange()                 ' set to prox. sensor
+    vcnl.preset_prox_long_range()               ' set to prox. sensor
                                                 ' operating mode
 
-    vcnl.intclear()                             ' ensure ints are cleared
-    vcnl.proxintlowthresh(100)                  ' set low and high thresholds
-    vcnl.proxinthighthresh(200)
-    vcnl.proxintmask(vcnl.INT_NEAR)             ' INT_NEAR, INT_FAR
+    vcnl.int_clr()                              ' ensure ints are cleared
+    vcnl.prox_set_int_lo_thresh(100)            ' set low and high thresholds
+    vcnl.prox_set_int_hi_thresh(200)
+    vcnl.prox_int_mask(vcnl.INT_NEAR)           ' INT_NEAR, INT_FAR
 
     ser.position(0, 3)
-    ser.printf(@"Thresh  low: %d high: %d", vcnl.proxintlowthresh(-2), vcnl.proxinthighthresh(-2))
+    ser.printf(@"Thresh  low: %d high: %d", vcnl.prox_int_lo_thresh(), vcnl.prox_int_hi_thresh())
 
     repeat
         ser.position(0, 5)
         ser.str(@"Proximity ADC: ")
         ser.position(DAT_COL, 5)
-        ser.dec(vcnl.proxdata())
-        if _interrupt
+        ser.dec(vcnl.prox_data())
+        if (_interrupt)
             ser.str(@"   INTERRUPT (press c to clear)")
 
         ser.clearline()
-        if ser.rxcheck() == "c"
-            vcnl.intclear()
+        if (ser.rxcheck() == "c")
+            vcnl.int_clr()
 
-PUB cog_ISR()
+PUB cog_isr()
 ' Interrupt service routine
     pinf(INT_PIN)
     pinl(LED)
 
     repeat
-        if pinr(INT_PIN) == 0                    ' interrupt is active low
+        if (pinr(INT_PIN) == 0)                 ' interrupt is active low
             pinh(LED)
             _interrupt := TRUE
         else
             pinl(LED)
             _interrupt := FALSE
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(30)
@@ -102,24 +101,21 @@ PUB Setup()
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 

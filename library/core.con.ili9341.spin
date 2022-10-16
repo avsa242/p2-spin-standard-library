@@ -119,7 +119,6 @@ CON
 
 PUB null{}
 ' This is not a top-level object
-    result := (0)
 
 DAT
 {

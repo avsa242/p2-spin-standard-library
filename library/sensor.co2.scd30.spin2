@@ -5,7 +5,7 @@
     Description: Driver for the Sensirion SCD30 CO2 sensor (P2 version)
     Copyright (c) 2022
     Started Jul 21, 2021
-    Updated Aug 7, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -66,10 +66,18 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
 PUB stop()
 ' Stop the driver
     i2c.deinit()
+    longfill(@_co2, 0, 3)
+    bytefill(@_presscomp, 0, 3)
 
 PUB defaults()
 ' Set factory defaults
     reset()
+
+PUB preset_active()
+' Like defaults(), but sets continuous measurement mode, with 2sec interval
+    reset()
+    opmode(CONT)
+    meas_interval(2)
 
 PUB present(): ack
 ' Test device bus presence
@@ -83,35 +91,38 @@ PUB adc2co2(adc_word): co2
 ' Convert ADC word to CO2 data
     return fm.ftrunc(fm.fmul(adc_word, 10.0))
 
-PUB alt_comp(alt): curr_alt
+PUB co2_alt_comp(): alt
+' Get altitude compensation value
+'   Returns: meters
+    readreg(core.ALTITUDECOMP, 3, @alt)
+    return alt
+
+PUB co2_set_alt_comp(alt)
 ' Compensate CO2 measurements based on altitude, in meters
-'   Valid values: 0..65535
-'   Any other value polls the chip and returns the current setting
+'   Valid values: 0..65535 (clamped to range)
 '   NOTE: This setting is disregarded when ambient pressure is set
 '   NOTE: This setting is stored in the sensor in non-volatile memory,
 '       i.e., it will save even if power is lost
-    curr_alt := 0
-    readreg(core.ALTITUDECOMP, 3, @curr_alt)
-    case alt
-        0..65535:
-            writereg(core.ALTITUDECOMP, 3, @alt)
-        other:
-            return curr_alt
+    alt := 0 #> alt <# 65535
+    writereg(core.ALTITUDECOMP, 3, @alt)
 
-PUB amb_pressure(press): curr_press
-' Set ambient pressure, in millibars, for use in on-sensor compensation
+PUB co2_amb_press_comp(press): curr_press
+' Get ambient pressure compensation value (MCU RAM)
+'   Returns: millibars
+    return _presscomp
+
+PUB co2_set_amb_press_comp(press)
+' Set ambient pressure, in millibars, for use in on-sensor compensation (MCU RAM)
 '   Valid values:
 '       0: disable compensation
-'       700..1400
-'   Any other value returns the current setting
+'       700..1400 (clamped to range)
 '   NOTE: To effect settings, OpMode(CONT) must be called
-    case press
-        0, 700..1400:
-            _presscomp := press
-        other:
-            return _presscomp
+    ifnot (press)
+        _presscomp := 0
+    else
+        _presscomp := 700 #> press <# 1400
 
-PUB auto_cal(state): curr_state
+PUB auto_cal_ena(state): curr_state
 ' Enable automatic self-calibration
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting
@@ -148,20 +159,20 @@ PUB co2_bias(ppm): curr_ppm
 PUB co2_data(): f_co2
 ' CO2 data
 '   Returns: IEEE-754 float
-    if (data_ready())
+    if (co2_data_rdy())
         read_meas()
     else
         return _co2
 
-PUB data_ready(): flag
+PUB co2_data_rdy(): flag
 ' Flag indicating data ready
     flag := 0
     readreg(core.GETDRDY, 3, @flag)
 
     return ((flag & 1) == 1)
 
-PUB device_id(): id
-' Read device identification
+PUB measure()
+' dummy method
 
 PUB meas_interval(t_int): curr_t
 ' Set measurement interval, in seconds
@@ -174,9 +185,6 @@ PUB meas_interval(t_int): curr_t
             writereg(core.SETMEASINTERV, 3, @t_int)
         other:
             return curr_t
-
-PUB measure()
-' Read measurement data
 
 PUB opmode(mode): curr_mode
 ' Set operating mode
@@ -199,27 +207,27 @@ PUB reset()
     writereg(core.SOFTRESET, 0, 0)
     waitus(core.T_RES)
 
-PUB rhdata(): rh_adc
+PUB rh_data(): rh_adc
 ' Relative humidity data
 '   Returns: IEEE-754 float
-    if (data_ready())
+    if (co2_data_rdy())
         read_meas()
     else
         return _rh
 
-PUB rhword2pct(adc_word): rh
+PUB rh_word2pct(adc_word): rh
 ' Convert ADC word to RH data
     return fm.ftrunc(fm.fmul(adc_word, 100.0))
 
-PUB tempdata(): temp_adc
+PUB temp_data(): temp_adc
 ' Temperature data
 '   Returns: IEEE-754 float
-    if (data_ready())
+    if (co2_data_rdy())
         read_meas()
     else
         return _temp
 
-PUB tempword2deg(adc_word): temp
+PUB temp_word2deg(adc_word): temp
 ' Convert ADC word to temperature data
     return fm.ftrunc(fm.fmul(adc_word, 100.0))
 
@@ -230,11 +238,9 @@ PUB version(): ver
     ver := 0
     readreg(core.FWVER, 3, @ver)
 
-    return ver
-
 PRI read_meas() | meas_tmp[5], crc_tmp
 ' Read measurements and cache in RAM
-'   NOTE: Valid data will be returned only if the data_ready() signal is TRUE
+'   NOTE: Valid data will be returned only if the data_rdy() signal is TRUE
     readreg(core.READMEAS, 18, @meas_tmp)
     _co2.byte[3] := meas_tmp.byte[17]
     _co2.byte[2] := meas_tmp.byte[16]
@@ -243,8 +249,8 @@ PRI read_meas() | meas_tmp[5], crc_tmp
     _co2.byte[0] := meas_tmp.byte[13]
     crc_tmp.byte[0] := meas_tmp.byte[12]
 
-    ifnot crc.sensirioncrc8(@_co2.byte[2], 2) == crc_tmp.byte[1] and {
-}   crc.sensirioncrc8(@_co2, 2) == crc_tmp.byte[0]
+    ifnot crc.sensirion_crc8(@_co2.byte[2], 2) == crc_tmp.byte[1] and {
+}   crc.sensirion_crc8(@_co2, 2) == crc_tmp.byte[0]
         return EBADCRC
 
     _temp.byte[3] := meas_tmp.byte[11]
@@ -254,8 +260,8 @@ PRI read_meas() | meas_tmp[5], crc_tmp
     _temp.byte[0] := meas_tmp.byte[7]
     crc_tmp.byte[0] := meas_tmp.byte[6]
 
-    ifnot crc.sensirioncrc8(@_temp.byte[2], 2) == crc_tmp.byte[1] and {
-}   crc.sensirioncrc8(@_temp, 2) == crc_tmp.byte[0]
+    ifnot crc.sensirion_crc8(@_temp.byte[2], 2) == crc_tmp.byte[1] and {
+}   crc.sensirion_crc8(@_temp, 2) == crc_tmp.byte[0]
         return EBADCRC
 
     _rh.byte[3] := meas_tmp.byte[5]
@@ -265,11 +271,11 @@ PRI read_meas() | meas_tmp[5], crc_tmp
     _rh.byte[0] := meas_tmp.byte[1]
     crc_tmp.byte[0] := meas_tmp.byte[0]
 
-    ifnot crc.sensirioncrc8(@_rh.byte[2], 2) == crc_tmp.byte[1] and {
-}   crc.sensirioncrc8(@_rh, 2) == crc_tmp.byte[0]
+    ifnot crc.sensirion_crc8(@_rh.byte[2], 2) == crc_tmp.byte[1] and {
+}   crc.sensirion_crc8(@_rh, 2) == crc_tmp.byte[0]
         return EBADCRC
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp_buff, crc_tmp
+PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp_buff, crc_tmp
 ' Read nr_bytes from the device into ptr_buff
     case reg_nr                                 ' validate register num
         core.GETDRDY, core.FWVER, core.SETMEASINTERV, {
@@ -293,7 +299,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp_buff, crc_tmp
 
             crc_tmp := tmp_buff.byte[0]
             tmp_buff >>= 8
-            if crc.sensirioncrc8(@tmp_buff, 2) == crc_tmp
+            if crc.sensirion_crc8(@tmp_buff, 2) == crc_tmp
                 bytemove(ptr_buff, @tmp_buff, 2)
                 return
             else
@@ -317,7 +323,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp_buff, crc_tmp
         other:                                  ' invalid reg_nr
             return
 
-PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, dat_tmp
+PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, dat_tmp, crc_tmp
 ' Write nr_bytes to the device from ptr_buff
     cmd_pkt.byte[0] := SLAVE_WR
     cmd_pkt.byte[1] := reg_nr.byte[1]
@@ -327,7 +333,8 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, dat_tmp
 }       core.SETRECALVAL, core.AUTOSELFCAL, core.SETTEMPOFFS:
             dat_tmp := long[ptr_buff]
             dat_tmp <<= 8
-            dat_tmp.byte[0] := crc.sensirioncrc8(@dat_tmp.byte[1], 2)
+            crc_tmp := dat_tmp.byte[1]
+            dat_tmp.byte[0] := crc.sensirion_crc8(@crc_tmp, 2)
             i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 3)
 

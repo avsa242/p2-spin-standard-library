@@ -1,12 +1,11 @@
 {
     --------------------------------------------
-    Filename: sensor.temperature.mlx90614.i2c.spin2
+    Filename: sensor.temperature.mlx90614.spin2
     Author: Jesse Burt
-    Description: Driver for the Melexis MLX90614 IR thermometer
-        (P2 version)
+    Description: Driver for the Melexis MLX90614 IR thermometer (P2 version)
     Copyright (c) 2022
     Started Mar 17, 2019
-    Updated May 13, 2022
+    Updated Sep 25, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -29,67 +28,67 @@ OBJ
     i2c : "com.i2c"                             ' I2C engine
     core: "core.con.mlx90614"                   ' HW-specific constants
 
-
 VAR
 
     byte _temp_ch                               ' temp. sensor channel #
 
-PUB Null()
+PUB null()
 ' This is not a top-level object
 
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
+PUB startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 ' Start using custom settings
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }   I2C_HZ <= core.I2C_MAX_FREQ
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitus(core.T_POR)
             if i2c.present(SLAVE_WR)            ' check bus device presence
-                if deviceid()
+                if (dev_id())
                     return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 
-PUB Stop()
-
+PUB stop()
+' Stop the driver
     i2c.deinit()
+    _temp_ch := 0
 
-PUB AmbientTempData(): temp_adc
+PUB amb_temp_data(): temp_adc
 ' Read ambient temperature ADC data
 '   Returns: s16
     readreg(core.CMD_RAM, core.T_A, 2, @temp_adc)
 
-PUB AmbientTemp(): temp
+PUB amb_temp(): temp
 ' Reads the Ambient temperature
 '   Returns: Temperature in hundredths of a degree (e.g., 2135 is 21.35 deg),
 '       using the chosen scale
-    return tempword2deg(ambienttempdata())
+    return temp_word2deg(amb_temp_data())
 
-PUB DeviceID(): id
+PUB dev_id(): id
 ' Reads the sensor ID
     readreg(core.CMD_EEPROM, core.EE_ID_1, 4, @id)
 
-PUB EEPROM(ptr_buff)
+PUB rd_eeprom(ptr_buff)
 ' Dump EEPROM to array at ptr_buff
 '   NOTE: ptr_buff must be at least 64 bytes
     readreg(core.CMD_EEPROM, $00, 64, ptr_buff)
 
-PUB TempChannel(ch): curr_ch
+PUB temp_chan(ch): curr_ch
 ' Set temperature sensor channel #
 '   Valid values: 1, 2 (CH2 availability is device-dependent)
 '   Any other value returns the current setting
     if (lookdown(ch: 1..2))
         ch -= 1
 
-PUB TempData(): temp_word
+PUB temp_data(): temp_word
 ' Read object temperature ADC word
 '   Returns: s16
     temp_word := 0
     readreg(core.CMD_RAM, core.T_OBJ1+_temp_ch, 3, @temp_word)
     return temp_word & $ffff
 
-PUB TempWord2Deg(temp_word): temp
+PUB temp_word2deg(temp_word): temp
 ' Convert temperature ADC word to temperature
 '   Returns: temperature, in hundredths of a degree, in chosen scale
     temp_word *= 2
@@ -103,7 +102,7 @@ PUB TempWord2Deg(temp_word): temp
         other:
             return FALSE
 
-PRI readReg(region, reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+PRI readreg(region, reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from device into ptr_buff
     case region
         core.CMD_RAM:
@@ -145,24 +144,21 @@ PRI writeReg(region, reg_nr, nr_bytes, val) | cmd_pkt[2]
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 

@@ -5,7 +5,7 @@
     Description: Driver for the TI INA260 Precision Current and Power Monitor IC (P2 version)
     Copyright (c) 2022
     Started Nov 13, 2019
-    Updated Aug 1, 2022
+    Updated Sep 29, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -81,7 +81,7 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
             waitus(core.T_POR)
             _addr_bits := (ADDR_BITS << 1)
             reset()
-            if (device_id() == core.DEVID_RESP)
+            if (dev_id() == core.DEVID_RESP)
             return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
@@ -91,6 +91,7 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
 PUB stop()
 ' Stop the driver
     i2c.deinit()
+    _addr_bits := 0
 
 PUB adc2amps(adc_word): a
 ' Convert current ADC word to amperage
@@ -130,14 +131,7 @@ PUB current_conv_time(ctime=-2): curr_set
     ctime := ((curr_set & core.ISHCT_MASK) | ctime) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @ctime)
 
-PUB data_ready(): flag
-' Flag indicating data from the last conversion is available for reading
-'   Returns: TRUE (-1) if data available, FALSE (0) otherwise
-    flag := 0
-    readreg(core.ENABLE, 2, @flag)
-    return ((flag & core.DRDY) <> 0)
-
-PUB device_id(): id
+PUB dev_id(): id
 ' Read device ID
 '   Returns:
 '       Most-significant word: Die ID
@@ -151,7 +145,7 @@ PUB die_id(): id
     id := 0
     readreg(core.DIE_ID, 2, @id)
 
-PUB int_active_state(state=-2): curr_state
+PUB int_polarity(state=-2): curr_state
 ' Set interrupt active level/polarity
 '   Valid values:
 '      *INTLVL_LO   (0) Active low
@@ -195,7 +189,7 @@ PUB int_mask(mask=-2): curr_mask
     mask := ((curr_mask & core.ALERTS_MASK) | mask) & core.ENABLE_MASK
     writereg(core.ENABLE, 2, @mask)
 
-PUB ints_latched(state=-2): curr_state
+PUB int_latch_ena(state=-2): curr_state
 ' Enable latching of interrupts
 '   Valid values:
 '       TRUE (-1 or 1): Active interrupts remain asserted until cleared manually
@@ -211,17 +205,16 @@ PUB ints_latched(state=-2): curr_state
     state := ((curr_state & core.LEN_MASK) | state) & core.ENABLE_MASK
     writereg(core.ENABLE, 2, @state)
 
-PUB int_thresh(thresh=-2): curr_thr
+PUB int_set_thresh(thresh)
 ' Set interrupt/alert threshold
-'   Valid values: 0..65535
-'   Any other value polls the chip and returns the current setting
-    case thresh
-        0..65535:
-            writereg(core.ALERT_LIMIT, 2, @thresh)
-        other:
-            curr_thr := 0
-            readreg(core.ALERT_LIMIT, 2, @curr_thr)
-            return curr_thr
+'   Valid values: 0..65535 (clamped to range)
+    thresh := 0 #> thresh <# 65535
+    writereg(core#ALERT_LIMIT, 2, @thresh)
+
+PUB int_thresh{}: thresh
+' Get interrupt/alert threshold
+    thresh := 0
+    readreg(core.ALERT_LIMIT, 2, @thresh)
 
 PUB mfr_id(): id
 ' Read the Manufacturer ID from the chip
@@ -263,9 +256,15 @@ PUB power_data(): p
     p := 0
     readreg(core.POWER, 2, @p)
 
+PUB power_data_rdy(): flag
+' Flag indicating data from the last conversion is available for reading
+'   Returns: TRUE (-1) if data available, FALSE (0) otherwise
+    flag := 0
+    readreg(core.ENABLE, 2, @flag)
+    return ((flag & core.DRDY) <> 0)
+
 PUB power_overflowed(): flag
-' Flag indicating power data exceeded the maximum measurable value
-'   (419_430_000uW/419.43W)
+' Flag indicating power data exceeded the maximum measurable value (419_430_000uW or 419.43W)
     flag := 0
     readreg(core.ENABLE, 2, @flag)
     return ((flag & core.OVERFL) <> 0)
@@ -276,7 +275,7 @@ PUB reset() | tmp
     tmp := core.SOFT_RES
     writereg(core.CONFIG, 2, @tmp)
 
-PUB samples_averaged(samples=-2): curr_smp
+PUB samples_avg(samples=-2): curr_smp
 ' Set number of samples used for averaging measurements
 '   Valid values: *1, 4, 16, 64, 128, 256, 512, 1024
 '   Any other value polls the chip and returns the current setting
@@ -318,7 +317,7 @@ PUB voltage_conv_time(ctime=-2): curr_time
     ctime := ((curr_time & core.VBUSCT_MASK) | ctime) & core.CONFIG_MASK
     writereg(core.CONFIG, 2, @ctime)
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from the slave device into ptr_buff
     case reg_nr
         $00..$03, $06, $07, $fe, $ff:
@@ -334,7 +333,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
         other:
             return
 
-PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Write nr_bytes from ptr_buff to the slave device
     case reg_nr
         $00:

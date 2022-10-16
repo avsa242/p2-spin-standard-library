@@ -388,7 +388,7 @@ CON
     FIFO_OFF_TRIG           = 4
     FIFO_CONT               = 6
 
-PUB Null{}
+PUB null{}
 ' This is not a top-level object
 
 DAT

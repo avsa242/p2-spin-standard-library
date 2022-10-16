@@ -6,7 +6,7 @@
         (P2 version)
     Copyright (c) 2022
     Started Feb 07, 2021
-    Updated Jul 10, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -36,61 +36,23 @@ OBJ
 
     cfg     : "boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    time    : "time"
-    int     : "string.integer"
     vcnl    : "sensor.light.vcnl4200"
 
-PUB Main()
+PUB main() | lux
 
     setup()
-'    ser.hex(vcnl.deviceid, 8)
- '   repeat
+
     vcnl.preset_als_prox()                      ' set to combined ALS and prox.
                                                 ' sensor operating mode
 
     repeat
+        lux := vcnl.lux()
         ser.position(0, 3)
-        ser.str(@"Lux: ")
-        ser.positionx(DAT_COL)
-        decimal(vcnl.lux(), 1000)
-        ser.clearline()
-        ser.newline()
+        ser.printf(@"Lux: %d.%03.3x\n\r", (lux / 1000), (lux // 1000))
+        ser.printf(@"White ADC: %04.4x\n\r", vcnl.white_data())
+        ser.printf(@"Proximity ADC: %04.4x\n\r", vcnl.prox_data())
 
-        ser.str(@"White ADC: ")
-        ser.positionx(DAT_COL)
-        ser.hex(vcnl.whitedata(), 4)
-        ser.newline()
-
-        ser.str(@"Proximity ADC: ")
-        ser.positionx(DAT_COL)
-        ser.hex(vcnl.proxdata(), 4)
-
-PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp, sign
-' Display a scaled up number as a decimal
-'   Scale it back down by divisor (e.g., 10, 100, 1000, etc)
-    whole := scaled / divisor
-    tmp := divisor
-    places := 0
-    part := 0
-    sign := 0
-    if scaled < 0
-        sign := "-"
-    else
-        sign := " "
-
-    repeat
-        tmp /= 10
-        places++
-    until tmp == 1
-    scaled //= divisor
-    part := int.deczeroed(abs(scaled), places)
-
-    ser.char(sign)
-    ser.dec(abs(whole))
-    ser.char(".")
-    ser.str(part)
-
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(30)
@@ -105,24 +67,21 @@ PUB Setup()
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 

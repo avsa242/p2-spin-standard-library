@@ -5,7 +5,7 @@
     Description: Driver for 25xxxx series SPI NOR flash (P2 version)
     Copyright (c) 2022
     Started Nov 09, 2019
-    Updated Jul 30, 2022
+    Updated Oct 3, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -73,9 +73,9 @@ PUB busy(): flag
 '           Write status reg
 '           Erase/Program security reg
 '       FALSE (0) otherwise
-    return ((readstatusreg(1) & core.FLAG_BUSY)) == 1
+    return ((rd_status(1) & core.FLAG_BUSY)) == 1
 
-PUB deviceid(): id
+PUB dev_id(): id
 ' Read the device ID from the flash chip
     id := 0
     readreg(core.MANUF_DEV_ID, 2, @id)
@@ -181,7 +181,7 @@ PUB wr_block_msbf(addr, ptr_buff, nr_bytes) | cmd_pkt
     spi.wrblock_msbf(ptr_buff, nr_bytes)
     pinh(_CS)
 
-PUB writes_enabled(state=-2): curr_state
+PUB writes_ena(state=-2): curr_state
 ' Enable writes to flash chip (page programming, sector/block/chip erase, write status reg,
 '   erase/program security registers)
 '   Valid values: TRUE (-1 or 1), FALSE (0)
@@ -196,7 +196,7 @@ PUB writes_enabled(state=-2): curr_state
 
     writereg(state, 0, 0)
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2], cmd_bytes
+PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2], cmd_bytes
 ' Read nr_bytes from device into ptr_buff
     case_fast reg_nr.byte[0]                    ' validate reg nr
         core.MANUF_DEV_ID:
@@ -224,7 +224,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2], cmd_bytes
     spi.rdblock_lsbf(ptr_buff, nr_bytes)
     pinh(_CS)
 
-PRI readStatusReg(reg_nr): status | tmp
+PRI rd_status(reg_nr): status | tmp
 ' Read status register
 '   Valid values: 1, 2, 3
 '   Any other value polls the chip and returns the current setting
@@ -235,7 +235,7 @@ PRI readStatusReg(reg_nr): status | tmp
             return
     readreg(reg_nr, 1, @status)
 
-PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, cmd_bytes
+PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, cmd_bytes
 ' Write nr_bytes to device from ptr_buff
     case reg_nr.byte[0]
         core.WRITE_ENABLE, core.WRITE_DISABLE, core.GLOBAL_BLK_LOCK, core.GLOBAL_BLK_UNLOCK:
@@ -262,24 +262,21 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, cmd_bytes
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 

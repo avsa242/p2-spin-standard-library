@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Oct 11, 2018
-    Updated: Sep 6, 2022
+    Updated: Oct 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -26,13 +26,12 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT, ptr_dispbuff): st
 ' ADDR_BITS: specify LSBs of slave address (%000..%111)
 ' ptr_disp: pointer to display buffer, of minimum (W*H)/8 bytes
 '   (e.g., for an 8x8 matrix, 8*8=64 / 8 = 8 bytes)
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
-}   I2C_HZ <= core.I2C_MAX_FREQ
-        if lookdown(ADDR_BITS: %000..%111)
+    if (lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and I2C_HZ <= core.I2C_MAX_FREQ)
+        if (lookdown(ADDR_BITS: %000..%111))
             if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
-                waitus(core.T_POR)         ' wait for device startup
+                waitus(core.T_POR)              ' wait for device startup
                 _addr_bits := ADDR_BITS << 1
-                if i2c.present(SLAVE_WR | _addr_bits) ' test device presence
+                if (i2c.present(SLAVE_WR | _addr_bits))' test device presence
                     _disp_width := WIDTH
                     _disp_height := HEIGHT
                     _disp_xmax := _disp_width-1
@@ -65,7 +64,7 @@ PUB clear()
 
 PUB plot(x, y, color)
 ' Plot pixel at (x, y) in color
-    if (x < 0 or x > _disp_xmax) or (y < 0 or y > _disp_ymax)
+    if ((x < 0 or x > _disp_xmax) or (y < 0 or y > _disp_ymax))
         return                                  ' coords out of bounds, ignore
 #ifdef GFX_DIRECT
 ' direct to display
@@ -97,7 +96,7 @@ PUB point(x, y): pix_clr
     return byte[_ptr_drawbuffer][y + (x >> 3) * _disp_width]
 #endif
 
-PUB update()
+PUB show()
 ' Write display buffer to display
     writereg(core.DISP_RAM, _ptr_drawbuffer)
 

@@ -5,7 +5,7 @@
     Description: Driver for the RV3028 RTC (P2 version)
     Copyright (c) 2022
     Started Mar 13, 2021
-    Updated Aug 3, 2022
+    Updated Sep 20, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -330,7 +330,7 @@ PUB timer_remaining(): t
     readreg(core.TMRSTAT_LSB, 2, @t)
     t &= core.TIMER_MASK
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from the device into ptr_buff
     case reg_nr                                 ' validate register num
         $00..$3F:
@@ -345,7 +345,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
         other:                                  ' invalid reg_nr
             return
 
-PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Write nr_bytes to the device from ptr_buff
     case reg_nr
         $00..$2A, $2C..$3F:

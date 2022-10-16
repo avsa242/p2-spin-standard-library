@@ -2,11 +2,10 @@
     --------------------------------------------
     Filename: display.oled.ssd1331.spin2
     Author: Jesse Burt
-    Description: Driver for Solomon Systech SSD1331 RGB OLED displays
-        (P2 version)
+    Description: Driver for Solomon Systech SSD1331 RGB OLED displays (P2 version)
     Copyright (c) 2022
     Started: Apr 28, 2019
-    Updated: Sep 6, 2022
+    Updated: Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -93,7 +92,7 @@ PUB startx(CS_PIN, CLK_PIN, DIN_PIN, DC_PIN, RES_PIN, CLK_FREQ, WIDTH, HEIGHT, p
 
 PUB stop()
 ' Turn off display, stop SPI engine, clear out variable space
-    displayvisibility(ALL_OFF)
+    disp_vis_ena(ALL_OFF)
     powered(FALSE)
     spi.deinit()
     longfill(@_CS, 0, 3)
@@ -107,66 +106,66 @@ PUB defaults()
 #ifdef HAS_RESET
     reset()
 #else
-    displayvisibility(ALL_OFF)
-    displaystartline(0)
-    displaylines(64)
-    extsupply()
-    clockfreq(956)
-    clockdiv(1)
+    disp_vis_ena(ALL_OFF)
+    disp_start_line(0)
+    disp_lines(64)
+    ext_supply_ena()
+    clk_freq(956)
+    clk_div(1)
     contrast(127)
     powered(TRUE)
-    displaybounds(0, 0, 95, 63)
+    disp_area(0, 0, 95, 63)
     clear()
-    displayvisibility(NORMAL)
+    disp_vis_ena(NORMAL)
 #endif
 
 PUB preset_96x64()
 ' Preset: 96px wide, setup for 64px height
-    displayvisibility(ALL_OFF)
-    colordepth(COLOR_65K)
+    disp_vis_ena(ALL_OFF)
+    color_depth(COLOR_65K)
     powered(FALSE)
-    displaylines(64)
-    extsupply()
-    clockfreq(956)
-    clockdiv(1)
+    disp_lines(64)
+    ext_supply_ena()
+    clk_freq(956)
+    clk_div(1)
     contrast(127)
-    interlaced(false)
+    interlace_ena(false)
     powered(TRUE)
-    displaybounds(0, 0, 95, 63)
+    disp_area(0, 0, 95, 63)
     clear()
-    displayvisibility(NORMAL)
+    disp_vis_ena(NORMAL)
 
-PUB preset_96x64_HiPerf()
+PUB preset_96x64_hi_perf()
 ' Preset: 96px wide, setup for 64px height, display osc. set to max clock
-    displayvisibility(ALL_OFF)
-    colordepth(COLOR_65K)
+    disp_vis_ena(ALL_OFF)
+    color_depth(COLOR_65K)
     powered(FALSE)
-    displaylines(64)
-    extsupply()
-    clockfreq(980)
-    clockdiv(1)
+    disp_lines(64)
+    ext_supply_ena()
+    clk_freq(980)
+    clk_div(1)
     contrast(127)
-    interlaced(false)
+    interlace_ena(false)
     powered(TRUE)
-    displaybounds(0, 0, 95, 63)
+    disp_area(0, 0, 95, 63)
     clear()
-    displayvisibility(NORMAL)
+    disp_vis_ena(NORMAL)
 
 PUB preset_96x()
 ' Preset: 96px wide, determine settings for height at runtime
-    displayvisibility(ALL_OFF)
-    colordepth(COLOR_65K)
+    disp_vis_ena(ALL_OFF)
+    color_depth(COLOR_65K)
     powered(FALSE)
-    displaylines(_disp_height)
-    extsupply()
-    clockfreq(956)
-    clockdiv(1)
+    disp_lines(_disp_height)
+    ext_supply_ena()
+    clk_freq(956)
+    clk_div(1)
     contrast(127)
-    interlaced(false)
+    interlace_ena(false)
     powered(TRUE)
-    displaybounds(0, 0, _disp_width, _disp_height)
+    disp_area(0, 0, _disp_width, _disp_height)
     clear()
-    displayvisibility(NORMAL)
+    disp_vis_ena(NORMAL)
 
 PUB address(addr): curr_addr
 ' Set framebuffer/display buffer address
@@ -176,7 +175,7 @@ PUB address(addr): curr_addr
         other:
             return _ptr_drawbuffer
 
-PUB addrmode(mode): curr_mode
+PUB addr_mode(mode): curr_mode
 ' Set display internal addressing mode
 '   Valid values:
 '       HORIZ (0): Horizontal addressing mode
@@ -197,7 +196,7 @@ PUB bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs, nr_pix
 '   (xs, ys): upper-left corner of bitmap
 '   bm_wid: width of bitmap, in pixels
 '   bm_lns: number of lines in bitmap
-    displaybounds(xs, ys, xs+(bm_wid-1), ys+(bm_lns-1))
+    disp_area(xs, ys, xs+(bm_wid-1), ys+(bm_lns-1))
     pinl(_CS)
     ' calc total number of pixels to write, based on dims and color depth
     ' clamp to a minimum of 1 to avoid odd behavior
@@ -222,9 +221,9 @@ PUB box(sx, sy, ex, ey, color, filled) | tmp[3]
 
     if ( abs(filled) <> (_sh_FILL & 1) )        ' only call this if the filled
         if (filled)                             '  param is different than the
-            fillaccelenabled(TRUE)              '  current filled setting
+            fill_accel_ena(TRUE)                '  current filled setting
         else                                    '  to avoid having to sending
-            fillaccelenabled(FALSE)             '  it to the display every time
+            fill_accel_ena(FALSE)               '  it to the display every time
 
     { start, end coords }
     tmp.byte[0] := sx
@@ -245,7 +244,9 @@ PUB box(sx, sy, ex, ey, color, filled) | tmp[3]
 #endif
 
 #ifdef GFX_DIRECT
-PUB char(ch) | gl_c, gl_r, lastgl_c, lastgl_r
+PUB tx = putchar
+PUB char = putchar
+PUB putchar(ch) | gl_c, gl_r, lastgl_c, lastgl_r
 ' Draw character from currently loaded font
     lastgl_c := _font_width-1
     lastgl_r := _font_height-1
@@ -295,7 +296,7 @@ PUB clear()
     wordfill(_ptr_drawbuffer, _bgcolor, _buff_sz/2)
 #endif
 
-PUB clockdiv(divider): curr_div
+PUB clk_div(divider): curr_div
 ' Set clock frequency divider used by the display controller
 '   Valid values: 1..16
 '   Any other value returns the current setting
@@ -309,7 +310,7 @@ PUB clockdiv(divider): curr_div
     _sh_CLK := ((_sh_CLK & core.CLKDIV_MASK) | divider)
     writereg(core.CLKDIV_FRQ, 1, @_sh_CLK)
 
-PUB clockfreq(freq): curr_freq
+PUB clk_freq(freq): curr_freq
 ' Set display internal oscillator frequency, in kHz
 '   Valid values: 800..980, in steps of 12
 '   Any other value returns the current setting
@@ -324,7 +325,7 @@ PUB clockfreq(freq): curr_freq
     _sh_CLK := ((_sh_CLK & core.FOSCFREQ_MASK) | freq)
     writereg(core.CLKDIV_FRQ, 1, @_sh_CLK)
 
-PUB colordepth(format): curr_fmt
+PUB color_depth(format): curr_fmt
 ' Set expected color format of pixel data
 '   Valid values:
 '       COLOR_256 (0): 8-bit/256 color
@@ -345,11 +346,11 @@ PUB contrast(level)
 ' Set display contrast/brightness
 '   Valid values: 0..255
 '   Any other value returns the current setting
-    contrasta(level)
-    contrastb(level)
-    contrastc(level)
+    contrast_a(level)
+    contrast_b(level)
+    contrast_c(level)
 
-PUB contrasta(level): curr_lvl
+PUB contrast_a(level): curr_lvl
 ' Set contrast/brightness level of subpixel A
 '   Valid values: 0..255
 '   Any other value returns the current setting
@@ -360,7 +361,7 @@ PUB contrasta(level): curr_lvl
         other:
             return _sh_SETCONTRAST_A
 
-PUB contrastb(level): curr_lvl
+PUB contrast_b(level): curr_lvl
 ' Set contrast/brightness level of subpixel B
 '   Valid values: 0..255
 '   Any other value returns the current setting
@@ -371,7 +372,7 @@ PUB contrastb(level): curr_lvl
         other:
             return _sh_SETCONTRAST_B
 
-PUB contrastc(level): curr_lvl
+PUB contrast_c(level): curr_lvl
 ' Set contrast/brightness level of subpixel C
 '   Valid values: 0..255
 '   Any other value returns the current setting
@@ -386,50 +387,19 @@ PUB contrastc(level): curr_lvl
 PUB copy(sx, sy, ex, ey, dx, dy) | tmp[2]
 ' Use the display's accelerated Copy Region function
 '   Valid values:
-'       sx, ex, dx: 0..95
-'       sy, ey, dy: 0..63
-'   Any other value will be ignored
-    case sx
-        0..95:
-        other:
-            return
-
-    case sy
-        0..63:
-        other:
-            return
-
-    case ex
-        0..95:
-        other:
-            return
-
-    case ey
-        0..63:
-        other:
-            return
-
-    case dx
-        0..95:
-        other:
-            return
-
-    case dy
-        0..63:
-        other:
-            return
-
-    tmp.byte[0] := sx
-    tmp.byte[1] := sy
-    tmp.byte[2] := ex
-    tmp.byte[3] := ey
-    tmp.byte[4] := dx
-    tmp.byte[5] := dy
+'       sx, ex, dx: 0..95 (clamped to range)
+'       sy, ey, dy: 0..63 (clamped to range)
+    tmp.byte[0] := 0 #> sx <# 95
+    tmp.byte[1] := 0 #> sy <# 63
+    tmp.byte[2] := 0 #> ex <# 95
+    tmp.byte[3] := 0 #> ey <# 63
+    tmp.byte[4] := 0 #> dx <# 95
+    tmp.byte[5] := 0 #> dy <# 63
     writereg(core.COPY, 6, @tmp)
 #endif
 
-PUB copyaccelinverted(state): curr_state
-' Enable inverted colors, when using CopyAccel()
+PUB copy_invert_ena(state): curr_state
+' Enable inverted colors, when using copy()
     curr_state := _sh_FILL
     case abs(state)
         0, 1:
@@ -440,24 +410,18 @@ PUB copyaccelinverted(state): curr_state
     _sh_FILL := ((_sh_FILL & core.REVCOPY_MASK) | state)
     writereg(core.FILLCPY, 1, @_sh_FILL)
 
-PUB currentlimit(divisor): curr_div
+PUB current_limit(divisor): curr_div
 ' Set master current limit divisor
-    case divisor
-        1..16:
-            _sh_MASTERCCTRL := divisor - 1
-            writereg(core.MASTERCURRENT, 1, @_sh_MASTERCCTRL)
-        other:
-            curr_div := _sh_MASTERCCTRL
-            return curr_div + 1
+    _sh_MASTERCCTRL := ((1 #> divisor <# 16) - 1)
+    writereg(core.MASTERCURRENT, 1, @_sh_MASTERCCTRL)
 
-PUB displaybounds(sx, sy, ex, ey) | tmp
+PUB disp_area(sx, sy, ex, ey) | tmp
 ' Set drawable display region for subsequent drawing operations
 '   Valid values:
 '       sx, ex: 0..95
 '       sy, ey: 0..63
 '   Any other value will be ignored
-    ifnot lookup(sx: 0..95) or lookup(sy: 0..63) or lookup(ex: 0..95) or{
-}   lookup(ey: 0..63)
+    ifnot (lookup(sx: 0..95) or lookup(sy: 0..63) or lookup(ex: 0..95) or lookup(ey: 0..63))
         return
 
     tmp.byte[0] := sx
@@ -470,50 +434,30 @@ PUB displaybounds(sx, sy, ex, ey) | tmp
 
     writereg(core.SETROW, 2, @tmp)
 
-PUB displayinverted(state) | tmp
+PUB disp_inverted(state) | tmp
 ' Invert display colors
-    case abs(state)
-        0:
-            displayvisibility(NORMAL)
-        1:
-            displayvisibility(INVERTED)
-        other:
-            return
+    if (state)
+        disp_vis_ena(INVERTED)
+    else
+        disp_vis_ena(NORMAL)
 
-PUB displaylines(lines): curr_lines
+PUB disp_lines(lines)
 ' Set maximum number of display lines
-'   Valid values: 16..64
-'   Any other value returns the current setting
-    curr_lines := _sh_MULTIPLEX
-    case lines
-        16..64:
-            _sh_MULTIPLEX := lines - 1
-            writereg(core.SETMULTIPLEX, 1, @_sh_MULTIPLEX)
-        other:
-            curr_lines := _sh_MULTIPLEX
-            return curr_lines + 1
+'   Valid values: 16..64 (clamped to range)
+    _sh_MULTIPLEX := ((16 #> lines <# 64) - 1)
+    writereg(core.SETMULTIPLEX, 1, @_sh_MULTIPLEX)
 
-PUB displayoffset(lines): curr_lines
+PUB disp_offset(lines)
 ' Set display offset/vertical shift
-    case lines
-        0..63:
-            _sh_DISPOFFSET := lines
-            writereg(core.DISPLAYOFFSET, 1, @_sh_DISPOFFSET)
-        other:
-            curr_lines := _sh_DISPOFFSET
-            return curr_lines
+    _sh_DISPOFFSET := (0 #> lines <# 63)
+    writereg(core.DISPLAYOFFSET, 1, @_sh_DISPOFFSET)
 
-PUB displaystartline(st_line): curr_line
+PUB disp_start_line(line)
 ' Set display start line
-    case st_line
-        0..63:
-            _sh_DISPSTARTLINE := st_line
-            writereg(core.STARTLINE, 1, @_sh_DISPSTARTLINE)
-        other:
-            curr_line := _sh_DISPSTARTLINE
-            return curr_line
+    _sh_DISPSTARTLINE := (0 #> st_line <# 63)
+    writereg(core.STARTLINE, 1, @_sh_DISPSTARTLINE)
 
-PUB displayvisibility(mode): curr_mode
+PUB disp_vis_ena(mode): curr_mode
 ' Set display visibility
     case mode
         NORMAL, ALL_ON, ALL_OFF, INVERTED:
@@ -523,37 +467,23 @@ PUB displayvisibility(mode): curr_mode
             curr_mode := _sh_DISPMODE
             return (_sh_DISPMODE - core.NORMALDISPLAY)
 
-PUB extsupply() | tmp
+PUB ext_supply_ena() | tmp
 
     tmp := core.MASTERCFG_EXT_VCC
     writereg(core.SETMASTER, 1, @tmp)
 
-PUB fillaccelenabled(state): curr_state
-' Enable the display's native/accelerated fill function, when using Box()
-    curr_state := _sh_FILL
-    case abs(state)
-        0, 1:
-            state := abs(state)
-        other:
-            return ((curr_state & 1) == 1)
-
-    _sh_FILL := ((_sh_FILL & core.FILL_MASK) | state)
+PUB fill_accel_ena(state)
+' Enable the display's native/accelerated fill function, when using box()
+    _sh_FILL := ((_sh_FILL & core.FILL_MASK) | ((state <> 0) & 1))
     writereg(core.FILLCPY, 1, @_sh_FILL)
 
-PUB interlaced(state): curr_state
+PUB interlace_ena(state)
 ' Alternate every other display line:
 ' Lines 0..31 will appear on even rows (starting on row 0)
 ' Lines 32..63 will appear on odd rows (starting on row 1)
-'   Valid values: TRUE (-1 or 1), FALSE (0)
-'   Any other value returns the current setting
-    curr_state := _sh_REMAPCOLOR
-    case abs(state)
-        0, 1:
-            { invert logic for COMSPLIT bit }
-            state := (abs(state) ^ 1) << core.COMSPLIT
-        other:
-            return (((curr_state >> core.COMSPLIT) & 1) == 0)
-
+'   Valid values: TRUE (non-zero), FALSE (0)
+    { invert logic for COMSPLIT bit }
+    state := ((((state <> 0) & 1)  ^ 1) << core.COMSPLIT)
     _sh_REMAPCOLOR := ((_sh_REMAPCOLOR & core.COMSPLIT_MASK) | state)
     writereg(core.SETREMAP, 1, @_sh_REMAPCOLOR)
 
@@ -575,7 +505,7 @@ PUB line(sx, sy, ex, ey, color) | tmp[2]
     writereg(core.DRAWLINE, 7, @tmp)
 #endif
 
-PUB mirrorh(state): curr_state
+PUB mirror_h(state): curr_state
 ' Mirror the display, horizontally
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value returns the current setting
@@ -589,7 +519,7 @@ PUB mirrorh(state): curr_state
     _sh_REMAPCOLOR := ((_sh_REMAPCOLOR & core.SEGREMAP_MASK | state))
     writereg(core.SETREMAP, 1, @_sh_REMAPCOLOR)
 
-PUB mirrorv(state): curr_state
+PUB mirror_v(state): curr_state
 ' Mirror the display, vertically
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value returns the current setting
@@ -603,27 +533,16 @@ PUB mirrorv(state): curr_state
     _sh_REMAPCOLOR := ((_sh_REMAPCOLOR & core.COMREMAP_MASK) | state)
     writereg(core.SETREMAP, 1, @_sh_REMAPCOLOR)
 
-PUB phase1period(clks): curr_clks
+PUB phase1_period(clks)
 ' Set discharge/phase 1 period, in display clocks
-    curr_clks := _sh_PHASE12PER
-    case clks
-        1..15:
-        other:
-            return (curr_clks & core.PHASE1)
-
-    _sh_PHASE12PER := ((_sh_PHASE12PER & core.PHASE1_MASK) | clks)
+'   Valid values: 1..15 (clamped to range)
+    _sh_PHASE12PER := ((_sh_PHASE12PER & core.PHASE1_MASK) | (1 #> clks <# 15))
     writereg(core.PRECHG, 1, @_sh_PHASE12PER)
 
-PUB phase2period(clks): curr_clks
+PUB phase2period(clks)
 ' Set charge/phase 2 period, in display clocks
-    curr_clks := _sh_PHASE12PER
-    case clks
-        1..15:
-            clks <<= core.PHASE2
-        other:
-            return ((curr_clks >> core.PHASE2) & core.PHASE2)
-
-    _sh_PHASE12PER := ((_sh_PHASE12PER & core.PHASE2_MASK) | clks)
+'   Valid values: 1..15 (clamped to range)
+    _sh_PHASE12PER := ((_sh_PHASE12PER & core.PHASE2_MASK) | ((1 #> clks <# 15) << core#PHASE2))
     writereg(core.PRECHG, 1, @_sh_PHASE12PER)
 
 PUB plot(x, y, color) | tmp
@@ -642,11 +561,11 @@ PUB plot(x, y, color) | tmp
 
     pinw(_DC, core.DATA)
     pinl(_CS)
-    { ColorDepth(COLOR_65K) }
+    { color_depth(COLOR_65K) }
     spi.wr_byte(color.byte[1])
     spi.wr_byte(color.byte[0])
 
-    { ColorDepth(COLOR_65K2) }
+    { color_depth(COLOR_65K2) }
 '    spi.wr_byte(rgb565_r5(color) << 1)
 '    spi.wr_byte(rgb565_g5(color))
 '    spi.wr_byte(rgb565_b5(color) << 1)
@@ -677,48 +596,26 @@ PUB powered(state): curr_state
             return lookdownz(_sh_DISPONOFF: core.DISPLAYOFF, core.DISPLAYON,{
 }           core.DISPLAYONDIM)
 
-PUB powersaving(state): curr_state
+PUB power_saving_ena(state)
 ' Enable display power saving mode
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value returns the current setting
-    case abs(state)
-        0, 1:
-            state := lookupz(abs(state): core.PWRSAVE_DIS, core.PWRSAVE_ENA)
-            _sh_PWRSAVE := state
-            writereg(core.PWRMODE, 1, @_sh_PWRSAVE)
-        other:
-            curr_state := _sh_PWRSAVE
-            return (lookdownz(curr_state: core.PWRSAVE_DIS, core.PWRSAVE_ENA) & 1) == 1
+    state := lookupz(((state <> 0) & 1): core.PWRSAVE_DIS, core.PWRSAVE_ENA)
+    _sh_PWRSAVE := state
+    writereg(core.PWRMODE, 1, @_sh_PWRSAVE)
 
-PUB prechargelevel(level): curr_lvl
+PUB precharge_lvl(level)
 ' Set first pre-charge voltage level (phase 2) of segment pins, in millivolts
-    case level
-        100..500:
-            level := ((level * 10) - 100_0) / 12_9
-            _sh_PRECHGLEV := level << core.PRECHG_LVL
-            writereg(core.PRECHGLVL, 1, @_sh_PRECHGLEV)
-        other:
-            curr_lvl := _sh_PRECHGLEV >> 1
-            return ((curr_lvl * 12_9) + 100_0) / 10
+'   Valid values: 100..500 (clamped to range)
+    level := (((100 #> level <# 500) * 10) - 100_0) / 12_9
+    _sh_PRECHGLEV := level << core.PRECHG_LVL
+    writereg(core.PRECHGLVL, 1, @_sh_PRECHGLEV)
 
-PUB prechargespeed(seg_a, seg_b, seg_c) | tmp[2]
+PUB precharge_speed(seg_a, seg_b, seg_c) | tmp[2]
 
-    case seg_a
-        $00..$FF:
-        other:
-            return _sh_SECPRECHG.byte[0]
-    case seg_b
-        $00..$FF:
-        other:
-            return _sh_SECPRECHG.byte[1]
-    case seg_c
-        $00..$FF:
-        other:
-            return _sh_SECPRECHG.byte[2]
-
-    _sh_SECPRECHG[0] := seg_a
-    _sh_SECPRECHG[1] := seg_b
-    _sh_SECPRECHG[2] := seg_c
+    _sh_SECPRECHG[0] := 0 #> seg_a <# 255
+    _sh_SECPRECHG[1] := 0 #> seg_b <# 255
+    _sh_SECPRECHG[2] := 0 #> seg_c <# 255
 
     tmp.byte[0] := seg_a
     tmp.byte[1] := core.PRECHGB
@@ -736,18 +633,12 @@ PUB reset()
         pinh(_RES)
         waitus(core.T_RES_COMPLT)
 
-PUB subpixelorder(order): curr_ord
+PUB subpix_order(order): curr_ord
 ' Set subpixel color order
 '   Valid values:
 '       RGB (0): Red-Green-Blue order
 '       BGR (1): Blue-Green-Red order
-'   Any other value returns the current setting
-    curr_ord := _sh_REMAPCOLOR
-    case order
-        RGB, BGR:
-            order <<= core.SUBPIX_ORDER
-        other:
-            return (curr_ord >> core.SUBPIX_ORDER) & 1
+    order := ((RGB #> order <# BGR) << core.SUBPIX_ORDER)
 
     _sh_REMAPCOLOR := ((_sh_REMAPCOLOR & core.SUBPIX_ORDER_MASK) | order)
     writereg(core.SETREMAP, 1, @_sh_REMAPCOLOR)
@@ -762,7 +653,7 @@ PUB update()
     pinh(_CS)
 #endif
 
-PUB vcomhvoltage(level): curr_lvl
+PUB vcomh_voltage(level): curr_lvl
 ' Set COM output voltage, in millivolts
 '   Valid values: 440, 520, 610, 710, 830
 '   Any other value returns the current setting
@@ -775,21 +666,16 @@ PUB vcomhvoltage(level): curr_lvl
             curr_lvl := lookdown(_sh_VCOMH: $00, $10, $20, $30, $3E)
             return lookup(curr_lvl: 440, 520, 610, 710, 830)
 
-PUB vertaltscan(state): curr_state
+PUB vert_alt_scan(state): curr_state
 ' Alternate Left-Right, Right-Left scanning, every other display line
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value returns the current setting
-    curr_state := _sh_REMAPCOLOR
-    case abs(state)
-        0, 1:
-            state := abs(state) << core.COMLR_SWAP
-        other:
-            return (((curr_state >> core.COMLR_SWAP) & 1) == 1)
-
-    _sh_REMAPCOLOR := ((_sh_REMAPCOLOR & core.COMLR_SWAP_MASK) | state)
+    state := abs(state) << core.COMLR_SWAP
+    _sh_REMAPCOLOR := ((_sh_REMAPCOLOR & core.COMLR_SWAP_MASK) | (((state <> 0) & 1) {
+}   << core#COMLR_SWAP))
     writereg(core.SETREMAP, 1, @_sh_REMAPCOLOR)
 
-PUB writebuffer(ptr_buff, buff_sz)
+PUB wr_buffer(ptr_buff, buff_sz)
 ' Write alternate buffer to display
     pinw(_DC, DATA)
     pinl(_CS)

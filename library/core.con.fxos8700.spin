@@ -128,8 +128,8 @@ CON
     PL_BF_ZCOMP         = $13
     PL_THS_REG          = $14
 
-    FFMT_CFG            = $15
-    FFMT_CFG_MASK       = $F8
+    FF_MT_CFG           = $15
+    FF_MT_CFG_MASK      = $F8
         FELE            = 7
         FOAE            = 6
         FZEFE           = 5
@@ -137,12 +137,12 @@ CON
         FXEFE           = 3
         FEFE            = 3
         FEFE_BITS       = %111
-        FELE_MASK       = (1 << FELE) ^ FFMT_CFG_MASK
-        FOAE_MASK       = (1 << FOAE) ^ FFMT_CFG_MASK
-        FEFE_MASK       = FEFE_BITS ^ FFMT_CFG_MASK
+        FELE_MASK       = (1 << FELE) ^ FF_MT_CFG_MASK
+        FOAE_MASK       = (1 << FOAE) ^ FF_MT_CFG_MASK
+        FEFE_MASK       = FEFE_BITS ^ FF_MT_CFG_MASK
 
-    FFMT_SRC            = $16
-    FFMT_SRC_MASK       = $BF
+    FF_MT_SRC           = $16
+    FF_MT_SRC_MASK      = $BF
         FEA             = 7
         ZHE             = 5
         ZHP             = 4
@@ -151,15 +151,15 @@ CON
         XHE             = 1
         XHP             = 0
 
-    FFMT_THS            = $17
-    FFMT_THS_MASK       = $FF
+    FF_MT_THS           = $17
+    FF_MT_THS_MASK      = $FF
         FDBCNTM         = 7
         FF_THS          = 0
         FF_THS_BITS     = %1111111
-        FDBCNTM_MASK    = (1 << FDBCNTM) ^ FFMT_THS_MASK
-        FF_THS_MASK     = FF_THS_BITS ^ FFMT_THS_MASK
+        FDBCNTM_MASK    = (1 << FDBCNTM) ^ FF_MT_THS_MASK
+        FF_THS_MASK     = FF_THS_BITS ^ FF_MT_THS_MASK
 
-    FFMT_CNT            = $18
+    FF_MT_CNT            = $18
 
 ' $19..$1C RESERVED
 
@@ -267,7 +267,7 @@ CON
         WAKE_TRANS      = 6
         WAKE_LNDPRT     = 5
         WAKE_PULSE      = 4
-        WAKE_FFMT       = 3
+        WAKE_FF_MT      = 3
         WAKE_VECM       = 2
         WAKE            = 2                     ' pseudo field: all WAKE fields
         IPOL            = 1
@@ -277,7 +277,7 @@ CON
         WAKE_TRANS_MASK = (1 << WAKE_TRANS) ^ CTRL_REG3_MASK
         WAKE_LNDPRT_MASK= (1 << WAKE_LNDPRT) ^ CTRL_REG3_MASK
         WAKE_PULSE_MASK = (1 << WAKE_PULSE) ^ CTRL_REG3_MASK
-        WAKE_FFMT_MASK  = (1 << WAKE_FFMT) ^ CTRL_REG3_MASK
+        WAKE_FF_MT_MASK = (1 << WAKE_FF_MT) ^ CTRL_REG3_MASK
         WAKE_VECM_MASK  = (1 << WAKE_VECM) ^ CTRL_REG3_MASK
         WAKE_MASK       = (WAKE_BITS << WAKE) ^ CTRL_REG3_MASK
         IPOL_MASK       = (1 << IPOL) ^ CTRL_REG3_MASK
@@ -423,28 +423,26 @@ CON
 
 ' $79 RESERVED
 
-PUB Null{}
+PUB null{}
 ' This is not a top-level object
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+

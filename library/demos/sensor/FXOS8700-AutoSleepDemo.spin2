@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Demo of the FXOS8700 driver
         Auto-sleep functionality (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Nov 20, 2021
-    Updated Nov 20, 2021
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,10 +20,10 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-' I2C configuration
+    { I2C configuration }
     SCL_PIN     = 0
     SDA_PIN     = 1
-    I2C_HZ      = 400_000                       ' max is 400_000
+    I2C_FREQ    = 400_000                       ' max is 400_000
     ADDR_BITS   = %11                           ' %00..%11 ($1E, 1D, 1C, 1F)
 
     RES_PIN     = -1                            ' reset optional: -1 to disable
@@ -38,150 +38,99 @@ OBJ
 
     cfg     : "boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    int     : "string.integer"
-    accel   : "sensor.imu.6dof.fxos8700"
+    sensor  : "sensor.imu.6dof.fxos8700"
 
 VAR
 
     long _isr_stack[50]                         ' stack for ISR core
     long _intflag                               ' interrupt flag
 
-PUB Main() | intsource, temp, sysmod
+PUB main() | intsource, temp, sysmod
 
     setup()
-    accel.preset_active()                       ' default settings, but enable
+    sensor.preset_active()                       ' default settings, but enable
                                                 ' sensor power, and set
                                                 ' scale factors
-    accel.intactivestate(accel.LOW)
-    accel.acceldatarate(100)                    ' 100Hz ODR when active
-    accel.autosleep(true)                       ' enable auto-sleep
-    accel.accelsleeppwrmode(accel.LOPWR)        ' lo-power mode when sleeping
-    accel.accelpowermode(accel.HIGHRES)         ' high-res mode when awake
-    accel.transaxisenabled(%011)                ' transient detection on X, Y
-    accel.transthresh(0_252000)                 ' set thresh to 0.252g (0..8g)
-    accel.transcount(1)                         ' reset counter
-    accel.inacttime(5_120)                      ' inactivity timeout ~5sec
-    accel.inactint(accel.WAKE_TRANS)            ' wake on transient accel
-    accel.intmask(accel.INT_AUTOSLPWAKE | accel.INT_TRANS)
-    accel.introuting(accel.INT_AUTOSLPWAKE | accel.INT_TRANS)
-    accel.autosleepdatarate(6)                  ' 6Hz ODR when sleeping
-    dira[LED] := 1
+    sensor.int_polarity(sensor.LOW)
+    sensor.accel_data_rate(100)                    ' 100Hz ODR when active
+    sensor.auto_sleep_ena(true)                       ' enable auto-sleep
+    sensor.accel_sleep_pwr_mode(sensor.LOPWR)        ' lo-power mode when sleeping
+    sensor.accel_pwr_mode(sensor.HIGHRES)         ' high-res mode when awake
+    sensor.trans_axis_ena(%011)                ' transient detection on X, Y
+    sensor.trans_thresh(0_252000)                 ' set thresh to 0.252g (0..8g)
+    sensor.trans_set_cnt(1)                         ' reset counter
+    sensor.inact_set_time(5_120)                      ' inactivity timeout ~5sec
+    sensor.inact_int(sensor.WAKE_TRANS)            ' wake on transient accel
+    sensor.int_mask(sensor.INT_AUTOSLPWAKE | sensor.INT_TRANS)
+    sensor.int_routing(sensor.INT_AUTOSLPWAKE | sensor.INT_TRANS)
+    sensor.auto_sleep_data_rate(6)                  ' 6Hz ODR when sleeping
 
     ' The demo continuously displays the current accelerometer data.
     ' When the sensor goes to sleep after approx. 5 seconds, the change
     '   in data rate is visible as a slowed update of the display.
     ' To wake the sensor, shake it along the X and/or Y axes
-    '   by at least 0.252g's.
+    '   by at least the amount set in transthresh() above.
     ' When the sensor is awake, the LED should be on.
     ' When the sensor goes to sleep, it should turn off.
     repeat
         ser.position(0, 3)
-        accelcalc()                             ' show accel data
-        if _intflag                             ' interrupt triggered
-            intsource := accel.interrupt()
-            if (intsource & accel.INT_TRANS)    ' transient acceleration event
-                temp := accel.transinterrupt()  ' clear the trans. interrupt
-            if (intsource & accel.INT_AUTOSLPWAKE)
-                sysmod := accel.sysmode()
-                if (sysmod & accel.SLEEP)       ' op. mode is sleep,
+        show_accel_data()                             ' show accel data
+        if (_intflag)                           ' interrupt triggered
+            intsource := sensor.interrupt()
+            if (intsource & sensor.INT_TRANS)    ' transient acceleration event
+                temp := sensor.trans_interrupt()  ' clear the trans. interrupt
+            if (intsource & sensor.INT_AUTOSLPWAKE)
+                sysmod := sensor.sys_mode()
+                if (sysmod & sensor.SLEEP)       ' op. mode is sleep,
                     pinl(LED)                   '   so turn LED off
-                elseif (sysmod & accel.ACTIVE)  ' else active,
+                elseif (sysmod & sensor.ACTIVE)  ' else active,
                     pinh(LED)                   '   turn it on
 
-        if ser.rxcheck() == "c"                 ' press the 'c' key in the demo
-            calibrate()                         ' to calibrate sensor offsets
+        if (ser.rxcheck() == "c")               ' press the 'c' key in the demo
+            cal_accel()                         ' to calibrate sensor offsets
 
-PUB AccelCalc() | ax, ay, az
-
-    repeat until accel.acceldataready()         ' wait for new sensor data set
-    accel.accelg(@ax, @ay, @az)                 ' read calculated sensor data
-    ser.str(string("Accel (g):"))
-    ser.positionx(DAT_X_COL)
-    decimal(ax, 1000000)                        ' data is in micro-g's; display
-    ser.positionx(DAT_Y_COL)                    ' it as if it were a float
-    decimal(ay, 1000000)
-    ser.positionx(DAT_Z_COL)
-    decimal(az, 1000000)
-    ser.clearline()
-    ser.newline()
-
-PUB Calibrate()
-
-    ser.position(0, 5)
-    ser.str(string("Calibrating..."))
-    accel.calibrateaccel()
-    ser.positionx(0)
-    ser.clearline()
-
-PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp, sign
-' Display a scaled up number as a decimal
-'   Scale it back down by divisor (e.g., 10, 100, 1000, etc)
-    whole := scaled / divisor
-    tmp := divisor
-    places := 0
-    part := 0
-    sign := 0
-    if scaled < 0
-        sign := "-"
-    else
-        sign := " "
-
-    repeat
-        tmp /= 10
-        places++
-    until tmp == 1
-    scaled //= divisor
-    part := int.deczeroed(abs(scaled), places)
-
-    ser.char(sign)
-    ser.dec(abs(whole))
-    ser.char(".")
-    ser.str(part)
-    ser.chars(" ", 5)
-
-PRI ISR()
+PRI cog_isr()
 ' Interrupt service routine
     pinf(INT1)                                  ' INT1 as input
     repeat
-        if pinr(INT1) == 0                      ' wait for INT1 (active low)
+        if (pinr(INT1) == 0)                    ' wait for INT1 (active low)
             _intflag := 1                       '   set flag
-        elseif pinr(INT1) == 1                  ' now wait for it to clear
+        elseif (pinr(INT1) == 1)                ' now wait for it to clear
             _intflag := 0                       '   clear flag
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if accel.startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, RES_PIN)
+    if (sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS, RES_PIN))
         ser.strln(string("FXOS8700 driver started (I2C)"))
     else
         ser.strln(string("FXOS8700 driver failed to start - halting"))
         repeat
 
-    cogspin(NEWCOG, isr, @_isr_stack)                    ' start ISR in another core
+    cogspin(NEWCOG, cog_isr{}, @_isr_stack)                    ' start ISR in another core
+
+#include "acceldemo.common.spin2h"
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 

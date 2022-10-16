@@ -5,7 +5,7 @@
     Description: Driver for AHT20 temperature/RH sensors (P2 version)
     Copyright (c) 2022
     Started Mar 27, 2022
-    Updated Jul 16, 2022
+    Updated Sep 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -30,92 +30,87 @@ OBJ
     u64 : "math.unsigned64"                     ' unsigned 64-bit math
     crc : "math.crc"
 
-PUB Start(): status
-' Start using "standard" Propeller I2C pins and 100kHz
-    return startx(DEF_SCL, DEF_SDA, DEF_HZ)
-
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
+PUB startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 ' Start using custom IO pins and I2C bus frequency
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }   I2C_HZ <= core.I2C_MAX_FREQ                 ' validate pins and bus freq
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitus(core.T_POR)             ' wait for device startup
-            if (deviceid() == core.DEVID_RESP)
+            if (dev_id() == core.DEVID_RESP)
                 return
     ' if this point is reached, something above failed
     ' Re-check I/O pin assignments, bus speed, connections, power
     ' Lastly - make sure you have at least one free core/cog 
     return FALSE
 
-PUB Stop()
+PUB stop()
 ' Stop driver
-'   Deinitialize I2C engine
     i2c.deinit()
 
-PUB Defaults()
+PUB defaults()
 ' Set factory defaults
     reset()
 
-PUB Calibrate()
+PUB calibrate()
 ' Perform device calibration
 '   NOTE: This only needs to be performed once at power-on
     cmd(core.CMD_CAL)
 
-PUB DeviceID(): id
+PUB dev_id(): id
 ' Read device identification
 '   NOTE: This device has no known device ID register, so the I2C address
 '       is returned instead, if it responds.
     if (i2c.present(core.SLAVE_ADDR))
         return core.DEVID_RESP
 
-PUB Measure(): flag
+PUB measure(): flag
 ' Perform temperature/RH measurement
     cmd(core.CMD_MEAS)
     readreg(core.GET_MEAS, 0, 0)
 
-PUB Reset()
+PUB reset()
 ' Reset the device
     cmd(core.CMD_SOFT_RST)
     waitus(core.T_RES)
     calibrate()
 
-PUB RHData(): rhword
+PUB rh_data(): rhword
 ' Relative humidity ADC word
 '   Returns: u20
     measure()
     readreg(core.GET_MEAS, 0, 0)
     return _last_rh
 
-PUB RHDataReady(): flag
+PUB rh_data_rdy(): flag
 ' Flag indicating relative humidity measurement data ready
 '   Returns: TRUE (-1) or FALSE (0)
-    return temprhdataready()
+    return temp_rh_data_rdy()
 
-PUB RHWord2Pct(rhword): pct
+PUB rh_word2pct(rhword): pct
 ' Convert RH ADC word to hundredths of a percent
 '   Returns: 0..100_00
     return u64.multdiv(rhword, FP_SCALE, TWO20)
 
-PUB TempDataReady(): flag
+PUB temp_data_rdy(): flag
 ' Flag indicating temperature measurement data ready
 '   Returns: TRUE (-1) or FALSE (0)
-    return temprhdataready()
+    return temp_rh_data_rdy()
 
-PUB TempRHDataReady(): flag
+PUB temp_rh_data_rdy(): flag
 ' Flag indicating temperature and RH measurements data ready
 '   Returns: TRUE (-1) or FALSE (0)
     flag := 0
     readreg(core.STATUS, 1, @flag)
     return ((flag & core.ST_BUSY) == 0)
 
-PUB TempData(): tword
+PUB temp_data(): tword
 ' Temperature ADC word
 '   Returns: s20
     measure()
     readreg(core.GET_MEAS, 0, 0)
     return _last_temp
 
-PUB TempWord2Deg(tword): deg | sign
+PUB temp_word2deg(tword): deg | sign
 ' Convert temperature ADC word to degrees
 '   Returns: hundredths of a degree, in chosen scale
     if (tword & $8000_0000)                     ' negative temp?
@@ -158,7 +153,7 @@ PRI cmd(cmd_nr)
         other:
             return
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, rd_data_tmp[2], crc_rd, crc_calc
+PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, rd_data_tmp[2], crc_rd, crc_calc
 ' Read nr_bytes from the device into ptr_buff
     case reg_nr                                 ' validate register num
         core.STATUS:
@@ -196,24 +191,21 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, rd_data_tmp[2], crc_rd, crc_c
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 

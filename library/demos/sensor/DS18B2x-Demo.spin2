@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: DS18B2x-Demo.spin
+    Filename: DS18B2x-Demo.spin2
     Author: Jesse Burt
-    Description: Demo of the DS18B2x driver
+    Description: Demo of the DS18B2x driver (P2 version)
     Copyright (c) 2022
     Started Jul 13, 2019
-    Updated Feb 4, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -34,17 +34,16 @@ OBJ
     cfg : "boardcfg.p2eval"
     ds  : "sensor.temperature.ds18b2x"
     ser : "com.serial.terminal.ansi"
-    int : "string.integer"
 
 VAR
 
     long _devs[NR_DEVICES * 2]
 
-PUB Main() | temp, i, nr_found
+PUB main() | temp, i, nr_found, tscl
 
     setup()
 
-    ds.tempscale(SCALE)                         ' set temperature scale
+    ds.temp_scale(SCALE)                        ' set temperature scale
     ds.opmode(ds.MULTI)                         ' ONE (1 sensor), MULTI
 
     nr_found := ds.search(@_devs, 2)            ' how many sensors found?
@@ -52,7 +51,7 @@ PUB Main() | temp, i, nr_found
     i := 0
     repeat nr_found                             ' for each sensor,
         ds.select(@_devs[i])                    '   address it and set its
-        ds.adcres(BITS)                         '   ADC resolution (9..12 bits)
+        ds.adc_res(BITS)                        '   ADC resolution (9..12 bits)
         i += 2
 
     repeat
@@ -64,36 +63,11 @@ PUB Main() | temp, i, nr_found
             ds.select(@_devs[i])                '   address it
             temp := ds.temperature()            '   read its temperature
             ser.printf(@"(%d) %x%x: ", i/2, _devs[i+1], _devs[i])
-            decimal(temp, 100)
-            ser.newline()
+            tscl := lookupz(ds.temp_scale(-2): "C", "F", "K")
+            ser.printf(@"Temp. (deg %c): %3.3d.%02.2d\n\r", tscl, (temp / 100), abs(temp // 100))
             i += 2
 
-PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp, sign
-' Display a scaled up number as a decimal
-'   Scale it back down by divisor (e.g., 10, 100, 1000, etc)
-    whole := scaled / divisor
-    tmp := divisor
-    places := 0
-    part := 0
-    sign := 0
-    if scaled < 0
-        sign := "-"
-    else
-        sign := " "
-
-    repeat
-        tmp /= 10
-        places++
-    until tmp == 1
-    scaled //= divisor
-    part := int.deczeroed(abs(scaled), places)
-
-    ser.char(sign)
-    ser.dec(abs(whole))
-    ser.char(".")
-    ser.str(part)
-
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(30)
@@ -107,24 +81,21 @@ PUB Setup()
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 

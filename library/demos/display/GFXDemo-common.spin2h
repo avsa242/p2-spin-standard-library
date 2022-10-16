@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Feb 20, 2022
-    Updated: Jul 23, 2022
+    Updated: Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -74,7 +74,7 @@ PUB Demo_Bounce() | bx, by, dx, dy, radius
             dx *= -1                            ' left/right edges
 
         disp.circle(bx, by, radius, disp.MAX_COLOR, FALSE)
-        disp.update()
+        disp.show()
         disp.clear()
     waitclear()
 
@@ -84,7 +84,7 @@ PUB Demo_Box() | c
     repeat while _timer_set
         c := math.rndi(disp.MAX_COLOR)
         disp.box(math.rndi(XMAX), math.rndi(YMAX), math.rndi(XMAX), math.rndi(YMAX), c, FALSE)
-        disp.update()
+        disp.show()
     waitclear()
 
 PUB Demo_BoxFilled() | c
@@ -93,7 +93,7 @@ PUB Demo_BoxFilled() | c
     repeat while _timer_set
         c := math.rndi(disp.MAX_COLOR)
         disp.box(math.rndi(XMAX), math.rndi(YMAX), math.rndi(XMAX), math.rndi(YMAX), c, TRUE)
-        disp.update()
+        disp.show()
     waitclear()
 
 PUB Demo_Circle() | x, y, r
@@ -104,7 +104,7 @@ PUB Demo_Circle() | x, y, r
         y := math.rndi(YMAX)
         r := math.rndi(YMAX / 2)
         disp.circle(x, y, r, math.rndi(disp.MAX_COLOR), FALSE)
-        disp.update()
+        disp.show()
     waitclear()
 
 PUB Demo_CircleFilled() | x, y, r
@@ -115,7 +115,7 @@ PUB Demo_CircleFilled() | x, y, r
         y := math.rndi(YMAX)
         r := math.rndi(YMAX / 2)
         disp.circle(x, y, r, math.rndi(disp.MAX_COLOR), TRUE)
-        disp.update()
+        disp.show()
     waitclear()
 
 PUB Demo_Greet()
@@ -126,7 +126,7 @@ PUB Demo_Greet()
     disp.printf(string("%s\n\r"), @_drv_name)
     disp.printf(string("P2X8C4M64P\n\r%dMHz\n\r"), clkfreq / 1_000_000)
     disp.printf(string("%dx%d"), WIDTH, HEIGHT)
-    disp.update()
+    disp.show()
     waitclear()
 
 PUB Demo_Line()
@@ -134,7 +134,7 @@ PUB Demo_Line()
     _timer_set := _time
     repeat while _timer_set
         disp.line(math.rndi(XMAX), math.rndi(YMAX), math.rndi(XMAX), math.rndi(YMAX), math.rndi(disp.MAX_COLOR))
-        disp.update()
+        disp.show()
     waitclear()
 
 PUB Demo_Plot() | x, y
@@ -142,7 +142,7 @@ PUB Demo_Plot() | x, y
     _timer_set := _time
     repeat while _timer_set
         disp.plot(math.rndi(XMAX), math.rndi(YMAX), math.rndi(disp.MAX_COLOR))
-        disp.update()
+        disp.show()
     waitclear()
 
 PUB Demo_Sinewave() | x, y, modifier, offset, div
@@ -163,7 +163,7 @@ PUB Demo_Sinewave() | x, y, modifier, offset, div
             modifier := (abs(cnt) / 1_000_000)   ' system counter as modifier
             y := offset + (math.sin(x * modifier) / div)
             disp.plot(x, y, disp.MAX_COLOR)
-        disp.update()
+        disp.show()
         disp.clear()
     waitclear()
 
@@ -179,7 +179,7 @@ PUB Demo_Text() | ch
         disp.char(ch)
         if (ch++ > 127)
             ch := 32
-        disp.update()
+        disp.show()
     waitclear()
 
 PUB Demo_Wander() | x, y
@@ -207,7 +207,7 @@ PUB Demo_Wander() | x, y
                 if (y < 0)
                     y := YMAX
         disp.plot(x, y, math.rndi(disp.MAX_COLOR))
-        disp.update()
+        disp.show()
     waitclear()
 
 PRI waitClear()

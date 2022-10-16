@@ -6,7 +6,7 @@
         * Temp/RH data output
     Copyright (c) 2022
     Started Jul 27, 2020
-    Updated Jul 13, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -34,7 +34,7 @@ OBJ
     sensor:  "sensor.temp_rh.shtc3"
     ser:    "com.serial.terminal.ansi"
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(10)
@@ -47,7 +47,7 @@ PUB Setup()
         ser.strln(@"SHTC3 driver failed to start - halting")
         repeat
 
-    sensor.tempscale(sensor.C)
+    sensor.temp_scale(sensor.C)
     demo()
 
 #include "temp_rhdemo.common.spin2h"            ' code common to all temp/RH demos

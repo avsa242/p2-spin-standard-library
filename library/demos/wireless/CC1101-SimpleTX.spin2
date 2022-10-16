@@ -2,11 +2,10 @@
     --------------------------------------------
     Filename: CC1101-SimpleTX.spin2
     Author: Jesse Burt
-    Description: Simple transmit demo of the cc1101 driver
-        (P2 version)
+    Description: Simple transmit demo of the cc1101 driver (P2 version)
     Copyright (c) 2022
     Started Nov 29, 2020
-    Updated Feb 4, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,7 +18,7 @@ CON
     LED             = cfg.LED1
     SER_BAUD        = 2_000_000
 
-' CC1101 I/O pins
+    { SPI configuration }
     CS_PIN          = 3
     SCK_PIN         = 2
     MOSI_PIN        = 0
@@ -39,65 +38,58 @@ OBJ
 
     ser     : "com.serial.terminal.ansi"
     cfg     : "boardcfg.p2eval"
-    int     : "string.integer"
     cc1101  : "wireless.transceiver.cc1101"
-    sf      : "string.format"
+    str     : "string"
 
 VAR
 
     byte _pkt_tmp[MAX_PAYLD]
     long _user_str[8]
 
-PUB Main() | counter, str_counter, i, pktlen
+PUB main() | counter, i, pktlen
 
     setup()
 
     _user_str := @"TEST"                        ' any string up to 251 bytes
 
-    cc1101.presetrobust1()                      ' use preset settings
-    cc1101.carrierfreq(433_900_000)             ' freq. to transmit on
-    cc1101.txpower(0)                           ' -30, -20, -15, -10, 0, 5, 7, 10
+    cc1101.preset_robust1()                     ' use preset settings
+    cc1101.carrier_freq(433_900_000)            ' freq. to transmit on
+    cc1101.tx_pwr(0)                            ' -30, -20, -15, -10, 0, 5, 7, 10
 
     ser.clear()
     ser.position(0, 0)
-    ser.printf(@"Transmit mode - %dHz\n\r", cc1101.carrierfreq())
+    ser.printf(@"Transmit mode - %dHz\n\r", cc1101.carrier_freq())
 
     counter := 0
     repeat
         bytefill(@_pkt_tmp, 0, MAX_PAYLD)       ' clear out buffer
 
-        ' add a counter to the end of the payload
-        str_counter := int.deczeroed(counter++, 4)
+        { assemble the payload and copy it to the temporary buffer }
+        str.sprintf2(@_pkt_tmp[POS_PAYLD], @"%s%04.4d", _user_str, counter++)
 
-        ' payload size is user string, the counter digits, and the address
-        pktlen := strsize(_user_str) + strsize(str_counter) + 1
+        { payload size is user string, the counter digits, and the address }
+        pktlen := strsize(@_pkt_tmp[POS_PAYLD]) + 1
         _pkt_tmp[POS_PKTLEN] := pktlen          ' 1st byte is payload length
         _pkt_tmp[POS_TONODE] := TO_NODE         ' 2nd byte is destination addr
-
-        ' assemble the payload and copy it to the temporary buffer
-        sf.sprintf(@_pkt_tmp[POS_PAYLD], @"%s%s", _user_str, str_counter)
 
         ser.position(0, 3)
         ser.printf(@"Sending (%d): %s\n\r", pktlen, @_pkt_tmp[POS_PAYLD])
 
-        repeat i from 0 to pktlen               ' show the packet sent as
-            ser.hex(_pkt_tmp[i], 2)             '   a simple hex dump
-            ser.char(32)
-        ser.newline()
+        { show hexdump of the packet, including non-payload data (length) }
+        ser.hexdump(@_pkt_tmp, 0, 2, (pktlen+1), 16 <# (pktlen+1))
+        ser.strln(@"    |  |  |")
+        ser.strln(@"    |  |  *- start of payload/data")
+        ser.strln(@"    |  *---- node address to transmit to")
+        ser.strln(@"    *------- length of payload (including address byte)")
 
-        ser.strln(@"|  |  |")
-        ser.strln(@"|  |  *- start of payload/data")
-        ser.strln(@"|  *---- node address to transmit to")
-        ser.strln(@"*------- length of payload (including address byte)")
-
-        cc1101.flushtx()                        ' flush transmit buffer
-        cc1101.txmode()                         ' set to transmit mode
-        cc1101.txpayload(pktlen+1, @_pkt_tmp)   ' transmit the data
+        cc1101.flush_tx()                       ' flush transmit buffer
+        cc1101.tx_mode()                        ' set to transmit mode
+        cc1101.tx_payld(pktlen+1, @_pkt_tmp)    ' transmit the data
 
         waitms(1_000)                           ' delay between packets to
                                                 '   avoid abusing the airwaves
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(30)
@@ -112,24 +104,21 @@ PUB Setup()
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 

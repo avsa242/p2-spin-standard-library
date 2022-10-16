@@ -4,7 +4,7 @@
     Description: 8-bits per pixel bitmap VGA driver (320x240)
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Sep 6, 2022
+    Updated: Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is based on raycast5b_SpinDisplay2a.spin2,
@@ -60,13 +60,13 @@ PUB start(BASEPIN, WIDTH, HEIGHT, ptr_dispbuff): okay
     return
 
 PUB stop()
-
+' Stop the driver
     if _cog
         cogstop(_cog-1)
 
 PUB defaults()
 ' Default timings for 640x480 signalling
-    SetTimings(10, 33, 16, 96, 48, 640)
+    set_timings(10, 33, 16, 96, 48, 640)
 
 PUB address(addr)
 ' Set address of display buffer
@@ -78,20 +78,14 @@ PUB clear()
 ' Clear the display
     longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 
-PUB drawto(addr)
+PUB draw_to(addr)
 ' Set address of (optional) draw/render buffer
 '   NOTE: This is typically used as an offscreen buffer,
 '       to subsequently be copied to the display or "live" buffer,
 '       once a complete frame is rendered.
     _ptr_drawbuffer := addr
 
-PUB mirrorh(state)
-' dummy method
-
-PUB mirrorv(state)
-' dummy method
-
-PUB paletteptr(): addr
+PUB palette_ptr(): addr
 ' Pointer to palette data
     return @_palette
 
@@ -115,7 +109,7 @@ PUB point(x, y): pix_clr
     return byte[_ptr_drawbuffer][x + (y * _disp_width)]
 #endif
 
-PUB settimings(vfront, vback, hfront, hsync, hback, hvisible)
+PUB set_timings(vfront, vback, hfront, hsync, hback, hvisible)
 ' Set video timings
 '   vfront:     Vertical front porch
 '   vback:      Vertical back porch
@@ -130,12 +124,12 @@ PUB settimings(vfront, vback, hfront, hsync, hback, hvisible)
     _hb := STREAMER_SETUP | (1 << streamer.LUTBASE) + hback/2
     _hv := STREAMER_SETUP | (1 << streamer.LUTBASE) + hvisible/2
 
-PUB update()
+PUB show()
 ' Write the draw buffer to the display
 '   NOTE: This is only required when using double-buffering
     longmove(_ptr_dispbuff, _ptr_drawbuffer, _buff_sz/4)
 
-PUB waitvsync()
+PUB wait_vsync()
 ' Wait for vertical sync signal to be high
     repeat until _pinr(_params[VSYNC_PAR]) == 0
     repeat until _pinr(_params[VSYNC_PAR]) == 1

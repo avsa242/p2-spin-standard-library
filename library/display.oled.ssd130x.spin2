@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Apr 26, 2018
-    Updated: Sep 6, 2022
+    Updated: Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -124,7 +124,7 @@ PUB startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, SCK_HZ, WIDTH, HEIGHT, pt
 #endif
 
 PUB stop()
-
+' Stop the driver
     powered(FALSE)
 #ifdef SSD130X_I2C
     i2c.deinit()
@@ -139,13 +139,13 @@ PUB defaults()
     ' define it if the display's reset pin is to be controlled by GPIO
     '   or if it's tied to the MCU's reset pin or similar
     powered(FALSE)
-    displaylines(64)
-    displaystartline(0)
-    chgpumpvoltage(7_500)
-    addrmode(PAGE)
+    disp_lines(64)
+    disp_start_line(0)
+    chg_pump_voltage(7_500)
+    addr_mode(PAGE)
     contrast(127)
-    displayvisibility(NORMAL)
-    displaybounds(0, 0, 127, 63)
+    disp_vis_ena(NORMAL)
+    disp_area(0, 0, 127, 63)
     powered(TRUE)
 #else
     reset()
@@ -153,38 +153,38 @@ PUB defaults()
 
 PUB preset_128x()
 ' Preset: 128px wide, determine settings for height at runtime
-    displaylines(_disp_height)
-    displaystartline(0)
-    chgpumpvoltage(7_500)
-    addrmode(HORIZ)
-    displayvisibility(NORMAL)
+    disp_lines(_disp_height)
+    disp_start_line(0)
+    chg_pump_voltage(7_500)
+    addr_mode(HORIZ)
+    disp_vis_ena(NORMAL)
     case _disp_height
         32:
-            compincfg(0, 0)
+            com_pin_cfg(0, 0)
         64:
-            compincfg(1, 0)
+            com_pin_cfg(1, 0)
         other:
-            compincfg(0, 0)
+            com_pin_cfg(0, 0)
     powered(TRUE)
 
 PUB preset_128x32()
 ' Preset: 128px wide, setup for 32px height
-    displaylines(32)
-    displaystartline(0)
-    chgpumpvoltage(7_500)
-    addrmode(HORIZ)
-    displayvisibility(NORMAL)
-    compincfg(0, 0)
+    disp_lines(32)
+    disp_start_line(0)
+    chg_pump_voltage(7_500)
+    addr_mode(HORIZ)
+    disp_vis_ena(NORMAL)
+    com_pin_cfg(0, 0)
     powered(TRUE)
 
 PUB preset_128x64()
 ' Preset: 128px wide, setup for 64px height
-    displaylines(64)
-    displaystartline(0)
-    chgpumpvoltage(7_500)
-    addrmode(HORIZ)
-    displayvisibility(NORMAL)
-    compincfg(1, 0)
+    disp_lines(64)
+    disp_start_line(0)
+    chg_pump_voltage(7_500)
+    addr_mode(HORIZ)
+    disp_vis_ena(NORMAL)
+    com_pin_cfg(1, 0)
     powered(TRUE)
 
 PUB address(addr): curr_addr
@@ -195,7 +195,7 @@ PUB address(addr): curr_addr
         other:
             return _ptr_drawbuffer
 
-PUB addrmode(mode)
+PUB addr_mode(mode)
 ' Set Memory Addressing Mode
 '   Valid values:
 '       0: Horizontal addressing mode
@@ -214,17 +214,19 @@ PUB bitmap(ptr_bmap, sx, sy, ex, ey) | bm_sz
 '   ptr_bmap: pointer to bitmap data
 '   (sx, sy): upper-left corner of bitmap
 '   (ex, ey): lower-right corner of bitmap
-    displaybounds(sx, sy, ex, ey)
+    disp_area(sx, sy, ex, ey)
     bm_sz := ((ex-sx) * (ey-sy)) / 8
 
     writebuffer(ptr_bmap, bm_sz)
 #endif
 
 #ifdef GFX_DIRECT
-PUB char(ch) | ch_offs
+PUB tx = putchar
+PUB char = putchar
+PUB putchar(ch) | ch_offs
 ' Draw a character from the loaded font
     ch_offs := _font_addr + (ch << 3)
-    displaybounds(_charpx_x, _charpx_y, _charpx_x+_charcell_w, _charpx_y+_charcell_h)
+    disp_area(_charpx_x, _charpx_y, _charpx_x+_charcell_w, _charpx_y+_charcell_h)
 
     writebuffer(ch_offs, _charcell_w)
 
@@ -236,7 +238,7 @@ PUB char(ch) | ch_offs
             _charpx_x := _charpx_y := 0         ' wrap to beginning of disp
 #endif
 
-PUB chgpumpvoltage(v)
+PUB chg_pump_voltage(v)
 ' Set charge pump regulator voltage, in millivolts
 '   Valid values:
 '       0 (off), 6_000, *7_500, 8_500, 9_000
@@ -282,7 +284,7 @@ PUB clear()
     bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
 #endif
 
-PUB clockfreq(freq)
+PUB clk_freq(freq)
 ' Set display internal oscillator frequency, in kHz
 '   Valid values: (disply-specific)
 '       SSD1306:
@@ -305,7 +307,7 @@ PUB clockfreq(freq)
         other:
             return
 
-PUB compincfg(pin_config, remap) | config
+PUB com_pin_cfg(pin_config, remap) | config
 ' Set COM Pins Hardware Configuration and Left/Right Remap
 '   Valid values:
 '       pin_config: 0: Sequential                      1: Alternative (POR)
@@ -326,18 +328,13 @@ PUB compincfg(pin_config, remap) | config
 
 PUB contrast(level)
 ' Set Contrast Level
-'   Valid values: 0..255 (default: 127)
-'   Any other value sets the default value
-    case level
-        0..255:
-            writereg(core.CONTRAST, 1, level)
-        other:
-            level := 127
+'   Valid values: 0..255 (clamped to range)
+    level := (0 #> level <# 255)
+    writereg(core.CONTRAST, 1, level)
 
-PUB displaybounds(sx, sy, ex, ey)
+PUB disp_area(sx, sy, ex, ey)
 ' Set displayable area
-    ifnot lookup(sx: 0..127) or lookup(sy: 0..63) or lookup(ex: 0..127) {
-}   or lookup(ey: 0..63)
+    ifnot (lookup(sx: 0..127) or lookup(sy: 0..63) or lookup(ex: 0..127) or lookup(ey: 0..63))
         return
 
     sy >>= 3                                    ' convert y-coordinates to
@@ -345,49 +342,36 @@ PUB displaybounds(sx, sy, ex, ey)
     writereg(core.SET_COLADDR, 2, (ex << 8) | sx)
     writereg(core.SET_PAGEADDR, 2, (ey << 8) | sy)
 
-PUB displayinverted(state) | tmp
+PUB disp_inverted(state) | tmp
 ' Invert display colors
-    case abs(state)
-        0:
-            displayvisibility(NORMAL)
-        1:
-            displayvisibility(INVERTED)
-        other:
-            return
+    if (state)
+        disp_vis_ena(INVERTED)
+    else
+        disp_vis_ena(NORMAL)
 
-PUB displaylines(lines)
+PUB disp_lines(lines)
 ' Set total number of display lines
 '   Valid values: 16..64
 '   Typical values: 32, 64
 '   Any other value is ignored
-    case lines
-        16..64:
-            lines -= 1
-            writereg(core.SETMUXRATIO, 1, lines)
-        other:
-            return
+    lines := ((16 #> lines <# 64) - 1)
+    writereg(core.SETMUXRATIO, 1, lines)
 
-PUB displayoffset(offset)
+PUB disp_offset(offset)
 ' Set display offset/vertical shift
 '   Valid values: 0..63 (default: 0)
 '   Any other value sets the default value
-    case offset
-        0..63:
-            writereg(core.SETDISPOFFS, 1, offset)
-        other:
-            offset := 0
+    offset := (0 #> offset <# 63)
+    writereg(core.SETDISPOFFS, 1, offset)
 
-PUB displaystartline(start_line)
+PUB disp_start_line(line)
 ' Set Display Start Line
 '   Valid values: 0..63 (default: 0)
 '   Any other value sets the default value
-    case start_line
-        0..63:
-            writereg(core.DISP_STLINE, 0, start_line)
-        other:
-            start_line := 0
+    line := (0 #> line <# 63)
+    writereg(core.DISP_STLINE, 0, line)
 
-PUB displayvisibility(mode)
+PUB disp_vis_ena(mode)
 ' Set display visibility
     case mode
         NORMAL:
@@ -400,28 +384,21 @@ PUB displayvisibility(mode)
         other:
             return
 
-PUB mirrorh(state)
+PUB mirror_h(state)
 ' Mirror display, horizontally
-'   Valid values: TRUE (-1 or 1), *FALSE (0)
+'   Valid values: TRUE (non-zero), *FALSE (0)
 '   Any other value is ignored
 '   NOTE: Takes effect only after next display update
-    case abs(state)
-        0, 1: state := abs(state)
-            writereg(core.SEG_MAP0, 0, state)
-        other:
-            return
+    state := ((state <> 0) & 1)
+    writereg(core.SEG_MAP0, 0, ((state <> 0) & 1))
 
-PUB mirrorv(state)
+PUB mirror_v(state)
 ' Mirror display, vertically
-'   Valid values: TRUE (-1 or 1), *FALSE (0)
+'   Valid values: TRUE (non-zero), *FALSE (0)
 '   Any other value is ignored
 '   NOTE: Takes effect only after next display update
-    case abs(state)
-        0:
-        1: state := 8
-        other:
-            return
-
+    if (state)
+        state := 8
     writereg(core.COMDIR_NORM, 0, state)
 
 PUB plot(x, y, color)
@@ -455,41 +432,28 @@ PUB point(x, y): pix_clr
 
 PUB powered(state) | tmp
 ' Enable display power
-    case abs(state)
-        0, 1:
-            state := abs(state) + core.DISP_OFF
-            writereg(state, 0, 0)
-        other:
-            return
+    state := (((state <> 0) & 1) + core.DISP_OFF)
+    writereg(state, 0, 0)
 
-PUB prechargeperiod(phs1_clks, phs2_clks)
+PUB precharge_period(phs1_clks, phs2_clks)
 ' Set display refresh pre-charge period, in display clocks
-'   Valid values: 1..15 (default: 2, 2)
-'   Any other value sets the default value
-    case phs1_clks
-        1..15:
-        other:
-            phs1_clks := 2
-
-    case phs2_clks
-        1..15:
-        other:
-            phs2_clks := 2
-
+'   Valid values: 1..15 (clamped to range)
+    phs1_clks := (1 #> phs1_clks <# 15)
+    phs2_clks := (1 #> phs2_clks <# 15)
     writereg(core.SETPRECHARGE, 1, (phs2_clks << 4) | phs1_clks)
 
 PUB reset()
 ' Reset the display controller
-    if lookdown(_RES: 0..63)
+    if (lookdown(_RES: 0..63))
         pinh(_RES)
         waitus(3)
         pinl(_RES)
         waitus(3)
         pinh(_RES)
 
-PUB update() | tmp
+PUB show() | tmp
 ' Write display buffer to display
-    displaybounds(0, 0, _disp_xmax, _disp_ymax)
+    disp_area(0, 0, _disp_xmax, _disp_ymax)
 
 #ifdef SSD130X_I2C
     i2c.start()
@@ -504,7 +468,7 @@ PUB update() | tmp
     pinh(_CS)
 #endif
 
-PUB vcomhvoltage(level)
+PUB vcomh_voltage(level)
 ' Set COM output voltage, in millivolts
 '   Valid values:
 '       SSD1306:
@@ -537,7 +501,7 @@ PUB vcomhvoltage(level)
 
     writereg(core.SETVCOMDESEL, 1, level)
 
-PUB writebuffer(ptr_buff, buff_sz) | tmp
+PUB wr_buffer(ptr_buff, buff_sz) | tmp
 ' Write alternate buffer to display
 '   buff_sz: bytes to write
 '   ptr_buff: address of buffer to write to display

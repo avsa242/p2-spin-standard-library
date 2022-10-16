@@ -1,12 +1,11 @@
 {
     --------------------------------------------
-    Filename: sensor.temp_rh.si70xx.i2c.spin2
+    Filename: sensor.temp_rh.si70xx.spin2
     Author: Jesse Burt
-    Description: Driver for Silicon Labs Si70xx-series
-        temperature/humidity sensors (P2 version)
+    Description: Driver for Silicon Labs Si70xx-series temperature/humidity sensors (P2 version)
     Copyright (c) 2022
     Started Jul 20, 2019
-    Updated May 13, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -26,18 +25,18 @@ OBJ
     core: "core.con.si70xx"                     ' HW-specific constants
     crc : "math.crc"                            ' various CRC routines
 
-PUB Null()
+PUB null()
 ' This is not a top-level object
 
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
+PUB startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
 ' Start using custom settings
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }   I2C_HZ <= core.I2C_MAX_FREQ
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitus(core.T_POR)
-            if i2c.present(SLAVE_WR)            ' check device bus presence
+            if (i2c.present(SLAVE_WR))          ' check device bus presence
                 reset()
-                if lookdown(deviceid(): $0D, $14, $15, $00, $FF)
+                if (lookdown(dev_id(): $0D, $14, $15, $00, $FF))
                     return
 
     ' if this point is reached, something above failed
@@ -45,68 +44,44 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 
-PUB Stop()
-
+PUB stop()
+' Stop the driver
     i2c.deinit()
 
-PUB ADCRes(bits): curr_adcres
-' Set resolution of readings, in bits
-'   Valid values:
-'                   RH  Temp
-'      *12_14:      12  14 bits
-'       8_12:       8   12
-'       10_13:      10  13
-'       11_11:      11  11
-'   Any other value polls the chip and returns the current setting
-    curr_adcres := 0
-    readreg(core.RD_RH_T_USER1, 1, @curr_adcres)
-    case bits
-        12_14, 8_12, 10_13, 11_11:
-            bits := lookdownz(bits: 12_14, 8_12, 10_13, 11_11)
-            bits := lookupz(bits: $00, $01, $80, $81)
-        other:
-            curr_adcres &= core.ADCRES_BITS
-            curr_adcres := lookdownz(curr_adcres: $00, $01, $80, $81)
-            return lookupz(curr_adcres: 12_14, 8_12, 10_13, 11_11)
-
-    bits := (curr_adcres & core.ADCRES_MASK) | bits
-    writereg(core.WR_RH_T_USER1, 1, @bits)
-
-PUB DeviceID(): id | tmp[2]
+PUB dev_id(): id | tmp[2]
 ' Read the Part number portion of the serial number
 '   Returns:
 '       $00/$FF: Engineering samples
 '       $0D (13): Si7013
 '       $14 (20): Si7020
 '       $15 (21): Si7021
-    serialnum(@tmp)
+    serial_num(@tmp)
     return tmp.byte[3]
 
-PUB FirmwareRev(): fwrev
+PUB firmware_rev(): fwrev
 ' Read sensor internal firmware revision
 '   Returns:
 '       $FF: Version 1.0
 '       $20: Version 2.0
     readreg(core.RD_FIRMWARE_REV, 1, @fwrev)
 
-PUB HeaterCurrent(htr_curr): curr_htrc
-' Set heater current, in milliamperes
-'   Valid values: *3, 9, 15, 21, 27, 33, 40, 46, 52, 58, 64, 70, 76, 82, 88, 94
-'   Any other value polls the chip and returns the current setting
+PUB heater_curr(): curr
+' Get heater current
+'   Returns: milliamperes
 '   NOTE: Values are approximate, and typical
-    case htr_curr
-        3, 9, 15, 21, 27, 33, 40, 46, 52, 58, 64, 70, 76, 82, 88, 94:
-            htr_curr := lookdownz(htr_curr: 3, 9, 15, 21, 27, 33, 40, 46, 52,{
-}           58, 64, 70, 76, 82, 88, 94)
-            writereg(core.WR_HEATER, 1, @htr_curr)
-        other:
-            curr_htrc := 0
-            readreg(core.RD_HEATER, 1, @curr_htrc)
-            curr_htrc &= core.HEATER_BITS
-            return lookupz(curr_htrc: 3, 9, 15, 21, 27, 33, 40, 46, 52, 58,{
-}           64, 70, 76, 82, 88, 94)
+    curr := 0
+    readreg(core.RD_HEATER, 1, @curr)
+    curr &= core.HEATER_BITS
+    return lookupz(curr: 3, 9, 15, 21, 27, 33, 40, 46, 52, 58, 64, 70, 76, 82, 88, 94)
 
-PUB HeaterEnabled(state): curr_state
+PUB heater_set_curr(curr)
+' Set heater current, in milliamperes
+'   Valid values: *3, 9, 15, 21, 27, 33, 40, 46, 52, 58, 64, 70, 76, 82, 88, 94 (clamped to range)
+'   NOTE: Values are approximate, and typical
+    curr := 0 #> lookdownz(curr: 3, 9, 15, 21, 27, 33, 40, 46, 52, 58, 64, 70, 76, 82, 88, 94)
+    writereg(core#WR_HEATER, 1, @curr)
+
+PUB heater_ena(state): curr_state
 ' Enable the on-chip heater
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting
@@ -121,23 +96,49 @@ PUB HeaterEnabled(state): curr_state
     state := ((curr_state & core.HTRE_MASK) | state) & core.RD_RH_T_USER1_MASK
     writereg(core.WR_RH_T_USER1, 1, @state)
 
-PUB Reset()
+PUB reset()
 ' Perform soft-reset
     writereg(core.RESET, 0, 0)
     waitms(15)
 
-PUB RHData(): rh_adc
+PUB rh_adc_res(bits): curr_res
+' Set resolution of RH readings, in bits
+'   Valid values:
+'       8, 10, 11, 12
+'   Any other value polls the chip and returns the current setting
+'   NOTE: Setting this method directly affects temperature ADC resolution also
+'   The following table shows equivalent settings for temperature:
+'       RH  Temp
+'       8   12
+'       10  13
+'       11  11
+'       12  14
+    curr_res := 0
+    readreg(core#RD_RH_T_USER1, 1, @curr_res)
+    case bits
+        8, 10, 11, 12:
+            bits := lookdownz(bits: 12, 8, 10, 11)
+            bits := lookupz(bits: $00, $01, $80, $81)
+        other:
+            curr_res &= core#ADCRES_BITS
+            curr_res := lookdownz(curr_res: $00, $01, $80, $81)
+            return lookupz(curr_res: 12, 8, 10, 11)
+
+    bits := (curr_res & core#ADCRES_MASK) | bits
+    writereg(core#WR_RH_T_USER1, 1, @bits)
+
+PUB rh_data(): rh_adc
 ' Read relative humidity ADC data
 '   Returns: u16
     rh_adc := 0
     readreg(core.MEAS_RH_NOHOLD, 2, @rh_adc)
 
-PUB RHWord2Pct(rh_word): rh
+PUB rh_word2pct(rh_word): rh
 ' Convert RH ADC word to percent
 '   Returns: relative humidity, in hundredths of a percent
     return ((125_00 * rh_word) / 65536) - 6_00
 
-PUB SerialNum(ptr_buff) | snb, sna
+PUB serial_num(ptr_buff) | snb, sna
 ' Read the 64-bit serial number of the device into ptr_buff
 '   NOTE: Buffer at ptr_buff must be at least 8 bytes in length
     longfill(@sna, 0, 2)
@@ -147,13 +148,39 @@ PUB SerialNum(ptr_buff) | snb, sna
         return -1
     longmove(ptr_buff, @snb, 2)
 
-PUB TempData(): temp_adc
+PUB temp_adc_res(bits): curr_res
+' Set resolution of temperature readings, in bits
+'   Valid values:
+'       11, 12, 13, 14
+'   Any other value polls the chip and returns the current setting
+'   NOTE: Setting this method directly affects RH ADC resolution also
+'   The following table shows equivalent settings for RH:
+'       Temp    RH
+'       12      8
+'       13      10
+'       11      11
+'       11      11
+'       14      12
+    readreg(core#RD_RH_T_USER1, 1, @curr_res)
+    case bits
+        11..14:
+            bits := lookdownz(bits: 14, 12, 13, 11)
+            bits := lookupz(bits: $00, $01, $80, $81)
+        other:
+            curr_res &= core#ADCRES_BITS
+            curr_res := lookdownz(curr_res: $00, $01, $80, $81)
+            return lookupz(curr_res: 12, 8, 10, 11)
+
+    bits := (curr_res & core#ADCRES_MASK) | bits
+    writereg(core#WR_RH_T_USER1, 1, @bits)
+
+PUB temp_data(): temp_adc
 ' Read temperature ADC data
 '   Returns: s16
     temp_adc := 0
     readreg(core.READ_PREV_TEMP, 2, @temp_adc)
 
-PUB TempWord2Deg(temp_word): temp
+PUB temp_word2deg(temp_word): temp
 ' Convert thermocouple ADC word to temperature
 '   Returns: temperature, in hundredths of a degree, in chosen scale
     temp := ((175_72 * temp_word) / 65536) - 46_85
@@ -165,7 +192,7 @@ PUB TempWord2Deg(temp_word): temp
         other:
             return FALSE
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff): status | cmd_pkt, tmp, crcrd, rdcnt
+PRI readreg(reg_nr, nr_bytes, ptr_buff): status | cmd_pkt, tmp, crcrd, rdcnt
 ' Read nr_bytes from the slave device into ptr_buff
     case reg_nr
         core.READ_PREV_TEMP:
@@ -185,7 +212,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff): status | cmd_pkt, tmp, crcrd, rdcnt
             tmp := i2c.rdword_msbf(i2c.ACK)
             crcrd := i2c.rd_byte(i2c.NAK)
             i2c.stop()
-            if (crcrd == crc.silabscrc8(@tmp, 2))
+            if (crcrd == crc.silabs_crc8(@tmp, 2))
                 word[ptr_buff] := tmp
             else
                 return -1
@@ -200,7 +227,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff): status | cmd_pkt, tmp, crcrd, rdcnt
             tmp := i2c.rdword_msbf(i2c.ACK)
             crcrd := i2c.rd_byte(i2c.NAK)
             i2c.stop()
-            if (crcrd == crc.silabscrc8(@tmp, 2))
+            if (crcrd == crc.silabs_crc8(@tmp, 2))
                 word[ptr_buff] := tmp
             else
                 return -1
@@ -213,7 +240,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff): status | cmd_pkt, tmp, crcrd, rdcnt
             tmp := i2c.rdword_msbf(i2c.ACK)
             crcrd := i2c.rd_byte(i2c.NAK)
             i2c.stop()
-            if (crcrd == crc.silabscrc8(@tmp, 2))
+            if (crcrd == crc.silabs_crc8(@tmp, 2))
                 word[ptr_buff] := tmp
             else
                 return -1
@@ -248,7 +275,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff): status | cmd_pkt, tmp, crcrd, rdcnt
                 i2c.rd_byte(i2c.ACK)            ' ignore the 1st CRC byte
                 tmp.byte[rdcnt*2] := i2c.rd_byte(i2c.ACK)
                 crcrd := i2c.rd_byte(rdcnt-- == 0)
-            if (crc.silabscrc8(@tmp, 4) == crcrd)
+            if (crc.silabs_crc8(@tmp, 4) == crcrd)
                 long[ptr_buff] := tmp
                 status := 0
             else
@@ -265,7 +292,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff): status | cmd_pkt, tmp, crcrd, rdcnt
             repeat 2
                 tmp.word[rdcnt] := i2c.rdword_msbf(i2c.ACK)
                 crcrd := i2c.rd_byte(rdcnt-- == 0)
-            if (crcrd == crc.silabscrc8(@tmp, 4))
+            if (crcrd == crc.silabs_crc8(@tmp, 4))
                 long[ptr_buff] := tmp
             else
                 status := -1
@@ -283,7 +310,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff): status | cmd_pkt, tmp, crcrd, rdcnt
         other:
             return
 
-PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Write nr_bytes from ptr_buff to the slave device
     case reg_nr
         core.RESET:
@@ -303,23 +330,21 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 SOFTWARE.
 }

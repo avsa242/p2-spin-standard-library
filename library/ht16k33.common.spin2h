@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Sep 3, 2022
-    Updated: Sep 3, 2022
+    Updated: Oct 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -35,19 +35,19 @@ PUB null()
 ' This is not a top-level object
 
 PUB stop()
-
-    displayvisibility(FALSE)
-    oscenabled(FALSE)
+' Stop the driver
+    disp_vis_ena(FALSE)
+    osc_ena(FALSE)
     waitms(100)
     i2c.deinit()
 
 PUB defaults()
-
-    oscenabled(TRUE)
+' Factory default settings
+    osc_ena(TRUE)
     brightness(15)
-    displayvisibility(TRUE)
+    disp_vis_ena(TRUE)
 
-PUB blinkrate(rate)
+PUB blink_rate(rate)
 ' Set blink rate of display, in Hz
 '   Valid values: 0_5 (0.5), 1, 2
 '   Any other value disables blinking
@@ -76,7 +76,7 @@ PUB brightness(level)
             return
     writereg(core.BRIGHTNESS, level)
 
-PUB displayvisibility(state)
+PUB disp_vis_ena(state)
 ' Enable display visibility
 '   Valid values: TRUE/ON (-1 or 1), FALSE/OFF (0)
 '   Any other value is ignored
@@ -91,7 +91,7 @@ PUB displayvisibility(state)
     _dispsetup := ((_dispsetup & core.ONOFF_MASK) | state)
     writereg(core.DISPSETUP, _dispsetup)
 
-PUB oscenabled(state)
+PUB osc_ena(state)
 ' Enable the oscillator
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value is ignored

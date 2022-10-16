@@ -5,7 +5,7 @@
     Description: Driver for various smart LED arrays
     Copyright (c) 2022
     Started Jun 13, 2021
-    Updated Sep 6, 2022
+    Updated Oct 6, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -17,27 +17,27 @@ CON
     BYTESPERPX      = 4
     MAX_COLOR       = 16_777_215
 
-    BLACK       = $00_00_00_00
-    RED         = $FF_00_00_00
-    GREEN       = $00_FF_00_00
-    BLUE        = $00_00_FF_00
-    WHITE       = $FF_FF_FF_00
-    WHITE2      = $00_00_00_FF
-    CYAN        = $00_FF_FF_00
-    MAGENTA     = $FF_00_FF_00
-    YELLOW      = $FF_FF_00_00
-    CHARTREUSE  = $7F_FF_00_00
-    ORANGE      = $FF_60_00_00
-    AQUAMARINE  = $7F_FF_D4_00
-    PINK        = $FF_5F_5F_00
-    TURQUOISE   = $3F_E0_C0_00
-    REALWHITE   = $C8_FF_FF_00
-    INDIGO      = $3F_00_7F_00
-    VIOLET      = $BF_7F_BF_00
-    MAROON      = $32_00_10_00
-    BROWN       = $0E_06_00_00
-    CRIMSON     = $DC_28_3C_00
-    PURPLE      = $8C_00_FF_00
+    BLACK           = $00_00_00_00
+    RED             = $FF_00_00_00
+    GREEN           = $00_FF_00_00
+    BLUE            = $00_00_FF_00
+    WHITE           = $FF_FF_FF_00
+    WHITE2          = $00_00_00_FF
+    CYAN            = $00_FF_FF_00
+    MAGENTA         = $FF_00_FF_00
+    YELLOW          = $FF_FF_00_00
+    CHARTREUSE      = $7F_FF_00_00
+    ORANGE          = $FF_60_00_00
+    AQUAMARINE      = $7F_FF_D4_00
+    PINK            = $FF_5F_5F_00
+    TURQUOISE       = $3F_E0_C0_00
+    REALWHITE       = $C8_FF_FF_00
+    INDIGO          = $3F_00_7F_00
+    VIOLET          = $BF_7F_BF_00
+    MAROON          = $32_00_10_00
+    BROWN           = $0E_06_00_00
+    CRIMSON         = $DC_28_3C_00
+    PURPLE          = $8C_00_FF_00
 
     ' TH+TL should be 1250ns +/- 600ns
     ' TH and TL each should be within 150ns of spec
@@ -179,7 +179,7 @@ PUB point(x, y): pix_clr
     return long[_ptr_drawbuffer][x + (y * _disp_width)]
 #endif
 
-PUB setclock(freq) | bitper
+PUB set_clock(freq) | bitper
 ' Set clock frequency used to calculate timings
 '   Most strips operate at 800_000 (800kHz)
     bitper := clkfreq / freq                    ' get bit period for freq
@@ -189,7 +189,7 @@ PUB setclock(freq) | bitper
     _t1h := (((_mdl_t1h / _mdl_per) * bitper) / 1_000)
     _t1l := (((_mdl_t1l / _mdl_per) * bitper) / 1_000)
 
-PUB setmodel(model): curr_model
+PUB set_model(model): curr_model
 ' Set model of smart-LED array
 '   Valid values:
 '       WS2811 ($2811)
@@ -261,12 +261,12 @@ PUB setmodel(model): curr_model
     setclock(800_000)
     return model
 
-PUB update()
+PUB show()
 ' Send display buffer to smart-LED array
 '   Call method pointed to, set by setmodel()
     _mptr_update()
 
-PUB updategrb24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
+PUB update_grb24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
 ' Update G-R-B 24bpp smart-LED array
     longmove(@t0h, @_t0h, 6)                    ' copy timings to local vars
 
@@ -293,7 +293,7 @@ PUB updategrb24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
     pinl(smled_pin)                             ' reset code (end of array)
     waitus(tres)
 
-PUB updategrb32() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
+PUB update_grb32() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
 ' Update G-R-B 32bpp smart-LED array
     longmove(@t0h, @_t0h, 6)                    ' copy timings to local vars
 
@@ -320,7 +320,7 @@ PUB updategrb32() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
     pinl(smled_pin)                             ' reset code (end of array)
     waitus(tres)
 
-PUB updatergb24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit
+PUB update_rgb24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit
 ' Update R-G-B 24bpp smart-LED array
     longmove(@t0h, @_t0h, 6)                    ' copy timings to local vars
 

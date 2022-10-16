@@ -6,7 +6,7 @@
         * 6DoF data output
     Copyright (c) 2022
     Started Sep 4, 2020
-    Updated Jul 13, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -39,10 +39,10 @@ CON
 OBJ
 
     cfg: "boardcfg.p2eval"
-    imu: "sensor.imu.6dof.icm20649"
+    sensor: "sensor.imu.6dof.icm20649"
     ser: "com.serial.terminal.ansi"
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(10)
@@ -50,20 +50,24 @@ PUB Setup()
     ser.strln(@"Serial terminal started")
 
 #ifdef ICM20649_SPI
-    if (imu.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SPI_FREQ))
+    if (sensor.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SPI_FREQ))
 #else
-    if (imu.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS))
+    if (sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS))
 #endif
         ser.strln(@"ICM20649 driver started")
     else
         ser.strln(@"ICM20649 driver failed to start - halting")
         repeat
 
-    imu.preset_active()
+    sensor.preset_active()
 
-    demo()
+    repeat
+        ser.position(0, 3)
+        show_accel_data{}
+        show_gyro_data{}
 
-#include "imudemo.common.spin2h"                ' code common to all IMU demos
+#include "acceldemo.common.spin2h"
+#include "gyrodemo.common.spin2h"
 
 DAT
 {
