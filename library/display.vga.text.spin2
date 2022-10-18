@@ -5,7 +5,7 @@
     Modified by: Jesse Burt
     Description: Tiling VGA text driver
     Started Nov 13, 2019
-    Updated Oct 4, 2021
+    Updated Oct 18, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -21,7 +21,7 @@ Two variants are provided: an 8 bit palette version and a 32 bit
 full color. To select the 8 bit version pass "4" (4 bytes per pixel)
 for the bytesperchr parameter; for 32 bit pass "8"
 
-PUB Start(params)
+PUB startx(params)
   Starts the driver. "params" is a pointer to a block of 32 bit parameters longs:
   params[0]: base pin to use for the VGA
   params[1]: pointer to screen buffer
@@ -61,7 +61,7 @@ PUB Start(params)
 
 }
 
-#include "lib.terminal.spin2"
+#include "terminal.common.spin2h"
 
 CON
 
@@ -89,8 +89,8 @@ CON
 
 VAR
 
-    long _ptr_dispbuffer
-    long _mycog
+    long _ptr_dispbuff
+    long _cog
     long _hw_rev
     long _cell_size, _cols, _rows
     long _curx, _cury                           ' cursor position
@@ -112,18 +112,21 @@ OBJ
 
     smpin   : "core.con.smartpins"
 
-PUB Start(pinbase, ptr_params, ptr_dispbuffer): okay | ptr, tmp
-
+PUB startx(pinbase, ptr_params, ptr_dispbuff): okay | ptr, tmp
+' Start the driver using custom I/O settings
+'   pinbase: first/lowest of 5 I/O pins
+'   ptr_params: pointer to setup parameters
+'   ptr_dispbuff: pointer to display buffer
     _cols := long[ptr_params][2]
     _rows := long[ptr_params][3]
     _cell_size := long[ptr_params][15]
-    _ptr_dispbuffer := ptr_dispbuffer
+    _ptr_dispbuff := ptr_dispbuff
 
 ' check what kind of hardware we are using
-    if _hw_rev == 0
+    if (_hw_rev == 0)
         _hw_rev := check_hw_rev()
 
-    if _hw_rev == 1
+    if (_hw_rev == 1)
 ' RevA (old) silicon
 ' change streamer commands
         ptr := @m_bs
@@ -148,17 +151,19 @@ PUB Start(pinbase, ptr_params, ptr_dispbuffer): okay | ptr, tmp
         long[ptr][1] := $0f010000               ' odd characters
 
     resetTerminal()
-    _mycog := cogspin(16, @entry, ptr_params) + 1
-    return _mycog
+    _cog := cogspin(NEWCOG, @entry, ptr_params) + 1
+    return _cog
 
-PUB Stop()
+PUB stop()
+' Stop the driver
+    if (_cog)
+        cogstop(_cog-1)
+        _cog := 0
 
-    if _mycog
-        cogstop(_mycog-1)
-        _mycog := 0
-
-PUB Char(c): result | fg, bg
-
+PUB tx = putchar
+PUB char = putchar
+PUB putchar(c): result | fg, bg
+' Transmit one character
     concealcursor()
     if (_state == STATE_NORMAL)
         if (c == 8)                             ' backspace
@@ -198,11 +203,12 @@ PUB Char(c): result | fg, bg
     revealcursor()
     return 1
 
-PUB Clear()
-
+PUB clear()
+' Clear the display
     clearrange(0, (_cols * _rows)-1)
 
-PUB GlyphAt(x, y, ch, fgcol, bgcol, fx=0) | bufptr
+PUB glyphat = putchar_xy
+PUB putchar_xy(x, y, ch, fgcol, bgcol, fx=0) | bufptr
 ' possible effects:
 ' $01 = solid mask
 ' $02 = underline
@@ -213,7 +219,7 @@ PUB GlyphAt(x, y, ch, fgcol, bgcol, fx=0) | bufptr
 ' $40 = blinking strikethrough
 ' $80 = reserved
 ' these are stored in the lower 8 bits of the _char_fx variable
-    bufptr := _ptr_dispbuffer
+    bufptr := _ptr_dispbuff
     bufptr += (y * _cols + x) * _cell_size
     if _cell_size == 8
         fgcol |= (ch & $FF)
@@ -230,30 +236,33 @@ PUB GlyphAt(x, y, ch, fgcol, bgcol, fx=0) | bufptr
     else
         byte[bufptr] := ch & $ff
 
-PUB HideCursor()
-
+PUB hide_cursor = hide_curs
+PUB hide_curs()
+' Hide the cursor
     _cursor_enabled := 0
     setcursorvisible(0)
 
-PUB Position(x, y)
+PUB position = pos_xy
+PUB pos_xy(x, y)
+' Set cursor position
+    _curx := (0 #> x <# _cols-1)
+    _cury := (0 #> y <# _rows-1)
 
-    _curx := bound(0, x, _cols-1)
-    _cury := bound(0, y, _rows-1)
-
-PUB RGBColor(r, g, b): rgb
+PUB rgbcolor = rgb_color
+PUB rgb_color(r, g, b): rgb
 ' calculate a color value from an r,g,b triple
-    if _cell_size <= 4
+    if (_cell_size <= 4)
         rgb := 16 + 36 * (r / 51) + 6 * (g / 51) + (b / 51)
     else
         rgb := (r << 24 | g << 16 | b << 8)
-    return rgb
 
-PUB ShowCursor()
+PUB showcursor = show_curs
+PUB show_curs()
 ' globals: force cursor on or off
     _cursor_enabled := 1
     setcursorvisible(_cursor_enabled)
 
-PRI ansiColor(n): result | ptr
+PRI ansicolor(n): result | ptr
 ' look up an ANSI color from the color table
     if _char_fx & CHAR_BOLD
         n |= 8
@@ -261,10 +270,6 @@ PRI ansiColor(n): result | ptr
         return n
     ptr := @colortab
     return long[ptr + (4 * n)]
-
-PRI bound(low, x, high): limit
-
-    return (low #> x) <# high
 
 PRI check_hw_rev(): tmp
 ' check the hardware revision
@@ -307,7 +312,7 @@ PRI clear_in_line(n) | startpix, endpix
 PRI clearRange(a, b) | ptr, rngcnt, temp
 ' clear from position a to position b (inclusive)
 ' a and b are in character offsets (so they have to be scaled appropriately)
-    ptr := _ptr_dispbuffer + (_cell_size * a)
+    ptr := _ptr_dispbuff + (_cell_size * a)
     rngcnt := b-a
     if (_cell_size == 1)
         repeat while rngcnt >= 0
@@ -341,8 +346,8 @@ PRI concealCursor()
 PRI copy_line(dest, src) | linelen
 
     linelen := _cell_size * _cols
-    dest := _ptr_dispbuffer + (dest * linelen)
-    src := _ptr_dispbuffer + (src * linelen)
+    dest := _ptr_dispbuff + (dest * linelen)
+    src := _ptr_dispbuff + (src * linelen)
     bytemove(dest, src, linelen)
 
 PRI defaultval(arg, v): result
@@ -420,8 +425,8 @@ PRI handle_csi(c)
     elseif (c == "r")
         _scroll_first := defaultval(_args[0], 1) - 1
         _scroll_last := defaultval(_args[1], _rows) - 1
-        _scroll_first := bound(0, _scroll_first, _rows-1)
-        _scroll_last := bound(_scroll_first, _scroll_last, _rows-1)
+        _scroll_first := (0 #> _scroll_first <# _rows-1)
+        _scroll_last := (_scroll_first #> _scroll_last <# _rows-1)
         _curx := _cury := 0
     elseif (c == "s")
         _savex := _curx
@@ -541,7 +546,7 @@ PRI setCursorVisible(yesno): result | bufptr, x, y
 ' change cursor state
     _cursor_visible := yesno
 
-    bufptr := _ptr_dispbuffer
+    bufptr := _ptr_dispbuff
 ' restrict x to be between 0 and _cols-1
     x := _curx
     y := _cury
