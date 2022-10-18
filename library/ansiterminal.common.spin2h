@@ -189,11 +189,11 @@ PUB clear()
 ' Clear the terminal
     clear_mode(CLR_ALL_HOME)
 
-PUB clearline = clearln
+PUB clearline = clear_ln
 PUB clear_line = clear_ln
 PUB clear_ln()
 ' Clear current line of terminal
-    clearlnx(CLR_CUR_TO_END)
+    clear_lnx(CLR_CUR_TO_END)
 
 PUB clearlinex = clear_lnx
 PUB clear_lnx(mode)
