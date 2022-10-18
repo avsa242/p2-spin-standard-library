@@ -5,7 +5,7 @@
     Description: Accelerometer demo - code common to all drivers (P2 version)
     Copyright (c) 2022
     Started Jul 12, 2022
-    Updated Oct 2, 2022
+    Updated Oct 18, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,7 +16,7 @@ PUB cal_accel()
     ser.str(@"Calibrating accelerometer...")
     sensor.calibrate_accel()
     ser.position(0, 5)
-    ser.clearline()
+    ser.clear_ln()
 
 PUB show_accel_data() | axis, a[3], sign
 ' Display accelerometer data

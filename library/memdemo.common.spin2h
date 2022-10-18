@@ -5,7 +5,7 @@
     Description: Routines common to all memory drivers (P2 version)
     Copyright (c) 2022
     Started Jul 30, 2022
-    Updated Oct 16, 2022
+    Updated Oct 18, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -121,7 +121,7 @@ PUB write_test(st_addr): etime | stime, tval
 PRI cycle_time(cycles)
 ' Display elapsed time in cycles and microseconds
     ser.printf(@"%d cycles (%dusec)", cycles, (cycles / CYCLES_USEC))
-    ser.clearline()
+    ser.clear_ln()
     ser.newline()
 
 PRI pg2byte_offs(page_nr): b
