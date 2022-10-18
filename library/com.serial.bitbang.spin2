@@ -4,83 +4,98 @@
     Author: Eric Smith
     Modified by: Jesse Burt
     Description: Bitbanged UART serial driver
-    Copyright (c) 2020
+    Copyright (c) 2022
     Started Mar 22, 2020
-    Updated Jul 13, 2020
+    Updated Oct 18, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 '    NOTE: This is a modified version of SimpleSerial.spin2, originally by
 '       Eric Smith. The conditionally-included PC-based code has been removed,
 '       and the builtin extended terminal functions (Hex, Str, etc) have been
-'       replaced with those provided in the terminal library (lib.terminal.spin2)
+'       replaced with those provided in the terminal library (terminal.common.spin2h)
 
-''
-'' serial port definitions
-''
-'' this is for a very simple serial port
-'' also note: if PC is defined then we
-'' substitute some C code instead
-''
 VAR
 
-    byte txpin
-    byte rxpin
-    long baud
-    long txmask
-    long rxmask
-    long bitcycles
+    byte _txpin
+    byte _rxping
+    long _baud
+    long _txmask
+    long _rxmask
+    long _bitcycles
 
-''
-'' code: largely taken from FullDuplexSerial.spin
-''
+PUB init(rx_pin, tx_pin, mode, bps): okay
+' Start the driver with custom I/O settings
+'   rx_pin, tx_pin: 0..63
+'   mode: ignored (for compatibility with other serial engines)
+'   bps: bitrate/baud (max TBD)
+    _baud := bps
+    _bitcycles := clkfreq / bps
+    _txpin := tx_pin
+    _txmask := (1<<_txpin)
+    _rxping := rx_pin
+    _rxmask := (1<<_rxping)
+    return (cogid() + 1)
 
-PUB StartRXTX(rx_pin, tx_pin, mode, baudrate): okay
-
-    baud := baudrate
-    bitcycles := clkfreq / baudrate
-    txpin := tx_pin
-    txmask := (1<<txpin)
-    rxpin := rx_pin
-    rxmask := (1<<rxpin)
-    return 1
-
-PUB Char(c) | val, waitcycles
-
-    outb |= txmask
-    dirb |= txmask
+PUB tx = putchar
+PUB char = putchar
+PUB putchar(c) | val, waitcycles
+' Transmit one character (blocks)
+    outb |= _txmask
+    dirb |= _txmask
     val := (c | 256) << 1
-    waitcycles := getct() + bitcycles
+    waitcycles := getct() + _bitcycles
     repeat 10
-        waitcycles += bitcycles
+        waitcycles += _bitcycles
         waitcnt(waitcycles)
         if (val & 1)
-            outb |= txmask
+            outb |= _txmask
         else
-            outb &= !txmask
+            outb &= !_txmask
         val >>= 1
 
-PUB CharIn(): val | waitcycles, cycles, mask, x
+PUB rx = getchar
+PUB charin = getchar
+PUB getchar(): val | waitcycles, cycles, mask, x
+' Receive one character (blocks)
+    mask := _rxmask
+    cycles := _bitcycles
+    dirb &= !mask                               ' set for input
 
-    mask := rxmask
-    cycles := bitcycles
-    dirb &= !mask  ' set for input
-    '' wait for start bit
-    repeat
+    repeat                                      ' wait for start bit
         x := inb
     while ( (x & mask) <> 0 )
+
     val := $0
-    waitcycles := getct() + (cycles >> 1)  '' sync for one half bit
+    waitcycles := getct() + (cycles >> 1)       ' sync for one half bit
     repeat 8
         val := val >> 1
         waitcnt(waitcycles += cycles)
         x := inb
         if ( (x & mask) <> 0 )
             val |= $80
-    '' wait for stop bit?
-    '' skip it for now
-    '' waitpeq(mask, mask, 0)
     return val
 
 ' Extend driver with basic terminal functions:
-#include "lib.terminal.spin2"
+#include "terminal.common.spin2h"
+
+DAT
+{
+Copyright 2022 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+
