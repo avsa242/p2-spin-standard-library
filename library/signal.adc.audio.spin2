@@ -4,7 +4,7 @@
     Description: Capture audio using smart pin-based ADC
     Author: Jesse Burt
     Started: May 16, 2020
-    Updated: Feb 14, 2021
+    Updated: Oct 20, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,43 +15,60 @@ VAR
     long _period
     byte _MIC_PIN
 
-OBJ
-
-    sp  : "core.con.smartpins"
-
-PUB Start(MIC_PIN, SAMPRATE_HZ, gain=1): okay | adcmode, period
+PUB start(MIC_PIN, SAMPRATE_HZ, gain=1): status | adcmode
 ' Start ADC smart-pin on MIC_PIN at SAMPRATE_HZ
 ' Set gain per below table (defaults to 1x)
-    if lookdown(MIC_PIN: 0..63)
+    if (lookdown(MIC_PIN: 0..63))
         pinf(MIC_PIN)
 
         case gain
-            1:      adcmode := sp.ADC_PINA_1X   ' 1x ADC gain
-            3:      adcmode := sp.ADC_PINA_3_16X' 3.16x ADC gain
-            10:     adcmode := sp.ADC_PINA_10X  ' 10x ADC gain
-            100:    adcmode := sp.ADC_PINA_100X ' 100x ADC gain
-            other:  adcmode := sp.ADC_PINA_1X   ' Default to 1x
+            1:      adcmode := P_ADC_1X         ' 1x ADC gain
+            3:      adcmode := P_ADC_3X         ' 3.16x ADC gain
+            10:     adcmode := P_ADC_10X        ' 10x ADC gain
+            100:    adcmode := P_ADC_100X       ' 100x ADC gain
+            other:  adcmode := P_ADC_1X         ' Default to 1x
 
-        period := (clkfreq / SAMPRATE_HZ)
+        _period := (clkfreq / SAMPRATE_HZ)
 
-        wrpin(MIC_PIN, adcmode | sp.INC_A_RISE_DEC_B_RISE)
-        wxpin(MIC_PIN, period)
+        wrpin(MIC_PIN, adcmode | P_COUNT_HIGHS)
+        wxpin(MIC_PIN, _period)
         wypin(MIC_PIN, 0)
 
         pinw(MIC_PIN, 1)                        ' activate smart-pin
 
         _MIC_PIN := MIC_PIN
 
-        return cogid() + 1
+        return (cogid() + 1)
     return FALSE
 
-PUB Stop()
-
+PUB stop()
+' Stop the ADC
     pinf(_MIC_PIN)
-    wrpin (0, _MIC_PIN)
+    wrpin(0, _MIC_PIN)
 
-PUB ADCSample16(): sample
+PUB adcsample16 = adc_smp16
+PUB adc_smp16(): sample
 ' Read sample from ADC, throttled to sample rate
     waitx(_period)
     return rdpin(_MIC_PIN)
+
+DAT
+{
+Copyright 2022 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
 
