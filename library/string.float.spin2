@@ -1,401 +1,341 @@
-''***************************************
-''*  Floating-Point <-> Strings         *
-''*  Single-precision IEEE-754          *
-''*  Author: Chip Gracey                *
-''*  Copyright (c) 2006 Parallax, Inc.  *
-''*  See end of file for terms of use.  *
-''***************************************
+{
+    --------------------------------------------
+    Filename: string.float.spin2
+    Author: Chip Gracey
+    Modified by: Jesse Burt
+    Description: IEEE-754 Floating point to/from string conversion
+    Started 2006
+    Updated Oct 20, 2022
+    See end of file for terms of use.
+    --------------------------------------------
+
+    This is based on FloatString.spin, originally
+        by Chip Gracey
+}
 
 VAR
 
-  long  p, digits, exponent, integer, tens, zeros,  precision
-  long  positive_chr, decimal_chr, thousands_chr, thousandths_chr
-  byte  float_string[20]
+  long  _ptr_str, _digits, _exponent, _integer, _tens, _zeroes, _precision
+  long  _pos_ch, _dec_ch, _thous_ch, _thousths_ch
+  byte  _float_str[20]
 
 
 OBJ
 
-  math : "tiny.math.float"
+    math : "math.float.nocog"
 
-PUB StringToFloat(strptr): f | int, sign, dmag, mag, get_exp, b
-{{
-    get all the digits as if this is an integer (but track the exponent)
-    int := sign := dmag := mag := get_exp := 0
-}}
-  longfill(@int, 0, 5)
-  repeat
-    case b := byte[strptr++]
-      "-": sign := $8000_0000
-      "+": ' just ignore, but allow
-      "0".."9":
-           int := int*10 + b - "0"
-           mag += dmag
-      ".": dmag := -1
-      other: ' either done, or about to do exponent
-           if get_exp
-             ' we just finished processing the exponent
-             if sign
-               int := -int
-             mag += int
-             quit
-           else
-             ' convert int to a (signed) float
-             f := math.FFloat(int) | sign
-             ' should we continue?
-             if (b == "E") or (b == "e")
-               ' int := sign := dmag := 0
-               longfill(@int, 0, 3)
-               get_exp := 1
-             else
-               quit
-  ' Exp10 is the weak link...uses the Log table in P1 ROM
-  'f := FMul(f, Exp10(FFloat(mag)))
-  ' use these loops for more precision (slower for large exponents, positive or negative)
-  b := 0.1
-  if mag > 0
-    b := 10.0
-  repeat abs(mag)
-    f := math.FMul (f, b)
-
-PUB FloatToString(Single): StringPtr
-
-''Convert floating-point number to string
-''
-''  entry:
-''      Single = floating-point number
-''
-''  exit:
-''      StringPtr = pointer to resultant z-string
-''
-''  Magnitudes below 1e+12 and within 1e-12 will be expressed directly;
-''  otherwise, scientific notation will be used.
-''
-''  examples                 results
-''  -----------------------------------------
-''  FloatToString(0.0)       "0"
-''  FloatToString(1.0)       "1"
-''  FloatToString(-1.0)      "-1"
-''  FloatToString(^^2.0)     "1.414214"
-''  FloatToString(2.34e-3)   "0.00234"
-''  FloatToString(-1.5e-5)   "-0.000015"
-''  FloatToString(2.7e+6)    "2700000"
-''  FloatToString(1e11)      "100000000000"
-''  FloatToString(1e12)      "1.000000e+12"
-''  FloatToString(1e-12)     "0.000000000001"
-''  FloatToString(1e-13)     "1.000000e-13"
-
-  'perform initial setup
-  StringPtr := Setup(Single)
-
-  'eliminate trailing zeros
-  if integer
-    repeat until integer // 10
-      integer /= 10
-      tens /= 10
-      digits--
-  else
-    digits := 0
-
-  'express number according to exponent
-  case exponent
-    'in range left of decimal
-    11..0:
-      AddDigits(exponent + 1)
-    'in range right of decimal
-    -1..digits - 13:
-      zeros := -exponent
-      AddDigits(1)
-    'out of range, do scientific notation
-    other:
-      DoScientific()
-
-  'terminate z-string
-  byte[p] := 0
-
-
-PUB FloatToScientific(Single): StringPtr
-
-''Convert floating-point number to scientific-notation string
-''
-''  entry:
-''      Single = floating-point number
-''
-''  exit:
-''      StringPtr = pointer to resultant z-string
-''
-''  examples                           results
-''  -------------------------------------------------
-''  FloatToScientific(1e-9)            "1.000000e-9"
-''  FloatToScientific(^^2.0)           "1.414214e+0"
-''  FloatToScientific(0.00251)         "2.510000e-3"
-''  FloatToScientific(-0.0000150043)   "-1.500430e-5"
-
-  'perform initial setup
-  StringPtr := Setup(Single)
-
-  'do scientific notation
-  DoScientific()
-
-  'terminate z-string
-  byte[p] := 0
-
-
-PUB FloatToMetric(Single, SuffixChr): StringPtr | x, y
-
-''Convert floating-point number to metric string
-''
-''  entry:
-''      Single = floating-point number
-''      SuffixChr = optional ending character (0=none)
-''
-''  exit:
-''      StringPtr = pointer to resultant z-string
-''
-''  Magnitudes within the metric ranges will be expressed in metric
-''  terms; otherwise, scientific notation will be used.
-''
-''  range   name     symbol
-''  -----------------------
-''  1e24    yotta    Y
-''  1e21    zetta    Z
-''  1e18    exa      E
-''  1e15    peta     P
-''  1e12    tera     T
-''  1e9     giga     G
-''  1e6     mega     M
-''  1e3     kilo     k
-''  1e0     -        -
-''  1e-3    milli    m
-''  1e-6    micro    u
-''  1e-9    nano     n
-''  1e-12   pico     p
-''  1e-15   femto    f
-''  1e-18   atto     a
-''  1e-21   zepto    z
-''  1e-24   yocto    y
-''
-''  examples               results
-''  ------------------------------------
-''  metric(2000.0, "m")    "2.000000km"
-''  metric(-4.5e-5, "A")   "-45.00000uA"
-''  metric(2.7e6, 0)       "2.700000M"
-''  metric(39e31, "W")     "3.9000e+32W"
-
-  'perform initial setup
-  StringPtr := Setup(Single)
-
-  'determine thousands exponent and relative tens exponent
-  x := (exponent + 45) / 3 - 15
-  y := (exponent + 45) // 3
-
-  'if in metric range, do metric
-  if abs(x) <= 8
-    'add digits with possible decimal
-    AddDigits(y + 1)
-    'add space
-    byte[p++] := " "
-    'if thousands exponent not 0, add metric indicator
-    if x
-      byte[p++] := metric[x]
-  'if out of metric range, do scientific notation
-  else
-    DoScientific()
-
-  'if SuffixChr not 0, add SuffixChr
-  if SuffixChr
-    byte[p++] := SuffixChr
-
-  'terminate z-string
-  byte[p] := 0
-
-
-PUB SetPrecision(NumberOfDigits)
-
-''Set precision to express floating-point numbers in
-''
-''  NumberOfDigits = Number of digits to round to, limited to 1..7 (7=default)
-''
-''  examples          results
-''  -------------------------------
-''  SetPrecision(1)   "1e+0"
-''  SetPrecision(4)   "1.000e+0"
-''  SetPrecision(7)   "1.000000e+0"
-
-  precision := NumberOfDigits
-
-
-PUB SetPositiveChr(PositiveChr)
-
-''Set lead character for positive numbers
-''
-''  PositiveChr = 0: no character will lead positive numbers (default)
-''            non-0: PositiveChr will lead positive numbers (ie " " or "+")
-''
-''  examples              results
-''  ----------------------------------------
-''  SetPositiveChr(0)     "20.07"   "-20.07"
-''  SetPositiveChr(" ")   " 20.07"  "-20.07"
-''  SetPositiveChr("+")   "+20.07"  "-20.07"
-
-  positive_chr := PositiveChr
-
-
-PUB SetDecimalChr(DecimalChr)
-
-''Set decimal point character
-''
-''  DecimalChr = 0: "." will be used (default)
-''           non-0: DecimalChr will be used (ie "," for Europe)
-''
-''  examples             results
-''  ----------------------------
-''  SetDecimalChr(0)     "20.49"
-''  SetDecimalChr(",")   "20,49"
-
-  decimal_chr := DecimalChr
-
-
-PUB SetSeparatorChrs(ThousandsChr, ThousandthsChr)
-
-''Set thousands and thousandths separator characters
-''
-''  ThousandsChr =
-''        0: no character will separate thousands (default)
-''    non-0: ThousandsChr will separate thousands
-''
-''  ThousandthsChr =
-''        0: no character will separate thousandths (default)
-''    non-0: ThousandthsChr will separate thousandths
-''
-''  examples                     results
-''  -----------------------------------------------------------
-''  SetSeparatorChrs(0, 0)       "200000000"    "0.000729345"
-''  SetSeparatorChrs(0, "_")     "200000000"    "0.000_729_345"
-''  SetSeparatorChrs(",", 0)     "200,000,000"  "0.000729345"
-''  SetSeparatorChrs(",", "_")   "200,000,000"  "0.000_729_345"
-
-  thousands_chr := ThousandsChr
-  thousandths_chr := ThousandthsChr
-
-
-PRI Setup(single): stringptr | tmp
-
- 'limit digits to 1..7
-  if precision
-    digits := precision #> 1 <# 7
-  else
-    digits := 7
-
-  'initialize string pointer
-  p := @float_string
-
-  'add "-" if negative
-  if single & $80000000
-    byte[p++] := "-"
-  'otherwise, add any positive lead character
-  elseif positive_chr
-    byte[p++] := positive_chr
-
-  'clear sign and check for 0
-  if single &= $7FFFFFFF
-
-    'not 0, estimate exponent
-    exponent := ((single << 1 >> 24 - 127) * 77) sar 8
-
-    'if very small, bias up
-    if exponent < -32
-      single := math.FMul(single, 1e13)
-      exponent += tmp := 13
-
-    'determine exact exponent and integer
+PUB strtofloat = str_float
+PUB str_float(strptr): f | int, sign, dmag, mag, get_exp, b
+' Convert string representation of a floating point number to an IEEE-754 float
+    longfill(@int, 0, 5)
+    { get all the digits as if this is an integer (but track the exponent) }
     repeat
-      integer := math.FRound(math.FMul(single, tenf[exponent - digits + 1]))
-      if integer < teni[digits - 1]
-        exponent--
-      elseif integer >= teni[digits]
-        exponent++
-      else
-        exponent -= tmp
-        quit
+        case b := byte[strptr++]
+            "-":
+                sign := $8000_0000
+            "+":                                ' allow, but ignore
+            "0".."9":
+                int := (int * 10) + b - "0"
+                mag += dmag
+            ".":
+                dmag := -1
+            other:                              ' either done, or about to do exponent
+                if (get_exp)
+                    { just finished processing the exponent }
+                    if (sign)
+                        int := -int
+                    mag += int
+                    quit
+                else
+                    { convert int to a (signed) float }
+                    f := math.ffloat(int) | sign
+                    if (b == "E") or (b == "e") ' should we continue?
+                        longfill(@int, 0, 3)
+                        get_exp := 1
+                    else
+                        quit
+                        ' exp10 is the weak link...uses the Log table in P1 ROM
+                        ' f := fmul(f, exp10(ffloat(mag)))
+                        ' use these loops for more precision (slower for large exponents,
+                        '   positive or negative)
+    b := 0.1
+    if (mag > 0)
+        b := 10.0
+    repeat abs(mag)
+        f := math.fmul(f, b)
 
-  'if 0, reset exponent and integer
-  else
-    exponent := 0
-    integer := 0
+PUB float_str = float_str
+PUB float_str(single): ptr_str
+' Convert floating-point number to string
+'   single: floating-point number
+'
+'   Returns: pointer to resultant z-string
+'
+'  Magnitudes below 1e+12 and within 1e-12 will be expressed directly;
+'  otherwise, scientific notation will be used.
+'
+'  examples                 results
+'  -----------------------------------------
+'  float_str(0.0)       "0"
+'  float_str(1.0)       "1"
+'  float_str(-1.0)      "-1"
+'  float_str(^^2.0)     "1.414214"
+'  float_str(2.34e-3)   "0.00234"
+'  float_str(-1.5e-5)   "-0.000015"
+'  float_str(2.7e+6)    "2700000"
+'  float_str(1e11)      "100000000000"
+'  float_str(1e12)      "1.000000e+12"
+'  float_str(1e-12)     "0.000000000001"
+'  float_str(1e-13)     "1.000000e-13"
 
-  'set initial tens and clear zeros
-  tens := teni[digits - 1]
-  zeros := 0
+    ptr_str := setup(single)                    ' perform initial setup
 
-  'return pointer to string
-  stringptr := @float_string
+    { eliminate trailing zeroes }
+    if (_integer)
+        repeat until (_integer // 10)
+            _integer /= 10
+            _tens /= 10
+            _digits--
+    else
+        _digits := 0
+
+    { express number according to exponent }
+    case _exponent
+        11..0:                                  ' in range left of decimal
+            add_digits(_exponent + 1)
+        -1.._digits - 13:                       ' in range right of decimal
+            _zeroes := -_exponent
+            add_digits(1)
+        other:                                  ' out of range; do sci notation
+            do_sci()
+
+    byte[_ptr_str] := 0                         ' terminate string
+
+PUB floattoscientific = float_sci
+PUB float_sci(single): ptr_str
+' Convert floating-point number to scientific-notation string
+'   single: floating-point number
+'
+'   Returns: pointer to resultant z-string
+'
+'  examples                           results
+'  -------------------------------------------------
+'  float_sci(1e-9)            "1.000000e-9"
+'  float_sci(^^2.0)           "1.414214e+0"
+'  float_sci(0.00251)         "2.510000e-3"
+'  float_sci(-0.0000150043)   "-1.500430e-5"
+    ptr_str := setup(single)                    ' perform initial setup
+    do_sci()                                    ' do scientific notation
+    byte[_ptr_str] := 0                         ' terminate string
+
+PUB floattometric = float_metric
+PUB float_metric(single, suff_ch): ptr_str | x, y
+'Convert floating-point number to metric string
+'   single: floating-point number
+'   suff_ch: optional ending character (0 = none)
+'
+'   Returns:
+'       pointer to resultant z-string
+'
+'  Magnitudes within the metric ranges will be expressed in metric
+'  terms; otherwise, scientific notation will be used.
+'
+'  range   name     symbol
+'  -----------------------
+'  1e24    yotta    Y
+'  1e21    zetta    Z
+'  1e18    exa      E
+'  1e15    peta     P
+'  1e12    tera     T
+'  1e9     giga     G
+'  1e6     mega     M
+'  1e3     kilo     k
+'  1e0     -        -
+'  1e-3    milli    m
+'  1e-6    micro    u
+'  1e-9    nano     n
+'  1e-12   pico     p
+'  1e-15   femto    f
+'  1e-18   atto     a
+'  1e-21   zepto    z
+'  1e-24   yocto    y
+'
+'  examples               results
+'  ------------------------------------
+'  float_metric(2000.0, "m")    "2.000000km"
+'  float_metric(-4.5e-5, "A")   "-45.00000uA"
+'  float_metric(2.7e6, 0)       "2.700000M"
+'  float_metric(39e31, "W")     "3.9000e+32W"
+
+    { perform initial setup }
+    ptr_str := setup(single)
+
+    x := (_exponent + 45) / 3 - 15               ' determine thousands exponent and
+    y := (_exponent + 45) // 3                   '   relative tens exponent
+
+    if (abs(x) <= 8)                            ' if in metric range, do metric
+        add_digits(y + 1)                       ' add digits with possible decimal
+        byte[_ptr_str++] := " "                 ' space
+        if (x)                                  ' if thousands exp not 0, add metric indicator
+            byte[_ptr_str++] := metric[x]
+    else                                        ' if out of metric range, do scientific notation
+        do_sci()
+
+    if (suff_ch)                                ' if suff_ch not 0, add suff_ch
+        byte[_ptr_str++] := suff_ch
+
+    byte[_ptr_str] := 0                         ' terminate string 
+
+PUB setprecision = set_precision
+PUB set_precision(nr_digits)
+' Set precision to express floating-point numbers in
+'  nr_digits: Number of digits to round to, limited to 1..7 (7=default)
+'
+'  examples          results
+'  -------------------------------
+'  set_precision(1)   "1e+0"
+'  set_precision(4)   "1.000e+0"
+'  set_precision(7)   "1.000000e+0"
+    _precision := nr_digits
+
+PUB setpositivechr = set_pos_ch
+PUB set_pos_ch(pos_ch)
+' Set lead character for positive numbers
+'  pos_ch = 0: no character will lead positive numbers (default)
+'  non-0: pos_ch will lead positive numbers (ie " " or "+")
+'
+'  examples              results
+'  ----------------------------------------
+'  set_pos_ch(0)     "20.07"   "-20.07"
+'  set_pos_ch(" ")   " 20.07"  "-20.07"
+'  set_pos_ch("+")   "+20.07"  "-20.07"
+    _pos_ch := pos_ch
+
+PUB setdecimalchr = set_dec_ch
+PUB set_dec_ch(dec_ch)
+' Set decimal point character
+'  dec_ch = 0: "." will be used (default)
+'  non-0: dec_ch will be used (e.g., "," for Europe)
+'
+'  examples             results
+'  ----------------------------
+'  set_dec_ch(0)     "20.49"
+'  set_dec_ch(",")   "20,49"
+    _dec_ch := dec_ch
+
+PUB set_sep_ch(thous_ch, thousths_ch)
+' Set thousands and thousandths separator characters
+'  thous_ch:
+'        0: no character will separate thousands (default)
+'    non-0: thous_ch will separate thousands
+'
+'  thousths_ch:
+'        0: no character will separate thousandths (default)
+'    non-0: thousths_ch will separate thousandths
+'
+'  examples                     results
+'  -----------------------------------------------------------
+'  set_sep_ch(0, 0)       "200000000"    "0.000729345"
+'  set_sep_ch(0, "_")     "200000000"    "0.000_729_345"
+'  set_sep_ch(",", 0)     "200,000,000"  "0.000729345"
+'  set_sep_ch(",", "_")   "200,000,000"  "0.000_729_345"
+    _thous_ch := thous_ch
+    _thousths_ch := thousths_ch
+
+PRI setup(single): ptr_str | tmp
+
+    if (_precision)
+        _digits := (1 #> _precision <# 7)       ' limit digits to 1..7
+    else
+        _digits := 7
+
+    _ptr_str := @_float_str                     ' init string pointer
+
+    if (single & $80000000)                     ' add '-' if negative
+        byte[_ptr_str++] := "-"
+    elseif (_pos_ch)                            ' otherwise, add positive lead char
+        byte[_ptr_str++] := _pos_ch
+
+    if (single &= $7FFFFFFF)                    ' clear sign and check for 0
+        { not 0, estimate exponent }
+        _exponent := ((single << 1 >> 24 - 127) * 77) sar 8
+        if (_exponent < -32)                    ' if very small, bias up
+            single := math.FMul(single, 1e13)
+            _exponent += tmp := 13
+
+        { determine exact exponent and integer }
+        repeat
+            _integer := math.fround(math.fmul(single, tenf[_exponent - _digits + 1]))
+            if (_integer < teni[_digits - 1])
+                _exponent--
+            elseif (_integer >= teni[_digits])
+                _exponent++
+            else
+                _exponent -= tmp
+            quit
+
+    { if 0, reset exponent and integer }
+    else
+        _exponent := 0
+        _integer := 0
+
+    { set initial tens and clear zeroes }
+    _tens := teni[_digits - 1]
+    _zeroes := 0
+
+    return @_float_str
+
+PRI do_sci()
+
+    add_digits(1)                               ' add digits with possible decimal
+    byte[_ptr_str++] := "e"                     ' add exponent indicator
+    if (_exponent >= 0)                         ' add exponent sign
+        byte[_ptr_str++] := "+"
+    else
+        byte[_ptr_str++] := "-"
+        _exponent := abs(_exponent)
+    if (_exponent >= 10)                        ' add exponent digits
+        byte[_ptr_str++] := ((_exponent / 10) + "0")
+        _exponent //= 10
+    byte[_ptr_str++] := _exponent + "0"
+
+PRI add_digits(leading) | i
+
+    repeat i := leading                         ' add leading digits
+        add_digit()
+        if (_thous_ch)                          ' add thousands separator between thousands
+            i--
+            if (i and not (i // 3))
+                byte[_ptr_str++] := _thous_ch
+    if (_digits)                                ' if trailing digits, add decimal char
+        add_dec()
+        repeat while _digits                    ' then add trailing digits
+            if (_thousths_ch)                   ' add thousandths separator between thousandths
+                if (i and not (i // 3))
+                    byte[_ptr_str++] := _thousths_ch
+            i++
+            add_digit()
 
 
-PRI DoScientific()
+PRI add_digit()
 
-  'add digits with possible decimal
-  AddDigits(1)
-  'add exponent indicator
-  byte[p++] := "e"
-  'add exponent sign
-  if exponent >= 0
-    byte[p++] := "+"
-  else
-    byte[p++] := "-"
-    exponent := abs(exponent)
-  'add exponent digits
-  if exponent >= 10
-    byte[p++] := exponent / 10 + "0"
-    exponent //= 10
-  byte[p++] := exponent + "0"
+    if (_zeroes)                                ' if leading zeroes, add "0"
+        byte[_ptr_str++] := "0"
+        _zeroes--
+    elseif (_digits)                            ' if more digits, add current digit and prep next
+        byte[_ptr_str++] := ((_integer / _tens) + "0")
+        _integer //= _tens
+        _tens /= 10
+        _digits--
+    else                                        ' if no more digits, add "0"
+        byte[_ptr_str++] := "0"
 
+PRI add_dec()
 
-PRI AddDigits(leading) | i
-
-  'add leading digits
-  repeat i := leading
-    AddDigit()
-    'add any thousands separator between thousands
-    if thousands_chr
-      i--
-      if i and not i // 3
-        byte[p++] := thousands_chr
-  'if trailing digits, add decimal character
-  if digits
-    AddDecimal()
-    'then add trailing digits
-    repeat while digits
-      'add any thousandths separator between thousandths
-      if thousandths_chr
-        if i and not i // 3
-          byte[p++] := thousandths_chr
-      i++
-      AddDigit()
-
-
-PRI AddDigit()
-
-  'if leading zeros, add "0"
-  if zeros
-    byte[p++] := "0"
-    zeros--
-  'if more digits, add current digit and prepare next
-  elseif digits
-    byte[p++] := integer / tens + "0"
-    integer //= tens
-    tens /= 10
-    digits--
-  'if no more digits, add "0"
-  else
-    byte[p++] := "0"
-
-
-PRI AddDecimal()
-
-  if decimal_chr
-    byte[p++] := decimal_chr
-  else
-    byte[p++] := "."
+    if (_dec_ch)
+        byte[_ptr_str++] := _dec_ch
+    else
+        byte[_ptr_str++] := "."
 
 
 DAT
@@ -413,4 +353,22 @@ teni    long  1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000
         byte "yzafpnum"
 metric  byte 0
         byte "kMGTPEZY"
+
+DAT
+{
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
 
