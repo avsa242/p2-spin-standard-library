@@ -5,15 +5,15 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Jun 18, 2019
-    Updated: Jul 10, 2022
+    Updated: Oct 21, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
-    _xtlfreq   = cfg._xtlfreq
-    _clkfreq   = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = cfg._clkfreq_def
 
 ' -- User-modifiable constants
     LED         = cfg.LED1
@@ -25,7 +25,7 @@ OBJ
     ser         : "com.serial.terminal.ansi"
     cfg         : "boardcfg.p2eval"
 
-PUB Main() | fg, bg, rx_char, mb, mx, my
+PUB main() | fg, bg
 
     setup()
 
@@ -33,43 +33,43 @@ PUB Main() | fg, bg, rx_char, mb, mx, my
     ser.strln(@"NOTE: Not all attributes supported by all terminals.")
 
     ser.bold()
-    Demo_Text(@"BOLD")
+    demo_text(@"BOLD")
 
     ser.bold(ser.SGR_INTENSITY_FAINT)
-    Demo_Text(@"FAINT")
+    demo_text(@"FAINT")
 
     ser.italic()
-    Demo_Text(@"ITALIC (or INVERSE)")
+    demo_text(@"ITALIC (or INVERSE)")
 
     ser.underline()
-    Demo_Text(@"UNDERLINED")
+    demo_text(@"UNDERLINED")
  
     ser.underline(ser.SGR_UNDERLINE_DBL)
-    Demo_Text(@"DOUBLE UNDERLINED")
+    demo_text(@"DOUBLE UNDERLINED")
 
     ser.blink(ser.SGR_BLINKSLOW)
-    Demo_Text(@"SLOW BLINKING")
+    demo_text(@"SLOW BLINKING")
 
     ser.blink(ser.SGR_BLINKFAST)
-    Demo_Text(@"FAST BLINKING")
+    demo_text(@"FAST BLINKING")
 
     ser.inverse()
-    Demo_Text(@"INVERSE")
+    demo_text(@"INVERSE")
 
     ser.conceal()
-    Demo_Text(@"CONCEALED")
+    demo_text(@"CONCEALED")
 
-    ser.strikethrough()
-    Demo_Text(@"STRIKETHROUGH")
+    ser.strikethru()
+    demo_text(@"STRIKETHROUGH")
 
     ser.framed()
-    Demo_Text(@"FRAMED")
+    demo_text(@"FRAMED")
 
     ser.encircle()
-    Demo_Text(@"ENCIRCLED")
+    demo_text(@"ENCIRCLED")
 
     ser.overline()
-    Demo_Text(@"OVERLINED")
+    demo_text(@"OVERLINED")
 
     repeat bg from 0 to 7
         repeat fg from 0 to 7
@@ -95,48 +95,45 @@ PUB Main() | fg, bg, rx_char, mb, mx, my
 
     repeat 5
         ser.scrollup()
-        waitms(1000)
+        waitms(500)
 
     repeat 5
         ser.scrolldown()
-        waitms(1000)
+        waitms(500)
 
     ser.newline()
-    rx_char := 0
-
     repeat
 
-PUB Demo_Text(inp_text)
+PUB demo_text(inp_text)
 
     ser.printf(@"This is %s text\n\r", inp_text)
     ser.reset()
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     ser.reset()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
+DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 }
 
