@@ -112,18 +112,35 @@ CON
 
 PUB bgcolor(bcolor)
 ' Set background color
+'   Valid values:
+'   BLACK (0)
+'   RED (1)
+'   GREEN (2)
+'   YELLOW (3)
+'   BLUE (4)
+'   MAGENTA (5)
+'   CYAN (6)
+'   (add BRIGHT (60) to color value for brighter/lighter shade)
     csi()
     putchar(";")
     dec(BG + bcolor)
     putchar("m")
 
-PUB blink(mode=5)
-' Set Blink attribute
-    sgr(mode)
+PUB blink()
+' Set blink attribute
+    sgr(SGR_BLINKSLOW)
 
-PUB bold(mode=1)
-' Set Bold attribute
-    sgr(mode)
+PUB blink_fast()
+' Set fast blink mode
+    sgr(SGR_BLINKFAST)
+
+PUB bold()
+' Set bold attribute
+    sgr(SGR_INTENSITY_BOLD)
+
+PUB bold_off()
+' Clear bold attribute
+    sgr(SGR_INTENSITY_NML)
 
 PUB box(x0, y0, x1, y1, brd_fg, brd_bg, filled) | inwidth, inheight, inbot, intop, x, y
 ' Draw a box, using semigraphics characters
@@ -195,8 +212,8 @@ PUB clear_ln()
 ' Clear current line of terminal
     clear_lnx(CLR_CUR_TO_END)
 
-PUB clearlinex = clear_lnx
-PUB clear_lnx(mode)
+PUB clearlinex = clear_ln_mode
+PUB clear_ln_mode(mode)
 ' Clear line using explicitly set mode
     csi()
     dec(mode)
@@ -213,46 +230,87 @@ PUB clear_mode(mode)
 
 PUB color(fcolor, bcolor)
 ' Set foreground and background colors
+'   Valid values:
+'   BLACK (0)
+'   RED (1)
+'   GREEN (2)
+'   YELLOW (3)
+'   BLUE (4)
+'   MAGENTA (5)
+'   CYAN (6)
+'   (add BRIGHT (60) to color value for brighter/lighter shade)
     csi()
     dec(FG + fcolor)
     putchar(";")
     dec(BG + bcolor)
     putchar("m")
 
-PUB conceal(mode=8)
-' Set Conceal attribute
-    sgr(mode)
+PUB conceal()
+' Set conceal attribute
+    sgr(SGR_CONCEAL)
 
 PUB cursorpositionreporting = curs_pos_report_ena
 PUB curs_pos_report_ena(enabled)
 ' Enable/disable mouse cursor position reporting
     csi()
-    case enabled
-        FALSE:
-            str(string("?1000;1006;1015l"))
-        OTHER:
-            str(string("?1000;1006;1015h"))
+    if (enabled)
+        str(@"?1000;1006;1015h")
+    else
+        str(@"?1000;1006;1015l")
 
-PUB cursornextline = curs_next_line
-PUB curs_next_line(rows)
-' Move cursor to beginning of next row, or 'rows' number of rows down
+PUB curs_down_rows = curs_down_rows
+PUB curs_down_lines(lines)
+' Move cursor number of lines down
     csi()
-    dec(rows)
+    dec(lines)
     putchar("E")
 
-PUB cursorprevline = curs_prev_line
-PUB curs_prev_line(rows)
-' Move cursor to beginning of previous row, or 'rows' number of rows up
+PUB cursornextline = curs_next_line
+PUB curs_next_row = curs_next_line
+PUB curs_next_line()
+' Move cursor to beginning of next lines
     csi()
-    dec(rows)
+    dec(1)
+    putchar("E")
+
+PUB curs_up_rows = curs_up_lines
+PUB curs_up_lines(lines)
+' Move cursor number of lines up
+    csi()
+    dec(lines)
+    putchar("F")
+
+PUB cursorprevline = curs_prev_line
+PUB curs_prev_row = curs_prev_line
+PUB curs_prev_line(rows)
+' Move cursor to beginning of previous row
+    csi()
+    dec(1)
     putchar("F")
 
 PUB encircle()
-' Set Encircle attribute
+' Set encircle attribute
     sgr(SGR_ENCIRCLED)
+
+PUB faint()
+' Set faint attribute
+    sgr(SGR_INTENSITY_FAINT)
+
+PUB faint_off()
+' Clear faint attribute
+    sgr(SGR_INTENSITY_NML)
 
 PUB fgcolor(fcolor)
 ' Set foreground color
+'   Valid values:
+'   BLACK (0)
+'   RED (1)
+'   GREEN (2)
+'   YELLOW (3)
+'   BLUE (4)
+'   MAGENTA (5)
+'   CYAN (6)
+'   (add BRIGHT (60) to color value for brighter/lighter shade)
     csi()
     dec(FG + fcolor)
     putchar("m")
@@ -273,79 +331,86 @@ PUB home()
 ' Move cursor to home/upper-left position
     pos_xy(0, 0)
 
-PUB inverse(mode=7)
+PUB inverse()
 ' Set inverse attribute
-    sgr(mode)
+    sgr(SGR_INVERSE)
+
+PUB inverse_off()
+' Clear inverse attribute
+    sgr(SGR_INVERSE_OFF)
 
 PUB italic()
 ' Set italicized attribute
     sgr(SGR_ITALIC)
 
-PUB mousecursorposition = mouse_curs_pos
-PUB mouse_curs_pos() | b, x, y
-' Report Current mouse position (press mouse button to update)
-'   Returns: Button pressed, X, Y coordinates (packed into long)
-'       byte 0: X coordinate
-'       byte 1: Y coordinate
-'       byte 2: Button pressed/wheel movement:
-'           0 - Left
-'           1 - Middle
-'           2 - Right
-'           3 - Released
-'           64- Mouse wheel up
-'           65- Mouse wheel down
-'   NOTE: The position is only updated when a mouse button is pressed or wheel is moved
-    if charin() == ESC
-        if charin() == "["
-            if charin() == "M"
-'               If we made it this far, it's a mouse position event
-            else
-                return 0
-        else
-            return 0
-    else
-        return 0
-
-    b := charin-32                              ' button data = 32+button
-    x := charin-33                              ' transform upper-left coords
-    y := charin-33                              '   to 0, 0 instead of 1, 1
-    result := (b << 16) | (y << 8) | x          ' Pack into the return value
-
 PUB movedown = move_down
-PUB move_down(rows=1)
+PUB move_down()
+' Move cursor down 1 row
+    csi()
+    dec(1)
+    putchar("B")
+
+PUB move_down_lines = move_down_rows
+PUB move_down_rows(rows)
 ' Move cursor down 1 or more rows
     csi()
     dec(rows)
     putchar("B")
 
 PUB moveleft = move_left
-PUB move_left(columns=1)
-' Move cursor back/left 1 or more columns
+PUB move_left()
+' Move cursor back/left 1 column
     csi()
-    dec(columns)
+    dec(1)
     putchar("D")
 
+PUB move_left_cols(cols)
+' Move cursor back/left 1 or more columns
+    csi()
+    dec(cols)
+
 PUB moveright = move_right
-PUB move_right(columns=1)
+PUB move_right()
+' Move cursor forward/right 1 column
+    csi()
+    dec(1)
+    putchar("C")
+
+PUB move_right_cols(cols)
 ' Move cursor forward/right 1 or more columns
     csi()
     dec(columns)
     putchar("C")
 
 PUB moveup = move_up
-PUB move_up(rows=1)
+PUB move_up()
+' Move cursor up 1 row
+    csi()
+    dec(1)
+    putchar("A")
+
+PUB move_up_lines = move_up_rows
+PUB move_up_rows(rows)
 ' Move cursor up 1 or more rows
     csi()
     dec(rows)
     putchar("A")
 
+PUB normal()
+' Clear all attributes
+    sgr(SGR_RESET)
+
 PUB overline()
-' Set Overline attribute
+' Set overline attribute
     sgr(SGR_OVERLINED)
+
+PUB overline_off{}
+' Clear overline attribute
+    sgr(SGR_OVERLINED_OFF)
 
 PUB position = pos_xy
 PUB pos_xy(x, y)
-' position cursor at column x, row y (from top-left)
+' Position cursor at column x, row y (from top-left)
     csi()
     dec(y+1)                                    ' 1-base coordinates
     putchar(";")
@@ -372,14 +437,28 @@ PUB reset()
     putchar("m")
 
 PUB scrolldown = scroll_down
-PUB scroll_down(lines=1)
+PUB scroll_down()
+' Scroll display down 1 line
+    csi()
+    dec(1)
+    putchar("T")
+
+PUB scroll_down_rows = scroll_down_lines
+PUB scroll_down_lines(lines)
 ' Scroll display down 1 or more lines
     csi()
     dec(lines)
     putchar("T")
 
 PUB scrollup = scroll_up
-PUB scroll_up(lines=1)
+PUB scroll_up()
+' Scroll display up 1 line
+    csi()
+    dec(1)
+    putchar("S")
+
+PUB scroll_up_rows = scroll_up_rows
+PUB scroll_up_lines(lines=1)
 ' Scroll display up 1 or more lines
     csi()
     dec(lines)
@@ -388,11 +467,10 @@ PUB scroll_up(lines=1)
 PUB semigfx = semi_gfx_ena
 PUB semi_gfx_ena(enabled=1)
 ' Enable semi-graphics (e.g., line-drawing) mode
-    case abs(enabled)
-        1:
-            str(string(ESC, "(", "0"))
-        0:
-            str(string(ESC, "(", "B"))
+    if (enabled)
+        str(string(ESC, "(", "0"))
+    else
+        str(string(ESC, "(", "B"))
 
 PUB showcursor = show_cursor
 PUB show_cursor()
@@ -402,9 +480,14 @@ PUB show_cursor()
     dec(25)
     putchar("h")
 
-PUB strikethru(mode=9)
+PUB strikethrough = strikethru
+PUB strikethru()
 ' Set strike-through attribute
-    sgr(mode)
+    sgr(SGR_STRIKETHRU)
+
+PUB strikethru_off()
+' Clear strike-through attribute
+    sgr(SGR_STRIKETHRU_OFF)
 
 PUB textwindow = text_win
 PUB text_win(ptr_titlestr, x, y, w, h, brd_fg, brd_bg, ttl_fg)
@@ -420,9 +503,17 @@ PUB text_win(ptr_titlestr, x, y, w, h, brd_fg, brd_bg, ttl_fg)
     pos_xy(x+2, y)                              ' display window title
     str(ptr_titlestr)
 
-PUB underline(mode=4)
-' Set Underline attribute
-    sgr(mode)
+PUB underline()
+' Set underline attribute
+    sgr(SGR_UNDERLINE)
+
+PUB underline_dbl()
+' Set double-underline attribute
+    sgr(SGR_UNDERLINE_DBL)
+
+PUB underline_off()
+' Clear underline attribute
+    sgr(SGR_UNDERLINE_OFF)
 
 PRI csi()
 ' Command Sequence Introducer
