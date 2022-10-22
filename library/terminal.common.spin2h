@@ -6,24 +6,22 @@
         standard terminal routines (P2 version)
     Copyright (c) 2022
     Started Dec 14, 2019
-    Updated Oct 11, 2022
+    Updated Oct 22, 2022
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is based on std_text_routines.spinh,
         originally by Eric Smith.
-}
 
-{
     Must be included using the preprocessor #include directive
 
     Requires:
-        An object with a Char(param) method
+        An object with a putchar(param) method
     Optionally:
-        Newline() (Note: _HAS_NEWLINE_ must be #defined in the including file)
+        newline() (Note: _HAS_NEWLINE_ must be #defined in the including file)
 }
 
-{ if a maximum buffer size isn't defined at build-time, go with the default of 33 bytes
-    (enough for a 32-bit binary number output + trailing null character) }
+{ if a maximum buffer size isn't defined at build-time, go with the default of 100 bytes.
+    increase if program behavior is odd (e.g., visible string corruption) }
 #ifndef TMPBUFF_SZ
 #define TMPBUFF_SZ 100
 #endif
@@ -40,50 +38,88 @@ VAR
 
     byte _tmp[TMPBUFF_SZ]
 
-PUB bin(val, digits)
-' Print a number in binary form
+PUB bin = putbin
+PUB putbin(val, digits)
+' Output a binary number (zero-padded)
     stl.itoab(val, @_tmp, stl.IBIN)
     str(@_tmp)
 
-PUB dec(val)
-' Print a signed decimal number
+PUB dec = putdec
+PUB putdec(val)
+' Output a signed decimal number
     stl.itoa(val, @_tmp)
     str(@_tmp)
 
-PUB decuns = udec
-PUB udec(val, digits)
-' Print an unsigned decimal number with the specified
-'   number of digits; 0 means just use as many as we need
+PUB decuns = putudec
+PUB udec = putudec
+PUB putudec(val, digits)
+' Output an unsigned decimal number (zero-padded)
+'   val: value to print
+'   digits: number of digits to display
     stl.atoib(val, stl.IDEC)
     str(@_tmp)
 
-PUB hex(val, digits)
-' Print a hex number with the specified number
-'   of digits; 0 means just use as many as we need
+PUB hex = puthex
+PUB puthex(val, digits)
+' Output a hexadecimal number (zero-padded)
+'   val: value to print
+'   digits: number of digits to display
     stl.itoab(val, @_tmp, stl.IHEX)
     str(@_tmp)
 
-PUB hexs(val, digits)
-' Print a hex number with the specified number (small implementation)
-'   of digits; 0 means just use as many as we need
+PUB hexs = puthexs
+PUB puthexs(val, digits)
+' Output a hexadecimal number (zero-padded; small implementation)
+'   val: value to print
+'   digits: number of digits to display
     str(stl.hexs(val, digits))
 
 #ifndef _HAS_NEWLINE_
-PUB newline
-' Print a carriage return and line-feed
+PUB newline()
+' Output a carriage return and line-feed
     putchar(CR)
     putchar(LF)
 #endif
 
 PUB printf(fmt=@"", arg1=0, arg2=0, arg3=0, arg4=0, arg5=0, arg6=0, arg7=0, arg8=0, arg9=0, arg10=0)
-' C like formatted print
+' Output a C-like formatted print
+'   fmt: formatting specification
+'   ptr_args: pointer to arguments used to fill in formatting variables
+'
+'   Recognized formatting specification:
+'   Escape codes:
+'       \\: backslash
+'       \t: tab
+'       \n: line-feed (next line, same column)
+'       \r: carriage-return (first column of current line)
+'           (combine \n\r for start of next line)
+'       \###: 3-digit/1-byte octal code for non-printable chars (e.g., \033 for ESC)
+'
+'   Formatting specifiers:
+'       %%: percent-sign
+'       %c: character
+'       %d, %i: decimal (signed)
+'       %b: binary
+'       %o: octal
+'       %u: decimal (unsigned)
+'       %x, %X: hexadecimal (lower-case, upper-case)
+'       %f: IEEE-754 float (not yet implemented)
+'       %s: string
+'
+'   Optionally precede formatting spec letter with the following:
+'       0: pad numbers with zeroes (e.g., %0d for zero-padded decimal)
+'           (default padding character is space, when padding is necessary)
+'       #.#: minimum field width.maximum field width (e.g. %2.5d for decimal with 2..5 digits)
+'       -: left-justify (e.g. %-4.8x for left-justified hex with 4..8 digits)
     bytefill(@_tmp, 0, TMPBUFF_SZ)
     stl.sprintf(@_tmp, fmt, @arg1)
     str(@_tmp)
 
-PUB str(s) | c
+PUB str = puts
+PUB puts(s) | c
 ' Output a string
-    repeat while ((c := byte[s++]) <> 0)
+'   NOTE: a newline is _not_ appended to the string automatically (use strln() instead)
+    repeat while ((c := byte[s++]) <> NUL)
         putchar(c)
 
 PUB strln(s)
@@ -92,9 +128,9 @@ PUB strln(s)
     newline{}
 
 PUB wr_bytex(b, bcnt)
-' Repeatedly write byte to terminal
-'   b: byte to write
-'   bcnt: number of bytes to write
+' Repeatedly output byte
+'   b: byte to output
+'   bcnt: number of times to output 'b'
     repeat bcnt
         putchar(b)
 
