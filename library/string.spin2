@@ -137,11 +137,20 @@ PUB dec(val): dec_str
     itoa(val, @_tmp_buff)
     return @_tmp_buff
 
+PUB decpadded = decspc
+PUB decspc(val, digits): dec_str
+' Convert decimal value to string representation, with zero padding
+'   val: value to convert
+'   Returns: pointer to string representation of value
+    itoap(val, @_tmp_buff, digits, " ")
+    return @_tmp_buff
+
+PUB deczeroed = decz
 PUB decz(val, digits): dec_str
 ' Convert decimal value to string representation, with zero padding
 '   val: value to convert
 '   Returns: pointer to string representation of value
-    itoaz(val, @_tmp_buff, digits)
+    itoap(val, @_tmp_buff, digits, "0")
     return @_tmp_buff
 
 PUB endswith(ptr_str, ptr_substr): ends
@@ -360,34 +369,6 @@ PUB itoa(num, ptr_str): ptr | str0, dvsr, temp
     byte[ptr_str++] := NUL
     return ptr_str - str0 - 1
 
-PUB itoaz(num, ptr_str, digits): ptr | str0, dvsr, temp
-' Convert number (signed) to string representation, with zero padding
-'   num: integer value to convert
-'   ptr_str: string to copy output to
-'   digits: number of digits to output
-'   Returns: pointer to converted string
-    str0 := ptr_str
-    if (num < 0)
-        byte[ptr_str++] := "-"
-        if (num == $80000000)
-            byte[ptr_str++] := "2"
-            num += 2_000_000_000
-        num := -num
-    elseif (num == 0)
-        byte[ptr_str++] := "0"
-    dvsr := 1_000_000_000
-    repeat while (dvsr > num)
-        dvsr /= 10
-    repeat digits-1
-        byte[ptr_str++] := "0"
-    repeat while (dvsr > 0)
-        temp := num / dvsr
-        byte[ptr_str++] := temp + "0"
-        num -= temp * dvsr
-        dvsr /= 10
-    byte[ptr_str++] := 0
-    return ptr_str - str0 - 1
-
 PUB itoab(num, ptr_str, base) | lowbit, sorg
 ' Convert number (unsigned) in base to string representation
 '   num: integer value to convert
@@ -413,6 +394,36 @@ PUB itoab(num, ptr_str, base) | lowbit, sorg
     until (num == 0)
     byte[ptr_str] := NUL                        ' trailing null
     reverse(sorg)
+
+PUB itoap(num, ptr_str, digits, pad_ch): ptr | str0, dvsr, temp
+' Convert number (signed) to string representation, with padding
+'   num: integer value to convert
+'   ptr_str: string to copy output to
+'   digits: number of digits to output (number will be padded to this width)
+'   pad_ch: character to pad digits with (e.g., " ", "0", etc)
+'   Returns: pointer to converted string
+    str0 := ptr_str
+    if (num < 0)                                ' handle case: negative number
+        byte[ptr_str++] := "-"
+        if (num == $80000000)
+            byte[ptr_str++] := "2"
+            num += 2_000_000_000
+        num := -num
+    dvsr := 1_000_000_000
+    repeat while (dvsr > num)
+        dvsr /= 10
+    repeat digits-1                             ' pad requested width
+        byte[ptr_str++] := pad_ch
+    if (num == 0)                           ' handle case: number is 0
+        byte[ptr_str++] := "0"
+    else
+        repeat while (dvsr > 0)                     ' add digits to the output string
+            temp := num / dvsr
+            byte[ptr_str++] := temp + "0"
+            num -= temp * dvsr
+            dvsr /= 10
+        byte[ptr_str++] := NUL                      ' zero-terminate
+    return (ptr_str - str0 - 1)
 
 PUB left(ptr_str, count): ptr_new
 ' Copy left-most characters
