@@ -10,7 +10,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Jun 18, 2019
-    Updated: Oct 21, 2022
+    Updated: Oct 22, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -210,7 +210,7 @@ PUB clearline = clear_ln
 PUB clear_line = clear_ln
 PUB clear_ln()
 ' Clear current line of terminal
-    clear_lnx(CLR_CUR_TO_END)
+    clear_ln_mode(CLR_CUR_TO_END)
 
 PUB clearlinex = clear_ln_mode
 PUB clear_ln_mode(mode)
