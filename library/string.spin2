@@ -5,7 +5,7 @@
     Description: String processing and formatting (P2 version)
     Copyright (c) 2022
     Started May 29, 2022
-    Updated Sep 18, 2022
+    Updated Oct 22, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -43,7 +43,7 @@ VAR
 
     byte _caps
 
-PUB Append(ptr_dest, ptr_src): ptr_new
+PUB append(ptr_dest, ptr_src): ptr_new
 ' Append ptr_src string to the end of ptr_dest string
 '   Returns: pointer to the new string
 '   NOTE: Destination string must be larger or equal to size of ptr_src
@@ -51,7 +51,7 @@ PUB Append(ptr_dest, ptr_src): ptr_new
     bytemove((ptr_dest + strsize(ptr_dest)), ptr_src, (strsize(ptr_src) + 1))
     return ptr_dest
 
-PUB AtoI(ptr_str): val | sign, n
+PUB atoi(ptr_str): val | sign, n
 ' Convert string representation of decimal number to signed integer
 '   ptr_str: string holding decimal number
 '   Returns: Value of signed decimal string
@@ -68,7 +68,7 @@ PUB AtoI(ptr_str): val | sign, n
         n := (10*n) + (byte[ptr_str++] - "0")   ' calculate value
     val := sign * n                             ' adjust for sign
 
-PUB AtoIb(ptr_str, base): val | n, digit
+PUB atoib(ptr_str, base): val | n, digit
 ' Convert string representation of unsigned integer to unsigned integer using specific base
 '   ptr_str: string containing unsigned integer
 '   base: Base for conversion (2=binary, 8=octal, 10=decimal, 16=hexadecimal)
@@ -93,16 +93,16 @@ PUB AtoIb(ptr_str, base): val | n, digit
         digit := (byte[ptr_str++] & 127)
     return n
 
-PUB Bin(val, digits): bin_str
+PUB bin(val, digits): bin_str
 ' Convert binary value to string representation
     itoab(val, @_tmp_buff, IBIN)
     return @_tmp_buff
 
-PUB Clear(ptr_str)
+PUB clear(ptr_str)
 ' Clear string (fill with 0/NUL)
     fill(ptr_str, NUL)
 
-PUB Compare(ptr_str1, ptr_str2, case_s): cmpres
+PUB compare(ptr_str1, ptr_str2, case_s): cmpres
 ' Compare two strings
 '   ptr_str1, ptr_str2: strings to compare
 '   case_s: case-sensitive comparison
@@ -121,7 +121,7 @@ PUB Compare(ptr_str1, ptr_str2, case_s): cmpres
             cmpres := (ctype.tolower(byte[ptr_str1]) - ctype.tolower(byte[ptr_str2++]))
         while ( byte[ptr_str1++] and (not(cmpres)) )
 
-PUB Copy(ptr_dest, ptr_src): ptr_new
+PUB copy(ptr_dest, ptr_src): ptr_new
 ' Copy a string from ptr_src to ptr_dest
 '   ptr_dest: destination to copy to
 '   ptr_src: source to copy from
@@ -130,21 +130,21 @@ PUB Copy(ptr_dest, ptr_src): ptr_new
     bytemove(ptr_dest, ptr_src, (strsize(ptr_src) + 1))
     return ptr_dest
 
-PUB Dec(val): dec_str
+PUB dec(val): dec_str
 ' Convert decimal value to string representation
 '   val: value to convert
 '   Returns: pointer to string representation of value
     itoa(val, @_tmp_buff)
     return @_tmp_buff
 
-PUB Decz(val, digits): dec_str
+PUB decz(val, digits): dec_str
 ' Convert decimal value to string representation, with zero padding
 '   val: value to convert
 '   Returns: pointer to string representation of value
     itoaz(val, @_tmp_buff, digits)
     return @_tmp_buff
 
-PUB EndsWith(ptr_str, ptr_substr): ends
+PUB endswith(ptr_str, ptr_substr): ends
 ' Check if the string ptr_str ends with string ptr_substr
 '   ptr_str: string to check
 '   ptr_substr: string to look for at end of ptr_str
@@ -154,7 +154,7 @@ PUB EndsWith(ptr_str, ptr_substr): ends
     ends := (ptr_str + strsize(ptr_str) - strsize(ptr_substr))
     return (ends == find(ends, ptr_substr))
 
-PUB Fill(ptr_str, char): ptr
+PUB fill(ptr_str, char): ptr
 ' Fill string with char
 '   ptr_str: string to fill
 '   char: character to fill string with
@@ -162,7 +162,7 @@ PUB Fill(ptr_str, char): ptr
     byte[ptr_str + strsize(ptr_str)] := NUL     ' null-terminate
     return ptr_str
 
-PUB Find(ptr_str, ptr_srchstr): ptr_match | i, srch_sz, mismatch
+PUB find(ptr_str, ptr_srchstr): ptr_match | i, srch_sz, mismatch
 ' Find string
 '   ptr_str: string to search
 '   ptr_srchstr: string to search for
@@ -183,14 +183,14 @@ PUB Find(ptr_str, ptr_srchstr): ptr_match | i, srch_sz, mismatch
                 ifnot (mismatch~)               ' flag is clear
                     return ptr_str              ' return updated pointer
 
-PUB FindChar(ptr_str, char): ptr
+PUB findchar(ptr_str, char): ptr
 ' Find first occurrence of character in string
 '   Returns: pointer to character within ptr_str if found, or 0 if not found
     repeat strsize(ptr_str--)
         if (byte[++ptr_str] == char)
             return ptr_str
 
-PUB GetField(ptr_str, field_nr, delim): ptr_flddata | char, i_idx, o_idx, cur_field
+PUB getfield(ptr_str, field_nr, delim): ptr_flddata | char, i_idx, o_idx, cur_field
 ' Get field from string containing multiple data separated by delimiter
 '   ptr_str: string to extract field data from
 '   field_nr: which field number to return (zero-based)
@@ -217,7 +217,7 @@ PUB GetField(ptr_str, field_nr, delim): ptr_flddata | char, i_idx, o_idx, cur_fi
                 _tmp_buff[o_idx++] := char      ' field text
     return @_tmp_buff
 
-PUB GetFieldCount(ptr_str, delim): nr_flds | char, idx
+PUB getfieldcount(ptr_str, delim): nr_flds | char, idx
 ' Get number of delimiter-separated fields in ptr_str
 '   ptr_str: pointer to string in which to count number of fields
 '   delim: character to identify as a field delimiter (e.g., ",")
@@ -244,19 +244,19 @@ PUB GetFieldCount(ptr_str, delim): nr_flds | char, idx
 
     return nr_flds
 
-PUB Hex(val, digits): hex_str
+PUB hex(val, digits): hex_str
 ' Convert hexadecimal value to string representation
     itoab(val, @_tmp_buff, IHEX)
     return @_tmp_buff
 
-PUB HexCase(hcase)
+PUB hexcase(hcase)
 ' Set case for hexadecimal number string generation
 '   Valid values:
 '       non-zero: upper-case
 '       zero: lower-case
     _caps := hcase
 
-PUB Hexs(val, digits) | idx
+PUB hexs(val, digits) | idx
 ' Convert hexadecimal value to string representation (small/standalone implementation)
 '   Returns: pointer to string
     bytefill(@_tmp_buff, 0, FIELDSZ_MAX)
@@ -267,7 +267,7 @@ PUB Hexs(val, digits) | idx
         _tmp_buff[idx++] := lookupz((val <-= 4) & $F : "0".."9", "a".."f")
     return @_tmp_buff
 
-PUB IsAlpha(ptr_str): flag
+PUB isalpha(ptr_str): flag
 ' Flag indicating entire string is alphabetic
 '   Returns:
 '       TRUE (-1) if string contains only alphabetic chars, FALSE (0) otherwise
@@ -277,7 +277,7 @@ PUB IsAlpha(ptr_str): flag
 
     return true
 
-PUB IsAlphaNum(ptr_str): flag
+PUB isalphanum(ptr_str): flag
 ' Flag indicating entire string is alphanumeric
 '   Returns:
 '       TRUE (-1) if string contains only alphanumeric chars, FALSE (0) otherwise
@@ -287,7 +287,7 @@ PUB IsAlphaNum(ptr_str): flag
 
     return true
 
-PUB IsDigit(ptr_str): flag
+PUB isdigit(ptr_str): flag
 ' Flag indicating entire string is decimal
 '   Returns:
 '       TRUE (-1) if string contains only decimal digit(s), FALSE (0) otherwise
@@ -297,13 +297,13 @@ PUB IsDigit(ptr_str): flag
 
     return true
 
-PUB IsEmpty(ptr_str): flag
+PUB isempty(ptr_str): flag
 ' Flag indicating string contains no characters
 '   Returns:
 '       TRUE (-1) if string is empty, FALSE (0) otherwise
     return (strsize(ptr_str) == 0)
 
-PUB IsLower(ptr_str): flag
+PUB islower(ptr_str): flag
 ' Flag indicating entire string is lowercase
 '   Returns:
 '       TRUE (-1) if string contains only lowercase chars, FALSE (0) otherwise
@@ -313,7 +313,7 @@ PUB IsLower(ptr_str): flag
 
     return true
 
-PUB IsSpace(ptr_str):flag
+PUB isspace(ptr_str):flag
 ' Flag indicating entire string is whitespace
 '   Returns:
 '       TRUE (-1) if string contains only whitespace, FALSE (0) otherwise
@@ -323,7 +323,7 @@ PUB IsSpace(ptr_str):flag
 
     return true
 
-PUB IsUpper(ptr_str): flag
+PUB isupper(ptr_str): flag
 ' Flag indicating entire string is uppercase
 '   Returns:
 '       TRUE (-1) if string contains only uppercase chars, FALSE (0) otherwise
@@ -333,7 +333,7 @@ PUB IsUpper(ptr_str): flag
 
     return true
 
-PUB ItoA(num, ptr_str): ptr | str0, dvsr, temp
+PUB itoa(num, ptr_str): ptr | str0, dvsr, temp
 ' Convert number (signed) to string representation
 '   num: integer value to convert
 '   ptr_str: string to copy output to
@@ -360,10 +360,11 @@ PUB ItoA(num, ptr_str): ptr | str0, dvsr, temp
     byte[ptr_str++] := NUL
     return ptr_str - str0 - 1
 
-PUB ItoAz(num, ptr_str, digits): ptr | str0, dvsr, temp
+PUB itoaz(num, ptr_str, digits): ptr | str0, dvsr, temp
 ' Convert number (signed) to string representation, with zero padding
 '   num: integer value to convert
 '   ptr_str: string to copy output to
+'   digits: number of digits to output
 '   Returns: pointer to converted string
     str0 := ptr_str
     if (num < 0)
@@ -387,7 +388,7 @@ PUB ItoAz(num, ptr_str, digits): ptr | str0, dvsr, temp
     byte[ptr_str++] := 0
     return ptr_str - str0 - 1
 
-PUB ItoAb(num, ptr_str, base) | lowbit, sorg
+PUB itoab(num, ptr_str, base) | lowbit, sorg
 ' Convert number (unsigned) in base to string representation
 '   num: integer value to convert
 '   ptr_str: string to copy output to
@@ -413,21 +414,21 @@ PUB ItoAb(num, ptr_str, base) | lowbit, sorg
     byte[ptr_str] := NUL                        ' trailing null
     reverse(sorg)
 
-PUB Left(ptr_str, count): ptr_new
+PUB left(ptr_str, count): ptr_new
 ' Copy left-most characters
 '   ptr_str: source string
 '   count: left-most number of chars from source to copy
 '   Returns: pointer to substring
     return mid(ptr_str, 0, count)
 
-PUB Match(ptr_str1, ptr_str2): ismatch
+PUB match(ptr_str1, ptr_str2): ismatch
 ' Flag indicating strings match
 '   ptr_str1, ptr_str2: strings to test
 '   Returns:
 '       TRUE (-1) if string match, FALSE (0) otherwise
     return (compare(ptr_str1, ptr_str2, true) == 0)
 
-PUB Mid(ptr_str, start, count): ptr_new
+PUB mid(ptr_str, start, count): ptr_new
 ' Copy substring of characters
 '   ptr_str: source string
 '   start: offset within source string to start copying
@@ -438,7 +439,7 @@ PUB Mid(ptr_str, start, count): ptr_new
     _tmp_buff[count] := 0
     return @_tmp_buff
 
-PUB Replace(ptr_str, ptr_substr, ptr_newsubstr): ptr_next | size
+PUB replace(ptr_str, ptr_substr, ptr_newsubstr): ptr_next | size
 ' Replace the first occurrence of a string
 '   ptr_str: string to find substrings to replace
 '   ptr_substr: string to replace
@@ -453,7 +454,7 @@ PUB Replace(ptr_str, ptr_substr, ptr_newsubstr): ptr_next | size
         bytemove(ptr_next, ptr_newsubstr, size)
         ptr_next += size
 
-PUB ReplaceAll(ptr_str, ptr_substr, ptr_newsubstr)
+PUB replaceall(ptr_str, ptr_substr, ptr_newsubstr)
 ' Replace all occurrences of a string
 '   ptr_str: string to find substrings to replace
 '   ptr_substr: string to replace
@@ -462,7 +463,7 @@ PUB ReplaceAll(ptr_str, ptr_substr, ptr_newsubstr)
     repeat while(ptr_str)
         ptr_str := replace(ptr_str, ptr_substr, ptr_newsubstr)
 
-PUB ReplaceAllChars(ptr_str, char, newchar)
+PUB replaceallchars(ptr_str, char, newchar)
 ' Replace all occurences of character
 '   ptr_str: string to find chars to replace
 '   char: character to replace
@@ -470,7 +471,7 @@ PUB ReplaceAllChars(ptr_str, char, newchar)
     repeat while(ptr_str)
         ptr_str := replacechar(ptr_str, char, newchar)
 
-PUB ReplaceChar(ptr_str, char, newchar): ptr_next
+PUB replacechar(ptr_str, char, newchar): ptr_next
 ' Replace the first occurence of character
 '   ptr_str: string to find char to replace
 '   char: character to replace
@@ -482,7 +483,7 @@ PUB ReplaceChar(ptr_str, char, newchar): ptr_next
     if (ptr_next)
         byte[ptr_next++] := newchar
 
-PUB Reverse(ptr_str) | c, k
+PUB reverse(ptr_str) | c, k
 ' Reverse string in place
 '   ptr_str: string to reverse
     k := ptr_str + strsize(ptr_str) - 1               ' address of last character
@@ -491,14 +492,14 @@ PUB Reverse(ptr_str) | c, k
         byte[ptr_str++] := byte[k]
         byte[k--] := c
 
-PUB Right(ptr_str, count): ptr_new
+PUB right(ptr_str, count): ptr_new
 ' Copy rightmost characters
 '   ptr_str: source string
 '   count: right-most number of chars from source to copy
 '   Returns: pointer to substring
     return mid(ptr_str, strsize(ptr_str) - count, count)
 
-PUB SPrintF(ptr_str, fmt, ptr_args): index | pad, len, maxlen, minlen, bi, leftj, strtype, sorg, arg
+PUB sprintf(ptr_str, fmt, ptr_args): index | pad, len, maxlen, minlen, bi, leftj, strtype, sorg, arg
 ' Print string to buffer, with specified formatting
 '   ptr_str: string to copy format to
 '   fmt: formatting specification
@@ -659,54 +660,54 @@ PUB SPrintF(ptr_str, fmt, ptr_args): index | pad, len, maxlen, minlen, bi, leftj
         ptr_args += 4
     return ptr_str-sorg
 
-PUB SPrintF1(str, fmt, arg1): idx
+PUB sprintf1(str, fmt, arg1): idx
 ' 1-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
-PUB SPrintF2(str, fmt, arg1, arg2): idx
+PUB sprintf2(str, fmt, arg1, arg2): idx
 ' 2-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
-PUB SPrintF3(str, fmt, arg1, arg2, arg3): idx
+PUB sprintf3(str, fmt, arg1, arg2, arg3): idx
 ' 3-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
-PUB SPrintF4(str, fmt, arg1, arg2, arg3, arg4): idx
+PUB sprintf4(str, fmt, arg1, arg2, arg3, arg4): idx
 ' 4-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
-PUB SPrintF5(str, fmt, arg1, arg2, arg3, arg4, arg5): idx
+PUB sprintf5(str, fmt, arg1, arg2, arg3, arg4, arg5): idx
 ' 5-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
-PUB SPrintF6(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6): idx
+PUB sprintf6(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6): idx
 ' 6-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
-PUB SPrintF7(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6, arg7): idx
+PUB sprintf7(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6, arg7): idx
 ' 7-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
-PUB SPrintF8(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8): idx
+PUB sprintf8(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8): idx
 ' 8-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
-PUB SPrintF9(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9): idx
+PUB sprintf9(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9): idx
 ' 9-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
-PUB SPrintF10(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10): idx
+PUB sprintf10(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10): idx
 ' 10-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
-PUB StartsWith(ptr_str, ptr_substr): flag
+PUB startswith(ptr_str, ptr_substr): flag
 ' Flag indicating string at ptr_str starts with the string at ptr_substr
 '   Returns:
 '       TRUE (-1): ptr_substr starts with ptr_substr
 '       FALSE (0): ptr_substr doesn't start with ptr_substr
     return (ptr_str == find(ptr_str, ptr_substr))
 
-PUB Strip(ptr_str): ptr_new
+PUB strip(ptr_str): ptr_new
 ' Remove white space and new lines around the outside of a string
 '   ptr_str: string to remove whitespace from
 '   Returns: pointer to the trimmed string
@@ -721,7 +722,7 @@ PUB Strip(ptr_str): ptr_new
             other:
                 quit
 
-PUB StripChar(ptr_str, stripchr): newstr | chr, idx, sz, nextchr, lastchr, movecnt, mcnt
+PUB stripchar(ptr_str, stripchr): newstr | chr, idx, sz, nextchr, lastchr, movecnt, mcnt
 ' Strip all occurrences of stripchr from string
 '   ptr_str: string to remove characters from
 '   stripchr: character to remove from string
@@ -746,7 +747,7 @@ PUB StripChar(ptr_str, stripchr): newstr | chr, idx, sz, nextchr, lastchr, movec
     bytefill(ptr_str+sz-mcnt, 0, mcnt)
     return ptr_str
 
-PUB Tokenize(ptr_str): ptr_strtok
+PUB tokenize(ptr_str): ptr_strtok
 ' Remove white space and new lines around the inside of string at ptr_str
 '   ptr_str: pointer to a string of characters to be tokenized,
 '       or null to continue tokenizing a string of characters
@@ -766,7 +767,7 @@ PUB Tokenize(ptr_str): ptr_strtok
                 byte[_tokenstr - 1] := NUL
                 quit
 
-PUB ToLower(ptr_str): ptr_new
+PUB tolower(ptr_str): ptr_new
 ' Convert all uppercase characters in string at ptr_str to lowercase
 '   NOTE: This function operates on the original string and does not
 '       make a copy
@@ -774,13 +775,13 @@ PUB ToLower(ptr_str): ptr_new
     repeat strsize(ptr_str)
         byte[ptr_str++] := ctype.tolower(byte[ptr_str])
 
-PUB ToUpper(ptr_str): ptr_new
+PUB toupper(ptr_str): ptr_new
 ' Convert all lowercase characters in string at ptr_str to uppercase
     ptr_new := ptr_str
     repeat strsize(ptr_str)
         byte[ptr_str++] := ctype.toupper(byte[ptr_str])
 
-PRI IgnoreSpace(ptr_str): ptr_new
+PRI ignorespace(ptr_str): ptr_new
 
     ptr_new := ptr_str
     repeat strsize(ptr_str--)
