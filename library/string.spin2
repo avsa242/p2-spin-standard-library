@@ -137,16 +137,16 @@ PUB dec(val): dec_str
     itoa(val, @_tmp_buff)
     return @_tmp_buff
 
-PUB decpadded = decspc
-PUB decspc(val, digits): dec_str
-' Convert decimal value to string representation, with zero padding
+PUB decpadded = decpads
+PUB decpads(val, digits): dec_str
+' Convert decimal value to string representation, with space padding
 '   val: value to convert
 '   Returns: pointer to string representation of value
     itoap(val, @_tmp_buff, digits, " ")
     return @_tmp_buff
 
-PUB deczeroed = decz
-PUB decz(val, digits): dec_str
+PUB deczeroed = decpadz
+PUB decpadz(val, digits): dec_str
 ' Convert decimal value to string representation, with zero padding
 '   val: value to convert
 '   Returns: pointer to string representation of value
@@ -395,13 +395,14 @@ PUB itoab(num, ptr_str, base) | lowbit, sorg
     byte[ptr_str] := NUL                        ' trailing null
     reverse(sorg)
 
-PUB itoap(num, ptr_str, digits, pad_ch): ptr | str0, dvsr, temp
+PUB itoap(num, ptr_str, digits, pad_ch): ptr | str0, dvsr, temp, num_digits
 ' Convert number (signed) to string representation, with padding
 '   num: integer value to convert
 '   ptr_str: string to copy output to
 '   digits: number of digits to output (number will be padded to this width)
 '   pad_ch: character to pad digits with (e.g., " ", "0", etc)
 '   Returns: pointer to converted string
+    bytefill(@_tmp_buff, 0, FIELDSZ_MAX)
     str0 := ptr_str
     if (num < 0)                                ' handle case: negative number
         byte[ptr_str++] := "-"
@@ -409,20 +410,26 @@ PUB itoap(num, ptr_str, digits, pad_ch): ptr | str0, dvsr, temp
             byte[ptr_str++] := "2"
             num += 2_000_000_000
         num := -num
-    dvsr := 1_000_000_000
-    repeat while (dvsr > num)
+
+    dvsr := 1_000_000_000                       ' init divisor
+    num_digits := 0
+
+    repeat while (dvsr > num)                   ' find # of digits in number
         dvsr /= 10
-    repeat digits-1                             ' pad requested width
+        num_digits++
+    digits := 0 #> (digits - num_digits)        ' adjust # pad digits to fit total # of digits
+    repeat digits                               ' pad requested width
         byte[ptr_str++] := pad_ch
-    if (num == 0)                           ' handle case: number is 0
+
+    if (num == 0)                               ' handle case: number is 0
         byte[ptr_str++] := "0"
     else
-        repeat while (dvsr > 0)                     ' add digits to the output string
+        repeat while (dvsr > 0)                 ' add digits to the output string
             temp := num / dvsr
             byte[ptr_str++] := temp + "0"
             num -= temp * dvsr
             dvsr /= 10
-        byte[ptr_str++] := NUL                      ' zero-terminate
+        byte[ptr_str++] := NUL                  ' zero-terminate
     return (ptr_str - str0 - 1)
 
 PUB left(ptr_str, count): ptr_new

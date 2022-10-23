@@ -1,55 +1,37 @@
 {
     --------------------------------------------
-    Filename: Hexdump-Demo.spin2
-    Author: Jesse Burt
-    Description: Demo of the hexdump() method
-    Copyright (c) 2021
-    Started May 15, 2021
+    Filename: Serial-Loopback.spin2
+    Description: Serial loopback demo:
+        echo back every character received on the serial terminal
+    Author: Brett Weir
+    Modified by: Jesse Burt
+    Copyright (c) 2022
+    Started Dec 31, 2015
     Updated Oct 23, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
+
 CON
 
-    _clkfreq    = cfg._clkfreq_def
-    _xtlfreq    = cfg._xtlfreq
+    _xtlfreq   = cfg._xtlfreq
+    _clkfreq   = cfg._clkfreq_def
 
 ' -- User-modifiable constants
-    LED         = cfg.LED1
     SER_BAUD    = 2_000_000
-
 ' --
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    ser     : "com.serial.terminal.ansi"
+    cfg : "boardcfg.p2eval"
+    ser : "com.serial.terminal.ansi"
 
-VAR
-
-PUB main() | ptr_buff, base_addr, adr_digits, nr_bytes, columns, start, end
-
-    setup()
-
-    nr_bytes := 128                             ' # bytes to show per 'page'
-    start := $0000
-    end := $7ffff-nr_bytes                      ' last address to dump
-    columns := 16                               ' # columns output per line
-    base_addr := 0                              ' offset used in address disp.
-                                                '   (useful for EE/Flash, etc)
-    adr_digits := 5                             ' # digits used in addr. disp.
-
-    repeat ptr_buff from start to end step nr_bytes
-        ser.pos_xy(0, 3)
-        ser.hexdump(ptr_buff, base_addr, adr_digits, nr_bytes, columns)
-
-    repeat
-
-PUB setup()
+PUB main()
 
     ser.start(SER_BAUD)
-    ser.clear()
-    ser.strln(string("Serial terminal started"))
+
+    repeat
+        ser.putchar(ser.getchar())              ' echo back every char received
 
 DAT
 {

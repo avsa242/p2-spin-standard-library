@@ -1,13 +1,13 @@
 {
     --------------------------------------------
-    Filename: DataBlast.spin2
+    Filename: Serial-DataBlast.spin2
     Description: Simple serial demo that sends all
         printable characters to the terminal
     Author: Unknown
     Modified by: Jesse Burt
-    Copyright (c) 2020
+    Copyright (c) 2022
     Started: Unknown
-    Updated: Jul 8, 2020
+    Updated: Oct 22, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -24,15 +24,15 @@ CON
 OBJ
 
     cfg : "boardcfg.p2eval"
-    ser : "com.serial.terminal"
+    ser : "com.serial.terminal.ansi"
 
-PUB Main() | ch
+PUB main() | ch
 
     ser.start(SER_BAUD)
     ch := 32
 
     repeat
-        if ch > 127
+        if (ch > 127)
             ch := 32
-        ser.char(ch++)
+        ser.putchar(ch++)
         repeat 10000

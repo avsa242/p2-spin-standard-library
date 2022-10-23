@@ -1,14 +1,19 @@
 {
     --------------------------------------------
-    Filename: Hexdump-Demo.spin2
-    Author: Jesse Burt
-    Description: Demo of the hexdump() method
-    Copyright (c) 2021
-    Started May 15, 2021
+    Filename: Serial-Readline.spin
+    Description: Read a line (of maximum length set by the user) from the
+        serial terminal and display it
+    Author: Brett Weir
+    Modified by: Jesse Burt
+    Copyright (c) 2022
+    Started Jan 9, 2016
     Updated Oct 23, 2022
     See end of file for terms of use.
     --------------------------------------------
+
+    NOTE: For this demo to work correctly, terminal Echo must be disabled.
 }
+
 CON
 
     _clkfreq    = cfg._clkfreq_def
@@ -18,38 +23,26 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
+    MAX_LINE    = 10                            ' max length of string to read
 ' --
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    ser     : "com.serial.terminal.ansi"
+    cfg : "boardcfg.p2eval"
+    term: "com.serial.terminal.ansi"
 
 VAR
 
-PUB main() | ptr_buff, base_addr, adr_digits, nr_bytes, columns, start, end
+    byte _line[MAX_LINE]                        ' buffer to copy read line into
 
-    setup()
+PUB main()
 
-    nr_bytes := 128                             ' # bytes to show per 'page'
-    start := $0000
-    end := $7ffff-nr_bytes                      ' last address to dump
-    columns := 16                               ' # columns output per line
-    base_addr := 0                              ' offset used in address disp.
-                                                '   (useful for EE/Flash, etc)
-    adr_digits := 5                             ' # digits used in addr. disp.
-
-    repeat ptr_buff from start to end step nr_bytes
-        ser.pos_xy(0, 3)
-        ser.hexdump(ptr_buff, base_addr, adr_digits, nr_bytes, columns)
+    term.start(SER_BAUD)
 
     repeat
-
-PUB setup()
-
-    ser.start(SER_BAUD)
-    ser.clear()
-    ser.strln(string("Serial terminal started"))
+        term.puts(string("> "))
+        term.read_line(@_line, MAX_LINE)        ' read a line, up to MAX_LINE characters
+        term.strln(@_line)                      ' show what was read
 
 DAT
 {

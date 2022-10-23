@@ -4,7 +4,7 @@
     Author: Jesse Burt
     Description: Demonstrate string types functionality
     Started Jan 5, 2016
-    Updated Aug 14, 2022
+    Updated Oct 22, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -35,9 +35,7 @@ PUB main()
 
 PUB test_string(ptr_str)
 ' Test a string for various types
-    term.str(@"String: ")
-    term.str(ptr_str)
-    term.newline()
+    term.printf(@"String: %s\n\r", ptr_str)
 
     term.strln(@"----------------------")
     term.printf(@"  Alphanumeric: %s\n\r", outcome(ss.isalphanum(ptr_str)))

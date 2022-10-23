@@ -1,0 +1,71 @@
+CON
+
+    _clkfreq    = cfg#_clkfreq_def
+    _xtlfreq    = cfg#_xtlfreq
+
+    SER_BAUD    = 2_000_000
+
+OBJ
+
+    cfg     : "boardcfg.p2eval"
+    ser     : "com.serial.terminal.ansi"
+    time    : "time"
+    sf      : "string.format"
+    
+VAR
+
+    long    _stack_timer[50]
+    long    _timer_set
+    byte    _buff[200]
+
+PUB Main() | count, time_tmp
+
+    setup()
+
+    time_tmp := 1_000
+    cogspin(16, cog_timer(), @_stack_timer)
+
+    count := 0
+    ser.printf("Testing loop speed for ")
+    ser.dec(time_tmp)
+    ser.printf("ms...\n")
+
+    _timer_set := time_tmp                         ' Time in msec (e.g., 10_000 = 10000ms, or 10sec)
+    repeat                                      ' Loop to time a piece of code
+'        ser.printf(string("Test %d\n"), 1, 0, 0, 0, 0, 0)
+'        bytefill(@_buff, 0, 200)
+        longfill(@_buff, 0, 50)
+        sf.sprintf(@_buff, string("Test %d\n"), 1, 0, 0, 0, 0, 0)
+        count++                                 '   count how many iterations
+    while _timer_set                            '   until the timer has been reset by the timer cog
+
+    ser.printf("Ran ")                     ' Print statistics
+    ser.dec(count)                              '
+    ser.printf(" loops in ")               '
+    ser.dec(time_tmp)                           '
+    ser.printf(" ms.\n")     '
+
+    ser.newline()
+    ser.printf("Loops/sec: ")
+    ser.dec(count / (time_tmp/1000))
+
+    repeat
+
+PRI cog_Timer() | time_left
+' Simple timer that runs in a dedicated cog
+    repeat
+        repeat until _timer_set                 ' Wait until _timer_set is set to something non-zero
+        time_left := _timer_set                 ' Copy it into a local variable for faster access
+
+        repeat
+            time_left--                         ' Loop, decrementing that local variable
+            waitms(1)                      '   with a 1ms wait in between
+        while time_left > 0                     '   until it's zero
+        _timer_set := 0                         ' Reset the hub variable
+
+PUB Setup()
+
+    ser.start(SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.strln(string("Serial terminal started"))

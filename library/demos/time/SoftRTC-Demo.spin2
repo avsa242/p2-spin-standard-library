@@ -1,55 +1,79 @@
 {
     --------------------------------------------
-    Filename: Hexdump-Demo.spin2
+    Filename: SoftRTC-Demo.spin2
+    Description: Demo of the software RTC
     Author: Jesse Burt
-    Description: Demo of the hexdump() method
-    Copyright (c) 2021
-    Started May 15, 2021
+    Started 2009
     Updated Oct 23, 2022
     See end of file for terms of use.
     --------------------------------------------
+
+    NOTE: This is based on PropellerRTC_Emulator_DEMO.spin,
+        originally written by Beau Schwabe.
 }
+
 CON
 
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
-' -- User-modifiable constants
-    LED         = cfg.LED1
+' -- User-definable constants
     SER_BAUD    = 2_000_000
-
 ' --
 
 OBJ
 
     cfg     : "boardcfg.p2eval"
+    rtc     : "time.rtc.soft"
     ser     : "com.serial.terminal.ansi"
 
 VAR
 
-PUB main() | ptr_buff, base_addr, adr_digits, nr_bytes, columns, start, end
+    long  _timestring
+    byte  _datestamp[11], _timestamp[11]
+
+PUB main()
 
     setup()
 
-    nr_bytes := 128                             ' # bytes to show per 'page'
-    start := $0000
-    end := $7ffff-nr_bytes                      ' last address to dump
-    columns := 16                               ' # columns output per line
-    base_addr := 0                              ' offset used in address disp.
-                                                '   (useful for EE/Flash, etc)
-    adr_digits := 5                             ' # digits used in addr. disp.
+    rtc.suspend()                               ' halt the RTC so we can set the date/time
+    rtc.set_year(22)                            ' 00..31 (Valid from 2000 to 2031)
+    rtc.set_month(12)                           ' 01..12
+    rtc.set_date(31)                            ' 01..31
+    rtc.set_weekday(5)                          ' 01..07
 
-    repeat ptr_buff from start to end step nr_bytes
-        ser.pos_xy(0, 3)
-        ser.hexdump(ptr_buff, base_addr, adr_digits, nr_bytes, columns)
+    rtc.set_hours(23)                           ' 01..12
+    rtc.set_minutes(59)                         ' 00..59
+    rtc.set_seconds(55)                         ' 00..59
+    rtc.resume()                                ' restart it
 
     repeat
+        rtc.parse_date_stamp(@_datestamp)
+        rtc.parse_time_stamp(@_timestamp)
+
+        ser.position(0, 3)
+        ser.printf(@"%s %s  %s", @_datestamp, @weekday[(rtc.weekday() - 1) * 4], {
+}       @_timestamp)
 
 PUB setup()
 
     ser.start(SER_BAUD)
+    waitms(30)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
+    ser.strln(@"Serial terminal started")
+    rtc.start(@_timestring)
+    ser.strln(@"SoftRTC started")
+
+DAT
+
+    weekday
+            byte    "Sun", 0
+            byte    "Mon", 0
+            byte    "Tue", 0
+            byte    "Wed", 0
+            byte    "Thu", 0
+            byte    "Fri", 0
+            byte    "Sat", 0
 
 DAT
 {
