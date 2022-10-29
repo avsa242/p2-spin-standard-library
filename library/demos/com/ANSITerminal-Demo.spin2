@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Jun 18, 2019
-    Updated: Oct 21, 2022
+    Updated: Oct 29, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -35,7 +35,7 @@ PUB main() | fg, bg
     ser.bold()
     demo_text(@"BOLD")
 
-    ser.bold(ser.SGR_INTENSITY_FAINT)
+    ser.faint()
     demo_text(@"FAINT")
 
     ser.italic()
@@ -44,13 +44,13 @@ PUB main() | fg, bg
     ser.underline()
     demo_text(@"UNDERLINED")
  
-    ser.underline(ser.SGR_UNDERLINE_DBL)
+    ser.underline_dbl()
     demo_text(@"DOUBLE UNDERLINED")
 
-    ser.blink(ser.SGR_BLINKSLOW)
+    ser.blink()
     demo_text(@"SLOW BLINKING")
 
-    ser.blink(ser.SGR_BLINKFAST)
+    ser.blink_fast()
     demo_text(@"FAST BLINKING")
 
     ser.inverse()
@@ -79,26 +79,26 @@ PUB main() | fg, bg
     ser.color(ser.GREY, ser.BLACK)
 
     repeat 5
-        ser.moveup()
+        ser.move_up()
         waitms(1000)
     repeat 5
-        ser.movedown()
+        ser.move_down()
         waitms(1000)
 
     ser.strln(@"Hide Cursor")
-    ser.hidecursor()
+    ser.hide_cursor()
     waitms(3000)
 
     ser.strln(@"Show cursor")
-    ser.showcursor()
+    ser.show_cursor()
     waitms(3000)
 
     repeat 5
-        ser.scrollup()
+        ser.scroll_up()
         waitms(500)
 
     repeat 5
-        ser.scrolldown()
+        ser.scroll_down()
         waitms(500)
 
     ser.newline()

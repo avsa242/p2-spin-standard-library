@@ -10,7 +10,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Jun 18, 2019
-    Updated: Oct 22, 2022
+    Updated: Oct 29, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -319,8 +319,8 @@ PUB framed()
 ' Set framed attribute
     sgr(SGR_FRAMED)
 
-PUB hidecursor = hide_curs
-PUB hide_curs()
+PUB hidecursor = hide_cursor
+PUB hide_cursor()
 ' Hide cursor
     csi()
     putchar("?")
