@@ -1,18 +1,18 @@
 {
     --------------------------------------------
-    Filename: display.lcd.serial.spin
+    Filename: display.lcd.serial.spin2
     Author: Jesse Burt
     Description: Driver for serial LCDs
-        Parallax PNs (.27976, .27977, .27979)
+        Parallax PNs (#27976, #27977, #27979)
     Started Apr 29, 2006
-    Updated Oct 18, 2022
+    Updated Oct 29, 2022
     See end of file for terms of use.
     --------------------------------------------
 
     NOTE: This is based on Serial_Lcd.spin,
         originally by Jon Williams, Jeff Martin.
 
-    .. Serial LCD Switch Settings for Baud rate
+    ## Serial LCD Switch Settings for Baud rate
 
         ┌─────────┐   ┌─────────┐   ┌─────────┐
         │   O N   │   │   O N   │   │   O N   │
@@ -52,7 +52,7 @@ CON
 
 VAR
 
-    long  _display_lines
+    long  _disp_lines
 
 OBJ
 
@@ -68,7 +68,7 @@ PUB startx(LCD_PIN, LCD_BAUD, LCD_LINES): status
         if (status := serial.init(-1, LCD_PIN, 0, LCD_BAUD))
             ifnot (lookdown(LCD_LINES: 2, 4))
                 LCD_LINES := 2
-            _display_lines := LCD_LINES         ' save lines size
+            _disp_lines := LCD_LINES         ' save lines size
             return
 
     return FALSE                                ' If we got here, something went wrong
@@ -87,7 +87,7 @@ PUB clearline = clear_line
 PUB clear_line = clear_ln
 PUB clear_ln(y)
 ' Clear line
-    if (_display_lines == 2)                    ' check lcd size
+    if (_disp_lines == 2)                    ' check lcd size
         if (lookdown(y: 0..1))                  ' qualify line input
             putchar(_line_pos[y])               ' move to that line
             repeat 16
@@ -113,6 +113,7 @@ PUB curs_mode(mode)
         other:
             putchar(LCD_ON3)                    ' use serial lcd power-up default
 
+PUB definechars = def_chars
 PUB def_chars(bytechr, ptr_char)
 ' Install custom character map
 '   ptr_char: address of 8-byte character definition array
@@ -147,7 +148,7 @@ PUB home()
 PUB position = pos_xy
 PUB pos_xy(x, y) | pos
 ' Move cursor to (x, y) position
-    if (_display_lines == 2)                    ' check lcd size
+    if (_disp_lines == 2)                    ' check lcd size
         if (lookdown(y: 0..1))                  ' validate coords
             if (lookdown(x: 0..15))             ' ...
                 putchar(_line_pos[y] + x)       ' move to target position

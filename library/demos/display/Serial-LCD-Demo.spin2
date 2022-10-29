@@ -1,79 +1,71 @@
 {
     --------------------------------------------
-    Filename: Serial-LCD-Demo.spin2
-    Modified by: Jesse Burt
-    Description: Demo of the serial LCD driver (P2 version)
+    Filename: LCD-Serial-Demo.spin2
+    Description: Demo of the serial LCD driver
+    Author: Jesse Burt
     Started Apr 29, 2006
-    Updated Jul 10, 2022
+    Updated Oct 29, 2022
     See end of file for terms of use.
     --------------------------------------------
-    NOTE: This is a derivative of Serial_Lcd.spin,
-        originally by Jon Williams, Jeff Martin.
-    The existing header is preserved within the display
-        driver, display.lcd.serial.spin.
-}
 
-' Authors: Jon Williams, Jeff Martin
+    NOTE: This is based on Serial_Lcd.spin,
+        originally by Jon Williams, Jeff Martin.
+}
 CON
 
-     _xtlfreq   = cfg._xtlfreq
-     _clkfreq   = cfg._clkfreq_def
+    _xtlfreq   = cfg._xtlfreq
+    _clkfreq   = cfg._clkfreq_def
 
 ' -- User-modifiable constants
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
-    SER_BAUD    = 2_000_000
-
-    LCD_PIN     = 32
-    LCD_BAUD    = 19_200                                    ' 2400, 9600, 19200 (must match DIP switches)
-    LCD_LINES   = 4                                         ' 2, 4
+    LCD_PIN     = 0
+    LCD_BAUD    = 19_200                        ' 2400, 9600, 19200 (must match DIP switches)
+    LCD_LINES   = 4                             ' 2, 4
 ' --
 
 OBJ
 
     cfg     : "boardcfg.p2eval"
     lcd     : "display.lcd.serial"
-    num     : "string.integer"
-    time    : "time"
 
-PUB Main() | idx
+PUB main() | idx
 
-    lcd.start(LCD_PIN, LCD_BAUD, LCD_LINES)                 ' start lcd
+    lcd.start(LCD_PIN, LCD_BAUD, LCD_LINES)     ' start lcd
     waitms(1_000)
-    lcd.cursormode(0)                                       ' cursor off
-    lcd.enablebacklight(true)                               ' backlight on (if available)
-    lcd.definechars(0, @bullet)                             ' create custom character 0
+    lcd.curs_mode(0)                            ' cursor off
+    lcd.backlight_ena(true)                     ' backlight on (if available)
+    lcd.def_chars(0, @bullet)                   ' create custom character 0
     lcd.clear()
-    lcd.printf(@"LCD DEBUG\r")
-    lcd.char(0)                                             ' display custom bullet character
-    lcd.printf(@" Dec\r")
+    lcd.strln(@"LCD DEBUG")
+    lcd.char(0)                                 ' display custom bullet character
+    lcd.strln(@" Dec")
     lcd.char(0)
-    lcd.printf(@" Hex\r")
+    lcd.strln(@" Hexs")
     lcd.char(0)
-    lcd.printf(@" Bin\r")
+    lcd.strln(@" Bin")
 
     repeat
         repeat idx from 0 to 255
-            updatelcd(idx)
-            waitms(200)                                     ' pad with 1/5 sec
+            update_lcd(idx)
+            waitms(200)                         ' pad with 1/5 sec
 
-        lcd.displayvisibility(false)                        ' turn off the LCD for 2secs
+        lcd.disp_vis_ena(false)                 ' turn off the LCD for 2secs
         waitms(2000)
-        lcd.displayvisibility(true)                         ' then back on - contents should still be there
+        lcd.disp_vis_ena(true)                  ' then back on - contents should still be there
 
         repeat idx from -255 to 0
-            updatelcd(idx)
+            update_lcd(idx)
             waitms(200)
 
-PRI UpdateLCD(value)
+PRI update_lcd(value)
 
-    lcd.position(12, 1)
-    lcd.str(num.decpadded(value, 8))
-    lcd.position(11, 2)
-    lcd.str(num.hexindicated(value, 8))
-    lcd.position(7, 3)
-    lcd.str(num.binindicated(value, 12))
+    lcd.pos_xy(12, 1)
+    lcd.putdec(abs(value))
+
+    lcd.pos_xy(12, 2)
+    lcd.puthexs(value, 8)
+
+    lcd.pos_xy(8, 3)
+    lcd.putbin(value, 12)
 
 DAT
 
@@ -85,3 +77,24 @@ DAT
             byte    %00000100
             byte    %00000000
             byte    %00000000
+
+DAT
+{
+Copyright 2022 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+

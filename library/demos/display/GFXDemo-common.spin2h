@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Feb 20, 2022
-    Updated: Oct 16, 2022
+    Updated: Oct 29, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -17,7 +17,6 @@
 OBJ
 
     ser     : "com.serial.terminal.ansi"
-    int     : "string.integer"
     math    : "math.int"
     fnt     : "font.5x8"
 

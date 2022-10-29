@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Feb 20, 2022
-    Updated: Jul 23, 2022
+    Updated: Oct 29, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -17,7 +17,6 @@
 OBJ
 
     ser     : "com.serial.terminal.ansi"
-    int     : "string.integer"
     fnt     : "font.5x8"
 
 CON
@@ -43,7 +42,7 @@ VAR
     long _stack_timer[50]
     long _timer_set
 
-PUB Benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
+PUB benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
 
     cogspin(NEWCOG, cog_timer(), @_stack_timer)
     disp.clear()
@@ -149,34 +148,14 @@ PUB Benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
     disp.stop()
     repeat
 
-PRI Report(testtime, iterations)
+PRI Report(testtime, iterations) | rate_iterations, frame_time
 ' Display benchmark test results
-    ser.printf(string("%d per sec, "), iterations / (testtime/1000))
-    decimal((testtime * 1_000) / iterations, 1_000)
-    ser.str(string(" ms/iteration, "))
-    ser.printf(string("(total iterations: %d in %dms)"), iterations, testtime)
-    ser.newline()
+    rate_iterations := iterations / (testtime/1000)         ' # frames/sec
+    frame_time := (testtime * 1_000) / iterations           ' frame time (usec)
+    ser.printf4(string("Total iterations: %d, iterations/sec: %d, frame time: %dms\n\r"), {
+}   iterations, rate_iterations, frame_time)
 
-PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp
-' Display a fixed-point scaled up number in decimal-dot notation - scale it back down by divisor
-'   e.g., Decimal (314159, 100000) would display 3.14159 on the termainl
-'   scaled: Fixed-point scaled up number
-'   divisor: Divide scaled-up number by this amount
-    whole := scaled / divisor
-    tmp := divisor
-    places := 0
-
-    repeat
-        tmp /= 10
-        places++
-    until tmp == 1
-    part := int.deczeroed(abs(scaled // divisor), places)
-
-    ser.dec(whole)
-    ser.char(".")
-    ser.str(part)
-
-PRI cog_Timer() | time_left
+PRI cog_timer() | time_left
 ' Benchmark timer loop
     repeat
         repeat until _timer_set                 ' wait here until a timer has
