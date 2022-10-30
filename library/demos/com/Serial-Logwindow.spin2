@@ -6,7 +6,7 @@
         "window" on the serial terminal
     Copyright (c) 2022
     Started Oct 25, 2020
-    Updated Oct 23, 2022
+    Updated Oct 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -59,7 +59,7 @@ PUB main() | i, x, y
     ser.text_win(string("Log messages"), x, y, LOG_W, LOG_H, ser.CYAN, ser.BLUE, ser.WHITE)
 
     i := 0
-    ser.hide_curs()
+    ser.hide_cursor()
     ser.fgcolor(ser.CYAN)
     ser.bgcolor(ser.BLUE)
     repeat
