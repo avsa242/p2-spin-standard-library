@@ -6,7 +6,7 @@
         driver
     Copyright 2022
     Started May 15, 2022
-    Updated Jul 10, 2022
+    Updated Oct 31, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -34,7 +34,7 @@ OBJ
     mot_l   : "motor.bdc.hbridge"
     mot_r   : "motor.bdc.hbridge"
 
-PUB Main() | duty
+PUB main() | duty
 
     setup()
 
@@ -68,14 +68,14 @@ PUB Main() | duty
                 mot_l.reverse(abs(duty))
                 mot_r.reverse(abs(duty))
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    mot_l.start(PWM_XH, PWM_XL, PWM_WH, PWM_WL, PWM_FREQ)
-    mot_r.start(PWM_VH, PWM_VL, PWM_UH, PWM_UL, PWM_FREQ)
+    mot_l.startx(PWM_XH, PWM_XL, PWM_WH, PWM_WL, PWM_FREQ)
+    mot_r.startx(PWM_VH, PWM_VL, PWM_UH, PWM_UL, PWM_FREQ)
 
 DAT
 {

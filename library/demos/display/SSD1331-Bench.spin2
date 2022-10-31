@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Feb 19, 2022
-    Updated: Feb 19, 2022
+    Updated: Oct 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -65,7 +65,7 @@ PUB Main()
         repeat
 
 
-    disp.preset_96x64_hiperf()
+    disp.preset_96x64_hi_perf()
 
     benchmark()                                 ' start demo
 

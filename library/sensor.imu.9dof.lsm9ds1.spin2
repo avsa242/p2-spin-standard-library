@@ -5,7 +5,7 @@
     Description: Driver for the ST LSM9DS1 9DoF/3-axis IMU
     Copyright (c) 2022
     Started Aug 12, 2017
-    Updated Oct 16, 2022
+    Updated Oct 22, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -238,17 +238,17 @@ PUB accel_axis_ena(mask=-2): curr_mask
 PUB accel_bias(x, y, z)
 ' Read accelerometer calibration offset values
 '   x, y, z: pointers to copy offsets to
-    long[axbias] := _abias[X_AXIS]
-    long[aybias] := _abias[Y_AXIS]
-    long[azbias] := _abias[Z_AXIS]
+    long[x] := _abias[X_AXIS]
+    long[y] := _abias[Y_AXIS]
+    long[z] := _abias[Z_AXIS]
 
 PUB accel_set_bias(x, y, z)
 ' Write accelerometer calibration offset values
 '   Valid values:
 '       -32768..32767 (clamped to range)
-    _abias[X_AXIS] := -32768 #> axbias <# 32767
-    _abias[Y_AXIS] := -32768 #> aybias <# 32767
-    _abias[Z_AXIS] := -32768 #> azbias <# 32767
+    _abias[X_AXIS] := -32768 #> x <# 32767
+    _abias[Y_AXIS] := -32768 #> y <# 32767
+    _abias[Z_AXIS] := -32768 #> z <# 32767
 
 PUB accel_data(ax, ay, az) | tmp[2]
 ' Reads the Accelerometer output registers
@@ -548,9 +548,9 @@ PUB gyro_set_bias(x, y, z)
 ' Write Gyroscope calibration offset values
 '   Valid values:
 '       -32768..32767
-    _gbias[X_AXIS] := -32768 #> gxbias <# 32767
-    _gbias[Y_AXIS] := -32768 #> gybias <# 32767
-    _gbias[Z_AXIS] := -32768 #> gzbias <# 32767
+    _gbias[X_AXIS] := -32768 #> x <# 32767
+    _gbias[Y_AXIS] := -32768 #> y <# 32767
+    _gbias[Z_AXIS] := -32768 #> z <# 32767
 
 PUB gyro_data(ptr_x, ptr_y, ptr_z) | tmp[2]
 ' Read gyroscope data
@@ -908,9 +908,9 @@ PUB mag_bias(x, y, z) | tmp[2]
 '   x, y, z: pointers to copy offsets to
     longfill(@tmp, 0, 2)
     readreg(MAG, core.OFFSET_X_REG_L_M, 6, @tmp)
-    long[mxbias] := tmp.word[X_AXIS] signx 15
-    long[mybias] := tmp.word[Y_AXIS] signx 15
-    long[mzbias] := tmp.word[Z_AXIS] signx 15
+    long[x] := tmp.word[X_AXIS] signx 15
+    long[y] := tmp.word[Y_AXIS] signx 15
+    long[z] := tmp.word[Z_AXIS] signx 15
 
 PUB mag_set_bias(x, y, z)
 ' Write Magnetometer calibration offset values

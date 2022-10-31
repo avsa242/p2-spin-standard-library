@@ -5,7 +5,7 @@
     Description: Driver for HD44780 alphanumeric LCDs (P2 version)
     Copyright (c) 2022
     Started Sep 11, 2021
-    Updated Oct 4, 2022
+    Updated Oct 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -61,13 +61,15 @@ PUB stop()
 PUB defaults()
 ' Set factory defaults
 
-PUB char(ch) | tmp
+PUB tx = putchar
+PUB char = putchar
+PUB putchar(ch) | tmp
 ' Display single character
     _disp_ctrl |= RS                            ' RS high (data)
-    if _charmode == LITERAL
+    if (_charmode == LITERAL)
         wr_nib(ch)                              ' MS nibble first
         wr_nib(ch << 4)                         ' LS nibble
-    elseif _charmode == TERM
+    elseif (_charmode == TERM)
         case ch
             HM:                                 ' -Home:-
                 wr_cmd(core.HOME)
@@ -109,7 +111,7 @@ PUB char_mode(mode): curr_mode
             return _charmode
 
 PUB clear()
-' Clear display contents, and set cursor position to 0, 0
+' Clear display contents, and set cursor pos_xy to 0, 0
     wr_cmd(core.CLEAR)
     waitms(5)
 
@@ -165,7 +167,7 @@ PUB backlight_ena(state)
                                                 '   just for the backlight bit
     _disp_ctrl &= !RW                           ' set LCD back to WRITE
 
-PUB position(x, y)
+PUB pos_xy(x, y)
 ' Set cursor position
     wr_cmd(core.DDRAM_ADDR | ((y * $40) + x))
 
@@ -199,7 +201,7 @@ PRI wr_nib(nib)
     ioexp.wr_byte( (nib & $f0) | _disp_ctrl | E)' clock high
     ioexp.wr_byte( (nib & $f0) | _disp_ctrl)    ' clock low
 
-' Pull in standard terminal methods (Bin(), Dec(), Hex(), Str(), etc)
+' Pull in standard terminal methods (putbin(), putdec(), puthex(), puts(), etc)
 #include "terminal.common.spin2h"
 
 DAT

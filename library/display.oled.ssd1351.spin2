@@ -5,7 +5,7 @@
     Description: Driver for Solomon Systech SSD1351 RGB OLED displays (P2 version)
     Copyright (c) 2022
     Started: Mar 11, 2020
-    Updated: Oct 16, 2022
+    Updated: Oct 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -365,7 +365,7 @@ PUB clear()
 PUB clk_div(divider)
 ' Set clock frequency divider used by the display controller
 '   Valid values: 1..16 (clamped to range)
-    _clkdiv := ((curr_div & core.CLK_DIV_MASK) | ((1 #> divider <# 16)-1))
+    _clkdiv := ((_clkdiv & core.CLK_DIV_MASK) | ((1 #> divider <# 16)-1))
     writereg(core.CLKDIV, 1, @_clkdiv)
 
 PUB clk_freq(freq)
@@ -385,7 +385,7 @@ PUB color_depth(format)
 '       COLOR_262K (1): 18-bits/262144 color format
 '       COLOR_262K65K2 (2): 18-bit/262144 color format, 16-bit/65536 color format 2
     format := ((COLOR_65K #> format <# COLOR_262K65K2) << core.COLORFMT)
-    _rmapcolor := ((curr_fmt & core.COLORFMT_MASK) | format)
+    _rmapcolor := ((_rmapcolor & core.COLORFMT_MASK) | format)
     writereg(core.SETREMAP, 1, @_rmapcolor)
 
 PUB comh_voltage(level)
@@ -550,7 +550,7 @@ PUB mirror_h(state)
 PUB mirror_v(state)
 ' Mirror the display, vertically
 '   Valid values: TRUE (non-zero), *FALSE (0)
-    _rmapcolor := ((curr_state & core.COMREMAP_MASK) | (((state <> 0) & 1) << core.COMREMAP))
+    _rmapcolor := ((_rmapcolor & core.COMREMAP_MASK) | (((state <> 0) & 1) << core.COMREMAP))
     writereg(core.SETREMAP, 1, @_rmapcolor)
 
 PUB phase1_period(clks)

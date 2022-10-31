@@ -22,10 +22,10 @@ OBJ
 
     led : "display.led.smart"
 
-PUB Main | pixel
+PUB main() | pixel
 
     led.startx(SMLED_PIN, 1, 1, MODEL, @pixel)  ' pin, width, height, model, addr
     led.plot(0, 0, $ff_00_00_00)                ' x, y, R_G_B or R_G_B_W color
-    led.update()                                ' send the data to the pixel(s)
+    led.show()                                  ' send the data to the pixel(s)
     repeat
 

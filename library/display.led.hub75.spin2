@@ -5,7 +5,7 @@
     Description: Driver for HUB75 RGB LED matrix displays (P2 version)
     Copyright (c) 2022
     Started: Oct 31, 2021
-    Updated: Oct 5, 2022
+    Updated: Oct 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -106,6 +106,9 @@ PUB point(x, y): pix_clr
 
     return byte[_ptr_drawbuffer][x + (y * _disp_width)]
 #endif
+
+PUB show{}
+' dummy method for compatibility with other drivers
 
 PRI hub75_engine() | r0, g0, b0, r1, g1, b1, a, b, c, d, bl, clk, lat, tmp, {
 } y, x, ty_offs, by_offs, top_offs, bot_offs, bnkht

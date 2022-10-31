@@ -5,7 +5,7 @@
     Description: Driver for Solomon Systech SSD1331 RGB OLED displays (P2 version)
     Copyright (c) 2022
     Started: Apr 28, 2019
-    Updated: Oct 16, 2022
+    Updated: Oct 22, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -643,7 +643,7 @@ PUB subpix_order(order): curr_ord
     _sh_REMAPCOLOR := ((_sh_REMAPCOLOR & core.SUBPIX_ORDER_MASK) | order)
     writereg(core.SETREMAP, 1, @_sh_REMAPCOLOR)
 
-PUB update()
+PUB show()
 ' Write the current display buffer to the display
 #ifndef GFX_DIRECT
     { buffered displays only }

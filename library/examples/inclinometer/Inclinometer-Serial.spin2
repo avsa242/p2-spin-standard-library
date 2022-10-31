@@ -6,7 +6,7 @@
         (serial display)
     Copyright (c) 2022
     Started Jan 29, 2020
-    Updated Sep 5, 2022
+    Updated Oct 31, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -47,12 +47,12 @@ PUB main() | pitch, roll
 
     { set the accelerometer to a lower, less noisy data rate }
     imu.preset_active()
-    imu.acceldatarate(59)
-    imu.accelhighres(true)
-    imu.fifoenabled(false)
+    imu.accel_data_rate(59)
+    imu.accel_high_res_ena(true)
+    imu.fifo_ena(false)
     repeat
-        repeat until imu.acceldataready()
-        ser.position(0, 3)
+        repeat until imu.accel_data_rdy()
+        ser.pos_xy(0, 3)
 
         { clamp angles to +/- 90deg }
         pitch := -90_000 #> imu.pitch() <# 90_000
@@ -69,11 +69,11 @@ PUB main() | pitch, roll
 
 PRI set_zero()
 ' Re-set the 'zero' of the inclinometer (set accelerometer bias offsets)
-    ser.position(0, 7)
-    ser.str(@"Setting zero...")
-    imu.calibrateaccel()
-    ser.positionx(0)
-    ser.clearline()
+    ser.pos_xy(0, 7)
+    ser.puts(@"Setting zero...")
+    imu.calibrate_accel()
+    ser.pos_x(0)
+    ser.clear_line()
 
 PUB setup()
 

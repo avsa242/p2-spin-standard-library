@@ -6,7 +6,7 @@
         VGA display (P2 version)
     Copyright (c) 2022
     Started: Jun 26, 2020
-    Updated: Oct 16, 2022
+    Updated: Oct 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -63,7 +63,7 @@ VAR
 
 PUB Main()
 
-    vga.settimings(10, 33, 16, 89, 85, 640)
+    vga.set_timings(10, 33, 16, 89, 85, 640)
 '    vga.SetTimings(26, 32, 16, 96, 48, 640)
     setup()
     drawvscale(XMAX-5, 0, YMAX)
@@ -76,7 +76,7 @@ PUB Main()
 
 PUB DrawFrame(fx, fy, pixw, pixh) | x, y, color_c, ir_offset, pixsx, pixsy, pixex, pixey, maxx, maxy, maxp
 ' Draw the thermal image
-    vga.waitvsync()                             ' wait for vertical sync
+    vga.wait_vsync()                             ' wait for vertical sync
     repeat y from 0 to mlx.YMAX
         repeat x from 0 to mlx.XMAX
             if _invert_x                        ' Invert X display if set
@@ -211,7 +211,7 @@ PUB Setup()
 PUB SetupPalette() | i, r, g, b, c, ptr_pal
 ' Set up palette
     r := g := b := c := 0
-    ptr_pal := vga.paletteptr()
+    ptr_pal := vga.palette_ptr()
     repeat i from 0 to vga.MAX_COLOR
         case i
             0..31:

@@ -5,7 +5,7 @@
     Description: Driver for the Sensirion SCD30 CO2 sensor (P2 version)
     Copyright (c) 2022
     Started Jul 21, 2021
-    Updated Oct 16, 2022
+    Updated Oct 31, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -45,7 +45,7 @@ OBJ
     i2c : "com.i2c"                             ' I2C engine
     core: "core.con.scd30"                      ' hw-specific low-level const's
     crc : "math.crc"                            ' CRC routines
-    fm  : "tiny.math.float"                     ' IEEE-754 float functions
+    fm  : "math.float.nocog"                    ' IEEE-754 float functions
 
 PUB null()
 ' This is not a top-level object

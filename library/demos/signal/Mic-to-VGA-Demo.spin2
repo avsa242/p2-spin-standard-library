@@ -6,7 +6,7 @@
         showing a scope output of the audio on an attached VGA display
     Author: Jesse Burt
     Started: May 16, 2020
-    Updated: Jul 10, 2022
+    Updated: Oct 31, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -58,10 +58,10 @@ VAR
     long _ser_cog, _audio_cog, _vga_cog, _adc_sample
     byte _framebuffer[BUFFSZ], _offscreen[BUFFSZ]
 
-PUB Main() | adc_min, adc_max
+PUB main() | adc_min, adc_max
 
     setup()
-    ser.hidecursor()
+    ser.hide_cursor()
 
     adc_max := 0
     repeat 500                                  ' Gather some samples to get a
@@ -70,10 +70,10 @@ PUB Main() | adc_min, adc_max
     repeat
         adc_min := _adc_sample <# adc_min
         adc_max := adc_max #> _adc_sample
-        ser.position(0, 4)
+        ser.pos_xy(0, 4)
         ser.printf(@"ADC current: %d  \n\rmin: %d  \n\rmax: %d  ", _adc_sample, adc_min, adc_max)
 
-PUB DrawWave() | x, y, y_offset                 ' XXX Rolls - no triggering
+PUB draw_wave() | x, y, y_offset                 ' XXX Rolls - no triggering
 ' Draw scope of audio input
     vga.clear()
     repeat x from 0 to XMAX
@@ -81,7 +81,7 @@ PUB DrawWave() | x, y, y_offset                 ' XXX Rolls - no triggering
         vga.plot(x, y, 191)
         waitx(ADC_PERIOD)
 
-PUB cog_Audio()
+PUB cog_audio()
 ' Sample audio and output it directly to headphones/speakers
     mic.start(MIC_PIN, SAMPLE_RATE, MIC_GAIN)
     spkr.start(SPKR_L, SPKR_R, SAMPLE_RATE)
@@ -89,22 +89,22 @@ PUB cog_Audio()
         _adc_sample := mic.adcsample16()
         spkr.output16(_adc_sample)
 
-PUB cog_Graphics()
+PUB cog_graphics()
 ' Run VGA driver and waveform/scope drawing loop
-    vga.settimings(10, 33, 16, 96, 48, 640)
-    setuppalette()
+    vga.set_timings(10, 33, 16, 96, 48, 640)
+    setup_palette()
     vga.start(VGA_BASE, WIDTH, HEIGHT, @_framebuffer)
-    vga.drawto(@_offscreen)
+    vga.draw_to(@_offscreen)
     vga.clear()
 
     _vga_cog := cogid()                         ' signal 'started' to main cog
 
     repeat
-        drawwave()
-        vga.waitvsync()
-        vga.update()
+        draw_wave()
+        vga.wait_vsync()
+        vga.show()
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     ser.clear()
@@ -118,10 +118,10 @@ PUB Setup()
     repeat until _audio_cog
     ser.printf(@"Audio cog started (%dHz sample rate)\n\r", SAMPLE_RATE)
 
-PRI SetupPalette() | i, r, g, b, c, ptr_pal
+PRI setup_palette() | i, r, g, b, c, ptr_pal
 ' Set up palette
     r := g := b := c := 0
-    ptr_pal := vga.paletteptr()
+    ptr_pal := vga.palette_ptr()
     repeat i from 0 to 255
         case i
             0..31:

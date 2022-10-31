@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Jul 4, 2022
-    Updated: Jul 4, 2022
+    Updated: Oct 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -22,12 +22,12 @@ CON
     HEIGHT      = 296
 
 { SPI configuration }
-    CS_PIN      = 10
+    CS_PIN      = 8
     SCK_PIN     = 9
-    MOSI_PIN    = 8
+    MOSI_PIN    = 10
     DC_PIN      = 11
-    BUSY_PIN    = 13
-    RES_PIN     = 12
+    BUSY_PIN    = 12
+    RES_PIN     = 13
     SCK_HZ      = 4_000_000
 ' --
 
@@ -40,7 +40,7 @@ OBJ
     cfg     : "boardcfg.p2eval"
     epaper  : "display.epaper.il3820"
 
-PUB Main()
+PUB main()
 
     ser.start(SER_BAUD)
     waitms(30)
@@ -48,16 +48,17 @@ PUB Main()
     ser.strln(@"Serial terminal started")
 
     if epaper.startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, BUSY_PIN, {
-}   WIDTH, HEIGHT, @_disp_buff, SCK_HZ)
+}   SCK_HZ, WIDTH, HEIGHT, @_disp_buff)
         ser.printf(@"%s driver started", @_drv_name)
-        epaper.fontspacing(1, 0)
-        epaper.fontsize(fnt.WIDTH, fnt.HEIGHT)
-        epaper.fontscale(1)
-        epaper.fontaddress(fnt.ptr())
+        epaper.font_spacing(1, 0)
+        epaper.font_sz(fnt.WIDTH, fnt.HEIGHT)
+        epaper.font_scl(1)
+        epaper.font_addr(fnt.ptr())
     else
         ser.printf(@"%s driver failed to start - halting", @_drv_name)
         repeat
 
+    epaper.preset_2p9_bw()
     demo()                                      ' start demo
     repeat
 
@@ -68,23 +69,21 @@ DAT
     _drv_name   byte    "IL3820 (SPI)", 0
 
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+

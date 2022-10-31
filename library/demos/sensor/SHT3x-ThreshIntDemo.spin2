@@ -6,7 +6,7 @@
         Threshold interrupt functionality (P2 version)
     Copyright (c) 2022
     Started Jan 8, 2022
-    Updated Aug 20, 2022
+    Updated Oct 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -45,32 +45,32 @@ VAR
     long _isr_stack[50]                         ' stack for ISR core
     long _intflag                               ' interrupt flag
 
-PUB Main() | dr, temp, rh
+PUB main() | dr, temp, rh
 
     setup()
 
     dr := 2                                     ' data rate: 0 (0.5), 1, 2, 4, 10Hz
 
-    sht3x.tempscale(C)
-    sht3x.intrhhithresh(25)                     ' RH hi/lo thresholds
-    sht3x.intrhlothresh(5)
-    sht3x.intrhhiclear(24)                      ' hi/lo thresh hysteresis
-    sht3x.intrhloclear(6)
+    sht3x.temp_scale(C)
+    sht3x.rh_int_hi_thresh(25)                     ' RH hi/lo thresholds
+    sht3x.rh_int_lo_thresh(5)
+    sht3x.rh_int_hi_hyst(24)                      ' hi/lo thresh hysteresis
+    sht3x.rh_int_lo_hyst(6)
 
-    sht3x.inttemphithresh(30)                   ' temp hi/lo thresholds
-    sht3x.inttemplothresh(10)
-    sht3x.inttemphiclear(29)                    ' hi/lo thresh hysteresis
-    sht3x.inttemploclear(7)
+    sht3x.temp_int_hi_thresh(30)                   ' temp hi/lo thresholds
+    sht3x.temp_int_lo_thresh(10)
+    sht3x.temp_int_hi_hyst(29)                    ' hi/lo thresh hysteresis
+    sht3x.temp_int_lo_hyst(7)
 
     ser.strln(@"Set thresholds:")
-    ser.printf(@"RH Set low: %d  hi: %d\n\r", sht3x.intrhlothresh(-2), {
-}   sht3x.intrhhithresh(-2))
-    ser.printf(@"RH Clear low: %d  hi: %d\n\r", sht3x.intrhloclear(-2), {
-}   sht3x.intrhhiclear(-2))
-    ser.printf(@"Temp Set low: %d  hi: %d\n\r", sht3x.inttemplothresh(-256), {
-}   sht3x.inttemphithresh(-256))
-    ser.printf(@"Temp Clear low: %d  hi: %d\n\r", sht3x.inttemploclear(-256), {
-}   sht3x.inttemphiclear(-256))
+    ser.printf(@"RH Set low: %d  hi: %d\n\r", sht3x.rh_int_lo_thresh(-2), {
+}   sht3x.rh_int_hi_thresh(-2))
+    ser.printf(@"RH Clear low: %d  hi: %d\n\r", sht3x.rh_int_lo_hyst(-2), {
+}   sht3x.rh_int_hi_hyst(-2))
+    ser.printf(@"Temp Set low: %d  hi: %d\n\r", sht3x.temp_int_lo_thresh(-256), {
+}   sht3x.temp_int_hi_thresh(-256))
+    ser.printf(@"Temp Clear low: %d  hi: %d\n\r", sht3x.temp_int_lo_hyst(-256), {
+}   sht3x.temp_int_hi_hyst(-256))
 
     repeat
         if (dr > 0)
@@ -93,7 +93,7 @@ PUB Main() | dr, temp, rh
             ser.position(0, 12)
             ser.clearline()
 
-PRI ISR()
+PRI isr()
 ' Interrupt service routine
     pinf(INT1)                                  ' INT1 as input
     repeat
@@ -102,7 +102,7 @@ PRI ISR()
         repeat until pinr(INT1) == 0            ' now wait for it to clear
         _intflag := 0                           '   clear flag
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(30)

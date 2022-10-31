@@ -72,8 +72,8 @@ PUB dev_id(): id | word tmp[2]
 '   Returns:
 '       Manufacturer ID: $0054 (MSW)
 '       Revision: $0400 (LSW)
-    readreg(core.MFR_ID, 2, @tmp[1])        ' 9808 doesn't support seq. R/W
-    readreg(core.DEV_ID, 2, @tmp[0])        '   so do discrete reads
+    readreg(core.MFR_ID, 2, @tmp[1])            ' 9808 doesn't support seq. R/W
+    readreg(core.DEV_ID, 2, @tmp[0])            '   so do discrete reads
     id.word[1] := tmp[1]
     id.word[0] := tmp[0]
 

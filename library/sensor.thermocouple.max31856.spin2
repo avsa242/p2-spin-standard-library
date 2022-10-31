@@ -2,11 +2,10 @@
     --------------------------------------------
     Filename: sensor.thermocouple.max31856.spin2
     Author: Jesse Burt
-    Description: Driver object for Maxim's MAX31856 thermocouple amplifier
-        (P2 version)
+    Description: Driver object for Maxim's MAX31856 thermocouple amplifier (P2 version)
     Copyright (c) 2022
     Created: Sep 30, 2018
-    Updated: Jul 22, 2022
+    Updated: Sep 25, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -25,10 +24,6 @@ CON
     SINGLE          = 0
     CONT            = 1
 
-' Interrupt modes
-    COMP            = 0                         ' comparator mode
-    INTR            = 1                         ' interrupt mode
-
 ' Thermocouple types
     TYPE_B          = %0000
     TYPE_E          = %0001
@@ -41,7 +36,7 @@ CON
     VOLTMODE_GAIN8  = %1000
     VOLTMODE_GAIN32 = %1100
 
-' Interrupt mask bits (OR together any combination for use with IntMask())
+' Interrupt mask bits (OR together any combination for use with int_mask())
     CJ_HIGH         = 1 << core.CJ_HIGH
     CJ_LOW          = 1 << core.CJ_LOW
     TC_HIGH         = 1 << core.TC_HIGH
@@ -62,10 +57,10 @@ OBJ
     core    : "core.con.max31856"               ' HW-specific constants
     spi     : "com.spi.10mhz"                 ' SPI engine (~10MHz)
 
-PUB Null()
+PUB null()
 ' This is not a top-level object
 
-PUB Startx(CS_PIN, SCK_PIN, SDI_PIN, SDO_PIN, SCK_HZ=1_000_000): status
+PUB startx(CS_PIN, SCK_PIN, SDI_PIN, SDO_PIN, SCK_HZ=1_000_000): status
 ' Start using custom settings
     if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
 }   lookdown(SDI_PIN: 0..63) and lookdown(SDO_PIN: 0..63) and {
@@ -80,33 +75,38 @@ PUB Startx(CS_PIN, SCK_PIN, SDI_PIN, SDO_PIN, SCK_HZ=1_000_000): status
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 
-PUB Stop()
-
+PUB stop()
+' Stop the driver
     spi.deinit()
+    _CS := 0
 
-PUB CJ_IntHighThresh(thresh=-255): curr_thr
+PUB cj_int_hi_thresh{}: thresh
+' Get Cold-Junction HIGH fault threshold
+    thresh := 0
+    readreg(core.CJHF, 1, @thresh)
+    return (thresh signx 15)
+
+PUB cj_int_set_hi_thresh(thresh)
 ' Set Cold-Junction HIGH fault threshold
-'   Valid values: -128..127 (default: 127)
-'   Any other value polls the chip and returns the current setting
-    case thresh
-        -128..127:
-            writereg(core.CJHF, 1, @thresh)
-        other:
-            readreg(core.CJHF, 1, @curr_thr)
-            return (curr_thr signx 15)
+'   Valid values: -128..127 (default: 127; clamped to range)
+    thresh := -128 #> thresh <# 127
+    writereg(core#CJHF, 1, @thresh)
 
-PUB CJ_IntLowThresh(thresh=-255): curr_thr
+PUB cj_int_lo_thresh{}: thresh
 ' Set Cold-Junction LOW fault threshold
 '   Valid values: -128..127 (default: -64)
 '   Any other value polls the chip and returns the current setting
-    case thresh
-        -128..127:
-            writereg(core.CJLF, 1, @thresh)
-        other:
-            readreg(core.CJLF, 1, @curr_thr)
-            return (curr_thr signx 15)
+    thresh := 0
+    readreg(core.CJLF, 1, @thresh)
+    return (thresh signx 15)
 
-PUB CJ_SensorEnabled(state=-2): curr_state
+PUB cj_int_set_lo_thresh(thresh)
+' Set Cold-Junction LOW fault threshold
+'   Valid values: -128..127 (default: -64; clamped to range)
+    thresh := -128 #> thresh <# 127
+    writereg(core#CJLF, 1, @thresh)
+
+PUB cj_sensor_ena(state=-2): curr_state
 ' Enable the on-chip Cold-Junction temperature sensor
 '   Valid values: *TRUE (-1 or 1), FALSE
 '   Any other value polls the chip and returns the current setting
@@ -120,7 +120,7 @@ PUB CJ_SensorEnabled(state=-2): curr_state
     state := ((curr_state & core.CJ_MASK) | state) & core.CR0_MASK
     writereg(core.CR0, 1, @state)
 
-PUB CJ_Word2Temp(cj_word): temp
+PUB cj_word2temp(cj_word): temp
 ' Convert cold-junction ADC word to temperature, in hundredths of a degree
 '   in chosen scale
     temp := (cj_word * CJ_RES) / 10_000
@@ -129,7 +129,7 @@ PUB CJ_Word2Temp(cj_word): temp
         F:
             temp := ((temp * 90) / 50) + 32_00
 
-PUB CJ_Bias(offset=negx): curr_offs
+PUB cj_bias(offset=negx): curr_offs
 ' Set Cold-Junction temperature sensor offset, in ten-thousandths of a degree C
 '   Valid values: -8_0000..7_9375 (default: 0)
 '   Any other value polls the chip and returns the current setting
@@ -141,7 +141,7 @@ PUB CJ_Bias(offset=negx): curr_offs
             readreg(core.CJTO, 1, @curr_offs)
             return ((curr_offs signx 7) * 0_0625)
 
-PUB CJ_Data(): cj_word
+PUB cj_data(): cj_word
 ' Read cold-junction data
 '   Returns: s16
     cj_word := 0
@@ -150,36 +150,37 @@ PUB CJ_Data(): cj_word
     cj_word sar= 2                              ' right-justify, keeping sign
                                                 ' (ADC word is left-justified)
 
-PUB IntClear() | tmp
+PUB int_clr() | tmp
 ' Clear fault status
-'   NOTE: This has no effect when FaultMode is set to FAULTMODE_COMP
+'   NOTE: This has no effect when int_latch_ena() is set to FALSE
     readreg(core.CR0, 1, @tmp)
     tmp &= core.FAULTCLR_MASK
     tmp := (tmp | (1 << core.FAULTCLR)) & core.CR0_MASK
     writereg(core.CR0, 1, @tmp)
 
-PUB Interrupt(): src
-' Return interrupt status
-'   Returns: (for each individual bit)
-'       0: No fault detected
-'       1: Fault detected
-'
-'   Bit 7   Cold-junction out of normal operating range
-'       6   Thermcouple out of normal operating range
-'       5   Cold-junction above HIGH temperature threshold
-'       4   Cold-junction below LOW temperature threshold
-'       3   Thermocouple temperature above HIGH temperature threshold
-'       2   Thermocouple temperature below LOW temperature threshold
-'       1   Over-voltage or Under-voltage
-'       0   Thermocouple open-circuit
-'   NOTE: Asserted interrupts will always be flagged in this register,
-'       regardless of the set interrupt mask
-'   NOTE: FAULT pin is active low
-    readreg(core.SR, 1, @src)
-
-PUB IntMask(mask=-2): curr_mask
-' Set interrupt mask (affects FAULT pin only)
+PUB int_latch_ena(state=-2): curr_state
+' Enable interrupt latching
 '   Valid values:
+'       *FALSE (0): fault flag will be asserted when fault condition is true, and will clear when
+'           the condition is no longer true, _with a 2deg C hysteresis._
+'       TRUE (1): fault flag will be asserted when fault condition is true, and will remain
+'           asserted until fault status is explicitly cleared with int_clr().
+'       NOTE: If the fault condition is still true when the status is cleared,
+'       the flag will be asserted again immediately.
+'   Any other value polls the chip and returns the current setting
+    readreg(core.CR0, 1, @curr_state)
+    case abs(state)
+        0, 1:
+            state := (state & 1) << core.FAULT
+        other:
+            return ((curr_state >> core.FAULT) & 1)
+
+    state := ((curr_state & core.FAULT_MASK) | state) & core.CR0_MASK
+    writereg(core.CR0, 1, @curr_state)
+
+
+PUB int_mask(mask=-2): curr_mask
+' Set interrupt mask (affects FAULT pin only)
 '   Bits: 543210 (For each bit, 0: disable interrupt, 1: enable interrupt)
 '       Bit 5   Cold-junction interrupt HIGH threshold
 '           4   Cold-junction interrupt LOW threshold
@@ -203,30 +204,26 @@ PUB IntMask(mask=-2): curr_mask
             readreg(core.FAULTMASK, 1, @curr_mask)
             return (curr_mask ^ core.FAULTMASK_MASK)
 
-PUB IntMode(mode=-2): curr_mode
-' Set interrupt mode
-'   Valid values:
-'       *COMP (0): Comparator mode - fault flag will be asserted
-'       when fault condition is true, and will clear when the condition is
-'       no longer true, _with a 2deg C hysteresis._
+PUB interrupt(): src
+' Return interrupt status
+'   Returns: (for each individual bit)
+'       0: No fault detected
+'       1: Fault detected
 '
-'       INTR (1): Interrupt mode - fault flag will be asserted when
-'       fault condition is true, and will remain asserted until fault status
-'       is explicitly cleared with IntClear().
-'       NOTE: If the fault condition is still true when the status is cleared,
-'       the flag will be asserted again immediately.
-'   Any other value polls the chip and returns the current setting
-    readreg(core.CR0, 1, @curr_mode)
-    case mode
-        COMP, INTR:
-            mode := mode << core.FAULT
-        other:
-            return ((curr_mode >> core.FAULT) & 1)
+'   Bit 7   Cold-junction out of normal operating range
+'       6   Thermcouple out of normal operating range
+'       5   Cold-junction above HIGH temperature threshold
+'       4   Cold-junction below LOW temperature threshold
+'       3   Thermocouple temperature above HIGH temperature threshold
+'       2   Thermocouple temperature below LOW temperature threshold
+'       1   Over-voltage or Under-voltage
+'       0   Thermocouple open-circuit
+'   NOTE: Asserted interrupts will always be flagged in this register,
+'       regardless of the set interrupt mask
+'   NOTE: FAULT pin is active low
+    readreg(core.SR, 1, @src)
 
-    mode := ((curr_mode & core.FAULT_MASK) | mode) & core.CR0_MASK
-    writereg(core.CR0, 1, @curr_mode)
-
-PUB Measure() | tmp
+PUB measure() | tmp
 ' Perform single cold-junction and thermocouple conversion
 '   NOTE: Single conversion is performed only if OpMode() is set to SINGLE
 ' Approximate conversion times:
@@ -240,7 +237,7 @@ PUB Measure() | tmp
     tmp := (tmp | (1 << core.ONESHOT)) & core.CR0_MASK
     writereg(core.CR0, 1, @tmp)
 
-PUB NotchFilter(freq=-2): curr_freq | opmode_orig
+PUB notch_filt_freq(freq=-2): curr_freq | opmode_orig
 ' Select noise rejection filter frequency, in Hz
 '   Valid values: 50, 60*
 '   Any other value polls the chip and returns the current setting
@@ -262,7 +259,7 @@ PUB NotchFilter(freq=-2): curr_freq | opmode_orig
 
     opmode(opmode_orig)                         ' restore user's OpMode
 
-PUB OCFaultTestTime(time_ms=-2): curr_time 'XXX Note recommendations based on circuit design
+PUB oc_fault_test_time(time_ms=-2): curr_time 'XXX Note recommendations based on circuit design
 ' Sets open-circuit fault detection test time, in ms
 '   Valid values: 0 (disable fault detection), 10, 32, 100
 '   Any other value polls the chip and returns the current setting
@@ -277,7 +274,7 @@ PUB OCFaultTestTime(time_ms=-2): curr_time 'XXX Note recommendations based on ci
     time_ms := ((curr_time & core.OCFAULT_MASK) | time_ms) & core.CR0_MASK
     writereg(core.CR0, 1, @time_ms)
 
-PUB OpMode(mode=-2): curr_mode
+PUB opmode(mode=-2): curr_mode
 ' Set operating mode
 '   Valid values:
 '       SINGLE (0): Single-shot/normally off
@@ -294,7 +291,7 @@ PUB OpMode(mode=-2): curr_mode
     mode := ((curr_mode & core.CMODE_MASK) | mode) & core.CR0_MASK
     writereg(core.CR0, 1, @mode)
 
-PUB TC_Avg(samples=-2): curr_smp
+PUB tc_smp_avg(samples=-2): curr_smp
 ' Set number of samples averaged during thermocouple conversion
 '   Valid values: *1, 2, 4, 8, 16
 '   Any other value polls the chip and returns the current setting
@@ -309,7 +306,7 @@ PUB TC_Avg(samples=-2): curr_smp
     samples := ((curr_smp & core.AVGSEL_MASK) | samples) & core.CR1_MASK
     writereg(core.CR1, 1, @samples)
 
-PUB TC_Data(): temp_word
+PUB tc_data(): temp_word
 ' Read thermocouple data
 '   Returns: s19
     temp_word := 0
@@ -318,29 +315,33 @@ PUB TC_Data(): temp_word
     temp_word sar= 5                            ' right-justify, keeping sign
                                                 ' (ADC word is left-justified)
 
-PUB TC_IntHighThresh(thresh=-32769): curr_thr
+PUB tc_int_hi_thresh{}: thresh
+' Get thermocouple interrupt high threshold
+    readreg(core.LTHFTH, 2, @thresh)
+    return (thresh signx 15)
+
+PUB tc_int_set_hi_thresh(thresh)
 ' Set thermocouple interrupt high threshold
 '   Valid values: -32768..32767 (default: 32767)
-'   Any other value polls the chip and returns the current setting
-    case thresh
-        -32768..32767:
-            writereg(core.LTHFTH, 2, @thresh)
-        other:
-            readreg(core.LTHFTH, 2, @curr_thr)
-            return (curr_thr signx 15)
+    thresh := -32768 #> thresh <# 32767
+    writereg(core#LTHFTH, 2, @thresh)
 
-PUB TC_IntLowThresh(thresh=-32769): curr_thr
+PUB tc_int_lo_thresh{}: thresh
 ' Set thermocouple interrupt low threshold
 '   Valid values: -32768..32767 (default: -32768)
 '   Any other value polls the chip and returns the current setting
-    case thresh
-        -32768..32767:
-            writereg(core.LTLFTH, 2, @thresh)
-        other:
-            readreg(core.LTLFTH, 2, @curr_thr)
-            return (curr_thr signx 15)
+    thresh := 0
+    readreg(core.LTLFTH, 2, @thresh)
+    return (thresh signx 15)
 
-PUB TC_Type(type=-2): curr_type
+PUB tc_int_set_lo_thresh(thresh)
+' Set thermocouple interrupt low threshold
+'   Valid values: -32768..32767 (default: -32768)
+'   Any other value polls the chip and returns the current setting
+    thresh := -32768 #> thresh <# 32767
+    writereg(core#LTLFTH, 2, @thresh)
+
+PUB tc_type(type=-2): curr_type
 ' Set type of thermocouple
 '   Valid values: TYPE_B (0), TYPE_E (1), TYPE_J (2), *TYPE_K (3), TYPE_N (4),
 '       TYPE_R (5), TYPE_S (6), TYPE_T (7)
@@ -354,7 +355,7 @@ PUB TC_Type(type=-2): curr_type
     type := ((curr_type & core.TC_TYPE_MASK) | type) & core.CR1_MASK
     writereg(core.CR1, 1, @type)
 
-PUB TC_Word2Temp(tc_word): temp
+PUB tc_word2temp(tc_word): temp
 ' Convert thermocouple ADC word to temperature, in hundredths of a degree
 '   in chosen scale
     temp := (tc_word * TC_RES) / 1000
@@ -363,11 +364,11 @@ PUB TC_Word2Temp(tc_word): temp
         F:
             temp := ((temp * 90) / 50) + 32_00
 
-PUB TempWord2Deg(tword): temp
+PUB temp_word2deg(tword): temp
 ' Alias for TCWord2Temp
     return tc_word2temp(tword)
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff) | tmp
+PRI readreg(reg_nr, nr_bytes, ptr_buff) | tmp
 ' Read nr_bytes from device into ptr_buff
     case reg_nr                                 ' validate register
         core.CR0..core.SR:
@@ -379,7 +380,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | tmp
     spi.rdblock_msbf(ptr_buff, nr_bytes)        ' then read data, MSByte-first
     pinh(_CS)
 
-PRI writeReg(reg_nr, nr_bytes, ptr_buff) | tmp
+PRI writereg(reg_nr, nr_bytes, ptr_buff) | tmp
 ' Write nr_bytes from ptr_buff to device
     case reg_nr
         core.CR0..core.CJTL:
@@ -394,24 +395,21 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | tmp
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 

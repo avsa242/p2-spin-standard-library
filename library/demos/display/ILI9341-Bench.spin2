@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Feb 20, 2022
-    Updated: Feb 20, 2022
+    Updated: Oct 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -67,9 +67,9 @@ PUB Main()
     disp.preset()
 
     { change these to suit the orientation of your display }
-    disp.displayrotate(TRUE)
-    disp.mirrorh(FALSE)
-    disp.mirrorv(TRUE)
+    disp.disp_rot_ena(TRUE)
+    disp.mirror_h(FALSE)
+    disp.mirror_v(TRUE)
 
     benchmark()                                      ' start demo
 

@@ -2,11 +2,10 @@
     --------------------------------------------
     Filename: FINGERPRINT-8552-Demo.spin2
     Author: Jesse Burt
-    Description: Demo of the Fingerprint reader SKU.8552 driver
-        (P2 version)
-    Copyright (c) 2021
+    Description: Demo of the Fingerprint reader SKU.8552 driver (P2 version)
+    Copyright (c) 2022
     Started May 18, 2020
-    Updated Jan 1, 2021
+    Updated Oct 31, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -39,7 +38,7 @@ VAR
 
     long _usercnt, _cmplvl, _add_pol
 
-PUB Main() | uid, tmp, priv, finished, stmp, priv_lvl
+PUB main() | uid, tmp, priv, finished, stmp, priv_lvl
 
     setup()
 
@@ -49,23 +48,23 @@ PUB Main() | uid, tmp, priv, finished, stmp, priv_lvl
     repeat
         ser.clear()
 
-        showsettings()
-        showhelp()
+        show_settings()
+        show_help()
 
-        case ser.charin()
+        case ser.getchar()
             "a", "A":                           ' add a user/print
                 repeat
-                    ser.position(PROMPT_X, PROMPT_Y)
+                    ser.pos_xy(PROMPT_X, PROMPT_Y)
                     uid := _usercnt+1
                     ser.printf(string("Privilege level for user %d? (1..3) > "), uid)
-                    priv_lvl := ser.decin()
-                    ifnot lookdown(priv_lvl: 1..3)
+                    priv_lvl := ser.getdec()
+                    ifnot (lookdown(priv_lvl: 1..3))
                         quit                    ' invalid privilege level
                     ser.strln(string(" (3 scans will be required)"))
                     ' scanner requires 3 scans of a fingerprint
-                    stmp := fng.addprint(uid, priv_lvl)
+                    stmp := fng.add_print(uid, priv_lvl)
                     ser.newline()
-                    if stmp <> 0                ' scan failed
+                    if (stmp <> 0)              ' scan failed
                         ser.str(string("Scan was unsuccessful: "))
                         case stmp               ' error code returned from
                             $01:                '   the sensor:
@@ -78,7 +77,7 @@ PUB Main() | uid, tmp, priv, finished, stmp, priv_lvl
                                 ser.str(string("Timeout"))
                         ser.newline()
                         ser.str(string("Retry? (y/n)> "))
-                        case ser.charin()
+                        case ser.getchar()
                             "y", "Y": finished := FALSE
                             other: finished := TRUE
                     else                        ' scan succeeded
@@ -86,83 +85,83 @@ PUB Main() | uid, tmp, priv, finished, stmp, priv_lvl
                 until finished                  ' finished adding user/print
             "d":                                ' delete specific user
                 ' only try if there's at least one user stored in the database
-                if _usercnt
-                    ser.position(PROMPT_X, PROMPT_Y)
+                if (_usercnt)
+                    ser.pos_xy(PROMPT_X, PROMPT_Y)
                     uid := prompt(string("Delete user #> "))
-                    fng.deleteuser(uid)
+                    fng.delete_user(uid)
                 else
                     next
             "D":                                ' delete all users
-                if _usercnt
-                    ser.position(PROMPT_X, PROMPT_Y)
+                if (_usercnt)
+                    ser.pos_xy(PROMPT_X, PROMPT_Y)
                     ser.strln(string("delete all users"))
-                    fng.deleteallusers()
+                    fng.delete_all_users()
                 else
                     next
             "l", "L":                           ' set print comparison level
-                ser.position(PROMPT_X, PROMPT_Y)
+                ser.pos_xy(PROMPT_X, PROMPT_Y)
                 tmp := prompt(string("Comparison level? (0..9)> "))
-                if lookdown(tmp: 0..9)
-                    fng.comparisonlevel(tmp)
+                if (lookdown(tmp: 0..9))
+                    fng.comparison_level(tmp)
                     _cmplvl := tmp
             "m":                                ' check match against uid
-                if _usercnt
-                    ser.position(PROMPT_X, PROMPT_Y)
+                if (_usercnt)
+                    ser.pos_xy(PROMPT_X, PROMPT_Y)
                     ser.printf(string("Check fingerprint against stored uid. (1..%d) > "), _usercnt)
-                    uid := ser.decin()
-                    if uid < 1 or uid > _usercnt
+                    uid := ser.getdec()
+                    if ((uid < 1) or (uid > _usercnt))
                         next                    ' invalid uid
-                    ser.dec(uid)
+                    ser.putdec(uid)
                     ser.newline()
-                    tmp := fng.printmatchesuser(uid)
+                    tmp := fng.print_matches_user(uid)
                     ser.str(lookupz(abs(tmp): string("Not a match"), string("Match")))
-                    ser.clearline()
+                    ser.clear_line()
                     ser.newline()
-                    pressanykey()
+                    press_any_key()
             "M":                                ' find a match to any uid
-                if _usercnt
-                    ser.position(PROMPT_X, PROMPT_Y)
+                if (_usercnt)
+                    ser.pos_xy(PROMPT_X, PROMPT_Y)
                     ser.str(string("Ready to match print to a user: "))
-                    if tmp := fng.printmatch()
+                    if tmp := fng.print_matches_any()
                         ser.printf(string("Matches user #%d"), tmp)
                     else
                         ser.str(string("Unrecognized"))
                     ser.newline()
-                    pressanykey()
+                    press_any_key()
             "p", "P":                           ' toggle duplicate add policy
                 _add_pol ^= 1
-                fng.addpolicy(_add_pol)
+                fng.policy_user_add(_add_pol)
             "q", "Q":                           ' quit
                 ser.str(string("Halting"))
                 quit
             "u", "U":                           ' list users and privileges
-                if _usercnt
+                if (_usercnt)
                     repeat tmp from 1 to _usercnt
-                        priv := fng.userpriv(tmp)
+                        priv := fng.user_priv(tmp)
                         ser.printf(string("Privilege for uid %d: %d\n"), tmp, priv)
-                    pressanykey()
+                    press_any_key()
             other:
 
     repeat
 
-PRI PressAnyKey()
+PRI press_any_key()
 
     ser.str(string("Press any key to return"))
-    repeat until ser.charin()
+    repeat until ser.getchar()
 
-PRI Prompt(ptr_str): dec
+PRI prompt(ptr_str): dec
 ' display a prompt and wait for a decimal number input
     ser.str(ptr_str)
-    return ser.decin()
+    return ser.getdec()
 
-PRI ShowHelp()
+PRI show_help()
 
-    ser.position(0, 6)
+    ser.pos_xy(0, 6)
     ser.strln(string("Help:"))
     ser.strln(string("a, A: Add a fingerprint to the database"))
     ser.strln(string("l, L: Change comparison level"))
     ser.strln(string("p, P: Change fingerprint add policy"))
-    if _usercnt
+    if (_usercnt)                               ' only show these if there are some users defined
         ser.strln(string("d: Delete a specific user from the database"))
         ser.strln(string("D: Delete all users from the database"))
         ser.strln(string("u, U: List users with their privilege levels"))
@@ -170,51 +169,49 @@ PRI ShowHelp()
         ser.strln(string("M: Check fingerprint for match against any user"))
     ser.strln(string("q, Q: Quit"))
 
-PRI ShowSettings()
+PRI show_settings()
 
-        ser.position(0, 3)
-        ser.str(string("Total user count: "))
-        ser.dec(_usercnt := fng.totalusercount())
+    ser.pos_xy(0, 3)
+    ser.str(string("Total user count: "))
+    ser.putdec(_usercnt := fng.total_user_count())
 
-        ser.position(50, 3)
-        fng.comparisonlevel(_cmplvl)
-        ser.str(string("Comparison level: "))
-        ser.dec(fng.comparisonlevel(-2))
+    ser.pos_xy(50, 3)
+    fng.comparison_level(_cmplvl)
+    ser.str(string("Comparison level: "))
+    ser.putdec(fng.comparison_level(-2))
 
-        ser.position(50, 4)
-        fng.addpolicy(_add_pol)
-        ser.str(string("Duplicate print add policy: "))
-        _add_pol := fng.addpolicy(-2)
-        ser.str(lookupz(_add_pol: string("Allow"), string("Prohibit")))
+    ser.pos_xy(50, 4)
+    fng.policy_user_add(_add_pol)
+    ser.str(string("Duplicate print add policy: "))
+    _add_pol := fng.policy_user_add(-2)
+    ser.str(lookupz(_add_pol: string("Allow"), string("Prohibit")))
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    fng.start(FPRINT_TX, FPRINT_RX, FPRINT_BL, FPRINT_RST)
+    fng.startx(FPRINT_TX, FPRINT_RX, FPRINT_BL, FPRINT_RST)
     ser.strln(string("Fingerprint reader started"))
 
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }

@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Feb 20, 2022
-    Updated: Oct 29, 2022
+    Updated: Oct 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -53,7 +53,7 @@ PUB benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
     disp.printf(string("%s\n\r"), @_drv_name)
     disp.printf(string("P2X8C4M64P\n\r @%dMHz\n\r"), clkfreq/1_000_000)
     disp.printf(string("%dx%d"), WIDTH, HEIGHT)
-    disp.update()
+    disp.show()
     waitms(5_000)
     disp.clear()
 
@@ -78,42 +78,42 @@ PUB benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
             BITMAP:
                 repeat while _timer_set
                     disp.bitmap(0, 0, 0, sz-1, sz-1)
-                    disp.update()
+                    disp.show()
                     iteration++
             BOX:
                 repeat while _timer_set
                     disp.box(0, 0, sz-1, sz-1, color, false)
-                    disp.update()
+                    disp.show()
                     iteration++
             BOX_F:
                 repeat while _timer_set
                     disp.box(0, 0, sz-1, sz-1, color, true)
-                    disp.update()
+                    disp.show()
                     iteration++
             CIRCLE:
                 repeat while _timer_set
                     disp.circle(CENTERX, CENTERY, sz-1, color, false)
-                    disp.update()
+                    disp.show()
                     iteration++
             CIRCLE_F:
                 repeat while _timer_set
                     disp.circle(CENTERX, CENTERY, sz-1, color, true)
-                    disp.update()
+                    disp.show()
                     iteration++
             DLINE:
                 repeat while _timer_set
                     disp.line(0, 0, sz-1, sz-1, color)
-                    disp.update()
+                    disp.show()
                     iteration++
             HLINE:
                 repeat while _timer_set
                     disp.line(0, 0, sz-1, 0, color)
-                    disp.update()
+                    disp.show()
                     iteration++
             PLOT:
                 repeat while _timer_set
                     disp.plot(0, 0, color)
-                    disp.update()
+                    disp.show()
                     iteration++
             TEXT:
                 disp.fontscale(lookdown(sz: 2, 4, 8, 16, 32, 64, 128))
@@ -123,12 +123,12 @@ PUB benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
                     ch++
                     if (ch > $7F)
                         ch := $20
-                    disp.update()
+                    disp.show()
                     iteration++
             VLINE:
                 repeat while _timer_set
                     disp.line(0, 0, 0, sz-1, color)
-                    disp.update()
+                    disp.show()
                     iteration++
             other:
                 quit
@@ -152,7 +152,7 @@ PRI Report(testtime, iterations) | rate_iterations, frame_time
 ' Display benchmark test results
     rate_iterations := iterations / (testtime/1000)         ' # frames/sec
     frame_time := (testtime * 1_000) / iterations           ' frame time (usec)
-    ser.printf4(string("Total iterations: %d, iterations/sec: %d, frame time: %dms\n\r"), {
+    ser.printf(@"Total iterations: %d, iterations/sec: %d, frame time: %dms\n\r", {
 }   iterations, rate_iterations, frame_time)
 
 PRI cog_timer() | time_left

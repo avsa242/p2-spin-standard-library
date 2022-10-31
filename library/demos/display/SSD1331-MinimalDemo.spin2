@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Started: May 28, 2022
-    Updated: May 28, 2022
+    Updated: Oct 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -71,17 +71,17 @@ PUB Main()
     disp.position(0, 0)
     disp.fgcolor($ffff)
     disp.strln(string("Testing 12345"))
-    disp.update()                               ' send the buffer to the display
+    disp.show()                               ' send the buffer to the display
 
     { draw one pixel at the center of the screen }
     { disp.plot(x, y, color) }
     disp.plot(CENTERX, CENTERY, $ffff)
-    disp.update()
+    disp.show()
 
     { draw a box at the screen edges }
     { disp.box(x_start, y_start, x_end, y_end, color, filled) }
     disp.box(0, 0, XMAX, YMAX, $ffff, false)
-    disp.update()
+    disp.show()
 
     repeat
 

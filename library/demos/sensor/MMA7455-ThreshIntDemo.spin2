@@ -6,7 +6,7 @@
         Threshold interrupt functionality (P2 version)
     Copyright (c) 2022
     Started Jul 17, 2022
-    Updated Jul 17, 2022
+    Updated Oct 31, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -36,22 +36,21 @@ OBJ
 
     cfg     : "boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    int     : "string.integer"
-    accel   : "sensor.accel.3dof.mma7455"
+    sensor  : "sensor.accel.3dof.mma7455"
 
 VAR
 
     long _isr_stack[50]                         ' stack for ISR core
     long _intflag                               ' interrupt flag
 
-PUB Main()
+PUB main()
 
     setup()
 
-    accel.preset_threshdetect()                 ' set up for accel threshold
+    sensor.preset_thresh_detect()                ' set up for accel threshold
                                                 '   detection
 
-    accel.accelintclear(accel.INT1 | accel.INT2)' clear INT1 and INT2
+    sensor.accel_int_clr(sensor.INT1 | sensor.INT2)' clear INT1 and INT2
 
     ' Set threshold to 1.0g, and enable detection on X axis only
     ' NOTE: Though there are threshold setting methods for all three
@@ -59,72 +58,24 @@ PUB Main()
     '   for API-compatibility with other chips that have the ability to
     '   set independent thresholds.
     ' NOTE: The full-scale range of the threshold setting is 8g's,
-    '   regardless of what AccelScale() is set to.
-    accel.accelintthreshz(1_000000)
-    accel.accelintmask(accel.XTHR)
+    '   regardless of what sensor.accel_scale() is set to.
+    sensor.accel_int_set_thresh(1_000000)
+    sensor.accel_int_mask(sensor.XTHR)
 
     repeat
         ser.position(0, 3)
-        accelcalc()
-        if _intflag
+        show_accel_data()
+        if (_intflag)
             ser.position(0, 5)
             ser.strln(@"Interrupt")
             repeat until ser.charin()
-            accel.accelintclear(%11)            ' must clear interrupts
+            sensor.accel_int_clr(%11)            ' must clear interrupts
             ser.position(0, 5)
             ser.clearline()
-        if ser.rxcheck() == "c"                 ' press the 'c' key in the demo
-            calibrate()                         ' to calibrate sensor offsets
+        if (ser.rxcheck() == "c")               ' press the 'c' key in the demo
+            cal_accel()                         ' to calibrate sensor offsets
 
-PUB AccelCalc() | ax, ay, az
-
-    repeat until accel.acceldataready()         ' wait for new sensor data set
-    accel.accelg(@ax, @ay, @az)                 ' read calculated sensor data
-    ser.str(@"Accel (g):")
-    ser.positionx(DAT_X_COL)
-    decimal(ax, 1000000)                        ' data is in micro-g's; display
-    ser.positionx(DAT_Y_COL)                    ' it as if it were a float
-    decimal(ay, 1000000)
-    ser.positionx(DAT_Z_COL)
-    decimal(az, 1000000)
-    ser.clearline()
-    ser.newline()
-
-PUB Calibrate()
-
-    ser.position(0, 7)
-    ser.str(@"Calibrating...")
-    accel.calibrateaccel()
-    ser.positionx(0)
-    ser.clearline()
-
-PRI Decimal(scaled, divisor) | whole[4], part[4], places, tmp, sign
-' Display a scaled up number as a decimal
-'   Scale it back down by divisor (e.g., 10, 100, 1000, etc)
-    whole := scaled / divisor
-    tmp := divisor
-    places := 0
-    part := 0
-    sign := 0
-    if scaled < 0
-        sign := "-"
-    else
-        sign := " "
-
-    repeat
-        tmp /= 10
-        places++
-    until tmp == 1
-    scaled //= divisor
-    part := int.deczeroed(abs(scaled), places)
-
-    ser.char(sign)
-    ser.dec(abs(whole))
-    ser.char(".")
-    ser.str(part)
-    ser.chars(" ", 5)
-
-PRI ISR()
+PRI cog_isr()
 ' Interrupt service routine
     dira[INT1] := 0                             ' INT1 as input
     repeat
@@ -133,41 +84,40 @@ PRI ISR()
         repeat until not pinr(INT1)             ' now wait for it to clear
         _intflag := 0                           '   clear flag
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    if accel.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS)
+    if sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS)
         ser.strln(@"MMA7455 driver started (I2C)")
     else
         ser.strln(@"MMA7455 driver failed to start - halting")
         repeat
 
-    cogspin(NEWCOG, isr, @_isr_stack)                    ' start ISR in another core
+    cogspin(NEWCOG, cog_isr(), @_isr_stack)                    ' start ISR in another core
+
+#include "acceldemo.common.spin2h"
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 

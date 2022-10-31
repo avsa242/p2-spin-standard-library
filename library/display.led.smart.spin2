@@ -5,7 +5,7 @@
     Description: Driver for various smart LED arrays
     Copyright (c) 2022
     Started Jun 13, 2021
-    Updated Oct 6, 2022
+    Updated Oct 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -110,7 +110,7 @@ VAR
 
     long _cog
     long _nr_pix
-    long _mdl_t0h, _mdl_t0l, _mdl_t1h, _mdl_t1l, _mdl_per, _mptr_update, _model
+    long _mdl_t0h, _mdl_t0l, _mdl_t1h, _mdl_t1l, _mdl_per, _show, _model
     long _t0h, _t0l, _t1h, _t1l, _smled_pin, _tres
 
 PUB null()
@@ -122,14 +122,13 @@ PUB startx(SMLED_PIN, WIDTH, HEIGHT, MODEL, PTR_DISP)
 '       SMLED_PIN: I/O pin connected to smart-LED strip/array (0..63)
 '       WIDTH: strip/array width, in pixels (1..1024)
 '       HEIGHT: strip/array height, in pixels (1..1024)
-'       MODEL: See SetModel()
+'       MODEL: Specific model of LEDs; see set_model()
 '       PTR_DISP: pointer to display buffer
 '   NOTE: (WIDTH * HEIGHT) must be <= 1024
 '   NOTE: Minimum Fsys = 16MHz
-    if lookdown(SMLED_PIN: 0..63) and setmodel(MODEL) and {
-}   (WIDTH * HEIGHT) <= 1024
+    if (lookdown(SMLED_PIN: 0..63) and ((WIDTH * HEIGHT) <= 1024))
         _smled_pin := SMLED_PIN
-        setmodel(MODEL)
+        set_model(MODEL)
         _disp_width := width
         _disp_height := height
         _disp_xmax := _disp_width - 1
@@ -207,7 +206,7 @@ PUB set_model(model): curr_model
             _mdl_t1l := WS2811_T1L
             _mdl_per := WS2811_BITPER
             _tres := WS2811_TRES
-            _mptr_update := @updatergb24
+            _show := @show_rgb24
         WS2812:
             _mdl_t0h := WS2812_T0H
             _mdl_t0l := WS2812_T0L
@@ -215,7 +214,7 @@ PUB set_model(model): curr_model
             _mdl_t1l := WS2812_T1L
             _mdl_per := WS2812_BITPER
             _tres := WS2812_TRES
-            _mptr_update := @updategrb24
+            _show := @show_grb24
         WS2812B:
             _mdl_t0h := WS2812B_T0H
             _mdl_t0l := WS2812B_T0L
@@ -223,7 +222,7 @@ PUB set_model(model): curr_model
             _mdl_t1l := WS2812B_T1L
             _mdl_per := WS2812B_BITPER
             _tres := WS2812B_TRES
-            _mptr_update := @updategrb24
+            _show := @show_grb24
         WS2813:
             _mdl_t0h := WS2813_T0H
             _mdl_t0l := WS2813_T0L
@@ -231,7 +230,7 @@ PUB set_model(model): curr_model
             _mdl_t1l := WS2813_T1L
             _mdl_per := WS2813_BITPER
             _tres := WS2813_TRES
-            _mptr_update := @updatergb24
+            _show := @show_rgb24
         SK6812_24:
             _mdl_t0h := SK6812_T0H
             _mdl_t0l := SK6812_T0L
@@ -239,7 +238,7 @@ PUB set_model(model): curr_model
             _mdl_t1l := SK6812_T1L
             _mdl_per := SK6812_BITPER
             _tres := SK6812_TRES
-            _mptr_update := @updategrb24
+            _show := @show_grb24
         SK6812_32:
             _mdl_t0h := SK6812_T0H
             _mdl_t0l := SK6812_T0L
@@ -247,7 +246,7 @@ PUB set_model(model): curr_model
             _mdl_t1l := SK6812_T1L
             _mdl_per := SK6812_BITPER
             _tres := SK6812_TRES
-            _mptr_update := @updategrb32
+            _show := @show_grb32
         TM1803:
             _mdl_t0h := TM1803_T0H
             _mdl_t0l := TM1803_T0L
@@ -255,18 +254,18 @@ PUB set_model(model): curr_model
             _mdl_t1l := TM1803_T1L
             _mdl_per := TM1803_BITPER
             _tres := TM1803_TRES
-            _mptr_update := @updatergb24
+            _show := @show_rgb24
         other:
             return _model
-    setclock(800_000)
+    set_clock(800_000)
     return model
 
 PUB show()
 ' Send display buffer to smart-LED array
-'   Call method pointed to, set by setmodel()
-    _mptr_update()
+'   Call method pointed to (set by set_model())
+    _show()
 
-PUB update_grb24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
+PUB show_grb24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
 ' Update G-R-B 24bpp smart-LED array
     longmove(@t0h, @_t0h, 6)                    ' copy timings to local vars
 
@@ -293,7 +292,7 @@ PUB update_grb24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tm
     pinl(smled_pin)                             ' reset code (end of array)
     waitus(tres)
 
-PUB update_grb32() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
+PUB show_grb32() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tmp
 ' Update G-R-B 32bpp smart-LED array
     longmove(@t0h, @_t0h, 6)                    ' copy timings to local vars
 
@@ -320,7 +319,7 @@ PUB update_grb32() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit, tm
     pinl(smled_pin)                             ' reset code (end of array)
     waitus(tres)
 
-PUB update_rgb24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit
+PUB show_rgb24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit
 ' Update R-G-B 24bpp smart-LED array
     longmove(@t0h, @_t0h, 6)                    ' copy timings to local vars
 

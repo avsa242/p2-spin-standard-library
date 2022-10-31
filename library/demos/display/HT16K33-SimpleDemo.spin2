@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Nov 21, 2020
-    Updated: Aug 21, 2022
+    Updated: Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -43,7 +43,7 @@ VAR
 
     byte _framebuff[BUFFSZ]
 
-PUB Main() | i
+PUB main() | i
 
     setup()
     matrix.defaults()
@@ -57,45 +57,45 @@ PUB Main() | i
         repeat i from 0 to 9
             matrix.char(48+i)                   ' ASCII 48+i (nums 0..9)
             waitms(100)
-            matrix.update()                     ' update display
+            matrix.show()                       ' show display
 
     waitms(2_000)
     matrix.clear()
 
     matrix.box(0, 0, XMAX, YMAX, 1, false)      ' x1, y1, x2, y2, color, fill
-    matrix.update()
+    matrix.show()
 
     waitms(2_000)
     matrix.clear()
 
     matrix.box(0, 0, 5, 5, -1, true)
     matrix.box(XMAX, YMAX, XMAX-5, YMAX-5, -1, true)
-    matrix.update()
+    matrix.show()
 
     waitms(2_000)
     matrix.clear()
 
     matrix.circle(3, 3, 4, 1, false)            ' x, y, radius, color, fill
-    matrix.update()
+    matrix.show()
 
     waitms(2_000)
     matrix.clear()
 
     matrix.line(0, 0, 4, 4, 1)                  ' x1, y1, x2, y2, color
-    matrix.update()
+    matrix.show()
 
     waitms(2_000)
     matrix.clear()
 
     matrix.plot(5, 7, 1)                        ' x, y, color
-    matrix.update()
+    matrix.show()
 
     waitms(2_000)
     matrix.clear()
 
     repeat
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(30)

@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Jun 22, 2021
-    Updated: Oct 16, 2022
+    Updated: Oct 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,9 +20,9 @@ CON
     SER_BAUD    = 2_000_000
     LED         = cfg.LED1
 
-    I2C_SCL     = 0
-    I2C_SDA     = 1
-    I2C_HZ      = 400_000                       ' max is 400_000
+    SCL_PIN     = 0
+    SDA_PIN     = 1
+    I2C_FREQ    = 400_000                       ' max is 400_000
     ADDR_BITS   = %000                          ' %000..%111
 
     ' number of digits/characters width and height the display has
@@ -44,74 +44,61 @@ PUB main() | i, b
     setup()
 
     disp.blink_rate(2)
-    demo_msg(string("DEMO"))
+    demo_msg(@"DEMO")
     waitms(2_000)
     disp.blink_rate(0)
     waitms(1_000)
 
-    demo_msg(string("CHAR"))
+    demo_msg(@"CHAR")                    ' display printable ASCII chars
 
     repeat i from 32 to 126
-        disp.pos(0, 0)
-        disp.char(i)
+        disp.pos_xy(0, 0)
+        disp.putchar(i)
         waitms(100)
     waitms(2_000)
 
 
-    demo_msg(string("STR"))
+    demo_msg(@"STR")                     ' display strings
 
-    disp.str(string("This"))
+    disp.puts(@"This")
     waitms(1_000)
     disp.clear()
-    disp.str(string("is"))
+    disp.puts(@"is")
     waitms(1_000)
     disp.clear()
-    disp.str(string("the"))
+    disp.puts(@"the")
     waitms(1_000)
     disp.clear()
-    disp.str(string("STR"))
+    disp.puts(@"STR")
     waitms(1_000)
     disp.clear()
-    disp.str(string("demo"))
+    disp.puts(@"demo")
     waitms(2_000)
 
 
-    demo_msg(string("HEX"))
+    demo_msg(@"HEX")                     ' display hexadecimal numbers
 
     repeat i from 0 to $1ff
-        disp.pos(0, 0)
-        disp.hex(i, 4)
+        disp.pos_xy(0, 0)
+        disp.puthex(i, 4)
     waitms(2_000)
 
-    demo_msg(string("BIN"))
+    demo_msg(@"BIN")                     ' display binary numbers
 
     repeat i from 0 to %1111
-        disp.pos(0, 0)
+        disp.pos_xy(0, 0)
         disp.printf(@"%04.4b", i)
         waitms(200)
     waitms(2_000)
 
-    demo_msg(string("DEC"))
+    demo_msg(@"DEC")                     ' display decimal numbers
 
     repeat i from 0 to 1000
-        disp.pos(0, 0)
+        disp.pos_xy(0, 0)
         disp.printf(@"%4.4d", i)
     waitms(2_000)
 
-{ ' XXX disabled, for now - floating point support isn't currently functional
-    demo_msg(string("FLT"))
-
-    disp.str(fs.floattostring(3.141))
-    waitms(1_000)
-    disp.str(fs.floattostring(31.41))
-    waitms(1_000)
-    disp.str(fs.floattostring(314.1))
-    waitms(1_000)
-    disp.str(fs.floattostring(3141.0))
-    waitms(2_000)
-}
-
-    demo_msg(string("TYPE"))
+    demo_msg(@"TYPE")                    ' echo characters typed into the serial terminal
 
     repeat
         b := ser.charin()
@@ -120,7 +107,7 @@ PUB main() | i, b
 PRI demo_msg(ptr_str)
 ' Clear the display, show a message, wait 2 seconds, then clear again
     disp.clear()
-    disp.str(ptr_str)
+    disp.puts(ptr_str)
     waitms(2_000)
     disp.clear
 
@@ -129,12 +116,12 @@ PUB setup()
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
-    if disp.startx(I2C_SCL, I2C_SDA, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT)
-        ser.strln(string("HT16K33 driver started"))
+    ser.strln(@"Serial terminal started")
+    if disp.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS, WIDTH, HEIGHT)
+        ser.strln(@"HT16K33 driver started")
         disp.defaults()
     else
-        ser.str(string("HT16K33 driver failed to start - halting"))
+        ser.str(@"HT16K33 driver failed to start - halting")
         repeat
 
 DAT

@@ -1,11 +1,11 @@
 {
     --------------------------------------------
     Filename: VGA-Text-Demo.spin2
+    Description: Demo of the tiling VGA text driver
     Author: Eric Smith
     Modified by: Jesse Burt
-    Description: Demo of the tiling VGA text driver
     Started Nov 13, 2019
-    Updated Oct 3, 2020
+    Updated Oct 31, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -24,12 +24,11 @@
 '
 CON
 
-    _xtlfreq        = cfg#_xtlfreq
+    _xtlfreq        = cfg._xtlfreq
     _clkfreq        = 200_000_000
     PIXSHIFT        = 31
 
 ' -- User-modifiable constants
-    SER_BAUD        = 2_000_000
     VGA_PINBASE     = 0
 ' --
 
@@ -43,13 +42,12 @@ DAT
 VAR
 
     long _params[40]                            ' VGA tile driver params
-    long _screen_buffer[vidmode#ROWS * vidmode#COLS * (vidmode#CELL_SIZE/4)]
+    long _screen_buffer[vidmode.ROWS * vidmode.COLS * (vidmode.CELL_SIZE/4)]
 
 OBJ
 
     cfg         : "boardcfg.p2eval"
     vga         : "display.vga.text"
-    ser         : "com.serial.terminal.ansi"
 
 ' Uncomment one of the below for the specified video mode
     vidmode : "core.con.vga.640x480"
@@ -63,21 +61,21 @@ DAT
     long
     fontdata    file "font.8x16.unscii.bin"
 
-PUB Main()
+PUB main()
 
     setup()
 
-    demo_filltext()
-    demo_runtext()
+    demo_fill_text()
+    demo_run_text()
 
-PUB Demo_FillText() | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
+PUB demo_fill_text() | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
 
     ch := 0
 
-    repeat y from 0 to vidmode#ROWS-1
+    repeat y from 0 to vidmode.ROWS-1
         grey := y << 3
         bgcol := (grey << 24) | (grey << 16) | (grey << 8)
-        repeat x from 0 to vidmode#COLS-1
+        repeat x from 0 to vidmode.COLS-1
             grey := (x & 15)
             idx := x / 16
             col1 := democolors[idx]
@@ -87,33 +85,29 @@ PUB Demo_FillText() | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
 
     waitms(10_000)
 
-PUB Demo_RunText() | n
+PUB demo_run_text() | n
 
-    vga.str(string(27, "[1;1H"))
-    vga.str(string(27, "[0J"))
+    vga.puts(string(27, "[1;1H"))
+    vga.puts(string(27, "[0J"))
 
     n := 0
     repeat
         vga.newline()
-        vga.str(string("Hello! ", 27, "[BCursor down"))
-        vga.str(string(27, "[31mRed text "))
-        vga.str(string(27, "[1;31mBright Red text"))
-        vga.str(string(27, "[7mInverse "))
-        vga.str(string(27, "[22;31mBold off "))
-        vga.str(string(27, "[4mUnderline", 27, "[24m"))
-        vga.str(string(27, "[9mStrikethru"))
-        vga.str(string(27, "[0mEffects off "))
-        vga.dec(n)
+        vga.puts(string("Hello! ", 27, "[BCursor down"))
+        vga.puts(string(27, "[31mRed text "))
+        vga.puts(string(27, "[1;31mBright Red text"))
+        vga.puts(string(27, "[7mInverse "))
+        vga.puts(string(27, "[22;31mBold off "))
+        vga.puts(string(27, "[4mUnderline", 27, "[24m"))
+        vga.puts(string(27, "[9mStrikethru"))
+        vga.puts(string(27, "[0mEffects off "))
+        vga.putdec(n)
         n++
         waitms(100)
 
-PUB Setup() | i, pclkscale, pclk, sysclk
+PUB setup() | i, pclkscale, pclk, sysclk
 
-    ser.start(SER_BAUD)
-    ser.clear()
-    ser.strln(@"Serial terminal started")
-
-    pclk := vidmode#PIX_CLKFREQ                 ' pixel clock
+    pclk := vidmode.PIX_CLKFREQ                 ' pixel clock
     sysclk := clkfreq                           ' system clock
     ' calculate scale := $8000_0000 * pclk / sysclk
     ' this is equal to pclk / (sysclk / $8000_000)
@@ -122,24 +116,23 @@ PUB Setup() | i, pclkscale, pclk, sysclk
     i := 0
     _params[i++] := VGA_PINBASE
     _params[i++] := @_screen_buffer             ' screen buffer
-    _params[i++] := vidmode#COLS                ' screen columns
-    _params[i++] := vidmode#ROWS                ' screen rows
+    _params[i++] := vidmode.COLS                ' screen columns
+    _params[i++] := vidmode.ROWS                ' screen rows
     _params[i++] := @fontdata                   ' font data
     _params[i++] := 8                           ' font width
-    _params[i++] := vidmode#FONT_HEIGHT         ' font height
-    _params[i++] := pclkscale 'fset             ' pixel clock scaling value
-    _params[i++] := vidmode#H_FP                ' horizontal front porch
-    _params[i++] := vidmode#HSYNC               ' hsync pulse
-    _params[i++] := vidmode#H_BP                ' horizontal back porch
-    _params[i++] := vidmode#V_FP                ' vertical front porch
-    _params[i++] := vidmode#VSYNC_LINES         ' vertical sync lines
-    _params[i++] := vidmode#V_BP                ' vertical back porch
-    _params[i++] := vidmode#POLARITY            ' vertical/horizontal polarity
-    _params[i++] := vidmode#CELL_SIZE
+    _params[i++] := vidmode.FONT_HEIGHT         ' font height
+    _params[i++] := pclkscale                   ' pixel clock scaling value
+    _params[i++] := vidmode.H_FP                ' horizontal front porch
+    _params[i++] := vidmode.HSYNC               ' hsync pulse
+    _params[i++] := vidmode.H_BP                ' horizontal back porch
+    _params[i++] := vidmode.V_FP                ' vertical front porch
+    _params[i++] := vidmode.VSYNC_LINES         ' vertical sync lines
+    _params[i++] := vidmode.V_BP                ' vertical back porch
+    _params[i++] := vidmode.POLARITY            ' vertical/horizontal polarity
+    _params[i++] := vidmode.CELL_SIZE
 
     ' start up the VGA driver
-    vga.start(VGA_PINBASE, @_params, @_screen_buffer)
-    ser.strln(@"VGA driver started")
+    vga.startx(VGA_PINBASE, @_params, @_screen_buffer)
 
 PRI colorblend(a, b, mix): blended
 

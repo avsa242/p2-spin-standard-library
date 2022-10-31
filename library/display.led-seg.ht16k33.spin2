@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Jun 22, 2021
-    Updated: Oct 16, 2022
+    Updated: Oct 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -81,7 +81,7 @@ PUB clear()
 ' Clear display
     repeat 7
         char(" ")
-    pos(0, 0)
+    pos_xy(0, 0)
 
 PUB move_down()
 ' Move cursor down one row
@@ -111,17 +111,20 @@ PUB move_up()
     if (_row < 0)
         _row := _disp_ymax
 
-PUB pos(x, y)
+PUB position = pos_xy
+PUB pos_xy(x, y)
 ' Set cursor position
     if ((x >= 0) and (x <= _disp_xmax) and (y >= 0) and (y <= _disp_ymax))
         _col := x
         _row := y
 
+PUB positionx = pos_x
 PUB pos_x(x)
 ' Set cursor X position
     if ((x >= 0) and (x <= _disp_xmax))
         _col := x
 
+PUB positiony = pos_y
 PUB pos_y(y)
 ' Set cursor Y position
     if ((y >= 0) and (y <= _disp_ymax))

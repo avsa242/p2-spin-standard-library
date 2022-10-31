@@ -5,7 +5,7 @@
     Description: Driver for the InvenSense MPU9250 (P2 version)
     Copyright (c) 2022
     Started Sep 2, 2019
-    Updated Oct 2, 2022
+    Updated Oct 31, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -287,12 +287,12 @@ PUB clock_src(src=-2): curr_src
     src := (curr_src & core.CLKSEL_MASK) | src
     writereg(core.PWR_MGMT_1, 1, @src)
 
-PUB dev_id(): id
+PUB dev_id(): id | mag_tmp, xlg_tmp
 ' Read device ID
-'   Returns: AK8963 ID (LSB), MPU9250 ID (MSB)
-    id := 0
-    readreg(core.WIA, 1, @id.byte[0])
-    readreg(core.WHO_AM_I, 1, @id.byte[1])
+'   Returns: [15..8]: accel/gyro ID, [7..0]: mag ID
+    readreg(core.WIA, 1, @mag_tmp)
+    readreg(core.WHO_AM_I, 1, @xlg_tmp)
+    return ((xlg_tmp << 8) | mag_tmp)
 
 PUB i2c_mast_dis() | tmp
 ' Disable on-chip I2C master

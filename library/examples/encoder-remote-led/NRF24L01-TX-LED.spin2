@@ -8,7 +8,7 @@
         * Quadrature encoder
     Copyright (c) 2022
     Started Aug 29, 2022
-    Updated Aug 29, 2022
+    Updated Oct 31, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -26,8 +26,8 @@ CON
     CE_PIN      = 20
     CS_PIN      = 21
     SCK_PIN     = 18
-    MOSI_PIN    = 16                             ' MOSI and MISO must be within
-    MISO_PIN    = 17                             '   3 pins +/- of SCK
+    MOSI_PIN    = 16                            ' MOSI and MISO must be within
+    MISO_PIN    = 17                            '   3 pins +/- of SCK
     SCK_FREQ    = 10_000_000                    ' 10_000_000 max
 
     { encoder basepin (uses 2 consecutive pins) }
@@ -36,10 +36,10 @@ CON
 
 OBJ
 
-    ser  : "com.serial.terminal.ansi"
-    cfg  : "boardcfg.p2eval"
-    nrf24: "wireless.transceiver.nrf24l01"
-    encd : "input.encoder.quadrature"
+    ser     : "com.serial.terminal.ansi"
+    cfg     : "boardcfg.p2eval"
+    nrf24   : "wireless.transceiver.nrf24l01"
+    encoder : "input.encoder.quadrature"
 
 VAR
 
@@ -53,10 +53,10 @@ PUB main() | delta
 
 ' -- User-modifiable settings (NOTE: These settings _must_ match the receive side) }
     nrf24.channel(2)                            ' 0..125 (2.400 .. 2.525GHz)
-    nrf24.txpower(0)                            ' -18, -12, -6, 0 (dBm)
+    nrf24.tx_pwr(0)                             ' -18, -12, -6, 0 (dBm)
 
     { set transmit address (note: order in string() is LSB, ..., MSB) }
-    nrf24.nodeaddress(string($e7, $e7, $e7, $e7, $e7))
+    nrf24.node_addr(string($e7, $e7, $e7, $e7, $e7))
 
 ' --
 
@@ -66,10 +66,10 @@ PUB main() | delta
 
     repeat
         repeat
-            delta := encd.pos_delta(0)              ' wait for a change in encoder position
+            delta := encoder.pos_delta(0)          ' wait for a change in encoder position
         until (delta)
         ser.printf(@"delta: %d\n\r", delta)
-        nrf24.txpayload(4, @delta)
+        nrf24.tx_payld(4, @delta)
 
 PUB setup()
 
@@ -80,14 +80,14 @@ PUB setup()
     if (nrf24.startx(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN))
         ser.strln(string("nRF24L01+ driver started"))
         nrf24.preset_tx2m_noaa()                ' 2Mbps, no Auto-Ack
-        nrf24.crccheckenabled(true)
-        nrf24.crclength(2)
-        nrf24.payloadlen(4, 0)
+        nrf24.crc_check_ena(true)
+        nrf24.crc_len(2)
+        nrf24.payld_len(4, 0)
     else
         ser.strln(string("nRF24L01+ driver failed to start - halting"))
         repeat
 
-    if (encd.startx(ENC_BASEPIN, 1, clkfreq/10_000_000))
+    if (encoder.startx(ENC_BASEPIN, 1, clkfreq/10_000_000))
         ser.strln(@"Quadrature encoder driver started")
     else
         ser.strln(@"Quadrature encoder driver failed to start - halting")

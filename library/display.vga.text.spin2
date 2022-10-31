@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: display.vga.tile.spin2
+    Filename: display.vga.text.spin2
     Author: Eric Smith
     Modified by: Jesse Burt
     Description: Tiling VGA text driver
     Started Nov 13, 2019
-    Updated Oct 18, 2022
+    Updated Oct 31, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -236,8 +236,8 @@ PUB putchar_xy(x, y, ch, fgcol, bgcol, fx=0) | bufptr
     else
         byte[bufptr] := ch & $ff
 
-PUB hide_cursor = hide_curs
-PUB hide_curs()
+PUB hidecursor = hide_cursor
+PUB hide_cursor()
 ' Hide the cursor
     _cursor_enabled := 0
     setcursorvisible(0)
@@ -256,8 +256,8 @@ PUB rgb_color(r, g, b): rgb
     else
         rgb := (r << 24 | g << 16 | b << 8)
 
-PUB showcursor = show_curs
-PUB show_curs()
+PUB showcursor = show_cursor
+PUB show_cursor()
 ' globals: force cursor on or off
     _cursor_enabled := 1
     setcursorvisible(_cursor_enabled)
