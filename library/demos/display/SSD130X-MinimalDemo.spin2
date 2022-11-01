@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Started: May 28, 2022
-    Updated: May 28, 2022
+    Updated: Nov 1, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -53,7 +53,7 @@ VAR
     { memory for the display buffer }
     byte _framebuff[BUFFSZ]
 
-PUB Main()
+PUB main()
 
     { start the driver - define the preprocessor symbol appropriate to the display's interface 
     and also which specific display controller is used: SSD1306 or SSD1309
@@ -70,49 +70,47 @@ PUB Main()
         1. Use a common settings preset for 128x. displays
         2. Tell the driver the size of the font }
     disp.preset_128x()
-    disp.fontspacing(1, 1)
-    disp.fontscale(1)
-    disp.fontsize(fnt.WIDTH, fnt.HEIGHT)
-    disp.fontaddress(fnt.ptr())
+    disp.font_spacing(1, 1)
+    disp.font_scl(1)
+    disp.font_sz(fnt.WIDTH, fnt.HEIGHT)
+    disp.font_addr(fnt.ptr())
     disp.clear()
 
     { draw some text }
     disp.position(0, 0)
     disp.fgcolor(1)
     disp.strln(string("Testing 12345"))
-    disp.update()                               ' send the buffer to the display
+    disp.show()                               ' send the buffer to the display
 
     { draw one pixel at the center of the screen }
     { disp.plot(x, y, color) }
     disp.plot(CENTERX, CENTERY, 1)
-    disp.update()
+    disp.show()
 
     { draw a box at the screen edges }
     { disp.box(x_start, y_start, x_end, y_end, color, filled) }
     disp.box(0, 0, XMAX, YMAX, 1, false)
-    disp.update()
+    disp.show()
 
     repeat
 
-
+DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+

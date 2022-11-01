@@ -9,6 +9,11 @@
     See end of file for terms of use.
     --------------------------------------------
 }
+#ifndef SSD1306
+#ifndef SSD1309
+#define SSD1306
+#endif
+#endif
 
 CON
 
