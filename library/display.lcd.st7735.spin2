@@ -5,7 +5,7 @@
     Description: Driver for Sitronix ST7735-based displays (P2 version)
     Copyright (c) 2022
     Started Mar 7, 2020
-    Updated Oct 16, 2022
+    Updated Nov 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -100,7 +100,7 @@ PUB startx(CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RESET_PIN, SCK_FREQ, WIDTH, HEIGHT,
 
 PUB stop()
 ' Stop the driver
-    disp_vis_ena(ALL_OFF)
+    visibility(ALL_OFF)
     powered(FALSE)
     spi.deinit()
 
@@ -122,7 +122,7 @@ PUB defaults()
     pwr_ctrl(IDLE, MEDLOW, SMALL, 2, 2, 2, 2, 2)
     com_voltage(-0_525)
 
-    disp_inverted(FALSE)
+    invert_colors(FALSE)
 
     mirror_h(FALSE)
     mirror_v(FALSE)
@@ -130,14 +130,14 @@ PUB defaults()
 
     color_depth(16)
     disp_offset(2, 3)
-    disp_area(0, 0, 127, 127)
+    draw_area(0, 0, 127, 127)
 
     gamma_tbl_pos(@gammatable_pos)
     gamma_tbl_neg(@gammatable_neg)
 
     disp_part_area(0, 161)                      ' Can be 0, 159 also, depending on GM pins config
     opmode(NORMAL)
-    disp_vis_ena(NORMAL)
+    visibility(NORMAL)
 
 PUB preset_greentab128x128()
 ' Like defaults, but with settings applicable to green-tabbed 128x128 displays
@@ -157,7 +157,7 @@ PUB preset_greentab128x128()
     pwr_ctrl(IDLE, MEDLOW, SMALL, 2, 4, 2, 4, 2)
     com_voltage(-0_525)
 
-    disp_inverted(FALSE)
+    invert_colors(FALSE)
 
     mirror_h(TRUE)
     mirror_v(TRUE)
@@ -165,14 +165,14 @@ PUB preset_greentab128x128()
 
     color_depth(16)
     disp_offset(2, 3)
-    disp_area(0, 0, _disp_xmax, _disp_ymax)
+    draw_area(0, 0, _disp_xmax, _disp_ymax)
 
     gamma_tbl_pos(@gammatable_pos)
     gamma_tbl_neg(@gammatable_neg)
 
     disp_part_area(0, _disp_ymax)
     opmode(NORMAL)
-    disp_vis_ena(NORMAL)
+    visibility(NORMAL)
 
 PUB address(addr=-2): curr_addr
 ' Set framebuffer/display buffer address
@@ -189,7 +189,7 @@ PUB bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs, nr_pix
 '   (xs, ys): upper-left corner of bitmap
 '   bm_wid: width of bitmap, in pixels
 '   bm_lns: number of lines in bitmap
-    disp_area(xs, ys, xs + (bm_wid - 1), ys + (bm_lns - 1))
+    draw_area(xs, ys, xs + (bm_wid - 1), ys + (bm_lns - 1))
     pinl(_CS)
     pinw(_DC, core.CMD)
     spi.wr_byte(core.RAMWR)
@@ -245,28 +245,28 @@ PUB box(x1, y1, x2, y2, color, fill) | cmd_pkt[3]
     else
         ' no-fill box: set the display's draw boundaries to just the
         ' 1-pixel wide/tall segment, and send enough data to draw it
-        disp_area(x1, y1, x2, y1)               ' top
+        draw_area(x1, y1, x2, y1)               ' top
         pinl(_CS)
         pinw(_DC, core.CMD)
         spi.wr_byte(core.RAMWR)
         pinw(_DC, core.DATA)
         spi.wrwordx_msbf(color, (x2-x1)+1)
 
-        disp_area(x1, y2, y2, y2)               ' bottom
+        draw_area(x1, y2, y2, y2)               ' bottom
         pinl(_CS)
         pinw(_DC, core.CMD)
         spi.wr_byte(core.RAMWR)
         pinw(_DC, core.DATA)
         spi.wrwordx_msbf(color, (x2-x1)+1)
 
-        disp_area(x1, y1, x1, y2)               ' left
+        draw_area(x1, y1, x1, y2)               ' left
         pinl(_CS)
         pinw(_DC, core.CMD)
         spi.wr_byte(core.RAMWR)
         pinw(_DC, core.DATA)
         spi.wrwordx_msbf(color, (y2-y1)+1)
 
-        disp_area(x2, y1, x2, y2)               ' right
+        draw_area(x2, y1, x2, y2)               ' right
         pinl(_CS)
         pinw(_DC, core.CMD)
         spi.wr_byte(core.RAMWR)
@@ -276,46 +276,9 @@ PUB box(x1, y1, x2, y2, color, fill) | cmd_pkt[3]
 #endif
 
 #ifdef GFX_DIRECT
-PUB tx = putchar
-PUB char = putchar
-PUB putchar(ch) | gl_c, gl_r, lastgl_c, lastgl_r
-' Draw character from currently loaded font
-    lastgl_c := _font_width-1
-    lastgl_r := _font_height-1
-    case ch
-        CR:
-            _charpx_x := 0
-        LF:
-            _charpx_y += _charcell_h
-            if (_charpx_y > _charpx_xmax)
-                _charpx_y := 0
-        0..127:                                 ' validate ASCII code
-            { walk through font glyph data }
-            repeat gl_c from 0 to lastgl_c
-                repeat gl_r from 0 to lastgl_r
-                    { if the current offset in the glyph is a set bit, draw it }
-                    if (byte[_font_addr][(ch << 3) + gl_c] & (decod(gl_r)))
-                        plot((_charpx_x + gl_c), (_charpx_y + gl_r), _fgcolor)
-                    else
-                    { otherwise, draw the background color, if enabled }
-                        if (_char_attrs & DRAWBG)
-                            plot((_charpx_x + gl_c), (_charpx_y + gl_r), _bgcolor)
-            { move the cursor to the next column, wrapping around to the left, }
-            { and wrap around to the top of the display if the bottom is reached }
-            _charpx_x += _charcell_w
-            if (_charpx_x > _charpx_xmax)
-                _charpx_x := 0
-                _charpx_y += _charcell_h
-            if (_charpx_y > _charpx_ymax)
-                _charpx_y := 0
-        other:
-            return
-#endif
-
-#ifdef GFX_DIRECT
 PUB clear()
 ' Clear the display directly, bypassing the display buffer
-    disp_area(0, 0, _disp_xmax, _disp_ymax)
+    draw_area(0, 0, _disp_xmax, _disp_ymax)
     pinw(_DC, core.CMD)
     pinl(_CS)
     spi.wr_byte(core.RAMWR)
@@ -343,9 +306,9 @@ PUB com_voltage(level)
     level := (-(-2_000 #> level <# -0_425) / 25) - 17
     writereg(core.VMCTR1, 1, @level)
 
-PUB disp_area(sx, sy, ex, ey) | tmp, tmpx, tmpy, cmd_pkt[3]
+PUB draw_area(sx, sy, ex, ey) | tmp, tmpx, tmpy, cmd_pkt[3]
 ' Set display start (sx, sy) and end (ex, ey) drawing boundaries
-    if (sx >= 0 and ex <= _disp_xmax) and (sy >= 0 and ey <= _disp_ymax)
+    if ((sx >= 0) and (ex <= _disp_xmax) and (sy >= 0) and (ey <= _disp_ymax))
         ' the ST7735 requires (ex, ey) be greater than (sx, sy)
         ' if they're not, swap them
         sx += _offs_x
@@ -372,28 +335,28 @@ PUB disp_area(sx, sy, ex, ey) | tmp, tmpx, tmpy, cmd_pkt[3]
         writereg(core.CASET, 4, @tmpx)
         writereg(core.RASET, 4, @tmpy)
 
-PUB disp_inverted(state)
+PUB invert_colors(state)
 ' Invert display colors
 '   Valid values:
 '       TRUE (non-zero), FALSE (0)
     if (state)
-        disp_vis_ena(INVERTED)
+        visibility(INVERTED)
     else
-        disp_vis_ena(NORMAL)
+        visibility(NORMAL)
 
 PUB disp_offset(x, y)
 ' Set display offset
     _offs_x := (0 #> x <# 127)
     _offs_y := (0 #> y <# 159)
 
-PUB disp_rot(state)
+PUB rotation(state)
 ' Rotate display
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value returns the current setting
     _madctl := ((_madctl & core.MV_MASK) | (((state <> 0) & 1) << core#MV))
     writereg(core.MADCTL, 1, @_madctl)
 
-PUB disp_vis_ena(mode) | inv_state
+PUB visibility(mode) | inv_state
 ' Set display visiblity
 '   NOTE: Doesn't affect display RAM contents.
 '   NOTE: There is a mandatory 120ms delay imposed by calling this method
@@ -466,7 +429,7 @@ PUB inversion_ctrl(mask)
 PUB line(x1, y1, x2, y2, color) | sx, sy, ddx, ddy, err, e2
 ' Draw line from x1, y1 to x2, y2
     if (x1 == x2)
-        disp_area(x1, y1, x1, y2)               ' vertical
+        draw_area(x1, y1, x1, y2)               ' vertical
         pinl(_CS)
         pinw(_DC, core.CMD)
         spi.wr_byte(core.RAMWR)
@@ -475,7 +438,7 @@ PUB line(x1, y1, x2, y2, color) | sx, sy, ddx, ddy, err, e2
         pinh(_CS)
         return
     if (y1 == y2)
-        disp_area(x1, y1, x2, y1)               ' horizontal
+        draw_area(x1, y1, x2, y1)               ' horizontal
         pinl(_CS)
         pinw(_DC, core.CMD)
         spi.wr_byte(core.RAMWR)
@@ -549,7 +512,7 @@ PUB disp_part_area(sy, ey) | tmp
 
 PUB plot(x, y, color) | tmp, xs, ys, xe, ye, cmd_pkt[3]
 ' Plot pixel at (x, y) in color
-    if ((x < 0 or x > _disp_xmax) or (y < 0 or y > _disp_ymax))
+    if ((x < 0) or (x > _disp_xmax) or (y < 0) or (y > _disp_ymax))
         return                                  ' coords out of bounds, ignore
 #ifdef GFX_DIRECT
 ' direct to display
@@ -599,6 +562,43 @@ PUB powered(state)
 '   NOTE: This incurs a 120ms delay after calling
     writereg((((state <> 0) & 1) + core#SLPIN), 0, 0)
     waitms(120)
+
+#ifdef GFX_DIRECT
+PUB tx = putchar
+PUB char = putchar
+PUB putchar(ch) | gl_c, gl_r, lastgl_c, lastgl_r
+' Draw character from currently loaded font
+    lastgl_c := _font_width-1
+    lastgl_r := _font_height-1
+    case ch
+        CR:
+            _charpx_x := 0
+        LF:
+            _charpx_y += _charcell_h
+            if (_charpx_y > _charpx_xmax)
+                _charpx_y := 0
+        0..127:                                 ' validate ASCII code
+            { walk through font glyph data }
+            repeat gl_c from 0 to lastgl_c
+                repeat gl_r from 0 to lastgl_r
+                    { if the current offset in the glyph is a set bit, draw it }
+                    if (byte[_font_addr][(ch << 3) + gl_c] & (decod(gl_r)))
+                        plot((_charpx_x + gl_c), (_charpx_y + gl_r), _fgcolor)
+                    else
+                    { otherwise, draw the background color, if enabled }
+                        if (_char_attrs & DRAWBG)
+                            plot((_charpx_x + gl_c), (_charpx_y + gl_r), _bgcolor)
+            { move the cursor to the next column, wrapping around to the left, }
+            { and wrap around to the top of the display if the bottom is reached }
+            _charpx_x += _charcell_w
+            if (_charpx_x > _charpx_xmax)
+                _charpx_x := 0
+                _charpx_y += _charcell_h
+            if (_charpx_y > _charpx_ymax)
+                _charpx_y := 0
+        other:
+            return
+#endif
 
 PUB pwr_ctrl(mode, ap, sap, bclkdiv1, bclkdiv2, bclkdiv3, bclkdiv4, bclkdiv5) | tmp
 ' Set partial mode/full-colors power control

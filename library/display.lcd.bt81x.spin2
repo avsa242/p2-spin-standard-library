@@ -7,7 +7,7 @@
         (P2 version)
     Copyright (c) 2022
     Started Dec 31, 2020
-    Updated Jul 19, 2022
+    Updated Nov 3, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -143,7 +143,6 @@ PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ, RST_PIN, PTR_DISP): st
             pll_clk_ext()
             clk_set_freq(DEF)                   ' set clock to default (60MHz)
             repeat until (dev_id() == core.CHIPID_VALID)
-            cpu_reset(%111)
             repeat until cpu_state{} == READY
             if (coproc_err())                    ' reset coprocessor if it's
                 reset_copro()                    '   in an error state

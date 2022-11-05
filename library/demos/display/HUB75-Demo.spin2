@@ -5,13 +5,13 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Feb 20, 2022
-    Updated: Feb 20, 2022
+    Updated: Nov 1, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 
 { pull in I/O pin offsets for Iron Sheep HUB75 adaptor board, Parallax #64032 }
-#include "core.con.ishphub75.spin2"
+#include "boardcfg.ishphub75.spin2"
 
 CON
 

@@ -5,7 +5,7 @@
     Description: I2C driver for US2066-based OLED alphanumeric displays (P2 version)
     Copyright (c) 2022
     Created Dec 30, 2017
-    Updated Oct 16, 2022
+    Updated Nov 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -109,7 +109,7 @@ PUB startx(SCL_PIN, SDA_PIN, RST_PIN, I2C_HZ, ADDR_BIT, DISP_LINES): status
 
 PUB stop()
 ' Turn the display visibility off and stop the I2C cog
-    disp_vis_ena(OFF)
+    visibility(OFF)
     i2c.deinit()
 
 PUB defaults()
@@ -167,60 +167,6 @@ PUB preset_4x20()
     _disp_ymax := (_disp_height-1)
     _disp_lines_nw := core.NW_3_4_LINE
 
-PUB tx = putchar
-PUB char = putchar
-PUB putchar(ch) | col, row, pos
-' Display single character.
-'   NOTE: Control codes are interpreted.
-    if (_char_attrs & CHAR_PROC)
-        case ch
-            7:
-                { bell; flash display }
-                disp_vis_ena(INVERT)
-                waitms(50)
-                disp_vis_ena(NORM)
-                return
-            BS, $7F:
-                { backspace }
-                pos := get_pos()                     ' get current display pointer
-                row := (pos / $20)                  '   extract row from it
-                col := pos - (row * $20)            '   extract column from it
-                if (col > 0)                        ' not left-most column?
-                    pos_xy(col-1, row)            '   then back up one
-                    wr_data(" ")                     '   erase it with a space
-                    pos_xy(col-1, row)            '   move back again
-                else                                ' otherwise, see if the cursor
-                    if (row > 0)                    '   can move back a row
-                        pos_xy(_disp_xmax, row-1) '   but limit to (0, 0)
-                        wr_data(" ")
-                        pos_xy(_disp_xmax, row-1)
-                return
-            LF:
-                { line-feed }
-                pos := get_pos()
-                row := (pos / $20)
-                col := pos - (row * $20)
-                if (col > 0)                        ' not already on the first col?
-                    col--                           '   move to col below prev char
-                if (row < _disp_ymax)               ' not already on the last row?
-                    pos_xy(col, row+1)            '   go to same col, next row
-                else                                ' otherwise, go to same col,
-                    pos_xy(col, 0)                '   first row
-                return
-            CB:
-                { clear display }
-                clear()
-                return
-            CR:
-                { carriage-return }
-                pos := get_pos()
-                row := (pos / $20)
-                col := pos - (row * $20)
-                pos_xy(0, row)
-                return
-
-    { displayable character }
-    wr_data(ch)
 
 PUB char_attrs(attr)
 ' Set character attributes
@@ -391,13 +337,6 @@ PUB disp_fade_tm(delay)
 
     writereg(1, CMDSET_OLED, core.FADE_BLINK, _fadeblink)
 
-PUB disp_inverted(state)
-' Invert display colors
-'   Valid values:
-'       TRUE (non-zero), FALSE (0)
-    state := (((state <> 0) & 1) + 1)
-    disp_vis_ena(state)
-
 PUB disp_lines(lines)
 ' Set number of display lines
 '   Valid values:
@@ -474,29 +413,6 @@ PUB dbl_height(mode)
 
     writereg(1, CMDSET_EXTD, core.DBLHT | _dblht_mode, 0)
 
-PUB disp_vis_ena(mode)
-' Set display visibility
-'   Valid values:
-'       OFF (0): Display off
-'       NORM (1): Normal display
-'       INVERT (2): Inverted display
-'   NOTE: Takes effect immediately. Does not affect display RAM contents
-'   NOTE: Display may appear dimmer, overall, when inverted
-    case mode
-        OFF:
-            _disp_en := 0
-        NORM:
-            _disp_en := core.DISP_ON
-            _disp_invert := core.NORM_DISP
-        INVERT:
-            _disp_en := core.DISP_ON
-            _disp_invert := core.REV_DISP
-        other:
-            return
-
-    writereg(1, CMDSET_FUND, core.DISP_ONOFF | (_disp_en |_curs_en | _blink_en), 0)
-    writereg(1, CMDSET_EXTD, core.FUNCT_SET_1 | (_cgram_blink | _disp_invert), 0)
-
 PUB fnt_width(sz)
 ' Set Font width, in pixels
 '   Valid values: 5 or 6 (clamped to range; POR: 5)
@@ -512,7 +428,7 @@ PUB get_pos(): addr
     addr := i2c.read(TRUE)
     i2c.stop()
 
-PUB gpio_set_state(state)
+PUB gpio_state(state)
 ' Set state of GPIO pin
 '   Valid values:
 '       0: GPIO pin HiZ, input disabled (always read as low)
@@ -526,6 +442,13 @@ PUB home()
 ' Returns cursor to home pos (0, 0)
 '   NOTE: Doesn't clear the display
     writereg(0, CMDSET_FUND, core.HOME_DISP, 0)
+
+PUB invert_colors(state)
+' Invert display colors
+'   Valid values:
+'       TRUE (non-zero), FALSE (0)
+    state := (((state <> 0) & 1) + 1)
+    visibility(state)
 
 PUB mirror_h(state)
 ' Mirror display, horizontally
@@ -560,6 +483,7 @@ PUB phase2period(clocks)
     _phs2_per := ((1 #> clocks <# 15) << 4)
     writereg(1, CMDSET_OLED, core.SET_PHASE_LEN, (_phs2_per | _phs1_per))
 
+PUB position = pos_xy
 PUB pos_xy(column, row) | offset
 ' Set current cursor position
     case column
@@ -573,6 +497,60 @@ PUB pos_xy(column, row) | offset
             return
 
     writereg(0, CMDSET_FUND, core.SET_DDRAM_ADDR | offset, 0)
+
+PUB tx = putchar
+PUB char = putchar
+PUB putchar(ch) | col, row, pos
+' Display single character.
+    if (_char_attrs & CHAR_PROC)                ' interpret control characters
+        case ch
+            7:
+                { bell; flash display }
+                visibility(INVERT)
+                waitms(50)
+                visibility(NORM)
+                return
+            BS, $7F:
+                { backspace }
+                pos := get_pos()                ' get current display pointer
+                row := (pos / $20)              '   extract row from it
+                col := pos - (row * $20)        '   extract column from it
+                if (col > 0)                    ' not left-most column?
+                    pos_xy(col-1, row)          '   then back up one
+                    wr_data(" ")                '   erase it with a space
+                    pos_xy(col-1, row)          '   move back again
+                else                            ' otherwise, see if the cursor
+                    if (row > 0)                '   can move back a row
+                        pos_xy(_disp_xmax, row-1)'   but limit to (0, 0)
+                        wr_data(" ")
+                        pos_xy(_disp_xmax, row-1)
+                return
+            LF:
+                { line-feed }
+                pos := get_pos()
+                row := (pos / $20)
+                col := pos - (row * $20)
+                if (col > 0)                    ' not already on the first col?
+                    col--                       '   move to col below prev char
+                if (row < _disp_ymax)           ' not already on the last row?
+                    pos_xy(col, row+1)          '   go to same col, next row
+                else                            ' otherwise, go to same col,
+                    pos_xy(col, 0)              '   first row
+                return
+            CB:
+                { clear display }
+                clear()
+                return
+            CR:
+                { carriage-return }
+                pos := get_pos()
+                row := (pos / $20)
+                col := pos - (row * $20)
+                pos_xy(0, row)
+                return
+
+    { displayable character }
+    wr_data(ch)
 
 PUB reset()
 ' Send reset signal to display controller
@@ -609,6 +587,29 @@ PUB text_dir(tdir)
 '   NOTE: Only affects subsequent data input. Data already displayed/in DDRAM will be unchanged.
     _seg_remap := ((0 #> tdir <# 1) << core#SEG_LR_REMAP)
     writereg(1, CMDSET_OLED, core.SET_SEG_PINS, (_seg_remap | _seg_pincfg))
+
+PUB visibility(mode)
+' Set display visibility
+'   Valid values:
+'       OFF (0): Display off
+'       NORM (1): Normal display
+'       INVERT (2): Inverted display
+'   NOTE: Takes effect immediately. Does not affect display RAM contents
+'   NOTE: Display may appear dimmer, overall, when inverted
+    case mode
+        OFF:
+            _disp_en := 0
+        NORM:
+            _disp_en := core.DISP_ON
+            _disp_invert := core.NORM_DISP
+        INVERT:
+            _disp_en := core.DISP_ON
+            _disp_invert := core.REV_DISP
+        other:
+            return
+
+    writereg(1, CMDSET_FUND, core.DISP_ONOFF | (_disp_en |_curs_en | _blink_en), 0)
+    writereg(1, CMDSET_EXTD, core.FUNCT_SET_1 | (_cgram_blink | _disp_invert), 0)
 
 PRI wr_data(dbyte) | cmd_pkt
 ' Write bytes with the DATA control byte set

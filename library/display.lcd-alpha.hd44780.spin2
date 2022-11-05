@@ -5,7 +5,7 @@
     Description: Driver for HD44780 alphanumeric LCDs (P2 version)
     Copyright (c) 2022
     Started Sep 11, 2021
-    Updated Oct 30, 2022
+    Updated Nov 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -61,6 +61,74 @@ PUB stop()
 PUB defaults()
 ' Set factory defaults
 
+PUB char_mode(mode)
+' Set character processing/display mode
+'   Valid values:
+'      *LITERAL (0):
+'           printable characters are displayed
+'           control characters are displayed
+'       TERM (1):
+'           printable characters are displayed
+'           control characters are processed
+'               (e.g., HM homes display, BS erases previous char, etc)
+    _charmode := (LITERAL #> mode <# TERM)
+
+PUB clear()
+' Clear display contents, and set cursor pos_xy to 0, 0
+    wr_cmd(core.CLEAR)
+    waitms(5)
+
+PUB cursor_mode(mode)
+' Set cursor mode
+'       0: No cursor
+'       1: Block, blinking
+'       2: Underscore, no blinking
+'       3: Underscore, block blinking
+'   Any other value returns the current setting
+    case mode
+        0:
+            _disponoff := (_disponoff & core.CRSOFF & core.CRSNOBLINK)
+        1:
+            _disponoff &= core.CRSOFF
+            _disponoff |= core.CRSBLINK
+        2:
+            _disponoff |= core.CRSON
+            _disponoff &= core.CRSNOBLINK
+        3:
+            _disponoff |= core.CRSON | core.CRSBLINK
+        other:
+            return
+
+    wr_cmd(core.DISPONOFF | _disponoff)
+
+PUB visibility(mode)
+' Set display visibility
+'   OFF (0): display off (display RAM contents unaffected)
+'   ON (1): display on
+    if (mode)
+        _disponoff |= core.DISPON
+    else
+        _disponoff &= core.DISPOFF
+
+    wr_cmd(core.DISPONOFF | _disponoff)
+
+PUB backlight_ena(state)
+' Enable backlight, if equipped
+    if (state)
+        _disp_ctrl |= BL                    ' set backlight bit
+    else
+        _disp_ctrl &= !BL
+
+    _disp_ctrl |= RW                            ' set LCD I/O direction to READ
+    wr_nib(%0000)                               '   and send a dummy nibble,
+                                                '   just for the backlight bit
+    _disp_ctrl &= !RW                           ' set LCD back to WRITE
+
+PUB position = pos_xy
+PUB pos_xy(x, y)
+' Set cursor position
+    wr_cmd(core.DDRAM_ADDR | ((y * $40) + x))
+
 PUB tx = putchar
 PUB char = putchar
 PUB putchar(ch) | tmp
@@ -93,83 +161,6 @@ PUB putchar(ch) | tmp
             other:                              ' -Printable character:-
                 wr_nib(ch)                      ' MS nibble first
                 wr_nib(ch << 4)                 ' LS nibble
-
-PUB char_mode(mode): curr_mode
-' Set character processing/display mode
-'   Valid values:
-'      *LITERAL (0):
-'           printable characters are displayed
-'           control characters are displayed
-'       TERM (1):
-'           printable characters are displayed
-'           control characters are processed
-'               (e.g., HM homes display, BS erases previous char, etc)
-    case mode
-        LITERAL, TERM:
-            _charmode := mode
-        other:
-            return _charmode
-
-PUB clear()
-' Clear display contents, and set cursor pos_xy to 0, 0
-    wr_cmd(core.CLEAR)
-    waitms(5)
-
-PUB cursor_mode(mode): curr_mode
-' Set cursor mode
-'       0: No cursor
-'       1: Block, blinking
-'       2: Underscore, no blinking
-'       3: Underscore, block blinking
-'   Any other value returns the current setting
-    case mode
-        0:
-            _disponoff := (_disponoff & core.CRSOFF & core.CRSNOBLINK)
-        1:
-            _disponoff &= core.CRSOFF
-            _disponoff |= core.CRSBLINK
-        2:
-            _disponoff |= core.CRSON
-            _disponoff &= core.CRSNOBLINK
-        3:
-            _disponoff |= core.CRSON | core.CRSBLINK
-        other:
-            return (_disponoff & %11)           ' ret both C and B bits
-
-    wr_cmd(core.DISPONOFF | _disponoff)
-
-PUB disp_vis_ena(mode): curr_mode
-' Set display visibility
-'   OFF (0): display off (display RAM contents unaffected)
-'   ON (1): display on
-    case mode
-        0:
-            _disponoff &= core.DISPOFF
-        1:
-            _disponoff |= core.DISPON
-        other:
-            return ((_disponoff >> core.DONOFF) & 1)
-
-    wr_cmd(core.DISPONOFF | _disponoff)
-
-PUB backlight_ena(state)
-' Enable backlight, if equipped
-    case state
-        0:
-            _disp_ctrl &= !BL
-        1:
-            _disp_ctrl |= BL                    ' set backlight bit
-        other:
-            return ((_disp_ctrl >> 3) & 1)
-
-    _disp_ctrl |= RW                            ' set LCD I/O direction to READ
-    wr_nib(%0000)                               '   and send a dummy nibble,
-                                                '   just for the backlight bit
-    _disp_ctrl &= !RW                           ' set LCD back to WRITE
-
-PUB pos_xy(x, y)
-' Set cursor position
-    wr_cmd(core.DDRAM_ADDR | ((y * $40) + x))
 
 PUB reset()
 ' Reset display

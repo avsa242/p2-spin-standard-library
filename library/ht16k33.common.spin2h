@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Sep 3, 2022
-    Updated: Oct 5, 2022
+    Updated: Nov 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -36,7 +36,7 @@ PUB null()
 
 PUB stop()
 ' Stop the driver
-    disp_vis_ena(FALSE)
+    visibility(FALSE)
     osc_ena(FALSE)
     waitms(100)
     i2c.deinit()
@@ -45,7 +45,7 @@ PUB defaults()
 ' Factory default settings
     osc_ena(TRUE)
     brightness(15)
-    disp_vis_ena(TRUE)
+    visibility(TRUE)
 
 PUB blink_rate(rate)
 ' Set blink rate of display, in Hz
@@ -76,7 +76,7 @@ PUB brightness(level)
             return
     writereg(core.BRIGHTNESS, level)
 
-PUB disp_vis_ena(state)
+PUB visibility(state)
 ' Enable display visibility
 '   Valid values: TRUE/ON (-1 or 1), FALSE/OFF (0)
 '   Any other value is ignored

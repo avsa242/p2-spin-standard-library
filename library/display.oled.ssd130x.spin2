@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Apr 26, 2018
-    Updated: Nov 1, 2022
+    Updated: Nov 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -156,8 +156,8 @@ PUB defaults()
     chg_pump_voltage(7_500)
     addr_mode(PAGE)
     contrast(127)
-    disp_vis_ena(NORMAL)
-    disp_area(0, 0, 127, 63)
+    visibility(NORMAL)
+    draw_area(0, 0, 127, 63)
     powered(TRUE)
 #else
     reset()
@@ -169,7 +169,7 @@ PUB preset_128x()
     disp_start_line(0)
     chg_pump_voltage(7_500)
     addr_mode(HORIZ)
-    disp_vis_ena(NORMAL)
+    visibility(NORMAL)
     case _disp_height
         32:
             com_pin_cfg(0, 0)
@@ -185,7 +185,7 @@ PUB preset_128x32()
     disp_start_line(0)
     chg_pump_voltage(7_500)
     addr_mode(HORIZ)
-    disp_vis_ena(NORMAL)
+    visibility(NORMAL)
     com_pin_cfg(0, 0)
     powered(TRUE)
 
@@ -195,7 +195,7 @@ PUB preset_128x64()
     disp_start_line(0)
     chg_pump_voltage(7_500)
     addr_mode(HORIZ)
-    disp_vis_ena(NORMAL)
+    visibility(NORMAL)
     com_pin_cfg(1, 0)
     powered(TRUE)
 
@@ -226,10 +226,10 @@ PUB bitmap(ptr_bmap, sx, sy, ex, ey) | bm_sz
 '   ptr_bmap: pointer to bitmap data
 '   (sx, sy): upper-left corner of bitmap
 '   (ex, ey): lower-right corner of bitmap
-    disp_area(sx, sy, ex, ey)
+    draw_area(sx, sy, ex, ey)
     bm_sz := ((ex-sx) * (ey-sy)) / 8
 
-    writebuffer(ptr_bmap, bm_sz)
+    wr_buffer(ptr_bmap, bm_sz)
 #endif
 
 #ifdef GFX_DIRECT
@@ -238,9 +238,9 @@ PUB char = putchar
 PUB putchar(ch) | ch_offs
 ' Draw a character from the loaded font
     ch_offs := _font_addr + (ch << 3)
-    disp_area(_charpx_x, _charpx_y, _charpx_x+_charcell_w, _charpx_y+_charcell_h)
+    draw_area(_charpx_x, _charpx_y, _charpx_x+_charcell_w, _charpx_y+_charcell_h)
 
-    writebuffer(ch_offs, _charcell_w)
+    wr_buffer(ch_offs, _charcell_w)
 
     _charpx_x += _charcell_w                    ' go to next column
     if (_charpx_x > _charpx_xmax)               ' last col?
@@ -344,7 +344,7 @@ PUB contrast(level)
     level := (0 #> level <# 255)
     writereg(core.CONTRAST, 1, level)
 
-PUB disp_area(sx, sy, ex, ey)
+PUB draw_area(sx, sy, ex, ey)
 ' Set displayable area
     ifnot (lookup(sx: 0..127) or lookup(sy: 0..63) or lookup(ex: 0..127) or lookup(ey: 0..63))
         return
@@ -354,12 +354,12 @@ PUB disp_area(sx, sy, ex, ey)
     writereg(core.SET_COLADDR, 2, (ex << 8) | sx)
     writereg(core.SET_PAGEADDR, 2, (ey << 8) | sy)
 
-PUB disp_inverted(state) | tmp
+PUB invert_colors(state) | tmp
 ' Invert display colors
     if (state)
-        disp_vis_ena(INVERTED)
+        visibility(INVERTED)
     else
-        disp_vis_ena(NORMAL)
+        visibility(NORMAL)
 
 PUB disp_lines(lines)
 ' Set total number of display lines
@@ -383,7 +383,7 @@ PUB disp_start_line(line)
     line := (0 #> line <# 63)
     writereg(core.DISP_STLINE, 0, line)
 
-PUB disp_vis_ena(mode)
+PUB visibility(mode)
 ' Set display visibility
     case mode
         NORMAL:
@@ -465,7 +465,7 @@ PUB reset()
 
 PUB show() | tmp
 ' Write display buffer to display
-    disp_area(0, 0, _disp_xmax, _disp_ymax)
+    draw_area(0, 0, _disp_xmax, _disp_ymax)
 
 #ifdef SSD130X_I2C
     i2c.start()
