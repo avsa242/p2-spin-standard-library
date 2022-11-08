@@ -5,7 +5,7 @@
     Description: Driver for the FXOS8700 6DoF IMU
     Copyright (c) 2022
     Started Sep 19, 2020
-    Updated Oct 2, 2022
+    Updated Nov 7, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -172,19 +172,19 @@ PUB preset_active()
     mag_scale(12)
 
 PUB preset_click_det()
-' Preset settings for click_ detection
+' Preset settings for click detection
     reset()
     accel_data_rate(400)
     accel_scale(2)
-    click_axis_ena(%111111)                   ' enable X, Y, Z single tap det
-    click_set_thresh_x(1_575000)                      ' X: 1.575g thresh
-    click_set_thresh_y(1_575000)                      ' Y: 1.575g
-    click_set_thresh_z(2_650000)                      ' Z: 2.650g
+    click_axis_ena(%111111)                     ' enable X, Y, Z single tap det
+    click_set_thresh_x(1_575000)                ' X: 1.575g thresh
+    click_set_thresh_y(1_575000)                ' Y: 1.575g
+    click_set_thresh_z(2_650000)                ' Z: 2.650g
     click_set_time(50_000)
     click_set_latency(300_000)
     dbl_click_set_win(300_000)
-    int_mask(INT_PULSE)                          ' enable click_/pulse int_errupts
-    int_routing(INT_PULSE)                       ' route click_ int_s to INT1 pin
+    accel_int_mask(INT_PULSE)                   ' enable click/pulse interrupts
+    accel_int_routing(INT_PULSE)                ' route click ints to INT1 pin
     accel_opmode(ACTIVE)
 
 PUB preset_freefall()
@@ -192,12 +192,12 @@ PUB preset_freefall()
     reset()
     accel_data_rate(400)
     accel_scale(2)
-    freefall_time(30_000)                        ' 30_000us/30ms min time
-    freefall_thresh(0_315000)                    ' 0.315g's
-    freefall_axis_ena(%111)                   ' all axes
+    freefall_time(30_000)                       ' 30_000us/30ms min time
+    freefall_thresh(0_315000)                   ' 0.315g's
+    freefall_axis_ena(%111)                     ' all axes
     accel_opmode(ACTIVE)
-    int_mask(INT_FFALL)                          ' enable free-fall int_errupt
-    int_routing(INT_FFALL)                       ' route free-fall int_s to INT1
+    accel_int_mask(INT_FFALL)                   ' enable free-fall interrupt
+    accel_int_routing(INT_FFALL)                ' route free-fall ints to INT1
 
 PUB dev_id(): id
 ' Read device identification
@@ -246,7 +246,8 @@ PUB fifo_mode(mode=-2): curr_mode | fmode_bypass
 
     fmode_bypass := (curr_mode & core.F_MODE_MASK)
     mode := (fmode_bypass | mode) & core.F_SETUP_MASK
-' In order to switch between _active_ FIFO modes, it must first be disabled:
+
+    { FIFO must be disabled first to switch between active modes }
     if ((curr_mode >> core.F_MODE) & core.F_MODE_BITS) <> BYPASS
         writereg(core.F_SETUP, 1, @fmode_bypass)
 
@@ -388,7 +389,7 @@ PUB mag_data_rate(rate=-2): curr_rate
 ' Set Magnetometer Output Data Rate, in Hz
 '   Valid values: 1(.5625), 6(.25), 12(.5), 50, 100, 200, 400, *800
 '   Any other value polls the chip and returns the current setting
-'   NOTE: If OpMode() is BOTH (3), the set data rate will be halved
+'   NOTE: If opmode() is BOTH (3), the set data rate will be halved
 '       (chip limitation)
     curr_rate := accel_data_rate(rate)
 
@@ -424,6 +425,40 @@ PUB mag_int_duration(cycles=-2): curr_cyc
             readreg(core.M_THS_CNT, 1, @curr_cyc)
             return
 
+PUB mag_int_ena(state=-2): curr_state
+' Enable magnetometer data threshold interrupt
+'   Valid values: TRUE (-1 or 1), *FALSE (0)
+'   Any other value polls the chip and returns the current setting
+    curr_state := 0
+    readreg(core.M_THS_CFG, 1, @curr_state)
+    case abs(state)
+        0, 1:
+            state := abs(state) << core.THS_INT_EN
+        other:
+            return ((curr_state >> core.THS_INT_EN) & 1) == 1
+
+    state := ((curr_state & core.THS_INT_EN_MASK) | state)
+    writereg(core.M_THS_CFG, 1, @state)
+
+PUB mag_int_mask(mask=-2): curr_mask
+' Set magnetometer threshold interrupt mask
+'   Bits: [2..0]
+'       2: Enable Z-axis threshold interrupt
+'       1: Enable Y-axis threshold interrupt
+'       0: Enable X-axis threshold interrupt
+'       (default: %000)
+'   Any other value polls the chip and returns the current setting
+    curr_mask := 0
+    readreg(core.M_THS_CFG, 1, @curr_mask)
+    case mask
+        0..%111:
+            mask <<= core.THS_EFE
+        other:
+            return curr_mask >> core.THS_EFE
+
+    mask := (curr_mask & core.THS_EFE_MASK) | mask
+    writereg(core.M_THS_CFG, 1, @mask)
+
 PUB mag_int_routing(mask=-2): curr_mask
 ' Set routing of interrupt sources to INT1 or INT2 pin
 '   Valid values:
@@ -442,37 +477,22 @@ PUB mag_int_routing(mask=-2): curr_mask
     mask := ((curr_mask & core.THS_INT_CFG_MASK) | mask)
     writereg(core.M_THS_CFG, 1, @mask)
 
-PUB mag_int_ena(state=-2): curr_state
-' Enable magnetometer data threshold interrupt
-'   Valid values: TRUE (-1 or 1), *FALSE (0)
-'   Any other value polls the chip and returns the current setting
-    curr_state := 0
-    readreg(core.M_THS_CFG, 1, @curr_state)
-    case abs(state)
-        0, 1:
-            state := abs(state) << core.THS_INT_EN
-        other:
-            return ((curr_state >> core.THS_INT_EN) & 1) == 1
-
-    state := ((curr_state & core.THS_INT_EN_MASK) | state)
-    writereg(core.M_THS_CFG, 1, @state)
-
 PUB mag_int_set_thresh_x(thresh)
 ' Set magnetometer interrupt threshold, X-axis
 '   Valid values: 0..32_767000 (clamped to range)
-    thresh := ((0 #> thresh <# 32_767000) / 1000)                      ' LSB = 0.1uT or 0.001Gs
+    thresh := ((0 #> thresh <# 32_767000) / 1000)   ' LSB = 0.1uT or 0.001Gs
     writereg(core#M_THS_X_MSB, 2, @thresh)
 
 PUB mag_int_set_thresh_y(thresh)
 ' Set magnetometer interrupt threshold, Y-axis
 '   Valid values: 0..32_767000 (clamped to range)
-    thresh := ((0 #> thresh <# 32_767000) / 1000)                      ' LSB = 0.1uT or 0.001Gs
+    thresh := ((0 #> thresh <# 32_767000) / 1000)   ' LSB = 0.1uT or 0.001Gs
     writereg(core#M_THS_Y_MSB, 2, @thresh)
 
 PUB mag_int_set_thresh_z(thresh)
 ' Set magnetometer interrupt threshold, Z-axis
 '   Valid values: 0..32_767000 (clamped to range)
-    thresh := ((0 #> thresh <# 32_767000) / 1000)                      ' LSB = 0.1uT or 0.001Gs
+    thresh := ((0 #> thresh <# 32_767000) / 1000)   ' LSB = 0.1uT or 0.001Gs
     writereg(core#M_THS_Z_MSB, 2, @thresh)
 
 PUB mag_int_thresh_x{}: thresh
@@ -526,40 +546,6 @@ PUB mag_thresh_int(): int_src
 '       are set to 0
     int_src := 0
     readreg(core.M_THS_SRC, 1, @int_src)
-
-PUB mag_thresh_int_mask(mask=-2): curr_mask
-' Set magnetometer threshold interrupt mask
-'   Bits: [2..0]
-'       2: Enable Z-axis threshold interrupt
-'       1: Enable Y-axis threshold interrupt
-'       0: Enable X-axis threshold interrupt
-'       (default: %000)
-'   Any other value polls the chip and returns the current setting
-    curr_mask := 0
-    readreg(core.M_THS_CFG, 1, @curr_mask)
-    case mask
-        0..%111:
-            mask <<= core.THS_EFE
-        other:
-            return curr_mask >> core.THS_EFE
-
-    mask := (curr_mask & core.THS_EFE_MASK) | mask
-    writereg(core.M_THS_CFG, 1, @mask)
-
-PUB mag_thresh_int_ena(state=-2): curr_state
-' Enable magnetometer threshold interrupts
-'   Valid values: TRUE (-1 or 1), *FALSE (0)
-'   Any other value polls the chip and returns the current setting
-    curr_state := 0
-    readreg(core.M_THS_CFG, 1, @curr_state)
-    case abs(state)
-        0, 1:
-            state := abs(state) << core.THS_INT_EN
-        other:
-            return ((curr_state >> core.THS_INT_EN) & 1) == 1
-
-    state := ((curr_state & core.THS_INT_EN_MASK) | state)
-    writereg(core.M_THS_CFG, 1, @state)
 
 PUB opmode(mode=-2): curr_mode
 ' Set operating mode

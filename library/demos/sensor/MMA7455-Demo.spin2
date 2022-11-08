@@ -6,7 +6,7 @@
         * 3DoF data output
     Copyright (c) 2022
     Started Aug 28, 2020
-    Updated Oct 16, 2022
+    Updated Nov 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -50,7 +50,7 @@ PUB setup()
     sensor.preset_active()
 
     repeat
-        ser.position(0, 3)
+        ser.pos_xy(0, 3)
         show_accel_data()
 
 #include "acceldemo.common.spin2h"                ' code common to all IMU demos

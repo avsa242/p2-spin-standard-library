@@ -6,7 +6,7 @@
         Auto-sleep functionality (P2 version)
     Copyright (c) 2022
     Started Nov 20, 2021
-    Updated Oct 16, 2022
+    Updated Nov 7, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -48,22 +48,22 @@ VAR
 PUB main() | intsource, temp, sysmod
 
     setup()
-    sensor.preset_active()                       ' default settings, but enable
+    sensor.preset_active()                      ' default settings, but enable
                                                 ' sensor power, and set
                                                 ' scale factors
-    sensor.int_polarity(sensor.LOW)
-    sensor.accel_data_rate(100)                    ' 100Hz ODR when active
-    sensor.auto_sleep_ena(true)                       ' enable auto-sleep
-    sensor.accel_sleep_pwr_mode(sensor.LOPWR)        ' lo-power mode when sleeping
-    sensor.accel_pwr_mode(sensor.HIGHRES)         ' high-res mode when awake
-    sensor.trans_axis_ena(%011)                ' transient detection on X, Y
-    sensor.trans_thresh(0_252000)                 ' set thresh to 0.252g (0..8g)
-    sensor.trans_set_cnt(1)                         ' reset counter
-    sensor.inact_set_time(5_120)                      ' inactivity timeout ~5sec
-    sensor.inact_int(sensor.WAKE_TRANS)            ' wake on transient accel
-    sensor.int_mask(sensor.INT_AUTOSLPWAKE | sensor.INT_TRANS)
-    sensor.int_routing(sensor.INT_AUTOSLPWAKE | sensor.INT_TRANS)
-    sensor.auto_sleep_data_rate(6)                  ' 6Hz ODR when sleeping
+    sensor.accel_int_polarity(sensor.LOW)
+    sensor.accel_data_rate(100)                 ' 100Hz ODR when active
+    sensor.auto_sleep_ena(true)                 ' enable auto-sleep
+    sensor.accel_sleep_pwr_mode(sensor.LOPWR)   ' lo-power mode when sleeping
+    sensor.accel_pwr_mode(sensor.HIGHRES)       ' high-res mode when awake
+    sensor.trans_axis_ena(%011)                 ' transient detection on X, Y
+    sensor.trans_thresh(0_252000)               ' set thresh to 0.252g (0..8g)
+    sensor.trans_set_cnt(1)                     ' reset counter
+    sensor.inact_set_time(5_120)                ' inactivity timeout ~5sec
+    sensor.inact_int(sensor.WAKE_TRANS)         ' wake on transient accel
+    sensor.accel_int_mask(sensor.INT_AUTOSLPWAKE | sensor.INT_TRANS)
+    sensor.accel_int_routing(sensor.INT_AUTOSLPWAKE | sensor.INT_TRANS)
+    sensor.auto_sleep_data_rate(6)              ' 6Hz ODR when sleeping
 
     ' The demo continuously displays the current accelerometer data.
     ' When the sensor goes to sleep after approx. 5 seconds, the change
@@ -73,20 +73,20 @@ PUB main() | intsource, temp, sysmod
     ' When the sensor is awake, the LED should be on.
     ' When the sensor goes to sleep, it should turn off.
     repeat
-        ser.position(0, 3)
-        show_accel_data()                             ' show accel data
+        ser.pos_xy(0, 3)
+        show_accel_data()                       ' show accel data
         if (_intflag)                           ' interrupt triggered
-            intsource := sensor.interrupt()
-            if (intsource & sensor.INT_TRANS)    ' transient acceleration event
-                temp := sensor.trans_interrupt()  ' clear the trans. interrupt
+            intsource := sensor.accel_int()
+            if (intsource & sensor.INT_TRANS)   ' transient acceleration event
+                temp := sensor.trans_interrupt()' clear the trans. interrupt
             if (intsource & sensor.INT_AUTOSLPWAKE)
                 sysmod := sensor.sys_mode()
-                if (sysmod & sensor.SLEEP)       ' op. mode is sleep,
+                if (sysmod & sensor.SLEEP)      ' op. mode is sleep,
                     pinl(LED)                   '   so turn LED off
-                elseif (sysmod & sensor.ACTIVE)  ' else active,
+                elseif (sysmod & sensor.ACTIVE) ' else active,
                     pinh(LED)                   '   turn it on
 
-        if (ser.rxcheck() == "c")               ' press the 'c' key in the demo
+        if (ser.rx_check() == "c")              ' press the 'c' key in the demo
             cal_accel()                         ' to calibrate sensor offsets
 
 PRI cog_isr()
@@ -110,7 +110,7 @@ PUB setup()
         ser.strln(string("FXOS8700 driver failed to start - halting"))
         repeat
 
-    cogspin(NEWCOG, cog_isr{}, @_isr_stack)                    ' start ISR in another core
+    cogspin(NEWCOG, cog_isr{}, @_isr_stack)     ' start ISR in another core
 
 #include "acceldemo.common.spin2h"
 

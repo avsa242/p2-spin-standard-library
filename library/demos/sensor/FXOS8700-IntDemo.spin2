@@ -6,7 +6,7 @@
         * Interrupt functionality
     Copyright (c) 2022
     Started Sep 26, 2020
-    Updated Oct 16, 2022
+    Updated Nov 7, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -47,7 +47,7 @@ PUB main() | i
 
     sensor.accel_scale(2)                   ' 2, 4, 8 (g's)
     sensor.accel_data_rate(50)               ' 1, 6, 12, 50, 100, 200, 400, 800
-    sensor.int_mask(%11111111)
+    sensor.accel_int_mask(%11111111)
 
     { set up magnetometer interrupts; 0..32_767000 microGauss thresholds }
     { *NOTE: The chip doesn't account for bias offsets when comparing the set thresholds to the
@@ -57,22 +57,22 @@ PUB main() | i
     sensor.mag_int_set_thresh_y(1_000000)
     sensor.mag_int_set_thresh_z(1_000000)
 
-    sensor.mag_thresh_int_ena(true)
-    sensor.mag_thresh_int_mask(%111)
+    sensor.mag_int_ena(true)
+    sensor.mag_int_mask(%111)
 
-    ser.position(0, 3)
+    ser.pos_xy(0, 3)
     repeat i from 0 to 2
-        ser.positionx(12+(16*i))
-        ser.char(i+"X")
+        ser.pos_x(12+(16*i))
+        ser.putchar(i+"X")
 
     repeat
-        if (ser.rxcheck() == "c")
+        if (ser.rx_check() == "c")
             cal_accel{}
             cal_mag{}
 
-        ser.position(0, 4)
+        ser.pos_xy(0, 4)
         show_accel_data()
-        ser.printf(@"Accel int: %08.8b\n\r\n\r", sensor.interrupt())
+        ser.printf(@"Accel int: %08.8b\n\r\n\r", sensor.accel_int())
         show_mag_data()
         ser.printf(@"Mag int: %03.3b\n\r\n\r", sensor.mag_int())
         show_temp_data()

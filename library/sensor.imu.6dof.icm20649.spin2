@@ -5,7 +5,7 @@
     Description: Driver for the TDK/Invensense ICM20649 6DoF IMU (P2 version)
     Copyright (c) 2022
     Started Sep 4, 2020
-    Updated Oct 2, 2022
+    Updated Nov 7, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -428,7 +428,7 @@ PUB gyro_bias(x, y, z) | tmp[3]
     long[z] := (tmp[Z_AXIS] signx 15)
 
 PUB gyro_set_bias(x, y, z)
-' Read or write/manually set gyroscope calibration offset values
+' Write gyroscope calibration offset values
 '   Valid values:
 '   -32768..32767 (clamped to range)
     x := -((-32768 #> x <# 32767) / 4)
@@ -441,7 +441,7 @@ PUB gyro_set_bias(x, y, z)
     return
 
 PUB gyro_data(ptr_x, ptr_y, ptr_z) | tmp[2]
-' Reads the Gyroscope output registers
+' Read the Gyroscope output registers
     tmp := 0
     readreg(core.GYRO_XOUT_H, 6, @tmp)
     long[ptr_x] := (tmp.word[2] signx 15)
@@ -464,7 +464,6 @@ PUB gyro_data_rate(rate=-2): curr_rate
 PUB gyro_data_rdy(): flag
 ' Flag indicating new gyroscope data available
 '   Returns: TRUE (-1) if new data available, FALSE (0) otherwise
-    flag := 0
     return xlg_data_rdy()
 
 PUB gyro_lpf_freq(freq=-2): curr_freq | lpf_enable

@@ -5,7 +5,7 @@
     Description: Driver for the MMA8452Q 3DoF accelerometer (P2 version)
     Copyright (c) 2022
     Started Nov 9, 2021
-    Updated Oct 16, 2022
+    Updated Nov 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -139,14 +139,14 @@ PUB preset_clickdet()
     accel_data_rate(400)
     accel_scale(2)
     click_axis_ena(%111111)                     ' enable X, Y, Z single tap det
-    click_set_thresh_x(1_575000)                    ' X: 1.575g thresh
-    click_set_thresh_y(1_575000)                    ' Y: 1.575g
-    click_set_thresh_z(2_650000)                    ' Z: 2.650g
+    click_set_thresh_x(1_575000)                ' X: 1.575g thresh
+    click_set_thresh_y(1_575000)                ' Y: 1.575g
+    click_set_thresh_z(2_650000)                ' Z: 2.650g
     click_set_time(50_000)
     click_set_latency(300_000)
     dbl_click_set_win(300_000)
-    int_mask(INT_PULSE)                         ' enable click/pulse interrupts
-    int_routing(INT_PULSE)                      ' route click ints to INT1 pin
+    accel_int_mask(INT_PULSE)                   ' enable click/pulse interrupts
+    accel_int_routing(INT_PULSE)                ' route click ints to INT1 pin
     accel_opmode(ACTIVE)
 
 PUB preset_freefall()
@@ -158,8 +158,8 @@ PUB preset_freefall()
     freefall_thresh(0_315000)                   ' 0.315g's
     freefall_axis_ena(%111)                     ' all axes
     accel_opmode(ACTIVE)
-    int_mask(INT_FFALL)                         ' enable free-fall interrupt
-    int_routing(INT_FFALL)                      ' route free-fall ints to INT1
+    accel_int_mask(INT_FFALL)                   ' enable free-fall interrupt
+    accel_int_routing(INT_FFALL)                ' route free-fall ints to INT1
 
 PUB dev_id(): id
 ' Read device identification

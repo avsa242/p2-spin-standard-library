@@ -5,7 +5,7 @@
     Description: Driver for the ST LIS3DH 3DoF accelerometer (P2 version)
     Copyright (c) 2022
     Started Mar 15, 2020
-    Updated Oct 30, 2022
+    Updated Nov 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -144,7 +144,7 @@ PUB preset_active()
     accel_data_rate(50)
     accel_axis_ena(%111)
 
-PUB preset_clickDet()
+PUB preset_clickdet()
 ' Presets for click-detection
     accel_adc_res(12)
     accel_scale(4)
@@ -203,6 +203,7 @@ PUB accel_axis_ena(mask=-2): curr_mask
 '       Bits    210
 '               XYZ
 '   Any other value polls the chip and returns the current setting
+    curr_mask := 0
     readreg(core.CTRL_REG1, 1, @curr_mask)
     case mask
         %000..%111:
@@ -219,14 +220,6 @@ PUB accel_bias(x, y, z)
     long[x] := _abias[X_AXIS]
     long[y] := _abias[Y_AXIS]
     long[z] := _abias[Z_AXIS]
-
-PUB accel_set_bias(x, y, z)
-' Write accelerometer calibration offset values
-'   Valid values:
-'       -32768..32767
-    _abias[X_AXIS] := -32768 #> x <# 32767
-    _abias[Y_AXIS] := -32768 #> y <# 32767
-    _abias[Z_AXIS] := -32768 #> z <# 32767
 
 PUB accel_data(ptr_x, ptr_y, ptr_z) | tmp[2]
 ' Read the accelerometer output registers
@@ -279,6 +272,90 @@ PUB accel_data_rdy(): flag
     readreg(core.STATUS_REG, 1, @flag)
     return (((flag >> core.ZYXDA) & 1) == 1)
 
+PUB accel_int(): state
+' Read interrupt state
+'   Bit 6543210 (For each bit, 0: No interrupt, 1: Interrupt has been generated)
+'       6: One or more interrupts have been generated
+'       5: Z-axis high event
+'       4: Z-axis low event
+'       3: Y-axis high event
+'       2: Y-axis low event
+'       1: X-axis high event
+'       0: X-axis low event
+    state := 0
+    readreg(core.INT1_SRC, 1, @state)
+
+PUB accel_int_mask(): mask
+' Get interrupt mask
+'   Bits:  7..0
+'       7: AND (1)/OR (0) combination of interrupts
+'       6: 6-direction detection
+'       5: Z-axis high event
+'       4: Z-axis low event
+'       3: Y-axis high event
+'       2: Y-axis low event
+'       1: X-axis high event
+'       0: X-axis low event
+    mask := 0
+    readreg(core.INT1_CFG, 1, @mask)
+
+PUB accel_int_polarity(state=-2): curr_state
+' Set interrupt pin active state/logic level
+'   Valid values: LOW (0), HIGH (1)
+'   Any other value polls the chip and returns the current setting
+'   NOTE: This affects INT1 and INT2 pins
+    curr_state := 0
+    readreg(core.CTRL_REG6, 1, @curr_state)
+    case state
+        LOW, HIGH:
+            state <<= core.INT_POL
+        other:
+            return ((curr_state >> core.INT_POL) & 1)
+
+    state := ((curr_state & core.INT_POL_MASK) | state)
+    writereg(core.CTRL_REG6, 1, @state)
+
+PUB accel_int_set_mask(mask)
+' Set interrupt mask
+'   Bits:  7..0
+'       7: AND (1)/OR (0) combination of interrupts
+'       6: 6-direction detection
+'       5: Z-axis high event
+'       4: Z-axis low event
+'       3: Y-axis high event
+'       2: Y-axis low event
+'       1: X-axis high event
+'       0: X-axis low event
+'   Valid values: %0000_0000..%1111_1111 (other bits masked off)
+    mask &= %1111_1111
+    writereg(core.INT1_CFG, 1, @mask)
+
+PUB accel_int_thresh(): thresh | scl_fact
+' Get interrupt threshold
+'   Returns: micro-g's
+    case accel_scale()
+        2: scl_fact := 16_000
+        4: scl_fact := 32_000
+        8: scl_fact := 62_000
+        16: scl_fact := 186_000                 ' set scale factor for reg
+
+    thresh := 0
+    readreg(core.INT1_THS, 1, @thresh)
+    return (thresh * scl_fact)                  ' scale to micro-g's
+
+PUB accel_int_set_thresh(thresh) | scl_fact
+' Set interrupt threshold, in micro-g's
+'   Valid values: 0..16_000000
+    case accel_scale()
+        2: scl_fact := 16_000
+        4: scl_fact := 32_000
+        8: scl_fact := 62_000
+        16: scl_fact := 186_000                 ' set scale factor for reg
+
+    { 0..16g's input; scale down to register range }
+    thresh := ((0 #> thresh <# 16_000000) / scl_fact)
+    writereg(core.INT1_THS, 1, @thresh)
+
 PUB accel_scale(scale=-2): curr_scl
 ' Set measurement range of the accelerometer, in g's
 '   Valid values: 2, 4, 8, 16
@@ -297,6 +374,14 @@ PUB accel_scale(scale=-2): curr_scl
     scale := ((curr_scl & core.FS_MASK) | scale)
     writereg(core.CTRL_REG4, 1, @scale)
 
+PUB accel_set_bias(x, y, z)
+' Write accelerometer calibration offset values
+'   Valid values:
+'       -32768..32767
+    _abias[X_AXIS] := -32768 #> x <# 32767
+    _abias[Y_AXIS] := -32768 #> y <# 32767
+    _abias[Z_AXIS] := -32768 #> z <# 32767
+
 PUB click_axis_ena(mask=-2): curr_mask
 ' Enable click detection per axis, and per click type
 '   Valid values:
@@ -309,6 +394,7 @@ PUB click_axis_ena(mask=-2): curr_mask
         %000000..%111111:
             writereg(core.CLICK_CFG, 1, @mask)
         other:
+            curr_mask := 0
             readreg(core.CLICK_CFG, 1, @curr_mask)
             return
 
@@ -316,6 +402,7 @@ PUB clicked(): flag
 ' Flag indicating the sensor was single or double-clicked
 '   Returns: TRUE (-1) if sensor was single-clicked or double-clicked
 '            FALSE (0) otherwise
+    flag := 0
     return (((clicked_int() >> core.SCLICK) & %11) <> 0)
 
 PUB clicked_int(): status
@@ -328,12 +415,14 @@ PUB clicked_int(): status
 '       2: Z-axis clicked
 '       1: Y-axis clicked
 '       0: X-axis clicked
+    status := 0
     readreg(core.CLICK_SRC, 1, @status)
 
 PUB click_int_ena(state=-2): curr_state
 ' Enable click interrupts on INT1
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
+    curr_state := 0
     readreg(core.CTRL_REG3, 1, @curr_state)
     case abs(state)
         0, 1:
@@ -344,7 +433,7 @@ PUB click_int_ena(state=-2): curr_state
     state := ((curr_state & core.I1_CLICK_MASK) | state)
     writereg(core.CTRL_REG3, 1, @state)
 
-PUB click_latency(): ltime | time_res
+PUB click_latency(): ltime
 ' Get maximum elapsed interval between start of click and end of click
 '   Returns: microseconds
     ltime := 0
@@ -381,19 +470,20 @@ PUB click_thresh(): thresh | ares
 PUB click_set_thresh(thresh) | ares
 ' Set threshold for recognizing a click, in micro-g's
 '   Valid values:
-'       AccelScale  Max thresh
-'       2           1_984375 (= 1.984375g)
-'       4           3_968750 (= 3.968750g)
-'       8           7_937500 (= 7.937500g)
-'       16         15_875000 (= 15.875000g)
+'       accel_scale()   Max thresh
+'       2               1_984375 (= 1.984375g)
+'       4               3_968750 (= 3.968750g)
+'       8               7_937500 (= 7.937500g)
+'       16              15_875000 (= 15.875000g)
 '   NOTE: Each LSB = (accel_scale()/128) * 1M (e.g., 4g scale lsb=31250ug = 0_031250ug = 0.03125g)
     ares := (accel_scale() * 1_000000) / 128    ' res. = scale / 128
     thresh := ((0 #> thresh <# (127 * ares)) / ares)
     writereg(core.CLICK_THS, 1, @thresh)
 
-PUB click_time(): ctime | time_res
+PUB click_time(): ctime
 ' Get maximum elapsed interval between start of click and end of click
 '   Returns: microseconds
+    ctime := 0
     readreg(core.TIME_LIMIT, 1, @ctime)
     return (ctime * _accel_time_res)
 
@@ -465,12 +555,14 @@ PUB fifo_ena(state=-2): curr_state
 PUB fifo_empty(): flag
 ' Flag indicating FIFO is empty
 '   Returns: FALSE (0): FIFO contains at least one sample, TRUE(-1): FIFO is empty
+    flag := 0
     readreg(core.FIFO_SRC_REG, 1, @flag)
     return (((flag >> core.EMPTY) & 1) == 1)
 
 PUB fifo_full(): flag
 ' Flag indicating FIFO is full
 '   Returns: FALSE (0): FIFO contains less than 32 samples, TRUE(-1): FIFO contains 32 samples
+    flag := 0
     readreg(core.FIFO_SRC_REG, 1, @flag)
     return (((flag >> core.OVRN_FIFO) & 1) == 1)
 
@@ -482,6 +574,7 @@ PUB fifo_mode(mode=-2): curr_mode
 '       STREAM      (%10) - Stream mode
 '       STREAM2FIFO (%11) - Stream-to-FIFO mode
 '   Any other value polls the chip and returns the current setting
+    curr_mode := 0
     readreg(core.FIFO_CTRL_REG, 1, @curr_mode)
     case mode
         BYPASS, FIFO, STREAM, STREAM2FIFO:
@@ -496,6 +589,7 @@ PUB fifo_thresh(thresh=-2): curr_thr
 ' Set FIFO threshold level
 '   Valid values: 1..32
 '   Any other value polls the chip and returns the current setting
+    curr_thr := 0
     readreg(core.FIFO_CTRL_REG, 1, @curr_thr)
     case thresh
         1..32:
@@ -509,6 +603,7 @@ PUB fifo_thresh(thresh=-2): curr_thr
 PUB fifo_nr_unread(): nr_smp
 ' Number of unread samples stored in FIFO
 '   Returns: 0..32
+    nr_smp := 0
     readreg(core.FIFO_SRC_REG, 1, @nr_smp)
     nr_smp &= core.FSS
 
@@ -523,22 +618,22 @@ PUB freefall_axis_ena(mask=-2): curr_mask
 '       1: X-axis high event
 '       0: X-axis low event
 '   Any other value polls the chip and returns the current setting
-    int_set_mask(core.FFALL | mask)             ' set AOI bit for free-fall det
+    accel_int_set_mask(core.FFALL | mask)       ' set AOI bit for free-fall det
 
-PUB freefall_thresh(thresh=-2): curr_thr
+PUB freefall_thresh{}: curr_thr
 ' Get free-fall threshold
 '   Returns: micro-g's
-    return int_set_thresh(thresh)
+    return accel_int_thresh{}
 
 PUB freefall_set_thresh(thresh)
 ' Set free-fall threshold, in micro-g's
 '   Valid values: 0..8_001000 (0..8g's; clamped to range)
-    int_set_thresh(thresh)
+    accel_int_set_thresh(thresh)
 
 PUB freefall_time(): fftime
 ' Get minimum time duration required to recognize free-fall
 '   Returns: microseconds
-    return int1_set_duration(fftime)
+    return int1_duration{}
 
 PUB freefall_set_time(fftime)
 ' Set minimum time duration required to recognize free-fall, in microseconds
@@ -555,22 +650,6 @@ PUB freefall_set_time(fftime)
 '       1344                744         94_494
 '       5376                186         23_623
     int1_set_duration(fftime)
-
-PUB int_polarity(state=-2): curr_state
-' Set interrupt pin active state/logic level
-'   Valid values: LOW (0), HIGH (1)
-'   Any other value polls the chip and returns the current setting
-'   NOTE: This affects INT1 and INT2 pins
-    curr_state := 0
-    readreg(core.CTRL_REG6, 1, @curr_state)
-    case state
-        LOW, HIGH:
-            state <<= core.INT_POL
-        other:
-            return ((curr_state >> core.INT_POL) & 1)
-
-    state := ((curr_state & core.INT_POL_MASK) | state)
-    writereg(core.CTRL_REG6, 1, @state)
 
 PUB int1_duration(): dur
 ' Get duration a condition must be verified in order to assert an interrupt
@@ -638,73 +717,6 @@ PUB int1_set_mask(mask)
 '       0: -- unused/ignored --
     mask &= %1111_1110
     writereg(core.CTRL_REG3, 1, @mask)
-
-PUB interrupt(): state
-' Read interrupt state
-'   Bit 6543210 (For each bit, 0: No interrupt, 1: Interrupt has been generated)
-'       6: One or more interrupts have been generated
-'       5: Z-axis high event
-'       4: Z-axis low event
-'       3: Y-axis high event
-'       2: Y-axis low event
-'       1: X-axis high event
-'       0: X-axis low event
-    readreg(core.INT1_SRC, 1, @state)
-
-PUB int_mask(): mask
-' Get interrupt mask
-'   Bits:  7..0
-'       7: AND (1)/OR (0) combination of interrupts
-'       6: 6-direction detection
-'       5: Z-axis high event
-'       4: Z-axis low event
-'       3: Y-axis high event
-'       2: Y-axis low event
-'       1: X-axis high event
-'       0: X-axis low event
-    mask := 0
-    readreg(core.INT1_CFG, 1, @mask)
-
-PUB int_set_mask(mask)
-' Set interrupt mask
-'   Bits:  7..0
-'       7: AND (1)/OR (0) combination of interrupts
-'       6: 6-direction detection
-'       5: Z-axis high event
-'       4: Z-axis low event
-'       3: Y-axis high event
-'       2: Y-axis low event
-'       1: X-axis high event
-'       0: X-axis low event
-'   Valid values: %0000_0000..%1111_1111 (other bits masked off)
-    mask &= %1111_1111
-    writereg(core.INT1_CFG, 1, @mask)
-
-PUB int_thresh(): thresh | scl_fact
-' Get interrupt threshold
-'   Returns: micro-g's
-    case accel_scale()
-        2: scl_fact := 16_000
-        4: scl_fact := 32_000
-        8: scl_fact := 62_000
-        16: scl_fact := 186_000                 ' set scale factor for reg
-
-    thresh := 0
-    readreg(core.INT1_THS, 1, @thresh)
-    return (thresh * scl_fact)                  ' scale to micro-g's
-
-PUB int_set_thresh(thresh) | scl_fact
-' Set interrupt threshold, in micro-g's
-'   Valid values: 0..16_000000
-    case accel_scale()
-        2: scl_fact := 16_000
-        4: scl_fact := 32_000
-        8: scl_fact := 62_000
-        16: scl_fact := 186_000                 ' set scale factor for reg
-
-    { 0..16g's input; scale down to register range }
-    thresh := ((0 #> thresh <# 16_000000) / scl_fact)
-    writereg(core.INT1_THS, 1, @thresh)
 
 PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from slave device into ptr_buff

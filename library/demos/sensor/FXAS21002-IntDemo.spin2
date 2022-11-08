@@ -6,7 +6,7 @@
         interrupt functionality (P2 version)
     Copyright (c) 2022
     Started Jun 15, 2021
-    Updated Oct 16, 2022
+    Updated Nov 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -51,13 +51,13 @@ PUB main()
     sensor.gyro_int_mask(sensor.INT_ZTHS)
 
     repeat
-        ser.position(0, 3)
+        ser.pos_xy(0, 3)
         show_gyro_data()
 
-        ser.position(0, 4)
-        ser.bin(sensor.gyro_int(), 7)              ' show interrupt flags
+        ser.pos_xy(0, 4)
+        ser.bin(sensor.gyro_int(), 7)           ' show interrupt flags
 
-        if (ser.rxcheck() == "c")               ' press the 'c' key in the demo
+        if (ser.rx_check() == "c")              ' press the 'c' key in the demo
             cal_gyro()                          ' to calibrate sensor offsets
 
 PUB setup()

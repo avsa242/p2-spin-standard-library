@@ -8,7 +8,7 @@
             FXOS8700
     Copyright (c) 2022
     Started Oct 2, 2022
-    Updated Oct 2, 2022
+    Updated Nov 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -239,6 +239,87 @@ PUB accel_hpf_freq(freq=-2): curr_freq
     freq := ((curr_freq & core.SEL_MASK) | freq)
     writereg(core.HP_FILT_CUTOFF, 1, @freq)
 
+PUB accel_int_polarity(state=-2): curr_state
+' Set interrupt pin active state/logic level
+'   Valid values: LOW (0), HIGH (1)
+'   Any other value polls the chip and returns the current setting
+    curr_state := 0
+    readreg(core.CTRL_REG3, 1, @curr_state)
+    case state
+        LOW, HIGH:
+            state <<= core.IPOL
+        other:
+            return ((curr_state >> core.IPOL) & 1)
+
+    cache_opmode()
+    state := ((curr_state & core.IPOL_MASK) | state)
+    writereg(core.CTRL_REG3, 1, @state)
+    restore_opmode()
+
+PUB accel_int(): src
+' Flag indicating one or more interrupts asserted
+'   Interrupt flags:
+'       Bits [7..0] (OR together symbols, as needed)
+'       7: INT_AUTOSLPWAKE - Auto-sleep/wake
+'       6: NOT USED (will be masked off to 0)
+'       5: INT_TRANS - Transient
+'       4: INT_ORIENT - Orientation (landscape/portrait)
+'       3: INT_PULSE - Pulse detection
+'       2: INT_FFALL - Freefall/motion
+'       1: NOT USED (will be masked off to 0)
+'       0: INT_DRDY - Data ready
+    src := 0
+    readreg(core.INT_SOURCE, 1, @src)
+
+PUB accel_int_mask(mask=-2): curr_mask
+' Set interrupt mask
+'   Valid values:
+'       Bits [7..0] (OR together symbols, as needed)
+'       7: INT_AUTOSLPWAKE - Auto-sleep/wake
+'       6: NOT USED (will be masked off to 0)
+'       5: INT_TRANS - Transient
+'       4: INT_ORIENT - Orientation (landscape/portrait)
+'       3: INT_PULSE - Pulse detection
+'       2: INT_FFALL - Freefall/motion
+'       1: NOT USED (will be masked off to 0)
+'       0: INT_DRDY - Data ready
+'   Any other value polls the chip and returns the current setting
+    case mask
+        %00000000..%10111101:
+            mask &= core.CTRL_REG4_MASK
+            cache_opmode()                       ' switch to stdby to mod regs
+            writereg(core.CTRL_REG4, 1, @mask)
+            restore_opmode()                     ' restore original opmode
+        other:
+            readreg(core.CTRL_REG4, 1, @curr_mask)
+            return
+
+PUB accel_int_routing(mask=-2): curr_mask
+' Set routing of interrupt sources to INT1 or INT2 pin
+'   Valid values:
+'       Setting a bit routes the interrupt to INT1
+'       Clearing a bit routes the interrupt to INT2
+'
+'       Bits [7..0] (OR together symbols, as needed)
+'       7: INT_AUTOSLPWAKE - Auto-sleep/wake
+'       6: NOT USED (will be masked off to 0)
+'       5: INT_TRANS - Transient
+'       4: INT_ORIENT - Orientation (landscape/portrait)
+'       3: INT_PULSE - Pulse detection
+'       2: INT_FFALL - Freefall/motion
+'       1: NOT USED (will be masked off to 0)
+'       0: INT_DRDY - Data ready
+'   Any other value polls the chip and returns the current setting
+    case mask
+        %00000000..%10111101:
+            mask &= core.CTRL_REG5_MASK
+            cache_opmode()                       ' switch to stdby to mod regs
+            writereg(core.CTRL_REG5, 1, @mask)
+            restore_opmode()                     ' restore original opmode
+        other:
+            readreg(core.CTRL_REG5, 1, @curr_mask)
+            return
+
 PUB accel_lpf_ena(state=-2): curr_state
 ' Enable accelerometer data low-pass filter
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
@@ -364,23 +445,6 @@ PUB accel_sleep_pwr_mode(mode=-2): curr_mode
     writereg(core.CTRL_REG2, 1, @mode)
     restore_opmode()
 
-PUB auto_sleep_ena(state=-2): curr_state
-' Enable automatic transition to sleep state when inactive
-'   Valid values: TRUE (-1 or 1), FALSE (0)
-'   Any other value polls the chip and returns the current setting
-    curr_state := 0
-    readreg(core.CTRL_REG2, 1, @curr_state)
-    case abs(state)
-        0, 1:
-            state := abs(state) << core.SLPE
-        other:
-            return (((curr_state >> core.SLPE) & 1) == 1)
-
-    cache_opmode()
-    state := ((curr_state & core.SLPE_MASK) | state)
-    writereg(core.CTRL_REG2, 1, @state)
-    restore_opmode()
-
 PUB auto_sleep_data_rate(rate=-2): curr_rate
 ' Set accelerometer output data rate, in Hz, when in sleep mode
 '   Valid values: 1, 6, 12, 50
@@ -397,6 +461,23 @@ PUB auto_sleep_data_rate(rate=-2): curr_rate
     cache_opmode()
     rate := ((curr_rate & core.ASLP_RATE_MASK) | rate)
     writereg(core.CTRL_REG1, 1, @rate)
+    restore_opmode()
+
+PUB auto_sleep_ena(state=-2): curr_state
+' Enable automatic transition to sleep state when inactive
+'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Any other value polls the chip and returns the current setting
+    curr_state := 0
+    readreg(core.CTRL_REG2, 1, @curr_state)
+    case abs(state)
+        0, 1:
+            state := abs(state) << core.SLPE
+        other:
+            return (((curr_state >> core.SLPE) & 1) == 1)
+
+    cache_opmode()
+    state := ((curr_state & core.SLPE_MASK) | state)
+    writereg(core.CTRL_REG2, 1, @state)
     restore_opmode()
 
 PUB click_axis_ena(mask=-2): curr_mask
@@ -756,86 +837,6 @@ PUB in_freefall(): flag
     flag := 0
     readreg(core.FF_MT_SRC, 1, @flag)
     return (((flag >> core.FEA) & 1) == 1)
-
-PUB int_polarity(state=-2): curr_state
-' Set interrupt pin active state/logic level
-'   Valid values: LOW (0), HIGH (1)
-'   Any other value polls the chip and returns the current setting
-    curr_state := 0
-    readreg(core.CTRL_REG3, 1, @curr_state)
-    case state
-        LOW, HIGH:
-            state <<= core.IPOL
-        other:
-            return ((curr_state >> core.IPOL) & 1)
-
-    cache_opmode()
-    state := ((curr_state & core.IPOL_MASK) | state)
-    writereg(core.CTRL_REG3, 1, @state)
-    restore_opmode()
-
-PUB interrupt(): src
-' Flag indicating one or more interrupts asserted
-'   Interrupt flags:
-'       Bits [7..0] (OR together symbols, as needed)
-'       7: INT_AUTOSLPWAKE - Auto-sleep/wake
-'       6: NOT USED (will be masked off to 0)
-'       5: INT_TRANS - Transient
-'       4: INT_ORIENT - Orientation (landscape/portrait)
-'       3: INT_PULSE - Pulse detection
-'       2: INT_FFALL - Freefall/motion
-'       1: NOT USED (will be masked off to 0)
-'       0: INT_DRDY - Data ready
-    readreg(core.INT_SOURCE, 1, @src)
-
-PUB int_mask(mask=-2): curr_mask
-' Set interrupt mask
-'   Valid values:
-'       Bits [7..0] (OR together symbols, as needed)
-'       7: INT_AUTOSLPWAKE - Auto-sleep/wake
-'       6: NOT USED (will be masked off to 0)
-'       5: INT_TRANS - Transient
-'       4: INT_ORIENT - Orientation (landscape/portrait)
-'       3: INT_PULSE - Pulse detection
-'       2: INT_FFALL - Freefall/motion
-'       1: NOT USED (will be masked off to 0)
-'       0: INT_DRDY - Data ready
-'   Any other value polls the chip and returns the current setting
-    case mask
-        %00000000..%10111101:
-            mask &= core.CTRL_REG4_MASK
-            cache_opmode()                       ' switch to stdby to mod regs
-            writereg(core.CTRL_REG4, 1, @mask)
-            restore_opmode()                     ' restore original opmode
-        other:
-            readreg(core.CTRL_REG4, 1, @curr_mask)
-            return
-
-PUB int_routing(mask=-2): curr_mask
-' Set routing of interrupt sources to INT1 or INT2 pin
-'   Valid values:
-'       Setting a bit routes the interrupt to INT1
-'       Clearing a bit routes the interrupt to INT2
-'
-'       Bits [7..0] (OR together symbols, as needed)
-'       7: INT_AUTOSLPWAKE - Auto-sleep/wake
-'       6: NOT USED (will be masked off to 0)
-'       5: INT_TRANS - Transient
-'       4: INT_ORIENT - Orientation (landscape/portrait)
-'       3: INT_PULSE - Pulse detection
-'       2: INT_FFALL - Freefall/motion
-'       1: NOT USED (will be masked off to 0)
-'       0: INT_DRDY - Data ready
-'   Any other value polls the chip and returns the current setting
-    case mask
-        %00000000..%10111101:
-            mask &= core.CTRL_REG5_MASK
-            cache_opmode()                       ' switch to stdby to mod regs
-            writereg(core.CTRL_REG5, 1, @mask)
-            restore_opmode()                     ' restore original opmode
-        other:
-            readreg(core.CTRL_REG5, 1, @curr_mask)
-            return
 
 PUB orientation(): curr_or
 ' Current orientation
