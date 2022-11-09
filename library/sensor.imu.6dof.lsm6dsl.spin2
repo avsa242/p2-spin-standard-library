@@ -5,7 +5,7 @@
     Description: Driver for the ST LSM6DSL 6DoF IMU (P2 version)
     Copyright (c) 2022
     Started Mar 6, 2021
-    Updated Oct 2, 2022
+    Updated Nov 8, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -45,10 +45,6 @@ CON
 ' Constants used in low-level SPI read/write
     READ                    = 1 << 7
     WRITE                   = 0
-
-' Bias adjustment (AccelBias(), GyroBias(), MagBias()) read or write
-    R                       = 0
-    W                       = 1
 
 ' Axis-specific constants
     X_AXIS                  = 0
@@ -239,10 +235,10 @@ PUB accel_bias_res(abiasres=-2): curr_res
 
 PUB accel_data(ptr_x, ptr_y, ptr_z) | tmp[2]
 ' Read the Accelerometer output registers
-    if (_adata_src == ACCEL_LIVE)
-        readreg(core.OUTX_L_XL, 6, @tmp)
+    if (_adata_src == ACCEL_LIVE)               ' where should the data come from?
+        readreg(core.OUTX_L_XL, 6, @tmp)        '   live sensor data (normal operation)
     else
-        fifo_data(@tmp, 3)
+        fifo_data(@tmp, 3)                      '   fifo data (buffered)
     long[ptr_x] := (tmp.word[X_AXIS] signx 15)
     long[ptr_y] := (tmp.word[Y_AXIS] signx 15)
     long[ptr_z] := (tmp.word[Z_AXIS] signx 15)
@@ -274,12 +270,12 @@ PUB accel_data_rdy(): flag
     return ((flag & core.XLRDY) == core.XLRDY)
 
 PUB accel_data_src(src=-2): curr_src
-' Set source of data for AccelData() output
+' Set source of data for accel_data() output
 '   Valid values:
 '      *ACCEL_LIVE (0): live/current data
 '       ACCEL_FIFO (1): FIFO data
 '   Any other value returns the current setting
-    if (src == ACCEL_LIVE) or (src == ACCEL_FIFO)
+    if ((src == ACCEL_LIVE) or (src == ACCEL_FIFO))
         _adata_src := src
     else
         return _adata_src
@@ -420,7 +416,7 @@ PUB click_latency(clat=-2): curr_clat
 
 PUB click_thresh(thresh=-2): curr_thr | ares
 ' Set threshold for recognizing a click, in microseconds
-'   Valid values are AccelScale()-dependent
+'   Valid values are accel_scale()-dependent
 '       2g:     0..2_000_000    (step size: 0_062_500)
 '       4g:     0..4_000_000    (step size: 0_125_000)
 '       8g:     0..8_000_000    (step size: 0_250_000)
@@ -441,7 +437,7 @@ PUB click_time(ctime=-2): curr_ctime
 ' Set maximum elapsed interval between start of click and end of click, in uSec
 '   Valid values: 9_600, 19_200, 38_400, 57_600
 '   Any other value polls the chip and returns the current setting
-'   NOTE: AccelDataRate() should be set to 416Hz or 833Hz, per ST AN5040
+'   NOTE: accel_data_rate() should be set to 416Hz or 833Hz, per ST AN5040
     curr_ctime := 0
     readreg(core.INT_DUR2, 1, @curr_ctime)
     case ctime
@@ -462,9 +458,9 @@ PUB dev_id(): id
 PUB fifo_accel_dec(factor=-2): curr_factor
 ' Set decimation factor used to fill FIFO slots with accelerometer data
 '   Valid values:
-'       0: accel data not used in FIFO
-'       1: no decimation (every accel sample used to fill FIFO)
-'       2, 3, 4, 8, 16, 32: every n'th accel sample used to fill FIFO
+'       0: accel data is not used in FIFO
+'       1: no decimation (every accel sample is used to fill FIFO)
+'       2, 3, 4, 8, 16, 32: every n'th accel sample is used to fill FIFO
 '   Any other value polls the chip and returns the current setting
     curr_factor := 0
     readreg(core.FIFO_CTRL3, 1, @curr_factor)
@@ -481,7 +477,7 @@ PUB fifo_accel_dec(factor=-2): curr_factor
 
 PUB fifo_data(ptr_data, nr_smp)
 ' Read FIFO data
-    if lookdown(nr_smp: 1..FIFO_SAMPLES_MAX)
+    if (lookdown(nr_smp: 1..FIFO_SAMPLES_MAX))
         readreg(core.FIFO_DATA_OUT_L, (nr_smp * FIFO_UNIT), ptr_data)
 
 PUB fifo_data_rate(rate=-2): curr_rate
@@ -490,7 +486,7 @@ PUB fifo_data_rate(rate=-2): curr_rate
 '       0, 12, 26, 52, 104, 208, 416, 833, 1660, 3330, 6660
 '   Any other value polls the chip and returns the current setting
 '   NOTE: This setting will effectively be no higher than the sensor output
-'       data rate (e.g., if AccelDataRate() and/or GyroDataRate() == 26,
+'       data rate (e.g., if accel_data_rate() and/or gyro_data_rate() == 26,
 '       the FIFO data will update at the same rate, even if it is set to 52)
     curr_rate := 0
     readreg(core.FIFO_CTRL5, 1, @curr_rate)
@@ -589,8 +585,8 @@ PUB fifo_nr_unread(): nr_samples
 PUB fifo_watermark(): flag
 ' Flag indicating FIFO watermark/threshold level reached
 '   Returns:
-'       TRUE (-1): FIFO level at or above FIFOThreshold()
-'       FALSE (0): FIFO level below FIFOThreshold()
+'       TRUE (-1): FIFO level at or above fifo_thresh()
+'       FALSE (0): FIFO level below fifo_thresh()
     flag := 0
     readreg(core.FIFO_STATUS2, 1, @flag)
     return ((flag & core.FIFOWTRMRK) == core.FIFOWTRMRK)
@@ -648,7 +644,7 @@ PUB gyro_set_bias(x, y, z)
     _gbias[Z_AXIS] := -32768 #> z <# 32767
 
 PUB gyro_data(ptr_x, ptr_y, ptr_z) | tmp[2]
-' Reads the Gyroscope output registers
+' Read the gyroscope output registers
     if (_gdata_src == GYRO_LIVE)
         readreg(core.OUTX_L_G, 6, @tmp)
     else
@@ -685,19 +681,19 @@ PUB gyro_data_rdy(): flag
     return ((flag & core.GRDY) == core.GRDY)
 
 PUB gyro_data_src(src=-2): curr_src
-' Set source of data for GyroData() output
+' Set source of data for gyro_data() output
 '   Valid values:
 '      *GYRO_LIVE (0): live/current data
 '       GYRO_FIFO (1): FIFO data
 '   Any other value returns the current setting
-    if (src == GYRO_LIVE) or (src == GYRO_FIFO)
+    if ((src == GYRO_LIVE) or (src == GYRO_FIFO))
         _gdata_src := src
     else
         return _gdata_src
 
 PUB gyro_lpf_freq(freq=-2): curr_freq
 ' Set gyroscope output data low-pass filter, in Hz
-'   Valid values dependent on GyroDataRate() setting:
+'   Valid values dependent on gyro_data_rate() setting:
 '       833: 155, 195, *245, 293
 '       1660: 168, 224, *315, 505
 '       3300: 172, 234, *343, 925
@@ -800,7 +796,7 @@ PUB inact_time(itime=-2): curr_itime | time_res, dur_max
 '   Valid values:
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Setting this to 0 will generate an interrupt when the acceleration
-'       measures less than that set with InactThresh()
+'       measures less than that set with inact_thresh()
     time_res := (512_000 / accel_data_rate(-2))
     dur_max := (time_res * core.SLP_DUR_MAX)
     curr_itime := 0

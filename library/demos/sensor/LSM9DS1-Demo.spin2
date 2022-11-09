@@ -6,7 +6,7 @@
         * 9DoF data output
     Copyright (c) 2022
     Started Aug 12, 2017
-    Updated Oct 16, 2022
+    Updated Nov 8, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -71,7 +71,7 @@ PUB setup()
     sensor.preset_active()
 
     repeat
-        ser.position(0, 3)
+        ser.pos_xy(0, 3)
         show_accel_data{}
         show_gyro_data{}
         show_mag_data{}

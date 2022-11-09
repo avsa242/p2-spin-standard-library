@@ -88,17 +88,17 @@ PUB main() | intsource, temp, sysmod
     ' When the sensor is awake, the LED1 should be on.
     ' When the sensor goes to sleep, it should turn off.
     repeat
-        ser.position(0, 3)
+        ser.pos_xy(0, 3)
         show_accel_data()                       ' show accel data
         intsource := sensor.int_inactivity()
         if (_intflag)                           ' interrupt triggered
             intsource := sensor.int_inactivity()
-            if intsource                        ' (in)activity event
+            if (intsource)                      ' (in)activity event
                 pinl(LED1)
             else
                 pinh(LED1)
         else
-        if (ser.rxcheck() == "c")               ' press the 'c' key in the demo
+        if (ser.rx_check() == "c")              ' press the 'c' key in the demo
             cal_accel()                         ' to calibrate sensor offsets
 
 PRI cog_isr()
