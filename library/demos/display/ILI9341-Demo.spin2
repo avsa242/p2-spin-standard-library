@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Feb 20, 2022
-    Updated: Oct 30, 2022
+    Updated: Nov 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -64,10 +64,10 @@ PUB main()
         ser.printf(string("%s driver failed to start - halting"), @_drv_name)
         repeat
 
-    disp.preset()
+    disp.preset_def()
 
     { change these to suit the orientation of your display }
-    disp.disp_rot_ena(TRUE)
+    disp.rotation(1)
     disp.mirror_h(FALSE)
     disp.mirror_v(TRUE)
 
