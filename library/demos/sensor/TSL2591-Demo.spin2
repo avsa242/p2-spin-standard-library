@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Started Nov 23, 2019
-    Updated Oct 16, 2022
+    Updated Nov 10, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -43,7 +43,7 @@ PUB main() | tmp, ir, full
         tmp := tsl2591.als_data()
         ir := tmp.word[1]
         full := tmp.word[0]                     ' full-spectrum: IR + visible
-        ser.position(0, 3)
+        ser.pos_xy(0, 3)
         ser.printf(@"IR: %04.4x\n\r", ir)
         ser.printf(@"Full: %04.4x", full)
 

@@ -5,7 +5,7 @@
     Description: Receive demo of the SX1276 driver (LoRa mode) (P2 version)
     Copyright (c) 2022
     Started Dec 12, 2020
-    Updated Oct 16, 2022
+    Updated Nov 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -41,7 +41,7 @@ PUB main()
 
     setup()
 
-    ser.position(0, 3)
+    ser.pos_xy(0, 3)
     ser.strln(string("Receive mode"))
 
 ' -- TX/RX settings
@@ -65,7 +65,7 @@ PUB main()
 
     repeat
         { wait for the radio to finish receiving, then clear the interrupt }
-        repeat until lora.interrupt() & lora.INT_RX_DONE
+        repeat until (lora.interrupt() & lora.INT_RX_DONE)
         lora.int_clr(lora.INT_RX_DONE)
 
         { get the payload from the radio }
@@ -73,7 +73,7 @@ PUB main()
         lora.rx_payld(8, @_buffer)
 
         { display the received payload on the terminal }
-        ser.position(0, 5)
+        ser.pos_xy(0, 5)
         ser.str(string("Received: "))
         ser.str(@_buffer)
     

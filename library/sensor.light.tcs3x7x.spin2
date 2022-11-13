@@ -5,7 +5,7 @@
     Description: Driver for the AMS (nee TAOS) TCS3x7x RGB color sensor (P2 version)
     Copyright (c) 2022
     Started: Jun 24, 2018
-    Updated: Oct 16, 2022
+    Updated: Nov 9, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -128,6 +128,28 @@ PUB int_clr()
 '   the flag readable using the interrupt() method
     writereg(core.CMD_CLR_INT, 0, 0)
 
+PUB int_duration(cycles=-2): curr_cyc
+' Set number of consecutive cycles necessary to generate an interrupt
+'   Valid values:
+'       *0, 1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60
+'       Special cases:
+'           0: Every cycle generates an interrupt, regardless of value
+'           1: Any value outside the threshold generates an interrupt
+'   Any other value polls the chip and returns the current setting
+    curr_cyc := 0
+    readreg(core.PERS, 1, @curr_cyc)
+    case cycles
+        0..3, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60:
+            cycles := lookdownz(cycles: 0, 1, 2, 3, 5, 10, 15, 20, 25, 30, 35,{
+}           40, 45, 50, 55, 60) & core.APERS_BITS
+        other:
+            curr_cyc &= core.APERS_BITS
+            return lookupz(curr_cyc: 0, 1, 2, 3, 5, 10, 15, 20, 25, 30, 35,{
+}           40, 45, 50, 55, 60)
+
+    curr_cyc &= core.PERS_MASK
+    writereg(core.PERS, 1, @cycles)
+
 PUB interrupt(): flag
 ' Flag indicating an interrupt has been triggered
 '   Returns TRUE (-1) or FALSE
@@ -224,28 +246,6 @@ PUB opmode(mode=-2): curr_mode
 
     mode := ((curr_mode & core.AEN_MASK) | mode) & core.ENABLE_MASK
     writereg(core.ENABLE, 1, @mode)
-
-PUB int_duration(cycles=-2): curr_cyc
-' Set number of consecutive cycles necessary to generate an interrupt
-'   Valid values:
-'       *0, 1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60
-'       Special cases:
-'           0: Every cycle generates an interrupt, regardless of value
-'           1: Any value outside the threshold generates an interrupt
-'   Any other value polls the chip and returns the current setting
-    curr_cyc := 0
-    readreg(core.PERS, 1, @curr_cyc)
-    case cycles
-        0..3, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60:
-            cycles := lookdownz(cycles: 0, 1, 2, 3, 5, 10, 15, 20, 25, 30, 35,{
-}           40, 45, 50, 55, 60) & core.APERS_BITS
-        other:
-            curr_cyc &= core.APERS_BITS
-            return lookupz(curr_cyc: 0, 1, 2, 3, 5, 10, 15, 20, 25, 30, 35,{
-}           40, 45, 50, 55, 60)
-
-    curr_cyc &= core.PERS_MASK
-    writereg(core.PERS, 1, @cycles)
 
 PUB powered(state=-2): curr_state
 ' Enable power to the sensor

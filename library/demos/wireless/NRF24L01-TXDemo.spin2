@@ -5,7 +5,7 @@
     Description: nRF24L01+ Transmit demo
     Copyright (c) 2022
     Started Nov 23, 2019
-    Updated Oct 16, 2022
+    Updated Nov 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -41,7 +41,7 @@ VAR
 
     byte _payload[32]
     byte _payld_len
-    byte _addr[5]
+    byte _syncwd[5]
 
 PUB main() | payld_cnt, max_retrans, pkts_retrans, lost_pkts
 
@@ -64,16 +64,17 @@ PUB main() | payld_cnt, max_retrans, pkts_retrans, lost_pkts
 
     _payld_len := 8                             ' 1..32
 
-    { set transmit/receive address (note: order in string() is LSB, ..., MSB) }
-    nrf24.node_addr(string($e7, $e7, $e7, $e7, $e7))
+    { set syncword (note: order in string() is LSB, ..., MSB) }
+    nrf24.set_syncwd(string($e7, $e7, $e7, $e7, $e7))
 
 ' --
 
-    nrf24.payld_len(_payld_len, 0)
-    nrf24.tx_addr(@_addr, nrf24.READ)
+    nrf24.set_pipe_nr(0)
+    nrf24.payld_len(_payld_len)
+    nrf24.syncwd(@_syncwd)
 
     ser.clear()
-    ser.position(0, 0)
+    ser.pos_xy(0, 0)
     ser.printf(@"Transmit mode (channel %d)\n\r", nrf24.channel())
 
     repeat
@@ -84,16 +85,16 @@ PUB main() | payld_cnt, max_retrans, pkts_retrans, lost_pkts
         max_retrans := nrf24.max_retrans_reached()
         pkts_retrans := nrf24.pkts_retrans()
         lost_pkts := nrf24.lost_pkts()
-        ser.position(0, 2)
+        ser.pos_xy(0, 2)
         ser.str(@"Max retransmissions reached? ")
         ser.strln(lookupz(abs(max_retrans): @"No ", @"Yes"))
         ser.printf(@"Packets retransmitted: %2.2d\n\r", pkts_retrans)
         ser.printf(@"Lost packets: %2.2d\n\r", lost_pkts)
 
         { display payload and transmit it }
-        ser.position(0, 6)
+        ser.pos_xy(0, 6)
         ser.printf(@"Transmitting packet (to %02.2x:%02.2x:%02.2x:%02.2x:%02.2x)\n\r", {
-}       _addr[4], _addr[3], _addr[2], _addr[1], _addr[0])
+}       _syncwd[4], _syncwd[3], _syncwd[2], _syncwd[1], _syncwd[0])
         ser.hexdump(@_payload, 0, 4, _payld_len, 16 <# _payld_len)
         nrf24.tx_payld(_payld_len, @_payload)
 

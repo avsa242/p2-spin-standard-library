@@ -5,7 +5,7 @@
     Description: Driver for the Melexis MLX90614 IR thermometer (P2 version)
     Copyright (c) 2022
     Started Mar 17, 2019
-    Updated Sep 25, 2022
+    Updated Nov 12, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -41,7 +41,7 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 }   I2C_HZ <= core.I2C_MAX_FREQ
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitus(core.T_POR)
-            if i2c.present(SLAVE_WR)            ' check bus device presence
+            if (i2c.present(SLAVE_WR))          ' check bus device presence
                 if (dev_id())
                     return
     ' if this point is reached, something above failed
@@ -57,6 +57,7 @@ PUB stop()
 PUB amb_temp_data(): temp_adc
 ' Read ambient temperature ADC data
 '   Returns: s16
+    temp_adc := 0
     readreg(core.CMD_RAM, core.T_A, 2, @temp_adc)
 
 PUB amb_temp(): temp
@@ -67,6 +68,7 @@ PUB amb_temp(): temp
 
 PUB dev_id(): id
 ' Reads the sensor ID
+    id := 0
     readreg(core.CMD_EEPROM, core.EE_ID_1, 4, @id)
 
 PUB rd_eeprom(ptr_buff)
@@ -85,8 +87,8 @@ PUB temp_data(): temp_word
 ' Read object temperature ADC word
 '   Returns: s16
     temp_word := 0
-    readreg(core.CMD_RAM, core.T_OBJ1+_temp_ch, 3, @temp_word)
-    return temp_word & $ffff
+    readreg(core.CMD_RAM, (core.T_OBJ1 + _temp_ch), 3, @temp_word)
+    return (temp_word & $ffff)
 
 PUB temp_word2deg(temp_word): temp
 ' Convert temperature ADC word to temperature

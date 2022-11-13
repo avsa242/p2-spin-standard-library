@@ -6,7 +6,7 @@
         RX Mode (P2 version)
     Copyright (c) 2022
     Started Apr 30, 2020
-    Updated Oct 16, 2022
+    Updated Nov 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,11 +19,11 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    CE_PIN      = 20
-    CS_PIN      = 21
-    SCK_PIN     = 18
-    MOSI_PIN    = 16                            ' MOSI and MISO must be within
-    MISO_PIN    = 17                            '   3 pins +/- of SCK
+    CE_PIN      = 0
+    CS_PIN      = 1
+    SCK_PIN     = 2
+    MOSI_PIN    = 3                             ' MOSI and MISO must be within
+    MISO_PIN    = 4                             '   3 pins +/- of SCK
     SCK_FREQ    = 10_000_000                    ' 10_000_000 max
 
     PKTLEN      = 32                            ' 1..32 (bytes)
@@ -43,15 +43,15 @@ VAR
     long _ctr_stack[50]
     long _iteration, _timer_set
     byte _rxdata[PKTLEN]
-    byte _addr[5]
+    byte _syncwd[5]
 
 PUB main() | i, iteration, testtime, pipe_nr
 
     setup()
     testtime := 1_000                           ' mSec
 
-    bytemove(@_addr, string($E7, $E7, $E7, $E7, $E7), 5)
-    nrf24.rx_addr(@_addr, 0, nrf24#WRITE)       ' set receiver address
+    bytemove(@_syncwd, string($E7, $E7, $E7, $E7, $E7), 5)
+    nrf24.set_syncwd(@_syncwd)                  ' set syncword
 
     nrf24.powered(true)
     nrf24.channel(CHANNEL)
@@ -63,31 +63,32 @@ PUB main() | i, iteration, testtime, pipe_nr
     nrf24.auto_ack_pipes_ena(%000011)
     nrf24.tx_pwr(0)                             ' -18, -12, -6, 0 (dBm)
                                                 ' (for auto-ack, if enabled)
-    nrf24.crc_check_ena(true)
+    nrf24.crc_check_ena(true)                   ' ignored (always on) if auto-ack is used
     nrf24.crc_len(1)                            ' 1, 2 (bytes)
 
     repeat pipe_nr from 0 to 5                  ' set pipe payload sizes
-        nrf24.payld_len(PKTLEN, pipe_nr)        ' _must_ match TX
+        nrf24.set_pipe_nr(pipe_nr)
+        nrf24.payld_len(PKTLEN)                 ' _must_ match TX
 
-    ser.position(0, 4)
-    ser.printf(@"Waiting for transmitters on ")
+    ser.pos_xy(0, 4)
+    ser.str(@"Waiting for transmitters on ")
     repeat i from 4 to 0                        ' show address receiving on
-        ser.hex(_addr[i], 2)
+        ser.hex(_syncwd[i], 2)
     ser.newline()
 
     nrf24.flush_rx()                            ' clear rx fifo
-    nrf24.int_clr(%100)                       ' clear interrupt
+    nrf24.int_clr(%100)                         ' clear interrupt
     repeat
         iteration := 0
         _timer_set := testtime                  ' trigger the timer
 
         repeat while _timer_set                 ' loop while timer is >0
             repeat until nrf24.payld_rdy()      ' wait for rx data
-            nrf24.int_clr(%100)               ' _must_ clear interrupt
+            nrf24.int_clr(%100)                 ' _must_ clear interrupt
             nrf24.rx_payld(PKTLEN, @_rxdata)    ' retrieve payload
             iteration++                         ' tally up # payloads rx'd
 
-        ser.position(0, 6)
+        ser.pos_xy(0, 6)
         report(testtime, iteration)             ' show the results
 
 PRI cog_counter() | time_left

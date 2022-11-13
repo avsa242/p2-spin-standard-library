@@ -5,7 +5,7 @@
     Description: Driver for the Dallas/Maxim DS18B2x-series temperature sensors (P2 version)
     Copyright (c) 2022
     Started Jul 13, 2019
-    Updated Oct 16, 2022
+    Updated Nov 10, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -55,27 +55,8 @@ PUB stop()
 
 PUB defaults()
 ' Factory default settings
-    adc_res(12)
+    temp_adc_res(12)
     temp_scale(C)
-
-PUB adc_res(bits): curr_res
-' Set resolution of temperature readings, in bits
-'   Valid values: 9..12
-'   Any other value polls the chip and returns the current setting
-    case bits
-        9..12:
-            bits := lookdownz(bits: 9..12) << core.R0
-            poll_dev()
-            ow.wr_byte(core.WR_SPAD)
-            ow.wr_word($0000)                   ' skip over Th, Tl regs
-            ow.wr_byte(bits)
-            ow.reset()
-        other:
-            poll_dev()
-            ow.wr_byte(core.RD_SPAD)
-            ow.rd_long()                        ' skip over temperature, Th, Tl
-            curr_res := (ow.rd_byte() >> core.R0)
-            return lookupz(curr_res: 9..12)
 
 PUB last_crc_valid(): wasvalid
 ' Flag indicating CRC of last data read from sensor was valid
@@ -113,6 +94,25 @@ PUB serial_num(ptr_buff): isvalid
     ow.wr_byte(ow.RD_ROM)
     ow.rd_addr(ptr_buff)
     return (crc.dallas_maxim_crc8(ptr_buff, 7) == byte[ptr_buff][SN_MSB])
+
+PUB temp_adc_res(bits): curr_res
+' Set resolution of temperature readings, in bits
+'   Valid values: 9..12
+'   Any other value polls the chip and returns the current setting
+    case bits
+        9..12:
+            bits := lookdownz(bits: 9..12) << core.R0
+            poll_dev()
+            ow.wr_byte(core.WR_SPAD)
+            ow.wr_word($0000)                   ' skip over Th, Tl regs
+            ow.wr_byte(bits)
+            ow.reset()
+        other:
+            poll_dev()
+            ow.wr_byte(core.RD_SPAD)
+            ow.rd_long()                        ' skip over temperature, Th, Tl
+            curr_res := (ow.rd_byte() >> core.R0)
+            return lookupz(curr_res: 9..12)
 
 PUB temp_data(): temp_adc | tmp[3], i
 ' Read temperature data

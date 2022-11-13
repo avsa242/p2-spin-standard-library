@@ -5,7 +5,7 @@
     Description: Driver for Nordic Semi. nRF24L01+ (P2 version)
     Copyright (c) 2022
     Started Nov 2, 2019
-    Updated Oct 9, 2022
+    Updated Nov 12, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -34,6 +34,8 @@ VAR
 
     long _CE, _CS
     word _status
+    byte _tx_cmd
+    byte _pipe_nr
 
 OBJ
 
@@ -83,7 +85,7 @@ PUB defaults() | pipe_nr
     tx_mode()
     auto_ack_pipes_ena(%111111)
     pipes_ena(%000011)
-    addr_width(5)
+    syncwd_len(5)
     auto_retrans_dly(250)
     auto_retrans_cnt(3)
     channel(2)
@@ -92,18 +94,28 @@ PUB defaults() | pipe_nr
     data_rate(2_000_000)
     tx_pwr(0)
     int_clr(%111)
-    rx_addr(string($E7, $E7, $E7, $E7, $E7), 0, WRITE)
-    rx_addr(string($C2, $C2, $C2, $C2, $C2), 1, WRITE)
-    rx_addr(string($C3), 2, WRITE)
-    rx_addr(string($C4), 3, WRITE)
-    rx_addr(string($C5), 4, WRITE)
-    rx_addr(string($C6), 5, WRITE)
-    tx_addr(string($E7, $E7, $E7, $E7, $E7), WRITE)
+
+    set_pipe_nr(1)
+    set_syncwd(string($C2, $C2, $C2, $C2, $C2))
+    set_pipe_nr(2)
+    set_syncwd(string($C3))
+    set_pipe_nr(3)
+    set_syncwd(string($C4))
+    set_pipe_nr(4)
+    set_syncwd(string($C5))
+    set_pipe_nr(5)
+    set_syncwd(string($C6))
+    set_pipe_nr(0)                              ' do this one last so the TX addr ends up getting
+    set_syncwd(string($E7, $E7, $E7, $E7, $E7)) '   set as the default E7 address
+
     repeat pipe_nr from 0 to 5
-        payld_len(0, pipe_nr)
+        _pipe_nr := pipe_nr
+        payld_len(0)
     dyn_payld_len_ena(%000000)
     payld_len_cfg(PKTLEN_FIXED)
-    ack_ena(FALSE)
+    payld_in_ack_ena(FALSE)
+    _tx_cmd := core#CMD_W_TX_PAYLOAD
+    _pipe_nr := 0
 
 PUB preset_rx250k()
 ' Receive mode, 250kbps (AutoAck enabled)
@@ -234,20 +246,10 @@ PUB chip_ena(state)
     pinw(_CE, state)
     waitus(core.THCE)
 
-PUB addr_width(bytes=-2): curr_width
-' Set width, in bytes, of RX/TX address field
-'   Valid values: 3, 4, *5
-'   Any other value polls the chip and returns the current setting
-    curr_width := 0
-    readreg(core.SETUP_AW, 1, @curr_width)
-    case bytes
-        3, 4, 5:
-            bytes -= 2                          ' adjust to bitfield value
-        other:
-            return ((curr_width & core.AW_BITS) + 2)
-
-    bytes := ((curr_width & core.AW_MASK) | bytes)
-    writereg(core.SETUP_AW, 1, @bytes)
+PUB ack_next{}
+' Acknowledge the next payload
+'   NOTE: Use to resume normal auto-acknowledgement of packets after dont_ack_next() is called
+    _tx_cmd := core#CMD_W_TX_PAYLOAD            ' change the TX command strobe for the next payload
 
 PUB after_rx(next_state)
 ' Define state to transition to after packet rcvd
@@ -300,8 +302,8 @@ PUB auto_retrans_dly(delay_us=-2): curr_dly
 '   Valid values: *250..4000 (in steps of 250)
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The minimum value required for successful transmission depends on the
-'       current DataRate() and PayloadLen() settings:
-'       DataRate()  PayloadLen() max:   AutoRetransmitDelay() minimum:
+'       current data_rate() and payld_len() settings:
+'       data_rate() payld_len() max:    auto_retrans_dly() minimum:
 '       2_000_000   15                  250
 '       2_000_000   Any                 500
 '       1_000_000   5                   250
@@ -322,19 +324,29 @@ PUB auto_retrans_dly(delay_us=-2): curr_dly
     delay_us := ((curr_dly & core.ARD_MASK) | delay_us)
     writereg(core.SETUP_RETR, 1, @delay_us)
 
+PUB rpd = carrier_detected
+PUB carrier_detected(): flag
+' Received Power Detector/Carrier Detect
+'   Returns:
+'       FALSE (0): No Carrier
+'       TRUE (-1): Carrier Detected
+    flag := 0
+    readreg(core.RPD, 1, @flag)
+    return (flag == 1)
+
 PUB carrier_freq(freq=-2): curr_freq
-' Set carrier frequency, in MHz
-'   Valid values: 2400..2525 (default 2402)
+' Set carrier frequency, in kHz
+'   Valid values: 2_400_000..2_525_000 (default: 2_402_000)
 '   Any other value polls the chip and returns the current setting
     case freq
-        2400..2525:
-            Channel(freq-2400)
+        2_400_000..2_525_000:
+            channel( (freq-2_400_000) / 1_000 )
         other:
-            return (2400 + channel())
+            return ( (2_400 + channel()) * 1_000)
 
 PUB channel(number=-2): curr_chan
 ' Set RF channel
-'   Valid values: 0..125 (default 2)
+'   Valid values: 0..125 (default: 2)
 '   Any other value polls the chip and returns the current setting
     case number
         0..125:
@@ -342,21 +354,21 @@ PUB channel(number=-2): curr_chan
         other:
             readreg(core.RF_CH, 1, @curr_chan)
 
-PUB crc_check_ena(enabled=-2): curr_state
+PUB crc_check_ena(state=-2): curr_state
 ' Enable CRC
-'   Valid values: FALSE: Disable, TRUE (-1 or 1): Enable.
+'   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
-'   NOTE: Forced on if any data pipe has AutoAck enabled
+'   NOTE: Forced on if any data pipe is using auto-acknowledgement
     curr_state := 0
     readreg(core.CFG, 1, @curr_state)
-    case abs(enabled)
+    case abs(state)
         0, 1:
-            enabled := abs(enabled) << core.EN_CRC
+            state := abs(state) << core.EN_CRC
         other:
             return (((curr_state >> core.EN_CRC) & 1) == 1)
 
-    enabled := ((curr_state & core.EN_CRC_MASK) | enabled)
-    writereg(core.CFG, 1, @enabled)
+    state := ((curr_state & core.EN_CRC_MASK) | state)
+    writereg(core.CFG, 1, @state)
 
 PUB crc_len(length=-2): curr_len
 ' Set CRC length, in bytes
@@ -395,12 +407,19 @@ PUB data_rate(rate=-2): curr_rate
 
     writereg(core.RF_SETUP, 1, @curr_rate)
 
+PUB dont_ack_next()
+' Instruct the remote receiving node not to acknowledge the next payload sent
+'   NOTE: This is ignored if auto_ack_pipes_ena() is zero
+'   NOTE: This setting persists until disabled with ack_next()
+'   NOTE: The instruction will be sent at the time the payload is sent
+'   NOTE: dyn_ack_ena() must be set to TRUE for this setting to be effective
+    _tx_cmd := core#CMD_W_TX_PAYLOAD_NOACK      ' change the TX command strobe for the next payload
+
 PUB dyn_ack_ena(state=-2): curr_state
 ' Enable selective auto-acknowledge feature
-' When enabled, the receive will not auto-acknowledge packets sent to it.
-' XXX expand
-'   Valid values: *FALSE: Disable, TRUE (-1 or 1): Enable.
+'   Valid values: TRUE (-1 or 1), FALSE (0) (default: FALSE)
 '   Any other value polls the chip and returns the current setting
+'   NOTE: To tell the remote RX node not to acknowledge a packet, call dont_ack_next()
     curr_state := 0
     readreg(core.FEAT, 1, @curr_state)
     case abs(state)
@@ -424,22 +443,6 @@ PUB dyn_payld_len_ena(mask=-2): curr_mask
             curr_mask := 0
             readreg(core.DYNPD, 1, @curr_mask)
             return (curr_mask & core.DYNPD_MASK)
-
-PUB ack_ena(state=-2): curr_state
-' Enable payload with ACK
-' XXX Add timing notes/code from datasheet, p.63, note d
-'   Valid values: *FALSE: Disable, TRUE (-1 or 1): Enable.
-'   Any other value polls the chip and returns the current setting
-    curr_state := 0
-    readreg(core.FEAT, 1, @curr_state)
-    case abs(state)
-        0, 1:
-            state := abs(state) << core.EN_ACK_PAY
-        other:
-            return (((curr_state >> core.EN_ACK_PAY) & 1) == 1)
-
-    state := ((curr_state & core.EN_ACK_PAY_MASK) | state)
-    writereg(core.FEAT, 1, @state)
 
 PUB flush_rx()
 ' Flush receive FIFO buffer
@@ -530,35 +533,51 @@ PUB pkts_retrans(): pkt_cnt
     readreg(core.OBSERVE_TX, 1, @pkt_cnt)
     return (pkt_cnt & core.ARC_CNT)
 
-PUB payld_len(length=-2, pipe_nr=0): curr_len
+PUB payld_in_ack_ena(state=-2): curr_state
+' Enable payload from RX node within ACK packet
+'   Valid values: TRUE (-1 or 1), FALSE (0) (default: FALSE)
+'   Any other value polls the chip and returns the current setting
+'   NOTE: payld_len_cfg() must be set to PKTLEN_VAR to use this feature
+'   NOTE: queue payload to transmit using tx_payld()
+'   NOTE: auto_retrans_dly() must be set to 500 or higher if:
+'       ACK payload size is:    data_rate() is:
+'       --------------------    ---------------
+'       >15 bytes            +  2_000_000
+'       >5 bytes             +  1_000_000
+'       any                  +  250_000
+    curr_state := 0
+    readreg(core.FEAT, 1, @curr_state)
+    case abs(state)
+        0, 1:
+            state := abs(state) << core.EN_ACK_PAY
+        other:
+            return (((curr_state >> core.EN_ACK_PAY) & 1) == 1)
+
+    state := ((curr_state & core.EN_ACK_PAY_MASK) | state)
+    writereg(core.FEAT, 1, @state)
+
+PUB payld_len(length=-2): curr_len
 ' Set length of static payload, in bytes
-'   Returns number of bytes in RX payload in data pipe, or 0 if pipe unused
 '   Valid values:
-'       pipe: 0..5
 '       length: 0..32 (default 0)
-'   Any other value for pipe is ignored
-'   Any other value for length polls the chip and returns the current setting
+'   Any other value polls the chip and returns the current setting
 '   NOTE: Setting a length of 0 effectively disables the pipe
     curr_len := 0
-    case pipe_nr
-        0..5:
-            readreg(core.RX_PW_P0 + pipe_nr, 1, @curr_len)
-            case length
-                0..32:
-                    writereg(core.RX_PW_P0 + pipe_nr, 1, @length)
-                    return length
-                other:
-                    return (curr_len & core.RX_PW_BITS)
+    readreg(core.RX_PW_P0 + _pipe_nr, 1, @curr_len)
+    case length
+        0..32:
+            writereg(core.RX_PW_P0 + _pipe_nr, 1, @length)
+            return length
         other:
-            return
+            return (curr_len & core.RX_PW_BITS)
 
 PUB payld_len_cfg(mode=-2): curr_mode
 ' Set packet length mode
 '   Valid values:
-'       PKTLEN_FIXED (0): fixed-length packet/payload
+'       PKTLEN_FIXED (0): fixed-length packet/payload (default)
 '       PKTLEN_VAR (1): variable-length packet/payload
 '   Any other value polls the chip and returns the current setting
-'   NOTE: Must be PKTLEN_VAR to use the DynamicPayload() method.
+'   NOTE: Must be PKTLEN_VAR to use the dyn_payld_len_ena() method.
     curr_mode := 0
     readreg(core.FEAT, 1, @curr_mode)
     case abs(mode)
@@ -599,7 +618,7 @@ PUB pipes_ena(mask=-2): curr_mask
 
 PUB pll_lock(state=-2): curr_state
 ' Force PLL Lock signal (intended for testing only)
-'   Valid values: *FALSE: Disable, TRUE (-1 or 1): Enable.
+'   Valid values: TRUE (-1 or 1), FALSE (0) (default: FALSE)
 '   Any other value polls the chip and returns the current setting
     curr_state := 0
     readreg(core.RF_SETUP, 1, @curr_state)
@@ -614,7 +633,7 @@ PUB pll_lock(state=-2): curr_state
 
 PUB powered(state=-2): curr_state
 ' Power on or off
-'   Valid values: *FALSE: Disable, TRUE (-1 or 1): Enable.
+'   Valid values: TRUE (-1 or 1), FALSE (0) (default: FALSE)
 '   Any other value polls the chip and returns the current setting
     curr_state := 0
     readreg(core.CFG, 1, @curr_state)
@@ -627,23 +646,17 @@ PUB powered(state=-2): curr_state
     state := ((curr_state & core.PWR_UP_MASK) | state)
     writereg(core.CFG, 1, @state)
 
-PUB rpd(): flag
-' Received Power Detector/Carrier Detect
-'   Returns:
-'       FALSE (0): No Carrier
-'       TRUE (-1): Carrier Detected
-    flag := 0
-    readreg(core.RPD, 1, @flag)
-    return (flag == 1)
-
 PUB rssi(): level
 ' RSSI (emulated)
 '   Returns:
 '       -64: Carrier detected
 '       -255 No carrier
-    return lookupz(abs(rpd()): -255, -64)
+    if ( abs(carrier_detected()) )
+        return -64
+    else
+        return -255
 
-PUB rx_addr(ptr_buff, pipe=0, rw=0)
+PUB rx_addr(ptr_buff, pipe=0, rw=0) ' kept for legacy compatibility
 ' Set receive address of pipe number 'pipe' from buffer at address ptr_buff
 '   Valid values:
 '       ptr_buff:
@@ -716,12 +729,9 @@ PUB rx_mode()
 PUB rx_payld(nr_bytes, ptr_buff)
 ' Receive payload stored in FIFO
 '   Valid values:
-'       nr_bytes: 1..32 (Any other value is ignored)
+'       nr_bytes: 1..32 (clamped to range)
 '   Any other value is ignored
-    if lookdown(nr_bytes: 1..32)
-        readreg(core.CMD_R_RX_PAYLOAD, nr_bytes, ptr_buff)
-    else
-        return
+    readreg(core.CMD_R_RX_PAYLOAD, (1 #> nr_bytes <# 32), ptr_buff)
 
 PUB rx_pipe_pending(): pipe_nr
 ' Returns pipe number of pending data available in FIFO
@@ -743,17 +753,64 @@ PUB rx_tx(role=-2): curr_role
     role := ((curr_role & core.PRIM_RX_MASK) | role)
     writereg(core.CFG, 1, @role)
 
+PUB set_pipe_nr(pipe_nr)
+' Set pipe number for subsequent function calls
+'   Valid values: 0..5 (clamped to range)
+    _pipe_nr := 0 #> pipe_nr <# 5
+
 PUB sleep()
 ' Power down chip
     powered(FALSE)
 
-PUB syncwd(ptr_syncwd): curr_syncwd
+PUB syncwd(ptr_syncwd) | addr_w
+' Get syncword
+'   ptr_syncwd: pointer to copy syncword bytes to
+'   NOTE: This reads the current pipe receive address or the transmit address, depending
+'       on the role currently set by rx_tx()
+    case _pipe_nr
+        0, 1:
+            addr_w := syncwd_len(-2)
+            if (rx_tx(-2) == RX)
+                readreg(core.RX_ADDR_P0 + _pipe_nr, addr_w, ptr_syncwd)
+            else
+                readreg(core.TX_ADDR, addr_w, ptr_syncwd)
+        2..5:
+            readreg(core.RX_ADDR_P0 + _pipe_nr, 1, ptr_syncwd)
+
+PUB set_syncwd(ptr_syncwd) | addr_w
 ' Set syncword
-    node_addr(ptr_syncwd)
+'   ptr_syncwd: pointer to syncword bytes
+'   NOTE: The length of the syncword written depends on the current pipe number set by
+'       set_pipe_nr() as well as the syncword length set by syncwd_len()
+'   NOTE: For syncword configurations 0 and 1, the bytes written will start with the
+'       LSB of the data from ptr_syncwd, in the case of lengths less than 5
+    case _pipe_nr
+        0, 1:
+            addr_w := syncwd_len(-2)
+            writereg(core#RX_ADDR_P0 + _pipe_nr, addr_w, ptr_syncwd)
+        2..5:                                   ' Pipes 2..5 are limited to 1 byte (hdw limit)
+            writereg(core#RX_ADDR_P0 + _pipe_nr, 1, ptr_syncwd)
+    writereg(core#TX_ADDR, 5, ptr_syncwd)
+
+PUB addr_width = syncwd_len
+PUB syncwd_len(bytes=-2): curr_width
+' Set length of syncword, in bytes
+'   Valid values: 3, 4, 5 (default: 5)
+'   Any other value polls the chip and returns the current setting
+    curr_width := 0
+    readreg(core.SETUP_AW, 1, @curr_width)
+    case bytes
+        3, 4, 5:
+            bytes -= 2                          ' adjust to bitfield value
+        other:
+            return ((curr_width & core.AW_BITS) + 2)
+
+    bytes := ((curr_width & core.AW_MASK) | bytes)
+    writereg(core.SETUP_AW, 1, @bytes)
 
 PUB test_cw(state=-2): curr_state
 ' Enable continuous carrier transmit (intended for testing only)
-'   Valid values: *FALSE: Disable, TRUE (-1 or 1): Enable.
+'   Valid values: TRUE (-1 or 1), FALSE (0) (default: FALSE)
 '   Any other value polls the chip and returns the current setting
     curr_state := 0
     readreg(core.RF_SETUP, 1, @curr_state)
@@ -802,20 +859,17 @@ PUB tx_mode()
 PUB tx_payld(nr_bytes, ptr_buff)
 ' Queue payload to be transmitted
 '   Valid values:
-'       nr_bytes: 1..32 (Any other value is ignored)
-    case nr_bytes
-        1..32:
-            writereg(core.CMD_W_TX_PAYLOAD, nr_bytes, ptr_buff)
-            pinh(_CE)
-            waitus(core.THCE)
-            pinl(_CE)
-        other:
-            return
+'       nr_bytes: 1..32 (clamped to range)
+    writereg(_tx_cmd, (1 #> nr_bytes <# 32), ptr_buff)
+    pinh(_CE)
+    waitus(core.THCE)
+    pinl(_CE)
 
 PUB tx_pwr(pwr=-2): curr_pwr
 ' Set transmit mode RF output power, in dBm
 '   Valid values: -18, -12, -6, *0
 '   Any other value polls the chip and returns the current setting
+'   NOTE: This also sets the output power used by a receiver when sending an acknowledge packet
     curr_pwr := 0
     readreg(core.RF_SETUP, 1, @curr_pwr)
     case pwr

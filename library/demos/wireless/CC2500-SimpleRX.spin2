@@ -5,7 +5,7 @@
     Description: Simple receive demo of the cc2500 driver (P2 version)
     Copyright (c) 2022
     Started Nov 29, 2020
-    Updated Oct 16, 2022
+    Updated Nov 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -54,7 +54,7 @@ PUB main() | tmp, rxbytes
     cc2500.node_addr(NODE_ADDRESS)              ' this node's address
 
     ser.clear()
-    ser.position(0, 0)
+    ser.pos_xy(0, 0)
     ser.printf(@"Receive mode - %dkHz\n\r", cc2500.carrier_freq())
 
     repeat
@@ -72,7 +72,7 @@ PUB main() | tmp, rxbytes
         cc2500.flush_rx()                       ' flush receive buffer
 
         { show the packet received as a simple hex dump }
-        ser.position(0, 3)
+        ser.pos_xy(0, 3)
         ser.hexdump(@_pkt_tmp, 0, 2, strsize(@_pkt_tmp), 16 <# strsize(@_pkt_tmp))
 
         ser.strln(@"    |  |")

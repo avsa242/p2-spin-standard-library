@@ -3,9 +3,9 @@
     Filename: core.con.mlx90621
     Author: Jesse Burt
     Description: MLX90621-specific constants
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started: Nov 11, 2018
-    Updated: May 17, 2021
+    Updated: Nov 12, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -51,6 +51,7 @@ CON
         MEASMODE_MASK   = (1 << MEASMODE) ^ CONFIG_MASK
         ADCRES_MASK     = (ADCRES_BITS << ADCRES) ^ CONFIG_MASK
         REFRATE_MASK    = REFRATE_BITS ^ CONFIG_MASK
+        RESET_UPD       = (1 << RESET)
 
     OSC_TRIM            = $93
     OSC_TRIM_MASK       = $007F

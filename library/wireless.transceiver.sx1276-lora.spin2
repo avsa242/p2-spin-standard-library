@@ -5,7 +5,7 @@
     Description: Driver for the SEMTECH SX1276 LoRa/FSK/OOK transceiver (LoRa mode; P2 version)
     Copyright (c) 2022
     Started Oct 6, 2019
-    Updated Oct 16, 2022
+    Updated Nov 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -138,7 +138,7 @@ PUB preset_lora()
     rx_bw(125_000)
     rx_timeout(100)
     spread_fact(7)
-    syncwd($12)
+    set_syncwd(string($12))                     ' $12 == private networks
 
 PUB preset_dr0()
 ' Physical bitrate (Rb) 980
@@ -961,17 +961,15 @@ PUB spread_fact(sf=-2): curr_sf
     sf := ((curr_sf & core.SPREADFACT_MASK) | sf) & core.MDMCFG2_MASK
     writereg(core.MDMCFG2, 1, @sf)
 
-PUB syncwd(val=-2): curr_val
+PUB set_syncwd(ptr_syncwd)
 ' Set LoRa Syncword
-'   Valid values: $00..$FF
-'   Any other value polls the chip and returns the current setting
-    case val
-        $00..$FF:
-            writereg(core.SYNCWORD, 1, @val)
-        other:
-            curr_val := 0
-            readreg(core.SYNCWORD, 1, @curr_val)
-            return curr_val
+'   ptr_syncwd: pointer to copy syncword data from
+    writereg(core.SYNCWORD, 1, ptr_syncwd)
+
+PUB syncwd(val=-2): ptr_syncwd
+' Get current syncword
+'   ptr_syncwd: pointer to copy syncword data to
+    readreg(core.SYNCWORD, 1, ptr_syncwd)
 
 PUB tx_cont(state=-2): curr_state
 ' Set continuous transmit mode

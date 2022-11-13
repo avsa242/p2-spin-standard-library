@@ -11,7 +11,7 @@
         originally written by Rayman/Ray Allen
 }
 #define MEMMV_NATIVE bytemove
-#include "lib.gfx.bitmap.spin2"
+#include "graphics.common.spin2h"
 
 CON
 

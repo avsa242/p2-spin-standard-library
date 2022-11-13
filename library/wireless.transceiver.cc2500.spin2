@@ -5,7 +5,7 @@
     Description: Driver for TI's CC2500 ISM-band (2.4GHz) transceiver (P2 version)
     Copyright (c) 2022
     Started Jul 7, 2019
-    Updated Oct 8, 2022
+    Updated Nov 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -154,7 +154,7 @@ PUB defaults()
     rx_bw(203)
     rx_fifo_thresh(32)
     syncwd_mode(SYNCMODE_1616)
-    syncwd($D391)
+    set_syncwd($D391)
     data_whiten(TRUE)
 }'   but to save code space, we'll just reset(), instead
     reset()
@@ -172,7 +172,7 @@ PUB preset_robust1()
 ' * turn off oscillator output on gpio0 (GDO0)
     reset()                                     ' start with POR defaults
     addr_check(ADRCHK_CHK_NO_BCAST)
-    auto_cal(IDLE_RXTX)
+    auto_cal_mode(IDLE_RXTX)
     crc_auto_flush_ena(TRUE)
     gpio0(IO_HI_Z)
 
@@ -275,24 +275,7 @@ PUB agc_mode(mode=-2): curr_mode
     mode := ((curr_mode & core.AGC_FREEZE_MASK) | mode) & core.AGCCTRL0_MASK
     writereg(core.AGCCTRL0, 1, @mode)
 
-PUB payld_status_ena(mode=-2): curr_mode
-' Append status bytes to packet payload (RSSI, LQI, CRC OK)
-'   Valid values:
-'      *TRUE (-1 or 1)
-'       FALSE (0)
-'   Any other value polls the chip and returns the current setting
-    curr_mode := 0
-    readreg(core.PKTCTRL1, 1, @curr_mode)
-    case abs(mode)
-        0, 1:
-            mode := abs(mode) << core.APPEND_STATUS
-        other:
-            return ((curr_mode >> core.APPEND_STATUS) & 1) == 1
-
-    mode := ((curr_mode & core.APPEND_STATUS_MASK) | mode) & core.PKTCTRL1_MASK
-    writereg(core.PKTCTRL1, 1, @mode)
-
-PUB auto_cal(mode=-2): curr_mode
+PUB auto_cal_mode(mode=-2): curr_mode
 ' When to perform auto-calibration
 '   Valid values:
 '      *NEVER (0) - Never (manually calibrate)
@@ -332,7 +315,7 @@ PUB carrier_freq(freq=-2): curr_freq
 
     writereg(core.FREQ2, 3, @freq)
 
-PUB carrier_sense(thresh=-2): curr_thr
+PUB carrier_sense_thresh(thresh=-2): curr_thr
 ' Set relative change threshold for asserting carrier sense, in dB
 '   Valid values:
 '      *0: Disabled
@@ -352,7 +335,7 @@ PUB carrier_sense(thresh=-2): curr_thr
     thresh := ((curr_thr & core.CSENSE_REL_THR_MASK) | thresh) & core.AGCCTRL1_MASK
     writereg(core.AGCCTRL1, 1, @thresh)
 
-PUB carrier_sense_abs(thresh=-2): curr_thr
+PUB carrier_sense_abs_thresh(thresh=-2): curr_thr
 ' Set absolute change threshold for asserting carrier sense, in dB
 '   Valid values:
 '       %0000..%1111
@@ -441,10 +424,6 @@ PUB crc_auto_flush_ena(mode=-2): curr_mode
 
     mode := ((curr_mode & core.CRC_AUTOFLUSH_MASK) | mode) & core.PKTCTRL1_MASK
     writereg(core.PKTCTRL1, 1, @mode)
-
-PUB xtal_off()
-' Turn off crystal oscillator
-    writereg(core.CS_SXOFF, 0, 0)
 
 PUB data_rate(rate): curr_rate | curr_exp, curr_mant, dr_exp, dr_mant
 ' Set on-air data rate, in bps
@@ -538,7 +517,7 @@ PUB fec_ena(mode=-2): curr_mode
 ' Enable forward error correction with interleaving
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting
-'   NOTE: Only supported for fixed packet length mode
+'   NOTE: Only supported when payld_len_cfg() == PKTLEN_FIXED
     curr_mode := 0
     readreg(core.MDMCFG1, 1, @curr_mode)
     case abs(mode)
@@ -596,7 +575,7 @@ PUB freq_dev(freq=-2): curr_freq | tmp, deviat_m, deviat_e, tmp_m
     freq &= core.DEVIATN_MASK
     writereg(core.DEVIATN, 1, @freq)
 
-PUB fstx()  'XXX review: name (API change)
+PUB freq_synth_ena()
 ' Enable frequency synthesizer and calibrate
     writereg(core.CS_SFSTXON, 0, 0)
 
@@ -734,7 +713,7 @@ PUB manchest_enc_ena(mode=-2): curr_mode
     writereg(core.MDMCFG2, 1, @mode)
 
 PUB modulation(mode=-2): curr_mode
-' Set modulation of transmitted or expected signal
+' Set modulation of transmitted (TX) or expected (RX) signal
 '   Valid values:
 '      *FSK2 (%000): 2-level or binary Frequency Shift-Keyed
 '       GFSK (%001): Gaussian FSK
@@ -742,7 +721,7 @@ PUB modulation(mode=-2): curr_mode
 '       FSK4 (%100): 4-level FSK
 '       MSK (%111): Minimum Shift-Keyed
 '   Any other value polls the chip and returns the current setting
-'   NOTE: MSK supported only at baud rates greater than 26k
+'   NOTE: MSK supported only when data_rate() is greater than 26k
     curr_mode := 0
     readreg(core.MDMCFG2, 1, @curr_mode)
     case mode
@@ -803,8 +782,9 @@ PUB payld_len(length=-2): curr_len
 PUB payld_len_cfg(mode=-2): curr_mode
 ' Set payload length mode
 '   Valid values:
-'       PKTLEN_FIXED (0): Fixed payload length mode. Set length with PayloadLen
-'      *PKTLEN_VAR (1): Variable payload length mode. Payload length set by first byte after sync word
+'       PKTLEN_FIXED (0): Fixed payload length mode. Payload length is set by payld_len()
+'      *PKTLEN_VAR (1): Variable payload length mode. Payload length is set by first byte of
+'           payload data (default)
 '       PKTLEN_INF (2): Infinite payload length mode.
 '   Any other value polls the chip and returns the current setting
     curr_mode := 0
@@ -816,6 +796,23 @@ PUB payld_len_cfg(mode=-2): curr_mode
 
     mode := ((curr_mode & core.LEN_CFG_MASK) | mode) & core.PKTCTRL0_MASK
     writereg(core.PKTCTRL0, 1, @mode)
+
+PUB payld_status_ena(mode=-2): curr_mode
+' Append status bytes to packet payload (RSSI, LQI, CRC OK)
+'   Valid values:
+'      *TRUE (-1 or 1)
+'       FALSE (0)
+'   Any other value polls the chip and returns the current setting
+    curr_mode := 0
+    readreg(core.PKTCTRL1, 1, @curr_mode)
+    case abs(mode)
+        0, 1:
+            mode := abs(mode) << core.APPEND_STATUS
+        other:
+            return ((curr_mode >> core.APPEND_STATUS) & 1) == 1
+
+    mode := ((curr_mode & core.APPEND_STATUS_MASK) | mode) & core.PKTCTRL1_MASK
+    writereg(core.PKTCTRL1, 1, @mode)
 
 PUB pll_locked(): flag
 ' Flag indicating PLL is locked
@@ -839,8 +836,8 @@ PUB preamble_len(len=-2): curr_len
     len := ((curr_len & core.NUM_PREAMBLE_MASK) | len)
     writereg(core.MDMCFG1, 1, @len)
 
-PUB preamble_qual(thresh=-2): curr_thr
-' Set Preamble quality estimator thresh
+PUB preamble_quality_thresh(thresh=-2): curr_thr
+' Set Preamble quality estimator threshold
 '   Valid values: *0, 4, 8, 12, 16, 20, 24, 28
 '   NOTE: If 0, the sync word is always accepted.
 '   Any other value polls the chip and returns the current setting
@@ -868,6 +865,7 @@ PUB rssi(): level
     readreg(core.RSSI, 1, @level)
     level := (~level / 2) - 74
 
+PUB rx_bandwidth = rx_bw
 PUB rx_bw(width=-2): curr_wid
 ' Set receiver channel filter bandwidth, in kHz
 '   Valid values: 812, 650, 541, 464, 406, 325, 270, 232, *203, 162, 135, 116, 102, 81, 68, 58
@@ -954,19 +952,16 @@ PUB syncwd_mode(mode=-2): curr_mode
     mode := ((curr_mode & core.SYNC_MODE_MASK) | mode) & core.MDMCFG2_MASK
     writereg(core.MDMCFG2, 1, @mode)
 
-PUB syncwd(syncwd=-2): curr_word
-' Set transmitted (TX) or expected (RX) sync word
-'   Valid values: $0000..$FFFF
-'   Default value: $D391
-'   Any other value polls the chip and returns the current setting
-    curr_word := 0
-    readreg(core.SYNC1, 2, @curr_word)
-    case syncwd
-        $0000..$FFFF:
-        other:
-            return curr_word
+PUB set_syncwd(ptr_syncwd)
+' Set transmitted (TX) or expected (RX) syncword
+'   ptr_syncwd: pointer to syncword data
+'   Valid values: $0000..$FFFF (default: $D391)
+    writereg(core.SYNC1, 2, ptr_syncwd)
 
-    writereg(core.SYNC1, 2, @syncwd)
+PUB syncwd(ptr_syncwd)
+' Get current syncword
+'   ptr_syncwd: pointer to copy syncword data to
+    readreg(core.SYNC1, 2, ptr_syncwd)
 
 PUB tx_mode()
 ' Change chip state to TX (transmit)
@@ -1019,6 +1014,10 @@ PUB tx_pwr_idx(idx=-2): curr_idx
 PUB wake_on_radio()
 ' Change chip state to WOR (Wake-on-Radio)
     writereg(core.CS_SWOR, 0, 0)
+
+PUB xtal_off()
+' Turn off crystal oscillator
+    writereg(core.CS_SXOFF, 0, 0)
 
 PRI getstatus(): curr_status
 ' Read the status byte

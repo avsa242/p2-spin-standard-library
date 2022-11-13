@@ -6,7 +6,7 @@
         TX Mode (P2 version)
     Copyright (c) 2022
     Started Apr 30, 2020
-    Updated Oct 16, 2022
+    Updated Nov 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,11 +20,11 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    CE_PIN      = 20
-    CS_PIN      = 21
-    SCK_PIN     = 18
-    MOSI_PIN    = 16                            ' MOSI and MISO must be within
-    MISO_PIN    = 17                            '   3 pins +/- of SCK
+    CE_PIN      = 0
+    CS_PIN      = 1
+    SCK_PIN     = 2
+    MOSI_PIN    = 3                             ' MOSI and MISO must be within
+    MISO_PIN    = 4                             '   3 pins +/- of SCK
     SCK_FREQ    = 10_000_000                    ' 10_000_000 max
 
     PKTLEN      = 32                            ' 1..32 (bytes)
@@ -42,37 +42,38 @@ OBJ
 VAR
 
     byte _txdata[PKTLEN]
-    byte _addr[5]
+    byte _syncwd[5]
 
 PUB main() | i
 
     setup()
 
-    bytemove(@_addr, string($E7, $E7, $E7, $E7, $E7), 5)
-    nrf24.node_addr(@_addr)                     ' set transmitter address
+    bytemove(@_syncwd, string($E7, $E7, $E7, $E7, $E7), 5)
+    nrf24.set_syncwd(@_syncwd)                  ' set syncword
 
     nrf24.channel(CHANNEL)
     nrf24.tx_mode()
     nrf24.powered(true)
-    nrf24.payld_len(PKTLEN, 0)                  ' set pipe 0 to 32 bytes width
+    nrf24.set_pipe_nr(0)
+    nrf24.payld_len(PKTLEN)                     ' set pipe 0 to 32 bytes width
 
 ' Experiment with these to observe effect on throughput
-'   NOTE: The receiver's settings _must_ match these (except txpower())
+'   NOTE: The receiver's settings _must_ match these (except tx_pwr())
     nrf24.data_rate(2_000_000)                  ' 250_000, 1_000_000, 2_000_000
-    nrf24.tx_pwr(0)                             ' -18, -12, -6, 0 (dBm)
-    nrf24.crc_check_ena(true)
-    nrf24.crc_len(1)                            ' 1, 2 bytes
     nrf24.auto_ack_pipes_ena(%000011)           ' pipe mask [5..0]
+    nrf24.tx_pwr(0)                             ' -18, -12, -6, 0 (dBm)
+    nrf24.crc_check_ena(true)                   ' ignored (always on) if auto-ack is used
+    nrf24.crc_len(1)                            ' 1, 2 bytes
 
     repeat i from 0 to PKTLEN-1                 ' fill transmit buffer with
         _txdata.byte[i] := 32+i                 ' ASCII 32..32+(PKTLEN-1)
 
-    ser.position(0, 3)
+    ser.pos_xy(0, 3)
     ser.printf(@"Transmitting ")
     ser.dec(PKTLEN)
     ser.printf(@" byte payloads to ")
-    repeat i from 0 to 4                        ' show the address being
-        ser.hex(_addr[i], 2)                    ' transmitted to
+    repeat i from 0 to 4                        ' show the syncword
+        ser.hex(_syncwd[i], 2)
     ser.newline()
 
     nrf24.flush_tx()

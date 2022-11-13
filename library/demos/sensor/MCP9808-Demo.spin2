@@ -31,7 +31,7 @@ CON
 OBJ
 
     cfg:    "boardcfg.p2eval"
-    sensor:  "sensor.temperature.mcp9808"
+    sensor: "sensor.temperature.mcp9808"
     ser:    "com.serial.terminal.ansi"
 
 PUB setup()
