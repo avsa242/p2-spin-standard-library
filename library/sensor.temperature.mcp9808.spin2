@@ -72,7 +72,7 @@ PUB dev_id(): id | word tmp[2]
     id.word[1] := tmp[1]
     id.word[0] := tmp[0]
 
-PUB int_clr() | tmp
+PUB int_clear() | tmp
 ' Clear interrupt
     readreg(core.CONFIG, 2, @tmp)
     tmp |= (1 << core.INTCLR)
@@ -133,7 +133,7 @@ PUB int_latch_ena(mode=-2): curr_mode
 '   Valid values:
 '      *FALSE (0) (default): triggered interrupts clear automatically when measurements return
 '           inside set thresholds
-'       TRUE (-1): triggered interrupts will only be cleared by calling int_clr()
+'       TRUE (-1): triggered interrupts will only be cleared by calling int_clear()
 '   Any other value polls the chip and returns the current setting
 '   NOTE: This can't be set to TRUE when interrupts are asserted only for crossing the critical
 '       threhsold, int_mask() == 1 (hardware limitation)

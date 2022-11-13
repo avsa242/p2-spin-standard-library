@@ -173,7 +173,7 @@ PUB accel_int(): int_src
     int_src := 0
     readreg(core.DETSRC, 1, @int_src)
 
-PUB accel_int_clr(mask)
+PUB accel_int_clear(mask)
 ' Clear accelerometer interrupts
 '   Bits: 1..0
 '       1: Clear INT2 interrupt

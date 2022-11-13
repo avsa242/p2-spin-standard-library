@@ -80,7 +80,7 @@ PUB main() | i
     if (nrf24.auto_ack_pipes_ena())             ' decide which loop to run
         repeat                                  ' based on whether auto-ack
             if (nrf24.max_retrans_reached())    ' is enabled...
-                nrf24.int_clr(%001)
+                nrf24.int_clear(%001)
             nrf24.tx_payld(PKTLEN, @_txdata)
     else                                        ' ...or not
         repeat

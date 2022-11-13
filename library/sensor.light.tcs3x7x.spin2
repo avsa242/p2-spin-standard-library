@@ -122,7 +122,7 @@ PUB green_data(): gdata
     readreg(core.GDATAL, 2, @gdata)
     _wrgb[GREEN] := gdata
 
-PUB int_clr()
+PUB int_clear()
 ' Clears an asserted interrupt
 ' NOTE: This clears an active interrupt asserting the INT pin, as well as
 '   the flag readable using the interrupt() method

@@ -100,7 +100,7 @@ PUB main() | payld_cnt, max_retrans, pkts_retrans, lost_pkts
 
         { check for transmission error limits and clear them so transmission can continue }
         if (max_retrans)
-            nrf24.int_clr(nrf24.INT_MAX_RETRANS)
+            nrf24.int_clear(nrf24.INT_MAX_RETRANS)
         if (lost_pkts >= 15)
             nrf24.channel(CHANNEL)
 

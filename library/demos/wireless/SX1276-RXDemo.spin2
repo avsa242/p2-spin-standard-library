@@ -47,7 +47,7 @@ PUB main()
 ' -- TX/RX settings
     lora.preset_lora()                          ' factory defaults + LoRa mode
     lora.channel(0)                             ' US 902.3MHz + (chan. * 200kHz)
-    lora.int_clr(lora.INT_ALL)                  ' clear _all_ interrupts
+    lora.int_clear(lora.INT_ALL)                  ' clear _all_ interrupts
     lora.fifo_rx_base_ptr($00)                  ' use the whole 256-byte FIFO
                                                 '   for RX
     lora.payld_len(8)                           ' the expected test packets are
@@ -66,7 +66,7 @@ PUB main()
     repeat
         { wait for the radio to finish receiving, then clear the interrupt }
         repeat until (lora.interrupt() & lora.INT_RX_DONE)
-        lora.int_clr(lora.INT_RX_DONE)
+        lora.int_clear(lora.INT_RX_DONE)
 
         { get the payload from the radio }
         lora.fifo_addr_ptr(lora.fifo_rx_current_addr())

@@ -51,7 +51,7 @@ PUB main()
                                                 ' operating mode
 
     vcnl.als_int_ena(TRUE)
-    vcnl.int_clr()                              ' ensure ints are cleared
+    vcnl.int_clear()                              ' ensure ints are cleared
     vcnl.als_set_int_lo_thresh(10_000)          ' set low and high thresholds
     vcnl.als_set_int_hi_thresh(75_000)          '   (in milli-lux)
 
@@ -68,7 +68,7 @@ PUB main()
 
         ser.clearline()
         if (ser.rxcheck() == "c")
-            vcnl.int_clr()
+            vcnl.int_clear()
 
 PUB cog_isr()
 ' Interrupt service routine

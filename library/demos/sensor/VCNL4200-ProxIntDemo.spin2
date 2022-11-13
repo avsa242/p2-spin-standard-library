@@ -50,7 +50,7 @@ PUB main()
     vcnl.preset_prox_long_range()               ' set to prox. sensor
                                                 ' operating mode
 
-    vcnl.int_clr()                              ' ensure ints are cleared
+    vcnl.int_clear()                              ' ensure ints are cleared
     vcnl.prox_set_int_lo_thresh(100)            ' set low and high thresholds
     vcnl.prox_set_int_hi_thresh(200)
     vcnl.prox_int_mask(vcnl.INT_NEAR)           ' INT_NEAR, INT_FAR
@@ -68,7 +68,7 @@ PUB main()
 
         ser.clearline()
         if (ser.rxcheck() == "c")
-            vcnl.int_clr()
+            vcnl.int_clear()
 
 PUB cog_isr()
 ' Interrupt service routine

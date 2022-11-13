@@ -152,7 +152,7 @@ PUB glass_atten(ga)
 ' Set glass attenuation factor
     _glass_att := ga
 
-PUB int_clr(mask)
+PUB int_clear(mask)
 ' Clear interrupts
 '   mask bits: (set a bit to clear the interrupt)
 '       1: non-persistent interrupt

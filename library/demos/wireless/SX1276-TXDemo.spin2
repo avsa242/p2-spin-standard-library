@@ -48,7 +48,7 @@ PUB main() | count
 ' -- TX/RX settings
     lora.preset_lora()                          ' factory defaults + LoRa mode
     lora.channel(0)                             ' US 902.3MHz + (chan. * 200kHz)
-    lora.int_clr(lora.INT_ALL)                  ' clear _all_ interrupts
+    lora.int_clear(lora.INT_ALL)                  ' clear _all_ interrupts
     lora.fifo_tx_base_ptr($00)                  ' use the whole 256-byte FIFO
                                                 '   for TX
     lora.payld_len(8)                           ' the test packets are
@@ -76,7 +76,7 @@ PUB main() | count
 
         { wait until sending is complete, then clear the interrupt }
         repeat until (lora.interrupt() & lora.INT_TX_DONE)
-        lora.int_clr(lora.INT_TX_DONE)
+        lora.int_clear(lora.INT_TX_DONE)
 
         count++
         ser.pos_xy(0, 5)

@@ -99,7 +99,7 @@ PUB main() | payld_cnt, recv_pipe, pipe_nr
         ser.hexdump(@_payload, 0, 4, _payld_len, _payld_len)
 
         { clear interrupt and receive buffer for next loop }
-        nrf24.int_clr(nrf24.INT_PAYLD_RDY)
+        nrf24.int_clear(nrf24.INT_PAYLD_RDY)
         nrf24.flush_rx()
 
 PUB setup()

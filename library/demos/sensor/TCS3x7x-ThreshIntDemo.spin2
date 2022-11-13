@@ -48,7 +48,7 @@ PUB main()
     rgb.preset_active()                         ' default settings, but enable
                                                 '   sensor power
 
-    rgb.int_clr()                               ' clear potential false int
+    rgb.int_clear()                               ' clear potential false int
     rgb.int_ena(true)
     rgb.int_set_lo_thresh(0)
     rgb.int_set_hi_thresh(15)                   ' (low, high): 0..65535
@@ -65,7 +65,7 @@ PUB main()
             ser.pos_xy(0, 8)
             ser.strln(@"interrupt - press any key to clear")
             ser.getchar()
-            rgb.int_clr()
+            rgb.int_clear()
             ser.pos_xy(0, 8)
             ser.clear_line()
 

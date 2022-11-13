@@ -210,7 +210,7 @@ PUB dev_id(): id
     id := 0
     readreg(core.DEVID, 2, @id)
 
-PUB int_clr()
+PUB int_clear()
 ' Clear interrupts
     interrupt()                                 ' simply reading interrupt
                                                 ' flags clears them

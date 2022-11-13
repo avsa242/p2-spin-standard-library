@@ -87,7 +87,7 @@ PUB main() | bright, last, payload
             led.show()
 
         { clear interrupt and receive buffer for next loop }
-        nrf24.int_clr(nrf24.PAYLD_RDY)
+        nrf24.int_clear(nrf24.PAYLD_RDY)
         nrf24.flush_rx()
 
 PUB setup()

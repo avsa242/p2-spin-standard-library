@@ -154,7 +154,7 @@ PUB als_data_rdy(): flag
 '   Returns: TRUE (-1) or FALSE (0)
     flag := ((interrupt() & core.ALS_INT_BITS) <> 0)
     if (flag)
-        int_clr(core.INTSRC_ALS)
+        int_clear(core.INTSRC_ALS)
 
 PUB aux_chan_ena(state=-2): curr_state
 ' Enable the auxiliary source data channel
@@ -189,7 +189,7 @@ PUB dev_id(): id
     id := 0
     readreg(core.PART_ID, 1, @id)
 
-PUB int_clr(mask)
+PUB int_clear(mask)
 ' Clear interrupts
 '   Bits: 5..0 (set a bit to clear the interrupt)
 '       5: command interrupt
