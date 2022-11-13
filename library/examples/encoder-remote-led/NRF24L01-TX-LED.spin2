@@ -8,7 +8,7 @@
         * Quadrature encoder
     Copyright (c) 2022
     Started Aug 29, 2022
-    Updated Oct 31, 2022
+    Updated Nov 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -55,8 +55,8 @@ PUB main() | delta
     nrf24.channel(2)                            ' 0..125 (2.400 .. 2.525GHz)
     nrf24.tx_pwr(0)                             ' -18, -12, -6, 0 (dBm)
 
-    { set transmit address (note: order in string() is LSB, ..., MSB) }
-    nrf24.node_addr(string($e7, $e7, $e7, $e7, $e7))
+    { set syncword (note: order in string() is LSB, ..., MSB) }
+    nrf24.set_syncwd(string($e7, $e7, $e7, $e7, $e7))
 
 ' --
 
@@ -82,7 +82,7 @@ PUB setup()
         nrf24.preset_tx2m_noaa()                ' 2Mbps, no Auto-Ack
         nrf24.crc_check_ena(true)
         nrf24.crc_len(2)
-        nrf24.payld_len(4, 0)
+        nrf24.payld_len(4)
     else
         ser.strln(string("nRF24L01+ driver failed to start - halting"))
         repeat

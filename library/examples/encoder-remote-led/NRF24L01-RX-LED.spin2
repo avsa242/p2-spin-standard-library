@@ -8,7 +8,7 @@
         * 1x Smart LED (NeoPixel)
     Copyright (c) 2022
     Started Aug 29, 2022
-    Updated Oct 31, 2022
+    Updated Nov 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -62,12 +62,12 @@ PUB main() | bright, last, payload
 ' -- User-modifiable settings (NOTE: These settings _must_ match the transmit side) }
     nrf24.channel(2)                            ' 0..125 (2.400 .. 2.525GHz)
 
-    { set receive address (note: order in string() is LSB, ..., MSB) }
-    nrf24.rx_addr(string($e7, $e7, $e7, $e7, $e7), 0, nrf24.WRITE)
+    { set syncword (note: order in string() is LSB, ..., MSB) }
+    nrf24.set_syncwd(string($e7, $e7, $e7, $e7, $e7))
 ' --
 
     ser.clear()
-    ser.position(0, 0)
+    ser.pos_xy(0, 0)
     ser.printf(@"Receive mode (channel %d)\n\r", nrf24.channel())
 
     repeat
@@ -99,7 +99,7 @@ PUB setup()
         nrf24.preset_rx2m_noaa()                ' 2Mbps, No Auto-Ack
         nrf24.crc_check_ena(true)
         nrf24.crc_len(2)
-        nrf24.payld_len(4, 0)
+        nrf24.payld_len(4)
     else
         ser.strln(@"nRF24L01+ driver failed to start - halting")
         repeat
