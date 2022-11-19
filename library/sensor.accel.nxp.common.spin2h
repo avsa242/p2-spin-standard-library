@@ -8,7 +8,7 @@
             FXOS8700
     Copyright (c) 2022
     Started Oct 2, 2022
-    Updated Nov 5, 2022
+    Updated Nov 19, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,9 +16,9 @@ PUB accel_bias(x, y, z) | tmp
 ' Read accelerometer calibration offset values
     tmp := 0
     readreg(core.OFF_X, 3, @tmp)
-    _abias[X_AXIS] := long[x] := (tmp.byte[X_AXIS] signx 7)
-    _abias[Y_AXIS] := long[y] := (tmp.byte[Y_AXIS] signx 7)
-    _abias[Z_AXIS] := long[z] := (tmp.byte[Z_AXIS] signx 7)
+    _abias[X_AXIS] := long[x] := (tmp.byte[2] signx 7)
+    _abias[Y_AXIS] := long[y] := (tmp.byte[1] signx 7)
+    _abias[Z_AXIS] := long[z] := (tmp.byte[0] signx 7)
 
 PUB accel_set_bias(x, y, z)
 ' Write accelerometer calibration offset values
@@ -27,18 +27,18 @@ PUB accel_set_bias(x, y, z)
     _abias[X_AXIS] := -(-128 #> x <# 127)
     _abias[Y_AXIS] := -(-128 #> y <# 127)
     _abias[Z_AXIS] := -(-128 #> z <# 127)
-    cache_opmode()                       ' switch to stdby to mod regs
+    cache_opmode()                              ' switch to stdby to mod regs
     writereg(core.OFF_X, 1, @_abias[X_AXIS])
     writereg(core.OFF_Y, 1, @_abias[Y_AXIS])
     writereg(core.OFF_Z, 1, @_abias[Z_AXIS])
-    restore_opmode()                     ' restore original opmode
+    restore_opmode()                            ' restore original opmode
 
 PUB accel_data(ptr_x, ptr_y, ptr_z) | tmp[2]
 ' Read the Accelerometer output registers
     readreg(core.OUT_X_MSB, 6, @tmp)
-    long[ptr_x] := (tmp.word[X_AXIS] signx 15) sar 4      ' output data is 12bit signed,
-    long[ptr_y] := (tmp.word[Y_AXIS] signx 15) sar 4      '   left-justified; shift it
-    long[ptr_z] := (tmp.word[Z_AXIS] signx 15) sar 4      '   down to the LSBit
+    long[ptr_x] := (tmp.word[2] signx 15) sar 4 ' output data is 12bit signed,
+    long[ptr_y] := (tmp.word[1] signx 15) sar 4 '   left-justified; shift it
+    long[ptr_z] := (tmp.word[0] signx 15) sar 4 '   down to the LSBit
 
 PUB accel_data_overrun(): flag
 ' Flag indicating previously acquired data has been overwritten
@@ -871,7 +871,8 @@ PUB orient_detect_ena(state=-2): curr_state
     restore_opmode()                             ' restore original opmode
 
 PUB trans_cnt(): tcnt
-' Set minimum number of debounced samples that must be greater than the
+' Get minimum number of debounced samples that must be greater than the
+'   threshold set by trans_set_thresh() to generate an interrupt
     tcnt := 0
     readreg(core.TRANSIENT_CNT, 1, @tcnt)
 
