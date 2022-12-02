@@ -5,21 +5,21 @@
     Description: Lux sensor demo - code common to all drivers
     Copyright (c) 2022
     Started Jul 23, 2022
-    Updated Oct 11, 2022
+    Updated Dec 2, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 PUB show_lux_data() | lux
 ' Display lux sensor data
     lux := sensor.lux()
-    ser.printf(@"Illuminance (lux): %3.3d.%02.2d\n\r", (lux / 1000), abs(lux // 1000))
+    ser.printf(@"Illuminance (lux): %4.4d.%02.2d\n\r", (lux / 1000), abs(lux // 1000))
 
-{ define demo() only if something .including this file doesn't already provide one }
+{ define demo() only if something #including this file doesn't already provide one }
 #ifndef HAS_DEMO
 PUB demo()
 
     repeat
-        ser.position(0, 3)
+        ser.pos_xy(0, 3)
         show_lux_data()
         waitms(250)
 #endif
