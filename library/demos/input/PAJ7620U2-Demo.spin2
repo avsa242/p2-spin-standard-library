@@ -12,7 +12,7 @@
 
 CON
 
-    _clkfreq    = cfg._clkfreq_def_def
+    _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
