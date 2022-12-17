@@ -33,7 +33,7 @@ Notes:
 	* No more cogs available
 	* One or more specified I/O pins are outside allowed range
 	* Bus frequency is outside allowed range
-	* If supported by the device, `device_id()` didn't return the expected value
+	* If supported by the device, `dev_id()` didn't return the expected value
 
 4. `defaults()` may simply call `reset()`, if sensible, as opposed to calling several other driver
 methods, in order to reduce memory usage.
@@ -46,20 +46,113 @@ methods, in order to reduce memory usage.
 
 ## Methods
 
-| Method           | Description                                   | Param    | Returns           |
-| ---------------- | --------------------------------------------- | -------- | ----------------- |
-|`adc2amps()`      | Convert current ADC word to amperage          | adc word | uA                |
-|`adc2volts()`     | Convert bus voltage ADC word to voltage       | adc word | uV                |
-|`adc2watts()`     | Convert power ADC word to wattage             | adc word | uW                |
-|`current()`       | Current measurement                           | n/a      | uA                |
-|`current_data()`  | Current ADC word                              | n/a      | adc word          |
-|`device_id()`     | Model-specific identification                 | n/a      | dev id            |
-|`opmode()`        | Set operating mode                            | mode     | current mode      |
-|`power()`         | Power measurement                             | n/a      | uW                |
-|`power_data()`    | Power ADC word                                | n/a      | adc word          |
-|`reset()`         | Reset device                                  | n/a      | n/a               |
-|`voltage()`       | Bus voltage measurement                       | n/a      | uV                |
-|`voltage_data()`  | Bus voltage ADC word                          | n/a      | adc word          |
+| Method           | Description                                   |
+| ---------------- | --------------------------------------------- |
+|`adc2amps()`      | Convert current ADC word to amperage          |
+|`adc2volts()`     | Convert bus voltage ADC word to voltage       |
+|`adc2watts()`     | Convert power ADC word to wattage             |
+|`current()`       | Current measurement                           |
+|`current_data()`  | Current ADC word                              |
+|`dev_id()`        | Model-specific identification                 |
+|`opmode()`        | Set operating mode                            |
+|`power()`         | Power measurement                             |
+|`power_data()`    | Power ADC word                                |
+|`reset()`         | Reset device                                  |
+|`voltage()`       | Bus voltage measurement                       |
+|`voltage_data()`  | Bus voltage ADC word                          |
+
+`adc2amps(adc_wd)`
+------------------
+__Convert current ADC word to amperage__
+* Parameters:
+	* `adc_wd`: adc word
+* Returns:
+	* current in microamperes
+
+
+`adc2volts()`
+-------------
+__Convert bus voltage ADC word to voltage__
+* Parameters:
+	* `adc_wd`: adc word
+* Returns:
+	* voltage in microvolts
+
+
+`adc2watts(adc_wd)`
+-------------------
+__Convert power ADC word to wattage__
+* Parameters:
+	* `adc_wd`: adc word
+* Returns:
+	* power in microwatts
+
+
+`current()`
+-----------
+__Current measurement__
+* Parameters: none
+* Returns: current in microamperes
+
+
+`current_data()`
+----------------
+__Current ADC word__
+* Parameters: none
+* Returns: ADC word representing current
+
+
+`dev_id()`
+-------------
+__Device identification__
+* Parameters: n/a
+* Returns: model-specific identification
+
+
+`opmode(mode)`
+--------------
+__Set operating mode__
+* Parameters:
+	* `mode`: new operating mode
+* Returns:
+	* current operating mode
+
+
+`power()`
+---------
+__Power measurement__
+* Parameters: none
+* Returns:
+	* power measurement in microwatts
+
+
+`power_data()`
+--------------
+__Power ADC word__
+* Parameters: none
+* Returns: ADC word representing power measurement
+
+
+`reset()`
+---------
+__Reset device__
+* Parameters: none
+* Returns: none
+__NOTE__: Some devices may require an additional I/O pin to perform a reset.
+
+
+`voltage()`
+-----------
+__Bus voltage measurement__
+* Parameters: none
+* Returns: voltage in microvolts
+
+
+`voltage_data()`
+----------------
+__Bus voltage ADC word__
+* Parameters: none
+* Returns: ADC word representing voltage
 
 
 Notes:

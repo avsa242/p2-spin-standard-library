@@ -24,10 +24,10 @@ Notes:
 
 1. For SPI-connected sensors:
 	* `startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SPI_FREQ): status`
-	* SPI_FREQ defaults to 1MHz, if unspecified.
+	* `SPI_FREQ` defaults to 1MHz, if unspecified.
 	* For SPI-connected sensors: 4-wire SPI is used by default. If supported by the device,
 3-wire SPI can be chosen by setting `MOSI_PIN` and `MISO_PIN` to the same I/O pin.
-The `Startx()` method will check for this and set the device's 3-wire SPI mode register.
+The `startx()` method will check for this and set the device's 3-wire SPI mode register.
 
 2. For I2C-connected sensors:
 	* `startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS): status`
@@ -39,7 +39,7 @@ The `Startx()` method will check for this and set the device's 3-wire SPI mode r
 	* No more cogs available
 	* One or more specified I/O pins are outside allowed range
 	* Bus frequency is outside allowed range
-	* If supported by the device, `device_id()` didn't return the expected value
+	* If supported by the device, `dev_id()` didn't return the expected value
 
 5. `defaults()` may simply call `reset()`, if sensible, as opposed to calling several other driver
 methods, in order to reduce memory usage.
@@ -53,11 +53,47 @@ methods, in order to reduce memory usage.
 
 ## Methods
 
-| Method       | Description                                   | Param    | Returns               |
-| ------------ | --------------------------------------------- | -------- | --------------------- |
-|`adc_data()`  | Bus voltage ADC word                          | n/a      | adc word              |
-|`adc2volts()` | Convert bus voltage ADC word to voltage       | adc word | uV                    |
-|`voltage()`   | Bus voltage measurement                       | n/a      | uV                    |
+| Method             | Description                                   |
+| ------------------ | --------------------------------------------- |
+|`adc_channel()`     | Get currently set ADC channel                 |
+|`adc_data()`        | Bus voltage ADC word                          |
+|`adc2volts()`       | Convert bus voltage ADC word to voltage       |
+|`set_adc_channel()` | Set ADC channel for subsequent reads          |
+|`voltage()`         | Bus voltage measurement                       |
+
+`adc_channel()`
+---------------
+__Get currently set ADC channel__
+* Parameters: none
+* Returns: currently set ADC channel
+
+
+`adc_data()`
+------------
+__Bus voltage ADC word__
+* Parameters: none
+* Returns: ADC word representing voltage
+
+
+`adc2volts(adc_wd)`
+-------------------
+__Convert bus voltage ADC word to voltage__
+* Parameters: `adc_wd`: ADC word representing voltage
+* Returns: voltage in microvolts
+
+
+`set_adc_channel(ch)`
+---------------------
+__Set ADC channel for subsequent reads__
+* Parameters: `ch`: new channel number
+* Returns: none
+
+
+`voltage()`
+-----------
+__Bus voltage measurement__
+* Parameters: none
+* Returns: voltage in microvolts
 
 
 Notes:

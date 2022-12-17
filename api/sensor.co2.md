@@ -1,7 +1,7 @@
 # sensor.co2
 ------------
 
-API for CO2 sensing device drivers
+API for Carbon Dioxide sensing device drivers
 
 Object filename description:
 
@@ -37,28 +37,53 @@ outside the allowable range.
 	* No more cogs available
 	* One or more specified I/O pins are outside allowed range
 	* Bus frequency is outside allowed range
-	* If supported by the device, `device_id()` didn't return the expected value
+	* If supported by the device, `dev_id()` didn't return the expected value
 
 5. `defaults()` may simply call `reset()`, if sensible, as opposed to calling several other driver
 methods, in order to reduce memory usage.
 
 6. Drivers may have one or more `preset_()` methods, that establish a set of pre-set settings.
 
-7. `Stop()` performs the following tasks:
+7. `stop()` performs the following tasks:
 	* Stop any extra cogs that were started (if applicable)
 	* Clear all global variable space used to 0
 
 ## Methods
 
-| Method          | Description                                      | Param    | Returns         |
-| --------------- | ------------------------------------------------ | -------- | --------------- |
-| `adc2co2()`     | Convert ADC word to CO2 data                     | adc word | 0.1ppm          |
-| `co2_data()`    | CO2 data ADC word                                | n/a      | adc word        |
-| `co2_ppm()`     | CO2 data concentration                           | n/a      | 0.1ppm          |
+| Method          | Description                                      |
+| --------------- | ------------------------------------------------ |
+| `adc2co2()`     | Convert ADC word to CO2 data                     |
+| `co2_data()`    | CO2 data ADC word                                |
+| `co2_ppm()`     | CO2 data concentration                           |
+
+
+`adc2co2(co2_wd)`
+-----------------
+__Convert ADC word to CO2 data__
+* Parameters:
+	* `co2_wd`: ADC word representing CO2 measurement
+* Returns:
+	* CO2 concentration in 0.1 parts per million (e.g., `12004` is 1200.4ppm)
+
+
+`co2_data()`
+------------
+* Parameters: none
+* Returns:
+	* ADC word representing CO2 measurement
+
+
+`co2_ppm()`
+-----------
+* Parameters: none
+* Returns:
+	* CO2 concentration in 0.1 parts per million (e.g., `12004` is 1200.4ppm)
+
 
 Notes:
 
 1. Some devices also contain temperature and/or relative humidity sensors. These follow the [sensor.temp_rh API](https://github.com/avsa242/p2-spin-standard-library/blob/testing/api/sensor.temp_rh.md)
+
 
 ## Build examples
 
