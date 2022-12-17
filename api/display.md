@@ -51,6 +51,7 @@ default to the PASM-based I2C engine.
 methods, in order to reduce memory usage.
 
 7. Some drivers also provide the following methods:
+
 | Method          | Description                                      | Param    | Returns         |
 | --------------- | ------------------------------------------------ | -------- | --------------- |
 | `reset()`       | Perform a hard or soft-reset of the device       | n/a      | n/a             |
