@@ -4,7 +4,7 @@
     Description: 8-bits per pixel bitmap VGA driver (320x240)
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Nov 26, 2022
+    Updated: Dec 17, 2022
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is based on raycast5b_SpinDisplay2a.spin2,
@@ -194,7 +194,7 @@ DisplayEntry
 '
 ' Field loop
 '
-field                   mov     x, _vb                      'top blanks
+hfield                  mov     x, _vb                      'top blanks
                         call    #blank
                         mov     m_buf, framebuff_addr
                         mov     x, #480/2                   'set visible lines
@@ -217,7 +217,7 @@ lineloop                call    #hsync                      'do horizontal sync
 
                         drvnot  vsync_pin                   'sync off
 
-                        jmp     #field                      'loop
+                        jmp     #hfield                     'loop
 '
 ' Subroutines
 '
