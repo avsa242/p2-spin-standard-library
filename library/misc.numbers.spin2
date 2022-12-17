@@ -49,7 +49,7 @@ PUB ToStr(Num, Format): StrAddr
   StrAddr := @StrBuf
   
 
-PUB FromStr(StrAddr, Format): Num | Idx, N, Val, Char, Base, GChar, IChar, Field
+PUB FromStr(StrAddr, Format): Num | Idx, N, Val, Char, Base, GChar, IChar, IField
 ''Convert z-string (at StrAddr) to long Num using Format.
 ''PARAMETERS: StrAddr = Address of string buffer containing the numeric string to convert.
 ''            Format  = Indicates input format: base, width, etc. See "FORMAT SYNTAX" for more information.  Note: three Format elements are ignored by
@@ -60,7 +60,7 @@ PUB FromStr(StrAddr, Format): Num | Idx, N, Val, Char, Base, GChar, IChar, Field
     GChar := Symbols[--GChar #> 0]
   if IChar := Format >> 19 & 7                                                                          'Get indicator character
     IChar := Symbols[--IChar #> 0]
-  Field := Format >> 5 & $3F - 1                                                                        'Get field size, if any (subtract out sign char)
+  IField := Format >> 5 & $3F - 1                                                                        'Get field size, if any (subtract out sign char)
   longfill(@Idx, 0, 3)                                                                                  'Clear Idx, N and Val
   repeat while Char := byte[StrAddr][Idx]                                                               'While not null
     if (not IChar or (IChar and Val)) and InBaseRange(Char, Base) > 0                                   'Found first valid digit? (with prefix indicator if required)?
@@ -69,8 +69,8 @@ PUB FromStr(StrAddr, Format): Num | Idx, N, Val, Char, Base, GChar, IChar, Field
       if not Val := IChar and (Char == IChar)                                                           '  look for indicator character (if required)
         N := Char == "-"                                                                                'Update N flag if not indicator
     Idx++
-  Field += Val                                                                                          'Subract indicator character from remaining field size
-  repeat while (Field--) and (Char := byte[StrAddr][Idx++]) and ((Val := InBaseRange(Char, Base)) > 0 or (GChar and (Char == GChar)))           
+  IField += Val                                                                                          'Subract indicator character from remaining field size
+  repeat while (IField--) and (Char := byte[StrAddr][Idx++]) and ((Val := InBaseRange(Char, Base)) > 0 or (GChar and (Char == GChar)))           
     if Val                                                                                              'While not null and valid digit or grouping char
       Num := Num * Base + --Val                                                                         'Accumulate if valid digit
   if N
@@ -88,21 +88,21 @@ PRI BinToBCX(Num, Base): Digits | N
   BCX3 |= N                                                                                             'If negative, set flag (highest digit of BCX Workspace)
 
   
-PRI BCXToText(IChar, Group, ShowPlus, SPad, Field, Digits): Size | Idx, GCnt, SChar, GChar, X
+PRI BCXToText(IChar, Group, ShowPlus, SPad, IField, Digits): Size | Idx, GCnt, SChar, GChar, X
 'Convert BCX Buffer contents to z-string at StrBuf.
-'IChar..Field each correspond to elements of Format.  See "FORMAT SYNTAX" for more information.
-'If Field = 0, Digits+1+Group is the effective field (always limited to max of 49).
+'IChar..IField each correspond to elements of Format.  See "FORMAT SYNTAX" for more information.
+'If IField = 0, Digits+1+Group is the effective field (always limited to max of 49).
 'Digits  : Number of significant digits (not counting zero-left-padding).
 'RETURNS:    Actual Size (length) of output string, not including null terminator.
   X := 1-(IChar > 0)                                                                                    'Xtra char count (1 or 2, for sign and optional base indicator)
   IChar := Symbols[--IChar]                                                                             'Get base indicator character
   SChar := "+" + 2*(BCX3 >> 28) + 11*(not (ShowPlus | (BCX3 >> 28)) or ((Digits == 1) and (BCX0 == 0))) 'Determine sign character ('+', ' ' or '-')
   GChar := Symbols[Group & 7 - 1 #> 0]                                                                  'Get group character
-  if Field > 0 and SPad^1 and Digits < 32                                                               'Need to add extra zero-padding?
+  if IField > 0 and SPad^1 and Digits < 32                                                               'Need to add extra zero-padding?
     BCX3 &= $0FFFFFFF                                                                                   '  then clear negative flag and set to 32 digits
     Digits := 32
   Group := -((Group >>= 3)-(Group > 0))*(Group+1 < Digits)                                              'Get group size (0 if not enough Digits)
-  Size := (Field - (Field==0)*(Digits+X+((Digits-1)/Group))) <# 49                                      'Field = 0?  Set Size to Digits+X+Group (max 49).
+  Size := (IField - (IField==0)*(Digits+X+((Digits-1)/Group))) <# 49                                      'Field = 0?  Set Size to Digits+X+Group (max 49).
   if Group                                                                                              'Insert group chars
     bytefill(@StrBuf+(Size-Digits-(Digits-1)/Group #> 2), GChar, Digits+(Digits-1)/Group <# Size)
   Idx~~                                                                                                 'Insert digits
