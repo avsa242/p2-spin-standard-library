@@ -34,7 +34,7 @@ OBJ
     sensor:  "sensor.pressure.mpl3115a2"
     ser:    "com.serial.terminal.ansi"
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(10)

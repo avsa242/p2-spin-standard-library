@@ -5,7 +5,7 @@
     Description: Driver of the TI INA219 current/power monitor IC (P2 version)
     Copyright (c) 2022
     Started Sep 18, 2019
-    Updated Sep 29, 2022
+    Updated Nov 13, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -266,13 +266,13 @@ PUB shunt_samples(samples=-2): curr_smp
     curr_smp := 0
     readreg(core.CONFIG, 2, @curr_smp)
     case samples
-        1, 2, 4, 8, 16, 32, 64, 128:
+        1..128:
             samples := (encod(samples) << core.SADC)
             samples |= (1 << core.SADC_AVG)
         other:
             curr_smp := (curr_smp >> core.SADC) & core#SADC_BITS
-            if curr_smp & %1000 ' XXX briefly explain this block
-                curr_smp &= %0111
+            if (curr_smp & %1000)               ' bit 3 = averaging mode
+                curr_smp &= %0111               ' capture only the # of samples
                 return (decod(curr_smp))
             else
                 return 0
@@ -312,9 +312,9 @@ PUB voltage_data(): v
     v := 0
     readreg(core.BUS_VOLTAGE, 2, @v)
 
-PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' read nr_bytes from device into ptr_buff
-    case reg_nr                                    ' validate register
+    case reg_nr                                 ' validate register
         core.CONFIG..core.CALIBRATION:
             cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
             cmd_pkt.byte[1] := reg_nr
@@ -327,7 +327,7 @@ PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
         other:
             return
 
-PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' write nr_bytes to device from ptr_buff
     case reg_nr
         core.CONFIG, core.CALIBRATION:

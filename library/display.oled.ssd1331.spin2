@@ -5,7 +5,7 @@
     Description: Driver for Solomon Systech SSD1331 RGB OLED displays (P2 version)
     Copyright (c) 2022
     Started: Apr 28, 2019
-    Updated: Nov 5, 2022
+    Updated: Nov 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -545,19 +545,19 @@ PUB phase2_period(clks)
     _sh_PHASE12PER := ((_sh_PHASE12PER & core.PHASE2_MASK) | ((1 #> clks <# 15) << core#PHASE2))
     writereg(core.PRECHG, 1, @_sh_PHASE12PER)
 
-PUB plot(x, y, color) | tmp
+PUB plot(x, y, color) | tmpx, tmpy
 ' Plot pixel at (x, y) in color
     if (x < 0 or x > _disp_xmax) or (y < 0 or y > _disp_ymax)
         return                                  ' coords out of bounds, ignore
 #ifdef GFX_DIRECT
 ' direct to display
-    tmp.byte[0] := x
-    tmp.byte[1] := x
-    tmp.byte[2] := y
-    tmp.byte[3] := y
+    tmpx.byte[0] := x
+    tmpx.byte[1] := x
+    tmpy.byte[0] := y
+    tmpy.byte[1] := y
 
-    writereg(core.SETCOLUMN, 2, @tmp)
-    writereg(core.SETROW, 2, @tmp.byte[2])
+    writereg(core.SETCOLUMN, 2, @tmpx)
+    writereg(core.SETROW, 2, @tmpy)
 
     pinw(_DC, core.DATA)
     pinl(_CS)

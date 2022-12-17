@@ -5,8 +5,8 @@
     Description: Demo of the Si114x driver:
         Display illuminance in lux (P2 version)
     Copyright (c) 2022
-    Started Jul 4, 2022
-    Updated Oct 16, 2022
+    Started Nov 27, 2022
+    Updated Nov 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,9 +20,9 @@ CON
     SER_BAUD    = 2_000_000
     LED         = cfg.LED1
 
-    SCL_PIN     = 8
-    SDA_PIN     = 9
-    I2C_FREQ    = 400_000
+    SCL_PIN     = 0
+    SDA_PIN     = 1
+    I2C_FREQ    = 400_000                       ' max is 3_400_000
 ' --
 
 OBJ
@@ -38,7 +38,7 @@ PUB main() | luxsc
     si.preset_als()
 
     repeat
-        ser.position(0, 3)
+        ser.pos_xy(0, 3)
         luxsc := si.lux()
         ser.printf(@"lux: %6.6d.%01.1d", (luxsc / 10), abs(luxsc // 10))
 

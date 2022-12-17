@@ -5,7 +5,7 @@
     Description: Driver for IL3897/SSD1675 AM E-Paper display controller (P2 version)
     Copyright (c) 2022
     Started Apr 4, 2021
-    Updated Nov 5, 2022
+    Updated Dec 3, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -101,7 +101,6 @@ PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, RST_PIN, DC_PIN, BUSY_PIN, SCK_FREQ, WIDTH
 }       SCK_FREQ))
             waitus(core.T_POR)                  ' wait for device startup
             pinh(DC_PIN)
-            pinh(RST_PIN)
             pinf(BUSY_PIN)
 
             _CS := CS_PIN
@@ -439,7 +438,7 @@ PUB interlace_ena(state): curr_state
 
 PUB master_act()
 
-    writereg(core.MASTER_ACT, 0, 0)
+    command(core.MASTER_ACT)
 
 PUB mirror_v(state): curr_state  'XXX not functional yet
 ' Mirror display, vertically
@@ -496,17 +495,16 @@ PUB reset()
         pinh(_RST)
         waitms(200)
     else                                        ' otherwise, just perform
-        writereg(core.SWRESET, 0, 0)            '   soft-reset
+        command(core.SWRESET)                   '   soft-reset
         waitus(core.T_POR)
     repeat until disp_rdy()
 
 PUB show()
 ' Send the draw buffer to the display
     writereg(core.WR_RAM_BW, _buff_sz, _ptr_drawbuffer)
-
     disp_upd_ctrl2()
     master_act()
-    writereg(core.NOOP, 0, 0)
+    command(core.NOOP)
 
     repeat until disp_rdy()
 

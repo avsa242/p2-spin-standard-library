@@ -61,6 +61,9 @@ PUB setup()
         ser.pos_xy(0, 3)
         show_accel_data{}
         show_mag_data{}
+        if (ser.rx_check() == "c")
+            cal_accel()
+            cal_mag()
 
 #include "acceldemo.common.spin2h"
 #include "magdemo.common.spin2h"

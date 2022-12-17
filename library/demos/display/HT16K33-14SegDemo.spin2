@@ -101,8 +101,8 @@ PUB main() | i, b
     demo_msg(@"TYPE")                    ' echo characters typed into the serial terminal
 
     repeat
-        b := ser.charin()
-        disp.char(b)
+        b := ser.getchar()
+        disp.putchar(b)
 
 PRI demo_msg(ptr_str)
 ' Clear the display, show a message, wait 2 seconds, then clear again

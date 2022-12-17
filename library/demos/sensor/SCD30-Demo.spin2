@@ -51,7 +51,7 @@ PUB setup()
     env.preset_active()
     demo()
 
-#include "co2demo.common.spin2h"                ' code common to all IMU demos
+#include "co2demo.common.spin2h"                ' code common to all CO2 demos
 
 DAT
 {

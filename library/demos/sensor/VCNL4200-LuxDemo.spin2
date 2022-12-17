@@ -26,8 +26,8 @@ CON
     { I2C configuration }
     { custom I/O pin definitions - uncomment the below, and comment out the #include
         line above to use }
-'    SCL_PIN     = 28
-'    SDA_PIN     = 29
+'    SCL_PIN     = 0
+'    SDA_PIN     = 1
     CLICK_BASE  = 0                             ' basepin for Click adapter
     I2C_FREQ    = 400_000                       ' max is 400_000
 ' --

@@ -20,14 +20,14 @@ IFACE=L3G4200D_I2C_BC
 
 # Paths to spin-standard-library, and p2-spin-standard-library,
 #  if not specified externally
-SPIN1_LIB_PATH=-L ../../
-SPIN2_LIB_PATH=-L ../../
+SPIN1_LIB_PATH=-L ../spin-standard-library/library
+SPIN2_LIB_PATH=-L ../p2-spin-standard-library/library
 
 
 # -- Internal --
-SPIN1_DRIVER_FN=../../sensor.gyroscope.3dof.l3g4200d.spin
-SPIN2_DRIVER_FN=../../sensor.gyroscope.3dof.l3g4200d.spin2
-CORE_FN=../../core.con.l3g4200d.spin
+SPIN1_DRIVER_FN=sensor.gyroscope.3dof.l3g4200d.spin
+SPIN2_DRIVER_FN=sensor.gyroscope.3dof.l3g4200d.spin2
+CORE_FN=core.con.l3g4200d.spin
 # --
 
 # Build all targets (build only)

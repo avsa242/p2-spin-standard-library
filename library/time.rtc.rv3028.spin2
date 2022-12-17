@@ -5,7 +5,7 @@
     Description: Driver for the RV3028 RTC (P2 version)
     Copyright (c) 2022
     Started Mar 13, 2021
-    Updated Sep 20, 2022
+    Updated Nov 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -278,19 +278,19 @@ PUB set_year(y)
         other:
             return
 
-PUB timer(val): curr_val
+PUB set_timer(val): curr_val
 ' Set countdown timer value
-'   Valid values: 0..4095
-'   Any other value polls the chip and returns the current setting
-'   NOTE: Returned value when reading is the _set value_, not the current
-'   remaining time (for this, use timer_remaining())
-    case val
-        0..4095:
-            writereg(core.TIMER_LSB, 2, @val)
-        other:
-            curr_val := 0
-            readreg(core.TIMER_LSB, 2, @curr_val)
-            return curr_val & core.TIMER_MASK
+'   Valid values: 0..4095 (clamped to range)
+    val := (0 #> val <# 4095)
+    writereg(core.TIMER_LSB, 2, @val)
+
+PUB timer{}: t
+' Get currently set value of countdown timer
+'   NOTE: This returns the value set by set_timer(). For the current remaining time,
+'       use timer_remaining()
+    t := 0
+    readreg(core.TIMER_LSB, 2, @t)
+    return (t & core.TIMER_MASK)
 
 PUB timer_clk_freq(freq): curr_freq
 ' Set timer source clock frequency, in Hz
@@ -309,7 +309,7 @@ PUB timer_clk_freq(freq): curr_freq
     freq := ((curr_freq & core.TD_MASK) | freq)
     writereg(core.CTRL1, 1, @freq)
 
-PUB timer_enabled(state): curr_state
+PUB timer_ena(state): curr_state
 ' Enable countdown timer
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   Any other value polls the chip and returns the current setting

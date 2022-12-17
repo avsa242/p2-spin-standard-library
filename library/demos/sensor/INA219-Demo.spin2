@@ -46,7 +46,7 @@ PUB main()
 
     sensor.preset_320s_2a_100mohm()
 
-    sensor.current_set_scale(4096)                 ' 0..65535
+    sensor.current_set_scale(4096)              ' 0..65535
                                                 ' (must be >0 for current/power readings)
     demo()
 

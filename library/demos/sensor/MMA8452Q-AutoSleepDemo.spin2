@@ -20,12 +20,12 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    SCL_PIN     = 8
-    SDA_PIN     = 9
+    SCL_PIN     = 0
+    SDA_PIN     = 1
     I2C_FREQ    = 400_000                       ' max is 400_000
     ADDR_BITS   = 0                             ' 0, 1
 
-    INT1        = 10                            ' MMA8452Q INT1 pin
+    INT1        = 2                             ' MMA8452Q INT1 pin
 ' --
 
     DAT_X_COL   = 20
@@ -55,7 +55,7 @@ PUB main() | intsource, temp, sysmod
     sensor.accel_sleep_pwr_mode(sensor.LOPWR)   ' lo-power mode when sleeping
     sensor.accel_pwr_mode(sensor.HIGHRES)       ' high-res mode when awake
     sensor.trans_axis_ena(%011)                 ' transient detection on X, Y
-    sensor.trans_thresh(0_252000)               ' set t thresh to 0.252g (0..8g)
+    sensor.trans_thresh(0_252000)               ' set thresh to 0.252g (0..8g)
     sensor.trans_set_cnt(0)                     ' reset counter
     sensor.inact_set_time(5_120)                ' inactivity timeout ~5sec
     sensor.inact_int(sensor.WAKE_TRANS)         ' wake on transient accel

@@ -5,7 +5,7 @@
     Description: nRF24L01+ Transmit demo
     Copyright (c) 2022
     Started Nov 23, 2019
-    Updated Nov 13, 2022
+    Updated Nov 26, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -94,7 +94,7 @@ PUB main() | payld_cnt, max_retrans, pkts_retrans, lost_pkts
         { display payload and transmit it }
         ser.pos_xy(0, 6)
         ser.printf(@"Transmitting packet (to %02.2x:%02.2x:%02.2x:%02.2x:%02.2x)\n\r", {
-}       _syncwd[4], _syncwd[3], _syncwd[2], _syncwd[1], _syncwd[0])
+}                   _syncwd[4], _syncwd[3], _syncwd[2], _syncwd[1], _syncwd[0])
         ser.hexdump(@_payload, 0, 4, _payld_len, 16 <# _payld_len)
         nrf24.tx_payld(_payld_len, @_payload)
 

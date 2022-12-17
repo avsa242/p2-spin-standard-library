@@ -110,7 +110,7 @@ PRI report(testtime, iterations) | rate_iterations, rate_bytes, rate_kbits
     rate_kbits := (rate_bytes * 8) / 1024                   ' # kbits/sec
 
     ser.printf(@"Total iterations: %d, iterations/sec: %d, Bps: %d (%dkbps)", iterations, {
-}   rate_iterations, rate_bytes, rate_kbits)
+}               rate_iterations, rate_bytes, rate_kbits)
     ser.clearline()
 
 PUB setup()

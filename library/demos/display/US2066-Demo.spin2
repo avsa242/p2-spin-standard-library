@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created Dec 30, 2017
-    Updated Nov 5, 2022
+    Updated Dec 3, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -24,9 +24,9 @@ CON
     WIDTH       = 16
     HEIGHT      = 2
 
-    SCL_PIN     = 32
-    SDA_PIN     = 33
-    RESET_PIN   = 25                            ' optional (-1 to disable)
+    SCL_PIN     = 0
+    SDA_PIN     = 1
+    RESET_PIN   = 2                             ' optional (-1 to disable)
     I2C_FREQ    = 400_000
     ADDR_BITS   = 0                             ' 0, 1
 ' --
@@ -43,7 +43,6 @@ OBJ
 PUB main()
 
     setup()
-    oled.char_attrs(oled#CHAR_PROC)              ' process/interpret ctrl chars
 
     greet_demo()
     waitms(DEMO_DELAY)
@@ -87,15 +86,13 @@ PUB main()
 PUB contrast_demo() | i
 
     oled.pos_xy(0, 0)
-    oled.printf(@"Change contrast\nlevel:", 0)
+    oled.printf(@"Change contrast\n\rlevel:", 0)
     case HEIGHT
         2:
             repeat i from -255 to 255 step 1
                 oled.pos_xy(7, 1)
                 oled.contrast(abs(i))
-                oled.decuns(abs(i), 3)
-                oled.char(" ")
-                oled.hex(abs(i), 2)
+                oled.printf(@"%03.3d %02.2x", abs(i), abs(i))
                 waitms(10)
         4:
             oled.newline()
@@ -104,11 +101,7 @@ PUB contrast_demo() | i
             repeat i from -255 to 255 step 1
                 oled.pos_xy(0, 2)
                 oled.contrast(abs(i))
-                oled.decuns(abs(i), 3)
-                oled.char(" ")
-                oled.hex(abs(i), 2)
-                oled.char(" ")
-                oled.bin(abs(i), 8)
+                oled.printf(@"%03.3d %02.2x %08.8b", abs(i), abs(i), abs(i))
                 waitms(10)
 
     oled.dbl_height(0)
@@ -147,25 +140,25 @@ PUB cursor_demo() | delay, dbl_mode
                 oled.cursor_mode(0)
                 oled.pos_xy(0, 0)
                 strdelay(@"No cursor  (0)", delay)
-                waitms(2)
+                waitms(DEMO_DELAY)
                 oled.clear_line(0)
 
                 oled.cursor_mode(1)
                 oled.pos_xy(0, 0)
                 strdelay(@"Block/blink(1)", delay)
-                waitms(2)
+                waitms(DEMO_DELAY)
                 oled.clear_line(0)
 
                 oled.cursor_mode(2)
                 oled.pos_xy(0, 0)
                 strdelay(@"Underscore (2)", delay)
-                waitms(2)
+                waitms(DEMO_DELAY)
                 oled.clear_line(0)
 
                 oled.cursor_mode(3)
                 oled.pos_xy(0, 0)
                 strdelay(@"Under./blink(3)", delay)
-                waitms(2)
+                waitms(DEMO_DELAY)
         4:
             repeat dbl_mode from 0 to 2 step 2
                 oled.clear()
@@ -176,25 +169,25 @@ PUB cursor_demo() | delay, dbl_mode
 
                 oled.pos_xy(0, 1)
                 strdelay(@"None           (0)", delay)
-                waitms(2)
+                waitms(DEMO_DELAY)
                 oled.clear_line(1)
 
                 oled.cursor_mode(1)
                 oled.pos_xy(0, 1)
                 strdelay(@"Block/blink    (1)", delay)
-                waitms(2)
+                waitms(DEMO_DELAY)
                 oled.clear_line(1)
 
                 oled.cursor_mode(2)
                 oled.pos_xy(0, 1)
                 strdelay(@"Underscore     (2)", delay)
-                waitms(2)
+                waitms(DEMO_DELAY)
                 oled.clear_line(1)
 
                 oled.cursor_mode(3)
                 oled.pos_xy(0, 1)
                 strdelay(@"Underscore/blink(3)", delay)
-                waitms(2)
+                waitms(DEMO_DELAY)
 
     oled.dbl_height(0)
     oled.cursor_mode(0)
@@ -245,30 +238,14 @@ PUB greet_demo()
     case HEIGHT
         2:
             oled.pos_xy(0, 0)
-            oled.str(@w16l1)
-            waitms(1)
-
-            oled.pos_xy(0, 1)
+            oled.strln(@w16l1)
             oled.str(@w16l2)
-            waitms(1)
-
         4:
             oled.pos_xy(0, 0)
             oled.str(@w20l1)
-            waitms(1)
-
-            oled.pos_xy(0, 1)
             oled.str(@w20l2)
-            waitms(1)
-
-            oled.pos_xy(0, 2)
             oled.str(@w20l3)
-            waitms(1)
-
-            oled.pos_xy(0, 3)
             oled.str(@w20l4)
-
-    waitms(1)
 
 PUB invert_demo() | i
 
@@ -303,28 +280,28 @@ PUB mirror_demo() | row, col
     oled.clear_line(0)
     oled.pos_xy(0, 0)
     oled.str(@"Mirror OFF")
-    waitms(2)
+    waitms(DEMO_DELAY)
 
     oled.mirror_h(TRUE)
     oled.mirror_v(FALSE)
     oled.clear_line(0)
     oled.pos_xy(col, 0)
     oled.str(@"Mirror HORIZ.")
-    waitms(2)
+    waitms(DEMO_DELAY)
 
     oled.mirror_h(FALSE)
     oled.mirror_v(TRUE)
     oled.clear_line(0)
     oled.pos_xy(0, row)
     oled.str(@"Mirror VERT.")
-    waitms(2)
+    waitms(DEMO_DELAY)
 
     oled.mirror_h(TRUE)
     oled.mirror_v(TRUE)
     oled.clear_line(0)
     oled.pos_xy(col, row)
     oled.str(@"Mirror BOTH")
-    waitms(2)
+    waitms(DEMO_DELAY)
 
     oled.clear()
     oled.mirror_h(FALSE)
@@ -354,9 +331,6 @@ PUB setup()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    ' use default Propeller I2C pins and 100kHz. Specify reset pin
-'    if oled.start(RESET_PIN)
-
     ' use all custom settings
     if oled.startx(SCL_PIN, SDA_PIN, RESET_PIN, I2C_FREQ, ADDR_BITS, HEIGHT)
         ser.strln(@"US2066 driver started")
@@ -369,7 +343,7 @@ PUB setup()
     oled.clear()
     oled.pos_xy(0, 0)
     oled.visibility(oled.NORM)
-    waitms(100)
+    oled.char_attrs(oled.CHAR_PROC)             ' _interpret_ control chars, don't draw them
 
 DAT
 ' Greet text

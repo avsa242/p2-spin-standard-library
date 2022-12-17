@@ -38,10 +38,10 @@ OBJ
 PUB main()
 
     setup()
-    sensor.preset_active()                       ' default settings, but enable
+    sensor.preset_active()                      ' default settings, but enable
                                                 ' sensor power, and set
                                                 ' scale factors
-    sensor.orient_detect_ena(true)                    ' enable orientation detection
+    sensor.orient_detect_ena(true)              ' enable orientation detection
 
     repeat
         ser.pos_xy(0, 3)
@@ -66,7 +66,7 @@ PUB main()
             other:
         ser.clear_line()
 
-        if (ser.rx_check() == "c")               ' press the 'c' key in the demo
+        if (ser.rx_check() == "c")              ' press the 'c' key in the demo
             calibrate()                         ' to calibrate sensor offsets
 
 PUB calibrate()

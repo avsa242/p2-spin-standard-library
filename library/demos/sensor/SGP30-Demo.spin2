@@ -46,7 +46,7 @@ PUB main()
     ser.printf(@"SN: %04.4x%04.4x%04.4x\n\r", _sn[0], _sn[1], _sn[2])
 
     repeat
-        ser.position(0, 5)
+        ser.pos_xy(0, 5)
         ser.printf(@"CO2Eq: %5.5dppm\n\r", iaq.co2_equiv())
         ser.printf(@"TVOC: %5.5dppb", iaq.tvoc())
         waitms(1000)                            ' 1Hz rate for best performance

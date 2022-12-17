@@ -33,10 +33,6 @@ CON
     MRES_GAUSS      = 1000
     MRES_MICROTESLA = 100000
 
-' Bias adjustment (AccelBias(), GyroBias(), MagBias()) read or write
-    R               = 0
-    W               = 1
-
 ' Scales and data rates used during calibration/bias/offset process
     CAL_XL_SCL      = 2
     CAL_G_SCL       = 0

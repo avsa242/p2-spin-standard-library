@@ -5,7 +5,7 @@
     Description: Driver for the NXP FXAS21002 3DoF Gyroscope (P2 version)
     Copyright (c) 2022
     Started Jun 15, 2021
-    Updated Nov 5, 2022
+    Updated Nov 19, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -214,9 +214,9 @@ PUB gyro_data(ptr_x, ptr_y, ptr_z) | tmp[2]
 ' Reads the Gyroscope output registers
     longfill(@tmp, 0, 2)
     readreg(core.OUT_X_MSB, 6, @tmp)
-    long[ptr_x] := ~~tmp.word[X_AXIS] - _gbias[X_AXIS]
-    long[ptr_y] := ~~tmp.word[Y_AXIS] - _gbias[Y_AXIS]
-    long[ptr_z] := ~~tmp.word[Z_AXIS] - _gbias[Z_AXIS]
+    long[ptr_x] := (tmp.word[X_AXIS] signx 15) - _gbias[X_AXIS]
+    long[ptr_y] := (tmp.word[Y_AXIS] signx 15) - _gbias[Y_AXIS]
+    long[ptr_z] := (tmp.word[Z_AXIS] signx 15) - _gbias[Z_AXIS]
 
 PUB gyro_data_overrun(): flag
 ' Flag indicating gyroscope data overrun
@@ -415,7 +415,7 @@ PUB gyro_int_outp_type(type=-2): curr_type
     type := ((curr_type & core.PP_OD_MASK) | type)
     writereg(core.CTRL_REG2, 1, @type)
 
-PUB gyro_int_thresh{}: thresh | gscl, lsb
+PUB gyro_int_thresh(): thresh | gscl, lsb
 ' Get gyroscope interrupt threshold
 '   Returns: micro-dps (unsigned)
     gscl := (gyro_scale() * 1_000000)
@@ -423,7 +423,7 @@ PUB gyro_int_thresh{}: thresh | gscl, lsb
 
     thresh := 0
     readreg(core.RT_THS, 1, @thresh)
-    return ((thresh & core#THS_BITS) * lsb)     ' scale to micro-dps
+    return ((thresh & core.THS_BITS) * lsb)     ' scale to micro-dps
 
 PUB gyro_int_set_thresh(thresh) | gscl, lsb, tmp
 ' Set gyroscope interrupt threshold, in micro-dps (unsigned)

@@ -5,7 +5,7 @@
     Description: Driver for Silicon Labs Si70xx-series temperature/humidity sensors (P2 version)
     Copyright (c) 2022
     Started Jul 20, 2019
-    Updated Oct 16, 2022
+    Updated Nov 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -138,9 +138,11 @@ PUB rh_word2pct(rh_word): rh
 '   Returns: relative humidity, in hundredths of a percent
     return ((125_00 * rh_word) / 65536) - 6_00
 
-PUB serial_num(ptr_buff) | snb, sna
+PUB serial_num(ptr_buff): status | snb, sna
 ' Read the 64-bit serial number of the device into ptr_buff
 '   NOTE: Buffer at ptr_buff must be at least 8 bytes in length
+'   Returns: 0 on success, -1 on failure
+    status := 0
     longfill(@sna, 0, 2)
     if (readreg(core.RD_SERIALNUM_1, 4, @sna) == -1)
         return -1

@@ -5,7 +5,7 @@
     Description: Driver for the PCF8574 I2C I/O expander (P2 version)
     Copyright (c) 2022
     Started Sep 11, 2021
-    Updated Sep 19, 2022
+    Updated Nov 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -37,9 +37,9 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
 }   I2C_HZ <= core.I2C_MAX_FREQ and lookdown(ADDR_BITS: %000..%111)
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitus(core.T_POR)                  ' wait for device startup
-            _addr_bits := ADDR_BITS << 1
-            ' test device bus presence
-            if i2c.present(SLAVE_WR | _addr_bits)
+            _addr_bits := (ADDR_BITS << 1)
+            { check for device presence on bus }
+            if (i2c.present(SLAVE_WR | _addr_bits))
                 return
     ' if this point is reached, something above failed
     ' Re-check I/O pin assignments, bus speed, connections, power
@@ -52,19 +52,20 @@ PUB stop()
     _addr_bits := 0
 
 PUB rd_byte(): rd_b
-' Read I/O expander P0..7 as byte rd_b
+' Read I/O expander P7..0
+'   Returns: parallel port pin states as bitmask
 '   Example:
-'       PCF8574 P7..0 state is: %1010_1010
-'       rd_b returns $AA
+'       If PCF8574 P7..0's current (electrical) state is: %1010_1010, rd_byte() returns $AA
     i2c.start()
     i2c.write(SLAVE_RD | _addr_bits)
     rd_b := i2c.rd_byte(i2c.NAK)
     i2c.stop()
 
 PUB wr_byte(wr_b)
-' Write byte wr_b to I/O expander P0..7
+' Write byte to I/O expander parallel port
+'   wr_b: bitmask of parallel port pin states (MSbit-first)
 '   Example:
-'       Wr_Byte("A")
+'       wr_byte("A")
 '       PCF8574 P7..0 state will be: %0010_0001
     i2c.start()
     i2c.write(SLAVE_WR | _addr_bits)

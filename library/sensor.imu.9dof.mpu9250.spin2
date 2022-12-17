@@ -169,11 +169,9 @@ PUB accel_axis_ena(xyz_mask=-2): curr_mask
         %000..%111:
             ' invert bits because the logic in the chip is actually the reverse
             ' of the method name, i.e., a bit set to 1 _disables_ that axis
-            xyz_mask := ((xyz_mask ^ core.DIS_INVERT) & {
-}           core.DIS_XYZA_BITS) << core.DIS_XYZA
+            xyz_mask := ((xyz_mask ^ core.DIS_INVERT) & core.DIS_XYZA_BITS) << core.DIS_XYZA
         other:
-            return ((curr_mask >> core.DIS_XYZA) & core.DIS_XYZA_BITS){
-}           ^ core.DIS_INVERT
+            return ((curr_mask >> core.DIS_XYZA) & core.DIS_XYZA_BITS) ^ core.DIS_INVERT
 
     xyz_mask := ((curr_mask & core.DIS_XYZA_MASK) | xyz_mask)
     writereg(core.PWR_MGMT_2, 1, @xyz_mask)
@@ -249,8 +247,7 @@ PUB accel_lpf_freq(freq=-2): curr_freq | lpf_byp_bit
                 curr_freq &= core.A_DLPFCFG_BITS
                 return lookup(curr_freq: 188, 98, 42, 20, 10, 5)
 
-    freq := (curr_freq & core.A_DLPFCFG_MASK & core.ACCEL_FCH_B_MASK) | {
-}   freq | lpf_byp_bit
+    freq := (curr_freq & core.A_DLPFCFG_MASK & core.ACCEL_FCH_B_MASK) | freq | lpf_byp_bit
     writereg(core.ACCEL_CFG2, 1, @freq)
 
 PUB accel_scale(g=-2): curr_scl
@@ -307,7 +304,8 @@ PUB fifo_ena(state=-2): curr_state
 ' Enable the FIFO
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
-'   NOTE: FALSE disables the interface to the FIFO, but the chip will still write data to it, if FIFO data sources are defined with fifo_src()
+'   NOTE: FALSE disables the interface to the FIFO, but the chip will still write data to it,
+'       if FIFO data sources are defined with fifo_src()
     curr_state := 0
     readreg(core.USER_CTRL, 1, @curr_state)
     case abs(state)
@@ -332,12 +330,13 @@ PUB fifo_mode(mode=-2): curr_mode
 '       STREAM (1): FIFO enabled; when full, new data overwrites old data
 '       FIFO (2): FIFO enabled; when full, no new data will be written to FIFO
 '   Any other value polls the chip and returns the current setting
-'   NOTE: If no data sources are set using fifo_src(), the current mode returned will be BYPASS (0), regardless of what the mode was previously set to
+'   NOTE: If no data sources are set using fifo_src(), the current mode returned will be
+'       BYPASS (0), regardless of what the mode was previously set to
     curr_mode := 0
     readreg(core.CONFIG, 1, @curr_mode)
     case mode
         BYPASS:                                 ' If bypassing the FIFO, turn
-            fifo_src(%00000000)               ' off all FIFO data collection
+            fifo_src(%00000000)                 ' off all FIFO data collection
             return
         STREAM, FIFO:
             mode := lookdownz(mode: STREAM, FIFO) << core.FIFO_MODE
@@ -758,12 +757,12 @@ PUB rd_mag_sens_adj()
     mag_opmode(FUSEACCESS)
     readreg(core.ASAX, 3, @_mag_sens_adj)
     mag_opmode(CONT100)
-    _mag_sens_adj[X_AXIS] := ((((((_mag_sens_adj[X_AXIS] * 1000) - 128_000){
-}   / 2) / 128) + 1_000)) / 1000
-    _mag_sens_adj[Y_AXIS] := ((((((_mag_sens_adj[Y_AXIS] * 1000) - 128_000){
-}   / 2) / 128) + 1_000)) / 1000
-    _mag_sens_adj[Z_AXIS] := ((((((_mag_sens_adj[Z_AXIS] * 1000) - 128_000){
-}   / 2) / 128) + 1_000)) / 1000
+    _mag_sens_adj[X_AXIS] := ((((((_mag_sens_adj[X_AXIS] * 1000) - 128_000) / 2) / 128) + 1_000)) {
+}                            / 1000
+    _mag_sens_adj[Y_AXIS] := ((((((_mag_sens_adj[Y_AXIS] * 1000) - 128_000) / 2) / 128) + 1_000)) {
+}                            / 1000
+    _mag_sens_adj[Z_AXIS] := ((((((_mag_sens_adj[Z_AXIS] * 1000) - 128_000) / 2) / 128) + 1_000)) {
+}                            / 1000
 
 PUB reset()
 ' Perform soft-reset

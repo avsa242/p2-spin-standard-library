@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: display.oled.us2066.ipin2
+    Filename: display.oled.us2066.spin2
     Author: Jesse Burt
-    Description: I2C driver for US2066-based OLED alphanumeric displays (P2 version)
+    Description: Driver for US2066-based OLED alphanumeric displays (P2 version)
     Copyright (c) 2022
     Created Dec 30, 2017
-    Updated Nov 5, 2022
+    Updated Dec 3, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -167,7 +167,6 @@ PUB preset_4x20()
     _disp_ymax := (_disp_height-1)
     _disp_lines_nw := core.NW_3_4_LINE
 
-
 PUB char_attrs(attr)
 ' Set character attributes
 '   Valid values:
@@ -233,7 +232,7 @@ PUB clk_freq(freq)
 '   Valid values:
 '       454..556 (clamped to range; see table below; POR: 501)
     _freq := ((0 #> lookdown(freq: 454, 460, 467, 474, 481, 488, 494, 501, 508, 515, 522, 528, {
-}   535, 542, 549, 556) <# 15) << core#OSC_FREQ)
+}                                  535, 542, 549, 556) <# 15) << core.OSC_FREQ)
 
     writereg(1, CMDSET_OLED, core.DISP_CLKDIV_OSC, _freq | _clkdiv)
 
@@ -249,7 +248,7 @@ PUB com_logic_high_lvl(level)
 ' Set COMmon pins high logic level relative to Vcc ((level / 100) * Vcc)
 '   Valid values:
 '       0_65, 0_71, 0_77, 0_83, 1_00 (clamped to range; POR: 0_77)
-    level := ((0 #> lookdownz(level: 0_65, 0_71, 0_77, 0_83, 1_00) <# 4) << core#VCOMH)
+    level := ((0 #> lookdownz(level: 0_65, 0_71, 0_77, 0_83, 1_00) <# 4) << core.VCOMH)
     writereg(1, CMDSET_OLED, core.SET_VCOMH_DESEL, level)
 
 PUB contrast(level)
@@ -416,7 +415,7 @@ PUB dbl_height(mode)
 PUB fnt_width(sz)
 ' Set Font width, in pixels
 '   Valid values: 5 or 6 (clamped to range; POR: 5)
-    _fnt_wid := sz := ((0 #> sz <# 1) << core#FNTWIDTH)
+    _fnt_wid := sz := ((0 #> (sz-5) <# 1) << core.FNTWIDTH)
     writereg(1, CMDSET_EXTD, core.EXTD_FUNCSET | (_fnt_wid | _curs_invert | _disp_lines_nw), 0)
 
 PUB get_pos(): addr
@@ -435,7 +434,7 @@ PUB gpio_state(state)
 '       1: GPIO pin HiZ, input enabled
 '       2: GPIO pin output, low (POR)
 '       3: GPIO pin output, high
-    _gpio_state := state := (core#GPIO_HIZ_INP_DIS #> state <# core#GPIO_OUT_HIGH)
+    _gpio_state := state := (core.GPIO_HIZ_INP_DIS #> state <# core.GPIO_OUT_HIGH)
     writereg(1, CMDSET_OLED, core.FUNCT_SEL_C, (_ext_vsl | _gpio_state))
 
 PUB home()
@@ -453,13 +452,13 @@ PUB invert_colors(state)
 PUB mirror_h(state)
 ' Mirror display, horizontally
 '   Valid values: TRUE (non-zero), FALSE (0)
-    _mirror_h := state := ((state <> 0) & 1)
+    _mirror_h := ((state <> 0) & 1)
     writereg(1, CMDSET_EXTD, core.ENTRY_MODE_SET | (_mirror_h | _mirror_v), 0)
 
 PUB mirror_v(state)
 ' Mirror display, vertically
 '   Valid values: TRUE (non-zero), FALSE (0)
-    _mirror_h := state := (((state <> 0) & 1) << 1)
+    _mirror_v := ((( (state <> 0) & 1) ^ 1) << 1)
     writereg(1, CMDSET_EXTD, core.ENTRY_MODE_SET | (_mirror_h | _mirror_v), 0)
 
 PUB pin_cfg(cfg)
@@ -564,7 +563,7 @@ PUB seg_voltage_ref(ref)
 '   Valid values:
 '       INT (0): Internal VSL (POR)
 '       EXT (1): External VSL
-    _ext_vsl := (INT #> ref <# EXT) << core#VSL
+    _ext_vsl := (INT #> ref <# EXT) << core.VSL
     writereg(1, CMDSET_OLED, core.FUNCT_SEL_C, (_ext_vsl | _gpio_state))
 
 PUB supply_voltage(v)
@@ -575,7 +574,7 @@ PUB supply_voltage(v)
     if (v)
         v := core.INT_REG_EN
     else
-        v := core#INT_REG_DIS
+        v := core.INT_REG_DIS
 
     writereg(2, CMDSET_EXTD, core.FUNCT_SEL_A, v)
 
@@ -585,7 +584,7 @@ PUB text_dir(tdir)
 '       0: Disable SEG left/right remap (POR)
 '       1: Enable SEG left/right remap
 '   NOTE: Only affects subsequent data input. Data already displayed/in DDRAM will be unchanged.
-    _seg_remap := ((0 #> tdir <# 1) << core#SEG_LR_REMAP)
+    _seg_remap := ((0 #> tdir <# 1) << core.SEG_LR_REMAP)
     writereg(1, CMDSET_OLED, core.SET_SEG_PINS, (_seg_remap | _seg_pincfg))
 
 PUB visibility(mode)

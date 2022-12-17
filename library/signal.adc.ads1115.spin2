@@ -5,7 +5,7 @@
     Description: Driver for the TI ADS1115 ADC (P2 version)
     Copyright (c) 2022
     Started Apr 2, 2021
-    Updated Sep 27, 2022
+    Updated Nov 22, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -69,20 +69,9 @@ PUB defaults()
     adc_scale(2_048)
     adc_data_rate(128)
 
-PUB adc_chan_ena(ch): curr_ch
-' Set active ADC channel
-'   Valid values: 0..3
-'   Any other value polls the chip and returns the current setting
-    curr_ch := 0
-    readreg(core.CONFIG, 2, @curr_ch)
-    case ch
-        0..3:
-            ch := (ch + %100) << core.MUX
-        other:
-            return (((ch >> core.MUX) & %111) - %100)
-
-    ch := ((curr_ch & core.MUX_MASK) | ch)
-    writereg(core.CONFIG, 2, @ch)
+PUB adc_channel(): ch
+' Get currently active ADC channel
+    return adc_chan_ena(-1)
 
 PUB adc_data(): adc_word
 ' Read measurement from channel ch
@@ -100,8 +89,7 @@ PUB adc_data_rate(rate): curr_rate
     readreg(core.CONFIG, 2, @curr_rate)
     case rate
         8, 16, 32, 64, 128, 250, 475, 860:
-            rate := lookdownz(rate: 8, 16, 32, 64, 128, 250, 475, 860) {
-}           << core.DR
+            rate := lookdownz(rate: 8, 16, 32, 64, 128, 250, 475, 860) << core.DR
         other:
             curr_rate := ((curr_rate >> core.DR) & core.DR_BITS)
             return lookupz(curr_rate: 8, 16, 32, 64, 128, 250, 475, 860)
@@ -130,20 +118,19 @@ PUB adc_scale(scale): curr_scl
         256, 512, 1_024, 2_048, 4_096, 6_144:
             scale := lookdownz(scale: 6_144, 4_096, 2_048, 1_024, 0_512, 0_256)
             { set scaling factor }
-            _uvolts_lsb := lookupz(scale: 187_5000, 125_0000, 62_5000, {
-}           31_2500, 15_6250, 7_8125)
+            _uvolts_lsb := lookupz(scale: 187_5000, 125_0000, 62_5000, 31_2500, 15_6250, 7_8125)
             scale <<= core.PGA
         other:
             curr_scl := ((curr_scl >> core.PGA) & core.PGA_BITS)
-            return lookupz(curr_scl: 6_144, 4_096, 2_048, 1_024, 0_512, 0_256,{
-}           0_256, 0_256)
+            return lookupz(curr_scl: 6_144, 4_096, 2_048, 1_024, 0_512, 0_256, 0_256, 0_256)
 
     scale := ((curr_scl & core.PGA_MASK) | scale)
     writereg(core.CONFIG, 2, @scale)
 
 PUB adc2volts(adc_word): volts
 ' Scale ADC word to microvolts
-    return u64.multdiv(adc_word, _uvolts_lsb, 1_0000)
+'   NOTE: It is possible to read negative voltages (down to -300mV)
+    return muldiv64(adc_word, _uvolts_lsb, 1_0000)
 
 PUB int_polarity(state): curr_state
 ' Set interrupt pin active state/logic level
@@ -248,9 +235,29 @@ PUB opmode(mode): curr_mode
     mode := ((curr_mode & core.MODE_MASK) | mode)
     writereg(core.CONFIG, 2, @mode)
 
+PUB set_adc_channel(ch)
+' Set active ADC channel
+'   Valid values: 0..3 (clamped to range)
+    adc_chan_ena(0 #> ch <# 3)
+
 PUB volts2adc(volts): adc_word
 ' Scale microvolts to ADC word
     return u64.multdiv(volts, 1_0000, _uvolts_lsb)
+
+PRI adc_chan_ena(ch): curr_ch
+' Set active ADC channel
+'   Valid values: 0..3
+'   Any other value polls the chip and returns the current setting
+    curr_ch := 0
+    readreg(core.CONFIG, 2, @curr_ch)
+    case ch
+        0..3:
+            ch := (ch + %100) << core.MUX
+        other:
+            return (((ch >> core.MUX) & %111) - %100)
+
+    ch := ((curr_ch & core.MUX_MASK) | ch)
+    writereg(core.CONFIG, 2, @ch)
 
 PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from reg_nr into ptr_buff

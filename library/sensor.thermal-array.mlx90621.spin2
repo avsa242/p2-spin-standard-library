@@ -5,7 +5,7 @@
     Description: Driver for the Melexis MLX90621 16x4 IR array (P2 version)
     Copyright (c) 2022
     started: Dec 2, 2019
-    Updated: Nov 12, 2022
+    Updated: Nov 26, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -18,30 +18,30 @@ CON
     DEF_HZ          = 100_000
     I2C_MAX_FREQ    = core.I2C_MAX_FREQ
 
-    EE_SIZE         = 256
-
+    { image dimensions }
     WIDTH           = 16
     HEIGHT          = 4
     XMAX            = WIDTH-1
     YMAX            = HEIGHT-1
 
-' I2C Fast Mode
+    { I2C Fast Mode+ }
     I2CFMODE_ENA    = 0
     I2CFMODE_DIS    = 1
 
-' Operation modes
+    { Operation modes }
     CONT            = 0
     SINGLE          = 1
 
-' Sensor power states
+    { Sensor power states }
     OFF             = 0
     ON              = 1
 
-' ADC reference settings
+    { ADC reference settings }
     ADCREF_HI       = 0
     ADCREF_LO       = 1
 
-' On-sensor EEPROM
+    { On-sensor EEPROM }
+    EE_SIZE         = 256
     EE_ENA          = 0
     EE_DIS          = 1
 
@@ -73,14 +73,18 @@ CON
     TA0             = 25_00
     TWO20           = 1 << 20                   ' 2^20
 
-    RAM_OFFS_PTAT   = $40
-    RAM_OFFS_CPIX   = $41
+    RAM_PTAT        = $40
+    RAM_COMPPIX     = $41
 
     CFG_CKBYTE      = $55
     OSC_CKBYTE      = $AA
 
     W               = 0
     R               = 1
+
+    { u64 math }
+    H               = 0
+    L               = 1
 
 OBJ
 
@@ -175,7 +179,7 @@ PUB amb_temp{}: ta | ptat, kt1, kt2, kt1scl, kt2scl, vth25, t1_64[2], t1_32, t2_
 
     { scale down Kt1 and Kt2 using the EEPROM coefficients }
     kt1 := (kt1 * 1_000) / (kt1scl * _adcres_bits)
-    kt2 := u64.multdiv(kt2, 1000000, (kt2scl * _adcres_bits))
+    kt2 := muldiv64(kt2, 1000000, (kt2scl * _adcres_bits))
 
     { Ta = ( (-Kt1 + sqrt(Kt1^2 - 4Kt2 * (Vth(25) - PTAT)) ) / 2Kt2 ) + 25 }
 
@@ -202,7 +206,7 @@ PUB amb_temp{}: ta | ptat, kt1, kt2, kt1scl, kt2scl, vth25, t1_64[2], t1_32, t2_
     t3 := (-kt1 + t2_32)                    ' -Kt1 + sqrt(Kt1^2 - 4Kt2 * (Vth(25) - PTAT))
 
     t2_32 := (kt2 * 2)                      ' 2Kt2
-    return u64.multdiv(t3, 100000, t2_32) + 25_00
+    return muldiv64(t3, 100000, t2_32) + 25_00
 
 PUB eeprom_ena(state=-2): curr_state
 ' Enable/disable the sensor's built-in EEPROM
@@ -221,6 +225,25 @@ PUB eeprom_ena(state=-2): curr_state
 
     state := ((curr_state & core.EEPROMENA_MASK) | state)
     writereg(core.CONFIG, state)
+
+PUB refresh_rate = frame_rate
+PUB frame_rate(rate=-2): curr_rate
+' Set sensor refresh rate
+'   Valid values are 0, for 0.5Hz, or 1 to 512 in powers of 2 (default: 1)
+'   Any other value polls the chip and returns the current setting
+'   NOTE: Higher rates will yield noisier images
+    readreg(core.CONFIG, 2, 0, @curr_rate)
+    case rate
+        512, 256, 128, 64, 32, 16, 8, 4, 2, 1, 0:
+            rate := lookdownz(rate: 512, 512, 512, 512, 512, 512, 256, 128, 64, 32, 16, 8, 4, 2, {
+}                                   1, 0)
+        other:
+            curr_rate &= core.REFRATE_BITS
+            return lookupz(curr_rate: 512, 512, 512, 512, 512, 512, 256, 128, 64, 32, 16, 8, 4, {
+}                                     2, 1, 0)
+
+    rate := ((curr_rate & core.REFRATE_MASK) | rate) & core.CONFIG_MASK
+    writereg(core.CONFIG, rate)
 
 PUB get_column(ptr_buff, col) | tmpframe[2], tmp, offs, line
 ' Read a single column of pixels from the sensor into ptr_buff
@@ -387,29 +410,11 @@ PUB rd_eeprom(ptr_buff): status | ackbit, tries
     _kt1scl := 1 << ((_kt1scl & $f0) >> 4)
     _kt2scl := ( 1 << ((_kt2scl & $0f) + 10) )
 
-    ~~_kt1
-    ~~_kt2
+    _kt1 signx= 15
+    _kt2 signx= 15
     if (ptr_buff)
         bytemove(ptr_buff, @_ee_data, EE_SIZE)
     return TRUE
-
-PUB refresh_rate(rate=-2): curr_rate
-' Set sensor refresh rate
-'   Valid values are 0, for 0.5Hz, or 1 to 512 in powers of 2 (default: 1)
-'   Any other value polls the chip and returns the current setting
-'   NOTE: Higher rates will yield noisier images
-    readreg(core.CONFIG, 2, 0, @curr_rate)
-    case rate
-        512, 256, 128, 64, 32, 16, 8, 4, 2, 1, 0:
-            rate := lookdownz(rate: 512, 512, 512, 512, 512, 512, 256, 128,{
-}           64, 32, 16, 8, 4, 2, 1, 0)
-        other:
-            curr_rate &= core.REFRATE_BITS
-            return lookupz(curr_rate: 512, 512, 512, 512, 512, 512, 256, 128,{
-}           64, 32, 16, 8, 4, 2, 1, 0)
-
-    rate := ((curr_rate & core.REFRATE_MASK) | rate) & core.CONFIG_MASK
-    writereg(core.CONFIG, rate)
 
 PUB temp_adc_res(bits=-2): curr_res
 ' Set ADC resolution, in bits

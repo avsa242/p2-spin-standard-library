@@ -5,8 +5,8 @@
     Description: Demo of the Si114x driver:
         Ambient light sensing data (P2 version)
     Copyright (c) 2022
-    Started Jul 5, 2022
-    Updated Oct 16, 2022
+    Started Nov 27, 2022
+    Updated Nov 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,9 +20,9 @@ CON
     SER_BAUD    = 2_000_000
     LED         = cfg.LED1
 
-    I2C_SCL     = 8
-    I2C_SDA     = 9
-    I2C_HZ      = 400_000
+    SCL_PIN     = 0
+    SDA_PIN     = 1
+    I2C_FREQ    = 400_000                       ' max is 3_400_000
 ' --
 
 OBJ
@@ -37,21 +37,21 @@ PUB main()
 
     si.preset_als()
     repeat
-        ser.position(0, 3)
-        ser.printf(string("IR data: %04.4x\n\r"), si.ir_data())
-        ser.printf(string("White data: %04.4x"), si.white_data())
+        ser.pos_xy(0, 3)
+        ser.printf(@"IR data: %04.4x\n\r", si.ir_data())
+        ser.printf(@"White data: %04.4x", si.white_data())
 
 PUB setup()
 
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
+    ser.strln(@"Serial terminal started")
 
-    if si.startx(I2C_SCL, I2C_SDA, I2C_HZ)
-        ser.strln(string("SI114x driver started"))
+    if si.startx(SCL_PIN, SDA_PIN, I2C_FREQ)
+        ser.strln(@"SI114x driver started")
     else
-        ser.strln(string("SI114x driver failed to start - halting"))
+        ser.strln(@"SI114x driver failed to start - halting")
         repeat
 
 DAT

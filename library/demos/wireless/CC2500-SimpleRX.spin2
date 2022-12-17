@@ -23,7 +23,7 @@ CON
     SCK_PIN         = 2
     MOSI_PIN        = 0
     MISO_PIN        = 1
-    SPI_FREQ        = 1_000_000
+    SPI_FREQ        = 5_000_000
 
     NODE_ADDRESS    = $01                       ' this node's address (1..254)
 ' --

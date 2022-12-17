@@ -6,7 +6,7 @@
         * 6DoF data output
     Copyright (c) 2022
     Started Aug 12, 2017
-    Updated Nov 8, 2022
+    Updated Nov 21, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -24,7 +24,7 @@ CON
 ' -- User-modifiable constants
     SER_BAUD    = 2_000_000
 
-    CLICK_BASE  = 16
+    CLICK_BASE  = 0
 
     { I2C configuration }
     { custom I/O pin definitions - uncomment the below, and comment out the #include
@@ -71,8 +71,11 @@ PUB setup()
 
     repeat
         ser.pos_xy(0, 3)
-        show_accel_data{}
-        show_gyro_data{}
+        show_accel_data()
+        show_gyro_data()
+        if (ser.rx_check() == "c")
+            cal_accel()
+            cal_gyro()
 
 #include "acceldemo.common.spin2h"
 #include "gyrodemo.common.spin2h"

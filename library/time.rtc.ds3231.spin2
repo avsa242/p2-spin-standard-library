@@ -5,7 +5,7 @@
     Description: Driver for the DS3231 Real-Time Clock (P2 version)
     Copyright (c) 2022
     Started Mar 20, 2021
-    Updated Oct 16, 2022
+    Updated Nov 19, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -57,7 +57,7 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
 
 PUB stop()
 ' Stop the driver
-    i2c.deinit{}
+    i2c.deinit()
     bytefill(@_secs, 0, 8)
 
 PUB defaults()
@@ -184,7 +184,7 @@ PUB clk_data_ok(): flag
 '       3. The oscillator has been manually powered off using OscEnabled()
 '       4. External influences on the RTC crystal
     poll_rtc()
-    return _clkdata_ok == 0
+    return (_clkdata_ok == 0)
 
 PUB clkout_freq(freq=-2): curr_freq
 ' Set frequency of SQW pin, in Hz
@@ -245,7 +245,7 @@ PUB int_mask(mask=-2): curr_mask
     mask := ((curr_mask & core.AIE_MASK) | mask)
     writereg(core.CONTROL, 1, @mask)
 
-PUB osc_enabled(state=-2): curr_state
+PUB osc_ena(state=-2): curr_state
 ' Enable the on-chip oscillator
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
@@ -257,39 +257,39 @@ PUB osc_enabled(state=-2): curr_state
         0, 1:
             state := abs(state) << core.EOSC
         other:
-            return ((curr_state >> core.EOSC) & 1) == 1
+            return (((curr_state >> core.EOSC) & 1) == 1)
 
     state := ((curr_state & core.EOSC_MASK) | state)
     writereg(core.CONTROL, 1, @state)
 
-PUB osc_offset(offs=-256): curr_offs
+PUB osc_offset(): curr_offs
+' Get oscillator aging offset
+'   Returns: 100's of ppb
+    curr_offs := 0
+    readreg(core.AGE_OFFS, 1, @curr_offs)
+    return (curr_offs signx 7)
+
+PUB osc_set_offset(offs)
 ' Set oscillator aging offset, in 100's of ppb
-'   Valid values: -128 to 127
-'   Any other value polls the chip and returns the current setting
-'   NOTE: This setting is specified at a temperature of +25C, typ
-'   NOTE: The effects of this setting can be observed at the
-'       32kHz output. To effect changes immediately, trigger a
-'       temperature conversion using TempMeasure()
-    case offs
-        -127..128:
-            writereg(core.AGE_OFFS, 1, @offs)
-        other:
-            curr_offs := 0
-            readreg(core.AGE_OFFS, 1, @curr_offs)
-            return ~curr_offs
+'   Valid values: -128 to 127 (clamped to range)
+'   NOTE: This setting is specified at an ambient temperature of +25C, typical
+'   NOTE: The effects of this setting can be observed at the 32kHz output. To effect changes
+'       immediately, trigger a temperature conversion using temp_measure()
+    offs := (-128 #> offs <# 127)
+    writereg(core.AGE_OFFS, 1, @offs)
 
 PUB poll_rtc()
 ' Read the time data from the RTC and store it in hub RAM
     readreg(core.SECONDS, 7, @_secs)
     readreg(core.CTRL_STAT, 1, @_clkdata_ok)
     _clkdata_ok := (_clkdata_ok >> core.OSF) & 1
-    _secs &= core#SECONDS_MASK
-    _mins &= core#MINUTES_MASK
-    _hours &= core#HOURS_MASK
-    _days &= core#DATE_MASK
-    _wkdays &= core#DAY_MASK
-    _months &= core#MONTH_MASK
-    _years &= core#YEAR_MASK
+    _secs &= core.SECONDS_MASK
+    _mins &= core.MINUTES_MASK
+    _hours &= core.HOURS_MASK
+    _days &= core.DATE_MASK
+    _wkdays &= core.DAY_MASK
+    _months &= core.MONTH_MASK
+    _years &= core.YEAR_MASK
 
 PUB reset() | tmp
 ' Reset the device
@@ -304,92 +304,67 @@ PUB set_date(d)
 ' Set day of month
 '   Valid values: 1..31
 '   Any other value is ignored
-    case d
-        1..31:
-            d := int2bcd(d)
-            writereg(core.DATE, 1, @d)
-        other:
-            return
+    d := int2bcd(1 #> d <# 31)
+    writereg(core.DATE, 1, @d)
 
 PUB set_hours(h)
 ' Set hours
 '   Valid values: 0..23
 '   Any other value is ignored
-    case h
-        0..23:
-            h := int2bcd(h)
-            writereg(core.HOURS, 1, @h)
-        other:
-            return
+    h := int2bcd(0 #> h <# 23)
+    writereg(core.HOURS, 1, @h)
 
 PUB set_minutes(m)
 ' Set minutes
 '   Valid values: 0..59
 '   Any other value is ignored
-    case m
-        0..59:
-            m := int2bcd(m)
-            writereg(core.MINUTES, 1, @m)
-        other:
-            return
+    m := int2bcd(0 #> m <# 59)
+    writereg(core.MINUTES, 1, @m)
 
 PUB set_month(m)
 ' Set month
 '   Valid values: 1..12
 '   Any other value is ignored
-    case m
-        1..12:
-            m := int2bcd(m)
-            writereg(core.MONTH, 1, @m)
-        other:
-            return
+    m := int2bcd(1 #> m <# 12)
+    writereg(core.MONTH, 1, @m)
 
 PUB set_seconds(s)
 ' Set seconds
 '   Valid values: 0..59
 '   Any other value is ignored
-    case s
-        0..59:
-            s := int2bcd(s)
-            writereg(core.SECONDS, 1, @s)
-        other:
-            return
+    s := int2bcd(0 #> s <# 59)
+    writereg(core.SECONDS, 1, @s)
 
 PUB set_weekday(w)
 ' Set day of week
 '   Valid values: 1..7
 '   Any other value is ignored
-    case w
-        1..7:
-            w := int2bcd(w-1)
-            writereg(core.DAY, 1, @w)
-        other:
-            return
+    w := int2bcd(1 #> (w-1) <# 7)
+    writereg(core.DAY, 1, @w)
 
 PUB set_year(y)
 ' Set 2-digit year
 '   Valid values: 0..99
 '   Any other value is ignored
-    case y
-        0..99:
-            y := int2bcd(y)
-            writereg(core.YEAR, 1, @y)
-        other:
-            return
+    y := int2bcd(0 #> y <# 99)
+    writereg(core.YEAR, 1, @y)
 
 PUB temp_data(): temp
 ' Temperature ADC data
+    temp := 0
     readreg(core.TEMP_MSB, 2, @temp)
 
 PUB temp_data_rdy(): flag
 ' Flag indicating temperature data ready
+    flag := 0
     readreg(core.CTRL_STAT, 1, @flag)
-    return ((flag >> core.BSY) & 1) == 0
+    return (((flag >> core.BSY) & 1) == 0)
 
 PUB temp_measure() | tmp, meas
 ' Perform a manual temperature measurement
 '   NOTE: The RTC automatically performs temperature measurements
 '       every 64 seconds
+    tmp := 0
     readreg(core.CONTROL, 1, @tmp)
     tmp |= (1 << core.CONV)                     ' set bit to trigger measurement
 
@@ -407,26 +382,25 @@ PUB temp_word2deg(temp_word): temp
         other:
             return FALSE
 
-PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from device into ptr_buff
     case reg_nr
         core.SECONDS..core.TEMP_MSB:
+            cmd_pkt.byte[0] := SLAVE_WR
+            cmd_pkt.byte[1] := reg_nr
+            i2c.start()
+            i2c.wrblock_lsbf(@cmd_pkt, 2)
+            i2c.start()
+            i2c.write(SLAVE_RD)
+            if (reg_nr == core.TEMP_MSB)
+                i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c.NAK)
+            else
+                i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c.NAK)
+            i2c.stop()
         other:
             return
 
-    cmd_pkt.byte[0] := SLAVE_WR
-    cmd_pkt.byte[1] := reg_nr
-    i2c.start()
-    i2c.wrblock_lsbf(@cmd_pkt, 2)
-    i2c.start()
-    i2c.write(SLAVE_RD)
-    if (reg_nr == core.TEMP_MSB)
-        i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c.NAK)
-    else
-        i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c.NAK)
-    i2c.stop()
-
-PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Write nr_bytes to device from ptr_buff
     case reg_nr
         core.SECONDS..core.AGE_OFFS:

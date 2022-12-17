@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: input.gesture.paj7620u2.i2c.spin2
+    Filename: input.gesture.paj7620u2.spin2
     Author: Jesse Burt
     Description: Driver for PAJ6520U2 Gesture Sensor (P2 version)
     Copyright (c) 2021
     Started May 21, 2020
-    Updated Sep 22, 2022
+    Updated Nov 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -47,13 +47,8 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 }   I2C_HZ <= core.I2C_MAX_FREQ
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitus(core.T_POR)
-            repeat 2
-                if i2c.present(SLAVE_WR)        ' check device bus presence
-            waitms(1)
-            if deviceid() == core.DEVID_RESP
-                powered(TRUE)
+            if (dev_id() == core.DEVID_RESP)
                 return
-
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
     ' Lastly - make sure you have at least one free core/cog
@@ -66,9 +61,13 @@ PUB stop()
 
 PUB defaults()
 ' Set factory defaults
-    intmask(%111111111)
+    int_mask(%111111111)
 
-PUB deviceid(): id
+PUB preset_active()
+' Like defaults, but power on sensor
+    powered(TRUE)
+
+PUB dev_id(): id
 ' Read device identification
     readreg(core.PARTID_LSB, 2, @id)
 
@@ -87,7 +86,7 @@ PUB interrupt(): int_src
 '       0 - Right
     readreg(core.INTFLAG_1, 2, @int_src)
 
-PUB intmask(mask=-2): curr_mask
+PUB int_mask(mask=-2): curr_mask
 ' Select which events will trigger an interrupt, as a 9-bit mask
 '   Mask:
 '       %876543210
@@ -109,7 +108,7 @@ PUB intmask(mask=-2): curr_mask
             readreg(core.R_INT_1_EN, 2, @curr_mask)
             return curr_mask
 
-PUB lastgesture(): gest
+PUB last_gesture(): gest
 ' Last gesture recognized by sensor
 '   Returns:
 '       Right               (1)
@@ -182,12 +181,12 @@ PUB lastgesture(): gest
         other:
             return 0
 
-PUB objbrightness(): obj_brt
+PUB obj_brightness(): obj_brt
 ' Object brightness
 '   Returns: 0..255
     readreg(core.OBJECTAVGY, 1, @obj_brt)
 
-PUB objsize(): sz
+PUB obj_size(): sz
 ' Object size
 '   Returns: 0..4095
     readreg(core.OBJECTSIZE_LSB, 2, @sz)
@@ -214,7 +213,8 @@ PUB reset() | tmp
 PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 '' Read num_bytes from the slave device into the address stored in ptr_buff
     case reg_nr
-        $000..$003, $032..$03F, $040..$052, $054..$05F, $060, $061, $063..$06C, $080..$089, $08B..$09D, $09F..$0A5, $0A9, $0AA..$0DF, $0EE, $0EF, $100..$17F:   'XXX TRIM
+        $000..$003, $032..$03F, $040..$052, $054..$05F, $060, $061, $063..$06C, $080..$089, {
+}       $08B..$09D, $09F..$0A5, $0A9, $0AA..$0DF, $0EE, $0EF, $100..$17F:   'XXX TRIM
             cmd_pkt.byte[0] := SLAVE_WR
             cmd_pkt.byte[1] := core.REGBANKSEL
             cmd_pkt.byte[2] := (reg_nr >> 8) & 1
@@ -238,7 +238,9 @@ PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Write nr_bytes from ptr_buff to slave device
     case reg_nr
-        $003, $032..$03A, $03F, $040..$042, $046..$052, $05C..$05F, $061, $063..$06A, $080..$089, $08B..$09D, $09F..$0A5, $0A9, $0AA, $0AB, $0CC..$0D2, $0EE, $0EF, $060, $062, $06D..$075, $08A, $09E, $0A6..$0A8, $0E0..$0E9, $100..$1EF:
+        $003, $032..$03A, $03F, $040..$042, $046..$052, $05C..$05F, $061, $063..$06A, $080..$089, {
+}       $08B..$09D, $09F..$0A5, $0A9, $0AA, $0AB, $0CC..$0D2, $0EE, $0EF, $060, $062, $06D..$075, {
+}       $08A, $09E, $0A6..$0A8, $0E0..$0E9, $100..$1EF:
             cmd_pkt.byte[0] := SLAVE_WR
             cmd_pkt.byte[1] := core.REGBANKSEL
             cmd_pkt.byte[2] := (reg_nr >> 8) & 1

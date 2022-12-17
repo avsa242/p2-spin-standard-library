@@ -5,7 +5,7 @@
     Description: Driver for the TDK/Invensense ICM20649 6DoF IMU (P2 version)
     Copyright (c) 2022
     Started Sep 4, 2020
-    Updated Nov 7, 2022
+    Updated Nov 20, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -39,10 +39,6 @@ CON
     CAL_XL_DR               = 200
     CAL_G_DR                = 200
     CAL_M_DR                = 0
-
-' Bias adjustment (AccelBias(), GyroBias()) read or write
-    R                       = 0
-    W                       = 1
 
 ' Axis-specific constants
     X_AXIS                  = 0
@@ -212,9 +208,9 @@ PUB accel_set_bias(x, y, z) | tmp[3], tc_bit[3]
 PUB accel_data(ptr_x, ptr_y, ptr_z) | tmp[2]
 ' Reads the Accelerometer output registers
     readreg(core.ACCEL_XOUT_H, 6, @tmp)
-    long[ptr_x] := ~~tmp.word[2]
-    long[ptr_y] := ~~tmp.word[1]
-    long[ptr_z] := ~~tmp.word[0]
+    long[ptr_x] := (tmp.word[2] signx 15)
+    long[ptr_y] := (tmp.word[1] signx 15)
+    long[ptr_z] := (tmp.word[0] signx 15)
 
 PUB accel_data_rate(rate=-2): curr_rate
 ' Set accelerometer output data rate, in Hz

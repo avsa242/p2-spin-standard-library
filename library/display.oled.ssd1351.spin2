@@ -5,7 +5,7 @@
     Description: Driver for Solomon Systech SSD1351 RGB OLED displays (P2 version)
     Copyright (c) 2022
     Started: Mar 11, 2020
-    Updated: Nov 5, 2022
+    Updated: Nov 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -423,18 +423,6 @@ PUB disp_start_line(sline)
     sline := (0 #> sline <# 127)
     writereg(core.STARTLINE, 1, @sline)
 
-PUB visibility(mode)
-' Set display visibility
-'   Valid values:
-'       ALL_OFF (0): Turns off all pixels
-'       ALL_ON (1): Turns on all pixels (white)
-'      *NORMAL (2): Normal display (display graphics RAM contents)
-'       INVERTED (3): Like NORMAL, but with inverted colors
-'   NOTE: This setting doesn't affect the contents of graphics RAM,
-'       only how they are displayed
-    mode := ((ALL_OFF #> mode <# INVERTED) + core.DISPALLOFF)
-    writereg(mode, 0, 0)
-
 PUB interlace_ena(state)
 ' Alternate every other display line:
 ' Lines 0..31 will appear on even rows (starting on row 0)
@@ -661,6 +649,18 @@ PUB show()
     spi.wrblock_lsbf(_ptr_drawbuffer, _buff_sz)
     pinh(_CS)
 #endif
+
+PUB visibility(mode)
+' Set display visibility
+'   Valid values:
+'       ALL_OFF (0): Turns off all pixels
+'       ALL_ON (1): Turns on all pixels (white)
+'      *NORMAL (2): Normal display (display graphics RAM contents)
+'       INVERTED (3): Like NORMAL, but with inverted colors
+'   NOTE: This setting doesn't affect the contents of graphics RAM,
+'       only how they are displayed
+    mode := ((ALL_OFF #> mode <# INVERTED) + core.DISPALLOFF)
+    writereg(mode, 0, 0)
 
 #ifndef GFX_DIRECT
 PRI memfill(xs, ys, val, count)

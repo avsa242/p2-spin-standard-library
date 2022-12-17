@@ -6,7 +6,7 @@
         audio amp driver. (P2 version)
     Copyright (c) 2022
     Started Nov 22, 2020
-    Updated Oct 16, 2022
+    Updated Nov 21, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -32,15 +32,15 @@ OBJ
     ser     : "com.serial.terminal.ansi"
     amp     : "audio.amp.max9744"
 
-PUB Main() | i, level
+PUB main() | i, level
 
     setup()
     level := 31
-    amp.volume(level)                           ' set starting volume
+    amp.set_volume(level)                       ' set starting volume
     ser.clear()
 
     repeat
-        ser.position(0, 0)
+        ser.pos_xy(0, 0)
         ser.strln(string("Help:"))
         ser.strln(string("[: Volume down"))
         ser.strln(string("]: Volume up"))
@@ -51,28 +51,27 @@ PUB Main() | i, level
         ser.newline()
         ser.printf(string("Volume: %d \n"), level)
 
-        i := ser.charin()
+        i := ser.getchar()
             case i
                 "[":
                     level := 0 #> (level - 1)
-                    amp.voldown()
+                    amp.vol_down()
                 "]":
                     level := (level + 1) <# 63
-                    amp.volup()
+                    amp.vol_up()
                 "f":
                     ser.strln(string("Modulation mode: Filterless "))
-                    amp.modulationmode(amp.NONE)
-                    amp.volume(level)
+                    amp.set_modulation(amp.NONE)
+                    amp.set_volume(level)
                 "m":
                     amp.mute()
                     level := 0
                 "p":
                     ser.strln(string("Modulation mode: Classic PWM"))
-                    amp.modulationmode(amp.PWM)
-                    amp.volume(level)
-                other:
+                    amp.set_modulation(amp.PWM)
+                    amp.set_volume(level)
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(30)
@@ -88,24 +87,21 @@ PUB Setup()
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 

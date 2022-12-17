@@ -34,7 +34,7 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitus(core.T_POR)                  ' wait for device startup
             if i2c.present(SLAVE_WR)            ' test device bus presence
-                    return
+                return
     ' if this point is reached, something above failed
     ' Re-check I/O pin assignments, bus speed, connections, power
     ' Lastly - make sure you have at least one free core/cog

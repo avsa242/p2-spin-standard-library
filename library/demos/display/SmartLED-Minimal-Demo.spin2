@@ -14,7 +14,7 @@ CON
     _clkfreq    = 160_000_000                   ' minimum 20_000_000
     _xtlfreq    = 20_000_000
 
-    SMLED_PIN   = 24
+    SMLED_PIN   = 0
     MODEL       = led.WS2812
     ' WS2811, WS2812, WS2812B, WS2813, SK6812_24, SK6812_32, TM1803
 

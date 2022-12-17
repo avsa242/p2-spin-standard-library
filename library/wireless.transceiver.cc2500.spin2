@@ -99,7 +99,6 @@ OBJ
 
     spi : "com.spi.25mhz"
     core: "core.con.cc2500"
-    u64 : "math.unsigned64"
 
 PUB null()
 ' This is not a top-level object
@@ -308,10 +307,10 @@ PUB carrier_freq(freq=-2): curr_freq
     readreg(core.FREQ2, 3, @curr_freq)
     case freq
         2_400_000..2_483_500:
-            freq := u64.multdiv(F_XOSC, U64SCALE, freq)
-            freq := u64.multdiv(TWO16, U64SCALE*1_000, freq)
+            freq := muldiv64(F_XOSC, U64SCALE, freq)
+            freq := muldiv64(TWO16, U64SCALE*1_000, freq)
         other:
-            return u64.multdiv(curr_freq, U64_FREQ_RES, 1_000_000_000)
+            return muldiv64(curr_freq, U64_FREQ_RES, 1_000_000_000)
 
     writereg(core.FREQ2, 3, @freq)
 
@@ -384,7 +383,7 @@ PUB channel_spacing(width=-2): curr_wid | chanspc_e, chanspc_m
             chanspc_e := curr_wid.byte[0] & core.CHANSPC_E_BITS
             chanspc_m := curr_wid.byte[1]
             curr_wid := (256 + chanspc_m) * (1 << chanspc_e)
-            return u64.multdiv(CHANSPC_RES, curr_wid, 1_000_000)
+            return muldiv64(CHANSPC_RES, curr_wid, 1_000_000)
 
     width.byte[0] &= core.CHANSPC_E_MASK
     width.byte[0] |= chanspc_e
@@ -436,17 +435,17 @@ PUB data_rate(rate): curr_rate | curr_exp, curr_mant, dr_exp, dr_mant
     readreg(core.MDMCFG3, 1, @curr_mant)
     case rate
         600..500_000:
-            dr_exp := log2( u64.multdiv(rate, TWO20, F_XOSC) )
-            dr_mant := (u64.multdiv(rate, TWO28, u64.multdiv(F_XOSC, {
+            dr_exp := log2( muldiv64(rate, TWO20, F_XOSC) )
+            dr_mant := (muldiv64(rate, TWO28, muldiv64(F_XOSC, {
 }            (1 << dr_exp), 1_000) )-256_000) / 1_000
             if (dr_mant > 255)                  ' mantissa overflow?
                 dr_mant := 0                    ' clear and carry it into
                 dr_exp := (dr_exp + 1) <# $0E   ' the exponent
         other:
             curr_exp &= core.DRATE_E_BITS
-            curr_rate := u64.multdiv( (256+curr_mant) * (1 << curr_exp), {
+            curr_rate := muldiv64( (256+curr_mant) * (1 << curr_exp), {
 }            U64SCALE, TWO28)
-            return u64.multdiv(curr_rate, F_XOSC, U64SCALE)
+            return muldiv64(curr_rate, F_XOSC, U64SCALE)
 
     curr_exp &= core.DRATE_E_MASK
     curr_exp := (curr_exp | dr_exp)
@@ -562,10 +561,10 @@ PUB freq_dev(freq=-2): curr_freq | tmp, deviat_m, deviat_e, tmp_m
     readreg(core.DEVIATN, 1, @tmp)
     case freq
         1_587..380_859:
-            deviat_e := u64.multdiv(freq, TWO14, F_XOSC)
+            deviat_e := muldiv64(freq, TWO14, F_XOSC)
             deviat_e := log2(deviat_e)
             tmp_m := F_XOSC * (1 << deviat_e)
-            deviat_m := u64.multdiv(freq, TWO17, tmp_m)
+            deviat_m := muldiv64(freq, TWO17, tmp_m)
             freq := (deviat_e << core.DEVIAT_E) | deviat_m
         other:
             deviat_m := tmp & core.DEVIAT_M_BITS

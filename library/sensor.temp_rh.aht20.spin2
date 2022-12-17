@@ -5,7 +5,7 @@
     Description: Driver for AHT20 temperature/RH sensors (P2 version)
     Copyright (c) 2022
     Started Mar 27, 2022
-    Updated Sep 24, 2022
+    Updated Nov 17, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -27,7 +27,6 @@ OBJ
 
     i2c : "com.i2c"                             ' I2C engine
     core: "core.con.aht20"                      ' AHT20-specific constants
-    u64 : "math.unsigned64"                     ' unsigned 64-bit math
     crc : "math.crc"
 
 PUB startx(SCL_PIN, SDA_PIN, I2C_HZ): status
@@ -89,7 +88,7 @@ PUB rh_data_rdy(): flag
 PUB rh_word2pct(rhword): pct
 ' Convert RH ADC word to hundredths of a percent
 '   Returns: 0..100_00
-    return u64.multdiv(rhword, FP_SCALE, TWO20)
+    return muldiv64(rhword, FP_SCALE, TWO20)
 
 PUB temp_data_rdy(): flag
 ' Flag indicating temperature measurement data ready
@@ -117,7 +116,7 @@ PUB temp_word2deg(tword): deg | sign
         sign := -1                              ' preserve sign - u64 object
     else                                        '   only handles unsigned math
         sign := 1
-    deg := ((u64.multdiv(tword, FP_SCALE, TWO20) * 200) - (50 * FP_SCALE)) / 100
+    deg := ((muldiv64(tword, FP_SCALE, TWO20) * 200) - (50 * FP_SCALE)) / 100
     deg *= sign
 
     case _temp_scale

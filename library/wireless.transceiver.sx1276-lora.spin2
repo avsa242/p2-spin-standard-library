@@ -5,7 +5,7 @@
     Description: Driver for the SEMTECH SX1276 LoRa/FSK/OOK transceiver (LoRa mode; P2 version)
     Copyright (c) 2022
     Started Oct 6, 2019
-    Updated Nov 13, 2022
+    Updated Nov 28, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -91,18 +91,15 @@ OBJ
 
     spi : "com.spi.25mhz"
     core: "core.con.sx1276"
-    u64 : "math.unsigned64"
 
 PUB null()
 ' This is not a top-level object
 
 PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, RESET_PIN, SCK_FREQ=10_000_000): status
 ' Start using custom I/O settings
-    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MOSI_PIN: 0..63) {
-}   and lookdown(MISO_PIN: 0..63) and {
-}   SCK_FREQ <= core.SCK_MAX_FREQ
-        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ, {
-}       core.SPI_MODE))
+    if (lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MOSI_PIN: 0..63) {
+}      and lookdown(MISO_PIN: 0..63) and SCK_FREQ <= core.SCK_MAX_FREQ)
+        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, SCK_FREQ))
             waitus(core.T_POR)
             _CS := CS_PIN
             _RESET := RESET_PIN
@@ -230,7 +227,7 @@ PUB carrier_freq(freq=-2): curr_freq | opmode_orig
     opmode_orig := 0
     case freq
         137_000_000..175_000_000, 410_000_000..525_000_000, 862_000_000..1_020_000_000:
-            freq := u64.multdiv(freq, FPSCALE, FSTEP)
+            freq := muldiv64(freq, FPSCALE, FSTEP)
             opmode_orig := opmode()
             opmode(STDBY)
             writereg(core.FRFMSB, 3, @freq)
@@ -238,7 +235,7 @@ PUB carrier_freq(freq=-2): curr_freq | opmode_orig
         other:
             curr_freq := 0
             readreg(core.FRFMSB, 3, @curr_freq)
-            return u64.multdiv(FSTEP, curr_freq, FPSCALE)
+            return muldiv64(FSTEP, curr_freq, FPSCALE)
 
 PUB channel(number=-2): curr_chan
 ' Set LoRa uplink channel

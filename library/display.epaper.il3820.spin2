@@ -87,7 +87,7 @@ VAR
 
 OBJ
 
-    spi : "com.spi.25mhz"                             ' SPI engine
+    spi : "com.spi.25mhz"                       ' SPI engine
     core: "core.con.il3820"                     ' HW-specific constants
 
 PUB null()

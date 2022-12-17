@@ -5,7 +5,7 @@
     Description: Driver for MPL3115A2 Pressure sensor with altimetry
     Copyright (c) 2022
     Started Feb 18, 2021
-    Updated Sep 28, 2022
+    Updated Nov 26, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -32,7 +32,6 @@ OBJ
 
     i2c : "com.i2c"                             ' I2C engine
     core: "core.con.mpl3115a2"                  ' hw-specific low-level const's
-    u64 : "math.unsigned64"
 
 PUB null()
 ' This is not a top-level object
@@ -112,7 +111,7 @@ PUB altitude(): alt_cm
 
 PUB alt_word2cm(alt_adc): alt_cm
 ' Convert altitude word to altitude, in centimeters
-    return u64.multdiv(alt_adc, 100_00, 65536)
+    return muldiv64(alt_adc, 100_00, 65536)
 
 PUB dev_id(): id
 ' Read device identification
@@ -169,11 +168,11 @@ PUB oversampling(ratio): curr_ratio | opmd_orig
     if opmd_orig == CONT                        ' restore opmode, if it
         opmode(opmd_orig)                       ' was CONT, previously
 
-PUB press_bias{}: offs
+PUB press_bias(): offs
 ' Get pressure bias/offset
 '   Returns: Pascals
     offs := 0
-    readreg(core#OFF_P, 1, @offs)
+    readreg(core.OFF_P, 1, @offs)
     return ((offs signx 7) * 4)                 ' extend sign
 
 PUB press_data(): press_adc
@@ -192,7 +191,7 @@ PUB press_set_bias(offs)
 ' Set pressure bias/offset, in Pascals
 '   Valid values: -512..508 (clamped to range)
     offs := (-512 #> offs <# 508) / 4           ' LSB = 4Pa
-    writereg(core#OFF_P, 1, @offs)
+    writereg(core.OFF_P, 1, @offs)
 
 PUB press_word2pa(p_word): p_pa
 ' Convert pressure ADC word to pressure in Pascals
