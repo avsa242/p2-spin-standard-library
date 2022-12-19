@@ -5,7 +5,7 @@
     Description: Driver for the ST LSM9DS1 9DoF/3-axis IMU
     Copyright (c) 2022
     Started Aug 12, 2017
-    Updated Nov 13, 2022
+    Updated Dec 17, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -1297,11 +1297,11 @@ PRI spi_mode(mode)
         other:
             return
 
-PRI bool_choice(device, reg_nr, field, fieldmask, regmask, choice, invertchoice): bool
+PRI bool_choice(device, reg_nr, rfield, fieldmask, regmask, choice, invertchoice): bool
 ' Reusable method for writing a field that is of a boolean or on-off type
 '   device: XLG or MAG
 '   reg_nr: register
-'   field: field within register to modify
+'   rfield: field within register to modify
 '   fieldmask: bitmask that clears the bits in the field being modified
 '   regmask: bitmask to ensure only valid bits within the register can be modified
 '   choice: the choice (TRUE/FALSE, 1/0)
@@ -1310,9 +1310,9 @@ PRI bool_choice(device, reg_nr, field, fieldmask, regmask, choice, invertchoice)
     readreg(device, reg_nr, 1, @bool)
     case abs(choice)
         0, 1:
-            choice := abs(choice * invertchoice) << field
+            choice := abs(choice * invertchoice) << rfield
         other:
-            return ((((bool >> field) & 1) == 1) * invertchoice)
+            return ((((bool >> rfield) & 1) == 1) * invertchoice)
 
     bool &= fieldmask
     bool := (bool | choice) & regmask

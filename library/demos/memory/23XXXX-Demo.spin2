@@ -53,8 +53,7 @@ PUB setup()
 
     demo()
 
-#include "memdemo.common.spin
-2h"
+#include "memdemo.common.spin2h"
 
 DAT
 {

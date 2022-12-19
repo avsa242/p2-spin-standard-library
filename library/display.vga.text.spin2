@@ -5,7 +5,7 @@
     Modified by: Jesse Burt
     Description: Tiling VGA text driver
     Started Nov 13, 2019
-    Updated Oct 31, 2022
+    Updated Dec 17, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -780,7 +780,7 @@ cmodval
                 rdlong  LINE_HANDLER, ptrb
 'l      c       i       o                       c/f
 ' Field loop
-field   
+hfield
                 mov     y, vfront_porch         ' top blanks
                 call    #blank
                 mov     ptr_buff, buffer_base
@@ -838,7 +838,7 @@ end_of_line
 
                 drvnot  vsync_val               ' sync off
 
-                jmp     #field                  ' loop
+                jmp     #hfield                 ' loop
 
 	
 ' Subroutines
