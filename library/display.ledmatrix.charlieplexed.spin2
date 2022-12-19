@@ -13,7 +13,7 @@
 }
 #define MEMMV_NATIVE bytemove
 #define LEDMATRIX_CHARLIEPLEXED
-#include "lib.gfx.bitmap.spin2"
+#include "graphics.common.spin2h"
 
 CON
 
