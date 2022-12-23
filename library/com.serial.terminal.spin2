@@ -5,7 +5,7 @@
     Description: Parallax Serial Terminal-compatible
         serial terminal driver
     Started June 25, 2019
-    Updated Dec 4, 2022
+    Updated Dec 23, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -49,9 +49,9 @@ PUB chars(ch, nr_ch)
     repeat nr_ch
         putchar(ch)
 
-PUB binin = get_bin
-PUB rx_bin = get_bin
-PUB get_bin(): b
+PUB binin = getbin
+PUB rx_bin = getbin
+PUB getbin(): b
 ' Receive CR-terminated string representing a binary value
 '   Returns: the corresponding binary value
     gets_max(@_str_buff, MAXSTR_LENGTH)
