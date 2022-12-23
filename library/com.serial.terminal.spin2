@@ -51,6 +51,7 @@ PUB chars(ch, nr_ch)
 
 PUB binin = getbin
 PUB rx_bin = getbin
+PUB get_bin = getbin
 PUB getbin(): b
 ' Receive CR-terminated string representing a binary value
 '   Returns: the corresponding binary value
@@ -67,17 +68,19 @@ PUB clear_ln
 ' Clear from cursor to end of line
     putchar(CE)
 
-PUB decin = get_dec
-PUB rx_dec = get_dec
-PUB get_dec(): d
+PUB decin = getdec
+PUB rx_dec = getdec
+PUB get_dec = getdec
+PUB getdec(): d
 ' Receive CR-terminated string representing a decimal value
 '   Returns: the corresponding decimal value
     gets_max(@_str_buff, MAXSTR_LENGTH)
     return stl.atoib(@_str_buff, stl.IDEC)
 
-PUB hexin = get_hex
-PUB rx_hex = get_hex
-PUB get_hex(): h
+PUB hexin = gethex
+PUB rx_hex = gethex
+PUB get_hex = gethex
+PUB gethex(): h
 ' Receive CR-terminated string representing a hexadecimal value
 '   Returns: the corresponding hexadecimal value
     gets_max(@_str_buff, MAXSTR_LENGTH)
