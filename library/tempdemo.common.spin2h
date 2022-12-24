@@ -5,7 +5,7 @@
     Description: Temperature sensor demo - code common to all drivers (P2 version)
     Copyright (c) 2022
     Started Jul 16, 2022
-    Updated Oct 11, 2022
+    Updated Dec 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -22,7 +22,8 @@ PUB show_temp_data() | tscl, cj_temp, tc_temp
     ser.printf(@"Temp (deg %c):\n\r", tscl)
     ser.printf(@"Cold junction: %3.3d.%02.2d\n\r", (cj_temp / 100), abs(cj_temp // 100))
     ser.printf(@"Thermocouple (%c): %3.3d.%02.2d\n\r", tc_type(_tc_type), {
-}   (tc_temp / 100), abs(tc_temp // 100))
+}                                                              (tc_temp / 100), {
+}                                                              abs(tc_temp // 100))
 
 PUB tc_type(val): t
 ' Return thermocouple type as ASCII character, given sensor-specific value for type
@@ -54,7 +55,7 @@ PUB demo()
     _tc_type := sensor.tc_type()                 ' read back and cache it
 #endif
     repeat
-        ser.position(0, 3)
+        ser.pos_xy(0, 3)
         show_temp_data()
         waitms(250)
 #endif

@@ -6,7 +6,7 @@
         (common code)
     Copyright (c) 2022
     Started Jul 2, 2022
-    Updated Oct 5, 2022
+    Updated Dec 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -33,7 +33,7 @@ DAT
 
 PUB demo() | i
 
-    ser.position(0, 3)
+    ser.pos_xy(0, 3)
 
     repeat until epaper.disp_rdy()              ' Wait for display to be ready
 
@@ -42,8 +42,8 @@ PUB demo() | i
     epaper.fgcolor(epaper.BLACK)                ' set FG color for text
     epaper.box(0, 0, XMAX, YMAX, 0, FALSE)      ' draw box full-screen size
 
-    { find center X position for test text and draw it }
-    epaper.position((epaper.textcols() / 2)-(strsize(@_test_txt) / 2), 2)
+    { find center X pos_xy for test text and draw it }
+    epaper.pos_xy((epaper.textcols() / 2)-(strsize(@_test_txt) / 2), 2)
     epaper.str(@_test_txt)
 
     { diagonal lines }

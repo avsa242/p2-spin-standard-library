@@ -6,7 +6,7 @@
     Description: Routines common to all temperature device drivers
     Copyright (c) 2022
     Started May 13, 2022
-    Updated Sep 24, 2022
+    Updated Dec 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -65,7 +65,7 @@ PUB temperature(): temp
 #endif
 
 PUB temp_scale(scale=-2): curr_scale
-' Set temperature scale used by Temperature method
+' Set temperature scale used by temperature() or tc_temp()
 '   Valid values:
 '       C (0): Celsius
 '       F (1): Fahrenheit

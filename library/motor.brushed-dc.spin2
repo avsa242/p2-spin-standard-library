@@ -1,6 +1,6 @@
 {
     --------------------------------------------
-    Filename: motor.bdc.hbridge.spin2
+    Filename: motor.brushed-dc.spin2
     Author: Jesse Burt
     Description: Brushed motor driver
         (requires full H-Bridge power circuit)

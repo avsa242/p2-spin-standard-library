@@ -6,7 +6,7 @@
         driver
     Copyright 2022
     Started May 15, 2022
-    Updated Oct 31, 2022
+    Updated Dec 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -31,8 +31,8 @@ OBJ
 
     cfg     : "boardcfg.p2eval"
     ser     : "com.serial.terminal.ansi"
-    mot_l   : "motor.bdc.hbridge"
-    mot_r   : "motor.bdc.hbridge"
+    mot_l   : "motor.brushed-dc"
+    mot_r   : "motor.brushed-dc"
 
 PUB main() | duty
 
@@ -55,7 +55,7 @@ PUB main() | duty
                 duty := -100_0 #> (duty - 0_1)
             "s":                                ' coast
                 duty := 0
-        ser.position(0, 3)
+        ser.pos_xy(0, 3)
         ser.printf(@"Duty: %d.%d%%   ", duty/10, duty//10)
         case duty
             1..100_0:

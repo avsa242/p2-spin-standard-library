@@ -38,7 +38,7 @@ VAR
     long _stack_timer[50]
     long _timer_set, _time
 
-PUB Demo()
+PUB demo()
 
     cogspin(NEWCOG, cog_timer(), @_stack_timer)
     disp.clear()
@@ -51,7 +51,7 @@ PUB Demo()
 
     disp.stop()
 
-PUB Demo_Box() | c, sz
+PUB demo_box() | c, sz
 ' Draw expanding boxes
     _timer_set := _time
     sz := 0
@@ -59,7 +59,7 @@ PUB Demo_Box() | c, sz
     repeat while _timer_set
         disp.clear()
         disp.box(sz, sz, abs(XMAX-sz), abs(YMAX-sz), c, false)
-        disp.update()
+        disp.show()
         waitms(100)
         sz++
         if (sz > (XMAX <# YMAX))                ' limit size to whichever is smaller
@@ -69,7 +69,7 @@ PUB Demo_Box() | c, sz
             c := 0
     waitclear()
 
-PUB Demo_Circle() | c, r
+PUB demo_circle() | c, r
 ' Draw expanding circles
     _timer_set := _time
     c := disp.MAX_COLOR
@@ -77,7 +77,7 @@ PUB Demo_Circle() | c, r
     repeat while _timer_set
         disp.clear()
         disp.circle(0, 0, r, c, false)
-        disp.update()
+        disp.show()
         waitms(50)
         r++
         if (r > WIDTH)
@@ -87,7 +87,7 @@ PUB Demo_Circle() | c, r
             c := 0
     waitclear()
 
-PUB Demo_Line() | x, y, c, i, xr, yr
+PUB demo_line() | x, y, c, i, xr, yr
 ' Draw screen edge walking lines
     c := disp.MAX_COLOR
     xr := (200_000 / (WIDTH*2))
@@ -99,61 +99,61 @@ PUB Demo_Line() | x, y, c, i, xr, yr
             x := (math.cos(i) / xr) * AR
             y := (math.sin(i) / yr)
             disp.line(0, 0, x, y, c)
-            disp.update()
+            disp.show()
             waitms(5)
         repeat i from Q3 to Q4 step 15
             disp.clear
             x := (math.cos(i) / xr) * AR
             y := (math.sin(i) / yr)
             disp.line(0, YMAX, x, (YMAX + y), c)
-            disp.update()
+            disp.show()
             waitms(5)
         repeat i from Q2 to Q3 step 15
             disp.clear
             x := (math.cos(i) / xr) * AR
             y := (math.sin(i) / yr)
             disp.line(XMAX, YMAX, (XMAX + x), (YMAX + y), c)
-            disp.update()
+            disp.show()
             waitms(5)
         repeat i from Q1 to Q2 step 15
             disp.clear
             x := (math.cos(i) / xr) * AR
             y := (math.sin(i) / yr)
             disp.line(XMAX, 0, (XMAX + x), y, c)
-            disp.update()
+            disp.show()
             waitms(5)
     waitclear()
 
-PUB Demo_Plot() | x, y
+PUB demo_plot() | x, y
 ' Draw random pixels
     _timer_set := _time
     repeat while _timer_set
         disp.plot(math.rndi(XMAX), math.rndi(YMAX), math.rndi(disp.MAX_COLOR))
-        disp.update()
+        disp.show()
     waitclear()
 
-PUB Demo_Text() | ch
+PUB demo_text() | ch
 ' Sequentially draw the whole font table
     disp.fgcolor(disp.MAX_COLOR)
     disp.bgcolor(0)
     ch := 32
-    disp.position(0, 0)
+    disp.pos_xy(0, 0)
 
     _timer_set := _time
     repeat while _timer_set
         disp.char(ch)
         if (ch++ > 127)
             ch := 32
-        disp.update()
+        disp.show()
         waitms(100)
     waitclear()
 
-PRI waitClear()
+PRI waitclear()
 ' Wait, then clear the display
     waitms(_time)
     disp.clear()
 
-PRI cog_Timer() | time_left
+PRI cog_timer() | time_left
 ' Timer loop
     repeat
         repeat until _timer_set                 ' wait here until a timer has
@@ -165,24 +165,23 @@ PRI cog_Timer() | time_left
         while (time_left > 0)
         _timer_set := 0                         ' signal the timer's been reset
 
+DAT
 {
-TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+

@@ -5,17 +5,17 @@
     Description: Magnetometer demo - code common to all drivers (P2 version)
     Copyright (c) 2022
     Started Jul 12, 2022
-    Updated Oct 18, 2022
+    Updated Dec 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 
 PUB cal_mag()
 ' Calibrate the magnetometer
-    ser.position(0, 5)
+    ser.pos_xy(0, 5)
     ser.str(@"Calibrating magnetometer...")
     sensor.calibrate_mag()
-    ser.position(0, 5)
+    ser.pos_xy(0, 5)
     ser.clear_ln()
 
 PUB show_mag_data() | axis, m[3], sign
@@ -29,7 +29,7 @@ PUB show_mag_data() | axis, m[3], sign
         else
             sign := " "
         ser.printf(@"%c%d.%06.6d     ", sign, abs(m[axis] / 1_000_000), {
-}       abs(m[axis] // 1_000_000))
+}                                             abs(m[axis] // 1_000_000))
     ser.newline()
 
 DAT

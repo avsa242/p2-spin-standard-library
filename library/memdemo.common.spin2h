@@ -5,7 +5,7 @@
     Description: Routines common to all memory drivers (P2 version)
     Copyright (c) 2022
     Started Jul 30, 2022
-    Updated Oct 18, 2022
+    Updated Dec 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -32,24 +32,24 @@ PUB demo() | base_page, offs
     base_page := 0
     mem.rd_block_lsbf(@_pg_buff, base_page, _pagesize)
     offs := pg2byte_offs(base_page)
-    ser.position(0, 4)
-    ser.strln(string("Keys:"))
-    ser.strln(string("[, ]: go back, forward a page in memory"))
-    ser.strln(string("s, e: go to the first, last page"))
-    ser.strln(string("w: write test: fill current page with random value"))
-    ser.strln(string("x: erase test: fill the current page with the erase value"))
-    ser.strln(string("   (varies among memory types)"))
-    ser.fgcolor(ser#RED)
-    ser.strln(string("Only perform the write or erase test if the data stored on the memory"))
-    ser.strln(string("  isn't important!"))
-    ser.fgcolor(ser#GREY)
+    ser.pos_xy(0, 4)
+    ser.strln(@"Keys:")
+    ser.strln(@"[, ]: go back, forward a page in memory")
+    ser.strln(@"s, e: go to the first, last page")
+    ser.strln(@"w: write test: fill current page with random value")
+    ser.strln(@"x: erase test: fill the current page with the erase value")
+    ser.strln(@"   (varies among memory types)")
+    ser.fgcolor(ser.RED)
+    ser.strln(@"Only perform the write or erase test if the data stored on the memory")
+    ser.strln(@"  isn't important!")
+    ser.fgcolor(ser.GREY)
     repeat
-        ser.position(0, 13)
+        ser.pos_xy(0, 13)
         { display a hexdump of the current page of memory, but limit it to
             a reasonable 512 bytes at a time }
         ser.hexdump(@_pg_buff, offs, 6, _pagesize, 16)
 
-        case ser.charin()
+        case ser.getchar()
             "[":                                ' go back a page in memory
                 base_page--
                 if (base_page < 0)
@@ -101,7 +101,7 @@ PUB read_test(st_addr): etime | stime
     mem.rd_block_lsbf(@_pg_buff, st_addr, _pagesize)
     etime := cnt-stime
 
-PUB write_test(st_addr): etime | stime, tval
+PUB write_test(st_addr): etime | stime
 ' Write a random test value to memory page
     ser.str(@"Writing page...")
     bytefill(@_pg_buff, math.rndi(255), _pagesize)

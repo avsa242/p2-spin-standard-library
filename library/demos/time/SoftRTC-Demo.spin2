@@ -4,7 +4,7 @@
     Description: Demo of the software RTC
     Author: Jesse Burt
     Started 2009
-    Updated Oct 23, 2022
+    Updated Dec 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -51,9 +51,9 @@ PUB main()
         rtc.parse_date_stamp(@_datestamp)
         rtc.parse_time_stamp(@_timestamp)
 
-        ser.position(0, 3)
+        ser.pos_xy(0, 3)
         ser.printf(@"%s %s  %s", @_datestamp, @weekday[(rtc.weekday() - 1) * 4], {
-}       @_timestamp)
+}                                @_timestamp)
 
 PUB setup()
 

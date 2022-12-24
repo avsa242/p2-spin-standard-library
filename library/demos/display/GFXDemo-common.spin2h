@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Started: Feb 20, 2022
-    Updated: Oct 29, 2022
+    Updated: Dec 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -32,7 +32,7 @@ VAR
     long _stack_timer[50]
     long _timer_set, _time
 
-PUB Demo()
+PUB demo()
 
     cogspin(NEWCOG, cog_timer(), @_stack_timer)
     disp.clear()
@@ -52,7 +52,7 @@ PUB Demo()
     disp.stop()
     repeat
 
-PUB Demo_Bounce() | bx, by, dx, dy, radius
+PUB demo_bounce() | bx, by, dx, dy, radius
 ' Draw a circle bouncing off screen edges
 ' Pick a random screen location to start from, and a random direction
     radius := 5
@@ -77,7 +77,7 @@ PUB Demo_Bounce() | bx, by, dx, dy, radius
         disp.clear()
     waitclear()
 
-PUB Demo_Box() | c
+PUB demo_box() | c
 ' Draw random boxes
     _timer_set := _time
     repeat while _timer_set
@@ -86,7 +86,7 @@ PUB Demo_Box() | c
         disp.show()
     waitclear()
 
-PUB Demo_BoxFilled() | c
+PUB demo_boxfilled() | c
 ' Draw random filled boxes
     _timer_set := _time
     repeat while _timer_set
@@ -95,7 +95,7 @@ PUB Demo_BoxFilled() | c
         disp.show()
     waitclear()
 
-PUB Demo_Circle() | x, y, r
+PUB demo_circle() | x, y, r
 ' Draw circles at random locations
     _timer_set := _time
     repeat while _timer_set
@@ -106,7 +106,7 @@ PUB Demo_Circle() | x, y, r
         disp.show()
     waitclear()
 
-PUB Demo_CircleFilled() | x, y, r
+PUB demo_circlefilled() | x, y, r
 ' Draw circles at random locations
     _timer_set := _time
     repeat while _timer_set
@@ -117,18 +117,18 @@ PUB Demo_CircleFilled() | x, y, r
         disp.show()
     waitclear()
 
-PUB Demo_Greet()
+PUB demo_greet()
 ' Display the banner/greeting
     disp.fgcolor(disp.MAX_COLOR)
     disp.bgcolor(0)
-    disp.position(0, 0)
+    disp.pos_xy(0, 0)
     disp.printf(string("%s\n\r"), @_drv_name)
     disp.printf(string("P2X8C4M64P\n\r%dMHz\n\r"), clkfreq / 1_000_000)
     disp.printf(string("%dx%d"), WIDTH, HEIGHT)
     disp.show()
     waitclear()
 
-PUB Demo_Line()
+PUB demo_line()
 ' Draw random lines
     _timer_set := _time
     repeat while _timer_set
@@ -136,7 +136,7 @@ PUB Demo_Line()
         disp.show()
     waitclear()
 
-PUB Demo_Plot() | x, y
+PUB demo_plot() | x, y
 ' Draw random pixels
     _timer_set := _time
     repeat while _timer_set
@@ -144,7 +144,7 @@ PUB Demo_Plot() | x, y
         disp.show()
     waitclear()
 
-PUB Demo_Sinewave() | x, y, modifier, offset, div
+PUB demo_sinewave() | x, y, modifier, offset, div
 ' Draw a sine wave the length of the screen, influenced by the system counter
     case HEIGHT
         32:
@@ -166,12 +166,12 @@ PUB Demo_Sinewave() | x, y, modifier, offset, div
         disp.clear()
     waitclear()
 
-PUB Demo_Text() | ch
+PUB demo_text() | ch
 ' Sequentially draw the whole font table
     disp.fgcolor(disp.MAX_COLOR)
     disp.bgcolor(0)
     ch := 32
-    disp.position(0, 0)
+    disp.pos_xy(0, 0)
 
     _timer_set := _time
     repeat while _timer_set
@@ -181,7 +181,7 @@ PUB Demo_Text() | ch
         disp.show()
     waitclear()
 
-PUB Demo_Wander() | x, y
+PUB demo_wander() | x, y
 ' Draw randomly wandering pixels
     x := (XMAX / 2)                             ' start at screen center
     y := (YMAX / 2)
@@ -209,12 +209,12 @@ PUB Demo_Wander() | x, y
         disp.show()
     waitclear()
 
-PRI waitClear()
+PRI waitclear()
 ' Wait, then clear the display
     waitms(_time)
     disp.clear()
 
-PRI cog_Timer() | time_left
+PRI cog_timer() | time_left
 ' Timer loop
     repeat
         repeat until _timer_set                 ' wait here until a timer has

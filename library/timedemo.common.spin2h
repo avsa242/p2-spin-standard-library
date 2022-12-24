@@ -5,7 +5,7 @@
     Description: RTC demo common code
     Copyright (c) 2022
     Started Aug 2, 2022
-    Updated Aug 2, 2022
+    Updated Dec 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,11 +20,11 @@ PUB demo() | wkday, month, date, yr
         date := rtc.date()
         yr := rtc.year()
 
-        ser.position(0, 3)
+        ser.pos_xy(0, 3)
         ser.str(wkday)
         ser.printf(@" %d %s 20%d ", date, month, yr)
         ser.printf(@"%02.2d:%02.2d:%02.2d", rtc.hours(), rtc.minutes, {
-}       rtc.seconds())
+}                                           rtc.seconds())
 
 PUB set_date_time(h, m, s, mmm, dd, wkday, yy)
 ' Update RTC's time

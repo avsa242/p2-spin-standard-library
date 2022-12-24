@@ -6,7 +6,7 @@
         standard terminal routines (P2 version)
     Copyright (c) 2022
     Started Dec 14, 2019
-    Updated Oct 22, 2022
+    Updated Dec 24, 2022
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is based on std_text_routines.spinh,
@@ -42,13 +42,13 @@ PUB bin = putbin
 PUB putbin(val, digits)
 ' Output a binary number (zero-padded)
     stl.itoab(val, @_tmp, stl.IBIN)
-    str(@_tmp)
+    puts(@_tmp)
 
 PUB dec = putdec
 PUB putdec(val)
 ' Output a signed decimal number
     stl.itoa(val, @_tmp)
-    str(@_tmp)
+    puts(@_tmp)
 
 PUB decuns = putudec
 PUB udec = putudec
@@ -57,7 +57,7 @@ PUB putudec(val, digits)
 '   val: value to print
 '   digits: number of digits to display
     stl.atoib(val, stl.IDEC)
-    str(@_tmp)
+    puts(@_tmp)
 
 PUB hex = puthex
 PUB puthex(val, digits)
@@ -65,14 +65,14 @@ PUB puthex(val, digits)
 '   val: value to print
 '   digits: number of digits to display
     stl.itoab(val, @_tmp, stl.IHEX)
-    str(@_tmp)
+    puts(@_tmp)
 
 PUB hexs = puthexs
 PUB puthexs(val, digits)
 ' Output a hexadecimal number (zero-padded; small implementation)
 '   val: value to print
 '   digits: number of digits to display
-    str(stl.hexs(val, digits))
+    puts(stl.hexs(val, digits))
 
 #ifndef _HAS_NEWLINE_
 PUB newline()
@@ -113,18 +113,18 @@ PUB printf(fmt=@"", arg1=0, arg2=0, arg3=0, arg4=0, arg5=0, arg6=0, arg7=0, arg8
 '       -: left-justify (e.g. %-4.8x for left-justified hex with 4..8 digits)
     bytefill(@_tmp, 0, TMPBUFF_SZ)
     stl.sprintf(@_tmp, fmt, @arg1)
-    str(@_tmp)
+    puts(@_tmp)
 
 PUB str = puts
 PUB puts(s) | c
 ' Output a string
 '   NOTE: a newline is _not_ appended to the string automatically (use strln() instead)
-    repeat while ((c := byte[s++]) <> NUL)
+    putseat while ((c := byte[s++]) <> NUL)
         putchar(c)
 
 PUB strln(s)
 ' Output a string, with a newline appended
-    str(s)
+    puts(s)
     newline{}
 
 PUB wr_bytex(b, bcnt)

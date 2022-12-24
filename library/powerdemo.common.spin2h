@@ -4,12 +4,13 @@
     Author: Jesse Burt
     Description: Power sensor demo - code common to all drivers (P2 version)
     Started Jul 31, 2022
-    Updated Oct 16, 2022
+    Updated Dec 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
+    { scaling factors for display }
     VF  = 1000000
     CF  = 1000000
     PF  = 1000000
@@ -25,7 +26,7 @@ PUB show_power_data()
 PUB demo()
 
     repeat
-        ser.position(0, 3)
+        ser.pos_xy(0, 3)
         show_power_data()
         waitms(250)
 #endif
