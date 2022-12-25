@@ -60,6 +60,7 @@ outside the allowable range.
 methods, in order to reduce memory usage.
 
 7. Most (but not all) drivers also provide the following methods:
+
 | Method          | Description                                      | Param    | Returns         |
 | --------------- | ------------------------------------------------ | -------- | --------------- |
 | `dev_id()`      | Read model-unique identification register        | n/a      | model/dev ID    |
@@ -78,14 +79,14 @@ methods, in order to reduce memory usage.
 | --------------------| ----------------------------------------------|
 | `accel_bias()`      | Read accelerometer calibration offset values  |
 | `accel_data()`      | Read accelerometer raw data                   |
-| `accel_data_rate()` | Set accelerometer output data rate, in Hz     |
-| `accel_g()`         | Read accelerometer calibrated data (g's)      |
-| `accel_scale()`     | Set accelerometer full-scale, in g's          |
+| `accel_data_rate()` | Set accelerometer output data rate            |
+| `accel_g()`         | Read accelerometer calibrated data            |
+| `accel_scale()`     | Set accelerometer full-scale                  |
 | `accel_set_bias()`  | Write accelerometer calibration offset values |
 | `accel_word2g()`    | Convert given accel ADC word to g's           |
 | `calibrate_accel()` | Calibrate the accelerometer                   |
-| `pitch()`           | Read pitch angle of accelerometer, in degrees |
-| `roll()`            | Read roll angle of accelerometer, in degrees  |
+| `pitch()`           | Read pitch angle of accelerometer             |
+| `roll()`            | Read roll angle of accelerometer              |
 
 `accel_bias(x, y, z)`
 ---------------------
@@ -187,9 +188,9 @@ a sample in RAM.
 | `calibrate_gyro()` | Calibrate the gyroscope                           |
 | `gyro_bias()`      | Read gyroscope calibration offset values          |
 | `gyro_data()`      | Read gyroscope raw data                           |
-| `gyro_data_rate()` | Set gyroscope output data rate, in Hz             |
-| `gyro_dps()`       | Read gyroscope calibrated data (deg. per second)  |
-| `gyro_scale()`     | Set gyroscope full-scale, in degrees per second   |
+| `gyro_data_rate()` | Set gyroscope output data rate                    |
+| `gyro_dps()`       | Read gyroscope calibrated data                    |
+| `gyro_scale()`     | Set gyroscope full-scale                          |
 | `gyro_word2dps()`  | Convert given gyro ADC word to degrees per second |
 | `gyro_set_bias()`  | Write gyroscope calibration offset values         |
 
@@ -267,10 +268,10 @@ in the MCU's RAM.
 | `calibrate_mag()`   | Calibrate the magnetometer                    |
 | `mag_bias()`        | Read magnetometer calibration offset values   |
 | `mag_data()`        | Read magnetometer raw data                    |
-| `mag_data_rate()`   | Set magnetometer output data rate, in Hz      |
-| `mag_gauss()`       | Read magnetometer calibrated data (Gauss)     |
-| `mag_scale()`       | Set magnetometer full-scale, in Gauss         |
-| `mag_tesla()`       | Read magnetometer calibrated data (Teslas)    |
+| `mag_data_rate()`   | Set magnetometer output data rate             |
+| `mag_gauss()`       | Read magnetometer calibrated data             |
+| `mag_scale()`       | Set magnetometer full-scale                   |
+| `mag_tesla()`       | Read magnetometer calibrated data             |
 | `magx_word2gauss()` | Convert given mag ADC word to Gauss (X-axis)  |
 | `magy_word2gauss()` | Convert given mag ADC word to Gauss (Y-axis)  |
 | `magz_word2gauss()` | Convert given mag ADC word to Gauss (Z-axis)  |
@@ -390,12 +391,6 @@ Availability of other methods vary by specific sensor type and model.
 
 ```spin
 CON
-
-    { I2C-specific }
-    SLAVE_WR    = core.SLAVE_ADDR
-    SLAVE_RD    = core.SLAVE_ADDR|1
-    DEF_ADDR	= 0
-    DEF_HZ      = 100_000
 
     { Capabilities: DoF per sensor }
     ACCEL_DOF   = x
