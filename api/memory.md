@@ -76,6 +76,7 @@ __Read multiple bytes from memory (lsbyte-first)__
 	* `addr`: the address to read from
 	* `nr_bytes`: number of bytes to read
 * Returns: none
+
 __NOTE__: Data is read into the destination buffer `ptr_buff` starting at the beginning of the
 buffer working upwards. The byte order of individual words or longs is unaffected.
 
@@ -88,6 +89,7 @@ __Read multiple bytes from memory (msbyte-first)__
 	* `addr`: the address to read from
 	* `nr_bytes`: number of bytes to read
 * Returns: none
+
 __NOTE__: Data is read into the destination buffer `ptr_buff` starting at the end of the
 buffer working downwards. The byte order of individual words or longs is unaffected.
 
@@ -145,6 +147,7 @@ __Write multiple bytes to the memory (lsbyte-first)__
 	* `ptr_buff`: pointer to a buffer containing data to write to the memory
 	* `nr_bytes`: number of bytes to write
 * Returns: none
+
 __NOTE__: Reading of the data to write to memory will start at the beginning of the buffer at
 `ptr_buff` and advance upwards. The byte order of the individual words or longs written will
 not be affected.
@@ -158,6 +161,7 @@ __Write multiple bytes to the memory (msbyte-first)__
 	* `ptr_buff`: pointer to a buffer containing data to write to the memory
 	* `nr_bytes`: number of bytes to write
 * Returns: none
+
 __NOTE__: Reading of the data to write to memory will start at the end of the buffer at
 `ptr_buff` and advance downwards. The byte order of the individual words or longs written will
 not be affected.
