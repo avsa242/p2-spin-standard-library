@@ -58,6 +58,7 @@ outside the allowable range.
 methods, in order to reduce memory usage.
 
 8. Most (but not all) drivers also provide the following methods:
+
 | Method          | Description                                      | Param    | Returns         |
 | --------------- | ------------------------------------------------ | -------- | --------------- |
 | `dev_id()`      | Read model-unique identification register        | n/a      | model/dev ID    |
