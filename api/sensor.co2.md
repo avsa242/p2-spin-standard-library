@@ -54,7 +54,7 @@ methods, in order to reduce memory usage.
 | --------------- | ------------------------------------------------ |
 | `adc2co2()`     | Convert ADC word to CO2 data                     |
 | `co2_data()`    | CO2 data ADC word                                |
-| `co2_ppm()`     | CO2 data concentration                           |
+| `co2_ppm()`     | CO2 concentration                                |
 
 
 `adc2co2(co2_wd)`
@@ -68,6 +68,7 @@ __Convert ADC word to CO2 data__
 
 `co2_data()`
 ------------
+__CO2 data ADC word__
 * Parameters: none
 * Returns:
 	* ADC word representing CO2 measurement
@@ -75,6 +76,7 @@ __Convert ADC word to CO2 data__
 
 `co2_ppm()`
 -----------
+__CO2 concentration__
 * Parameters: none
 * Returns:
 	* CO2 concentration in 0.1 parts per million (e.g., `12004` is 1200.4ppm)
