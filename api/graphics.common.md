@@ -57,7 +57,7 @@ __Copy a bitmap to the display buffer__
 	* `ptr_bmap`: address of/pointer to buffer containing bitmap data
 	* `(xs, ys)`: screen location to copy bitmap to, in pixels
 	* `bm_wid`: width of bitmap, in pixels
-	* `bm_lns`: total number of lines it bitmap
+	* `bm_lns`: total number of lines in bitmap
 * Returns: none
 * __NOTE__: If the preprocessor symbol `GFX_DIRECT` is defined at build-time, a
 driver-specific implementation will be used, instead.
@@ -327,7 +327,7 @@ usable when a buffered display is being used. If `GFX_DIRECT` is defined at buil
 won't be available.
 
 
-`scroll_down(sx, sy, ex, ey`
+`scroll_down(sx, sy, ex, ey)`
 ----------------------------
 __Scroll a region of the display down by 1 pixel__
 
@@ -341,7 +341,7 @@ won't be available.
 * Aliases: `scrolldown()`
 
 
-`scroll_left(sx, sy, ex, ey`
+`scroll_left(sx, sy, ex, ey)`
 ----------------------------
 __Scroll a region of the display left by 1 pixel__
 
@@ -355,7 +355,7 @@ won't be available.
 * Aliases: `scrollleft()`
 
 
-`scroll_right(sx, sy, ex, ey`
+`scroll_right(sx, sy, ex, ey)`
 ----------------------------
 __Scroll a region of the display right by 1 pixel__
 
@@ -369,7 +369,7 @@ won't be available.
 * Aliases: `scrollright()`
 
 
-`scroll_up(sx, sy, ex, ey`
+`scroll_up(sx, sy, ex, ey)`
 ----------------------------
 __Scroll a region of the display up by 1 pixel__
 
