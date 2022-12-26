@@ -6,7 +6,7 @@
         standard terminal routines (P2 version)
     Copyright (c) 2022
     Started Dec 14, 2019
-    Updated Dec 24, 2022
+    Updated Dec 26, 2022
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is based on std_text_routines.spinh,
@@ -119,7 +119,7 @@ PUB str = puts
 PUB puts(s) | c
 ' Output a string
 '   NOTE: a newline is _not_ appended to the string automatically (use strln() instead)
-    putseat while ((c := byte[s++]) <> NUL)
+    repeat while ((c := byte[s++]) <> NUL)
         putchar(c)
 
 PUB strln(s)
