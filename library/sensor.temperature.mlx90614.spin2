@@ -5,7 +5,7 @@
     Description: Driver for the Melexis MLX90614 IR thermometer (P2 version)
     Copyright (c) 2022
     Started Mar 17, 2019
-    Updated Nov 26, 2022
+    Updated Dec 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -41,9 +41,8 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 }   I2C_HZ <= core.I2C_MAX_FREQ
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitus(core.T_POR)
-            if (i2c.present(SLAVE_WR))          ' check bus device presence
-                if (dev_id())
-                    return
+            if (dev_id())
+                return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
     ' Lastly - make sure you have at least one free core/cog
