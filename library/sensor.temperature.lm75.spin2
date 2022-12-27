@@ -5,7 +5,7 @@
     Description: Driver for the Maxim LM75 Digital Temperature Sensor (P2 version)
     Copyright (c) 2022
     Started May 19, 2019
-    Updated Sep 25, 2022
+    Updated Dec 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -78,7 +78,7 @@ PUB int_polarity(state=-2): curr_state
         other:
             return ((curr_state >> core.OS_POL) & 1)
 
-    state := ((curr_state & core.OS_POL_MASK) | state) & core.CONFIG_MASK
+    state := ((curr_state & core.OS_POL_MASK) | state)
     writereg(core.CONFIG, 1, @state)
 
 PUB int_hyst{}: hyst
@@ -110,7 +110,7 @@ PUB int_latch_ena(state): curr_state
         other:
             return ((curr_state >> core.COMP_INT) & 1)
 
-    state := ((curr_state & core.COMP_INT_MASK) | state) & core.CONFIG_MASK
+    state := ((curr_state & core.COMP_INT_MASK) | state)
     writereg(core.CONFIG, 1, @state)
 
 PUB int_duration(thr=-2): curr_thr
@@ -127,7 +127,7 @@ PUB int_duration(thr=-2): curr_thr
             curr_thr := (curr_thr >> core.FAULTQ) & core.FAULTQ_BITS
             return lookupz(curr_thr: 1, 2, 4, 6)
 
-    thr := ((curr_thr & core.FAULTQ_MASK) | thr) & core.CONFIG_MASK
+    thr := ((curr_thr & core.FAULTQ_MASK) | thr)
     writereg(core.CONFIG, 1, @thr)
 
 PUB int_set_thresh(thr)
