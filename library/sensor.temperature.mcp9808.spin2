@@ -5,7 +5,7 @@
     Description: Driver for Microchip MCP9808 temperature sensors (P2 version)
     Copyright (c) 2022
     Started Jul 26, 2020
-    Updated Nov 13, 2022
+    Updated Dec 27, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -44,9 +44,8 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): status
             _addr_bits := ADDR_BITS << 1
             waitus(core.T_POR)
             ' check device bus presence:
-            if (i2c.present(SLAVE_WR | _addr_bits))
-                if (dev_id() == core.DEVID_RESP)
-                    return
+            if (dev_id() == core.DEVID_RESP)
+                return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
     ' Lastly - make sure you have at least one free core/cog
