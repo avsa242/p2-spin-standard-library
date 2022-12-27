@@ -71,6 +71,7 @@ PUB int_polarity(state=-2): curr_state
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The OS pin is open-drain, under all conditions, and requires
 '       a pull-up resistor to output a high voltage.
+    curr_state := 0
     readreg(core.CONFIG, 1, @curr_state)
     case state
         ACTIVE_LO, ACTIVE_HI:
@@ -94,8 +95,8 @@ PUB int_hyst{}: hyst
 PUB int_set_hyst(hyst)
 ' Interrupt clear threshold (hysteresis)
 '   Returns: hundredths of a degree
-    thr := temp2adc(thr)
-    writereg(core#T_HYST, 2, @thr)
+    hyst := temp2adc(hyst)
+    writereg(core#T_HYST, 2, @hyst)
 
 PUB int_latch_ena(state): curr_state
 ' Latch interrupts asserted by the sensor
@@ -103,6 +104,7 @@ PUB int_latch_ena(state): curr_state
 '       FALSE (0): Interrupt cleared when temp drops below threshold
 '       TRUE (-1 or 1): Interrupt cleared only after reading temperature
 '   Any other value polls the chip and returns the current setting
+    curr_state := 0
     readreg(core.CONFIG, 1, @curr_state)
     case abs(state)
         0, 1:
@@ -119,6 +121,7 @@ PUB int_duration(thr=-2): curr_thr
 '       1, 2, 4, 6
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The faults must occur consecutively (prevents false positives in noisy environments)
+    curr_thr := 0
     readreg(core.CONFIG, 1, @curr_thr)
     case thr
         1, 2, 4, 6:
@@ -151,6 +154,7 @@ PUB powered(state=-2): curr_state
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Current consumption when shutdown is approx 1uA
+    curr_state := 0
     readreg(core.CONFIG, 1, @curr_state)
     case abs(state)
         0, 1:
