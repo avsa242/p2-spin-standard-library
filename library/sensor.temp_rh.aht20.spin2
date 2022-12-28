@@ -5,7 +5,7 @@
     Description: Driver for AHT20 temperature/RH sensors (P2 version)
     Copyright (c) 2022
     Started Mar 27, 2022
-    Updated Nov 17, 2022
+    Updated Dec 28, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -31,10 +31,10 @@ OBJ
 
 PUB startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 ' Start using custom IO pins and I2C bus frequency
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
-}   I2C_HZ <= core.I2C_MAX_FREQ                 ' validate pins and bus freq
+    if (lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
+}       I2C_HZ <= core.I2C_MAX_FREQ)            ' validate pins and bus freq
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
-            waitus(core.T_POR)             ' wait for device startup
+            waitus(core.T_POR)                  ' wait for device startup
             if (dev_id() == core.DEVID_RESP)
                 return
     ' if this point is reached, something above failed
@@ -62,10 +62,29 @@ PUB dev_id(): id
     if (i2c.present(core.SLAVE_ADDR))
         return core.DEVID_RESP
 
-PUB measure(): flag
+PUB measure(): flag | rd_data_tmp[2], crc_rd, crc_calc
 ' Perform temperature/RH measurement
+'   Returns:
+'       0: CRC ok
+'       -1: CRC bad (RH/temperature data shouldn't be trusted)
     cmd(core.CMD_MEAS)
-    readreg(core.GET_MEAS, 0, 0)
+    bytefill(@rd_data_tmp, 0, 7)
+    readreg(core.GET_MEAS, 7, @rd_data_tmp)
+    _last_rh := rd_data_tmp.byte[1] << 12
+    _last_rh |= (rd_data_tmp.byte[2] << 4)
+    _last_rh |= ((rd_data_tmp.byte[3] >> 4) & $0f)
+
+    _last_temp := ((rd_data_tmp.byte[3] & $0f) << 16)
+    _last_temp |= (rd_data_tmp.byte[4] << 8)
+    _last_temp |= (rd_data_tmp.byte[5])
+
+    { extend sign of temperature data }
+    _last_temp := (_last_temp signx 19)
+
+    crc_rd := rd_data_tmp.byte[6]
+    crc_calc := crc.asaircrc8(@rd_data_tmp, 6)
+
+    return (crc_rd <> crc_calc)                 ' return -1 if the CRCs don't match
 
 PUB reset()
 ' Reset the device
@@ -76,8 +95,7 @@ PUB reset()
 PUB rh_data(): rhword
 ' Relative humidity ADC word
 '   Returns: u20
-    measure()
-    readreg(core.GET_MEAS, 0, 0)
+'   NOTE: measure() must be called at least once for this data to be valid
     return _last_rh
 
 PUB rh_data_rdy(): flag
@@ -105,8 +123,7 @@ PUB temp_rh_data_rdy(): flag
 PUB temp_data(): tword
 ' Temperature ADC word
 '   Returns: s20
-    measure()
-    readreg(core.GET_MEAS, 0, 0)
+'   NOTE: measure() must be called at least once for this data to be valid
     return _last_temp
 
 PUB temp_word2deg(tword): deg | sign
@@ -152,7 +169,7 @@ PRI cmd(cmd_nr)
         other:
             return
 
-PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, rd_data_tmp[2], crc_rd, crc_calc
+PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from the device into ptr_buff
     case reg_nr                                 ' validate register num
         core.STATUS:
@@ -166,25 +183,8 @@ PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, rd_data_tmp[2], crc_rd, crc_c
         core.GET_MEAS:
             i2c.start()
             i2c.write(SLAVE_RD)
-            i2c.rdblock_lsbf(@rd_data_tmp, 7, i2c.NAK)
+            i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c.NAK)
             i2c.stop()
-            _last_rh := rd_data_tmp.byte[1] << 12
-            _last_rh |= (rd_data_tmp.byte[2] << 4)
-            _last_rh |= ((rd_data_tmp.byte[3] >> 4) & $0f)
-
-            _last_temp := ((rd_data_tmp.byte[3] & $0f) << 16)
-            _last_temp |= (rd_data_tmp.byte[4] << 8)
-            _last_temp |= (rd_data_tmp.byte[5])
-
-            { extend sign of temperature data }
-            _last_temp := (_last_temp << 12) sar 12
-
-            crc_rd := rd_data_tmp.byte[6]
-            crc_calc := crc.asaircrc8(@rd_data_tmp, 6)
-            if (crc_rd == crc_calc)
-                return 0                        ' CRC good
-            else
-                return -1                       ' CRC bad
         other:                                  ' invalid reg_nr
             return
 

@@ -37,7 +37,6 @@ OBJ
 PUB setup()
 
     ser.start(SER_BAUD)
-    waitms(10)
     ser.clear()
     ser.strln(@"Serial terminal started")
 

@@ -5,7 +5,7 @@
     Description: Driver for Silicon Labs Si70xx-series temperature/humidity sensors (P2 version)
     Copyright (c) 2022
     Started Jul 20, 2019
-    Updated Nov 27, 2022
+    Updated Dec 28, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -95,6 +95,9 @@ PUB heater_ena(state): curr_state
 
     state := ((curr_state & core.HTRE_MASK) | state) & core.RD_RH_T_USER1_MASK
     writereg(core.WR_RH_T_USER1, 1, @state)
+
+PUB measure()
+' dummy method
 
 PUB reset()
 ' Perform soft-reset

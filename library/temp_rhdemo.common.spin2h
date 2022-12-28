@@ -5,7 +5,7 @@
     Description: Temperature/RH sensor demo - code common to all drivers (P2 version)
     Copyright (c) 2022
     Started Jul 14, 2022
-    Updated Dec 24, 2022
+    Updated Dec 28, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,6 +20,7 @@ PUB show_rh_data() | rh
 PUB demo()
 
     repeat
+        sensor.measure()
         ser.pos_xy(0, 3)
         show_temp_data()
         show_rh_data()
