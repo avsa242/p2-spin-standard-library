@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: library.gfx.bitmap.spin2
+    Filename: graphics.common.spin2h
     Author: Jesse Burt
-    Description: Library of generic bitmap-oriented graphics rendering routines (P2 version)
+    Description: Generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2022
     Started May 19, 2019
-    Updated Oct 16, 2022
+    Updated Dec 29, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -437,6 +437,19 @@ PUB scroll_up(sx, sy, ex, ey) | scr_width, src, dest, x, y
         MEMMV_NATIVE(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #endif
 #endif
+
+PUB set_dims(width, height)
+' Set display dimensions
+'   width: width of display (X-axis) in pixels
+'   height: height of display (Y-axis) in pixels
+    _disp_width := width
+    _disp_height := height
+    _disp_xmax := _disp_width - 1
+    _disp_ymax := _disp_height - 1
+
+    { update the buffer size, and the bytes per line }
+    _buff_sz := (_disp_width * _disp_height)
+    _bytesperln := _disp_width * BYTESPERPX
 
 PUB textcols = text_cols
 PUB text_cols(): cols
