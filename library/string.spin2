@@ -5,7 +5,7 @@
     Description: String processing and formatting (P2 version)
     Copyright (c) 2022
     Started May 29, 2022
-    Updated Oct 22, 2022
+    Updated Dec 29, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -265,7 +265,7 @@ PUB hexcase(hcase)
 '       zero: lower-case
     _caps := hcase
 
-PUB hexs(val, digits) | idx
+PUB hexs(val, digits): s | idx
 ' Convert hexadecimal value to string representation (small/standalone implementation)
 '   Returns: pointer to string
     bytefill(@_tmp_buff, 0, FIELDSZ_MAX)
@@ -273,7 +273,7 @@ PUB hexs(val, digits) | idx
     digits := 1 #> digits <# 8
     val <<= (8 - digits) << 2                   ' prep most significant digit
     repeat digits
-        _tmp_buff[idx++] := lookupz((val <-= 4) & $F : "0".."9", "a".."f")
+        _tmp_buff[idx++] := lookupz((val rol= 4) & $F : "0".."9", "a".."f")
     return @_tmp_buff
 
 PUB isalpha(ptr_str): flag
