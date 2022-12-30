@@ -5,7 +5,7 @@
     Description: Generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2022
     Started May 19, 2019
-    Updated Dec 29, 2022
+    Updated Dec 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -448,7 +448,7 @@ PUB set_dims(width, height)
     _disp_ymax := _disp_height - 1
 
     { update the buffer size, and the bytes per line }
-    _buff_sz := (_disp_width * _disp_height)
+    _buff_sz := (_disp_width * _disp_height) * BYTESPERPX
     _bytesperln := _disp_width * BYTESPERPX
 
 PUB textcols = text_cols

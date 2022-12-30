@@ -5,7 +5,7 @@
     Description: Driver for Sitronix ST7735-based displays (P2 version)
     Copyright (c) 2022
     Started Mar 7, 2020
-    Updated Nov 5, 2022
+    Updated Dec 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -83,12 +83,7 @@ PUB startx(CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RESET_PIN, SCK_FREQ, WIDTH, HEIGHT,
             pinh(_CS)
             pinh(_DC)
             reset()
-            _disp_width := WIDTH
-            _disp_height := HEIGHT
-            _disp_xmax := _disp_width-1
-            _disp_ymax := _disp_height-1
-            _buff_sz := (_disp_width * _disp_height) * BYTESPERPX
-            _bytesperln := _disp_width * BYTESPERPX
+            set_dims(WIDTH,HEIGHT)
 #ifndef GFX_DIRECT
             address(ptr_drawbuff)
 #endif
@@ -161,7 +156,7 @@ PUB preset_greentab128x128()
 
     mirror_h(TRUE)
     mirror_v(TRUE)
-    subpix_order(RGB)
+    subpix_order(BGR)
 
     color_depth(16)
     disp_offset(2, 3)
@@ -173,6 +168,46 @@ PUB preset_greentab128x128()
     disp_part_area(0, _disp_ymax)
     opmode(NORMAL)
     visibility(NORMAL)
+
+PUB preset_adafruit_1p44_128x128_land_up()
+' Adafruit 1.44" 128x128 (#2088, green tab), landscape (up)
+    set_dims(128, 128)
+    preset_greentab128x128()
+    rotation(0)
+    mirror_h(false)
+    mirror_v(false)
+    disp_offset(2, 1)
+    draw_area(0, 0, _disp_xmax, _disp_ymax)
+
+PUB preset_adafruit_1p44_128x128_land_down()
+' Adafruit 1.44" 128x128 (#2088, green tab), landscape (down)
+    set_dims(128, 128)
+    preset_greentab128x128()
+    rotation(0)
+    mirror_h(true)
+    mirror_v(true)
+    disp_offset(2, 3)
+    draw_area(0, 0, _disp_xmax, _disp_ymax)
+
+PUB preset_adafruit_1p44_128x128_port_up()
+' Adafruit 1.44" 128x128 (#2088, green tab), portrait (up)
+    set_dims(128, 128)
+    preset_greentab128x128()
+    rotation(1)
+    mirror_h(false)
+    mirror_v(true)
+    disp_offset(3, 2)
+    draw_area(0, 0, _disp_xmax, _disp_ymax)
+
+PUB preset_adafruit_1p44_128x128_port_down()
+' Adafruit 1.44" 128x128 (#2088, green tab), portrait (up)
+    set_dims(128, 128)
+    preset_greentab128x128()
+    rotation(1)
+    mirror_h(true)
+    mirror_v(false)
+    disp_offset(1, 2)
+    draw_area(0, 0, _disp_xmax, _disp_ymax)
 
 PUB address(addr=-2): curr_addr
 ' Set framebuffer/display buffer address
@@ -353,7 +388,7 @@ PUB rotation(state)
 ' Rotate display
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value returns the current setting
-    _madctl := ((_madctl & core.MV_MASK) | (((state <> 0) & 1) << core#MV))
+    _madctl := ((_madctl & core.MV_MASK) | (((state <> 0) & 1) << core.MV))
     writereg(core.MADCTL, 1, @_madctl)
 
 PUB visibility(mode) | inv_state
@@ -472,13 +507,13 @@ PUB line(x1, y1, x2, y2, color) | sx, sy, ddx, ddy, err, e2
 PUB mirror_h(state)
 ' Mirror the display, horizontally
 '   Valid values: TRUE (non-zero), FALSE (0)
-    _madctl := ((_madctl & core.MX_MASK) | (((state <> 0) & 1) << core#MX))
+    _madctl := ((_madctl & core.MX_MASK) | (((state <> 0) & 1) << core.MX))
     writereg(core.MADCTL, 1, @_madctl)
 
 PUB mirror_v(state)
 ' Mirror the display, vertically
 '   Valid values: TRUE (non-zero), FALSE (0)
-    _madctl := ((_madctl & core.MY_MASK) | (((state <> 0) & 1) << core#MY))
+    _madctl := ((_madctl & core.MY_MASK) | (((state <> 0) & 1) << core.MY))
     writereg(core.MADCTL, 1, @_madctl)
 
 PUB opmode(mode)
@@ -560,7 +595,7 @@ PUB powered(state)
 '   Valid values:
 '       TRUE (non-zero), FALSE (0)
 '   NOTE: This incurs a 120ms delay after calling
-    writereg((((state <> 0) & 1) + core#SLPIN), 0, 0)
+    writereg((((state <> 0) & 1) + core.SLPIN), 0, 0)
     waitms(120)
 
 #ifdef GFX_DIRECT
@@ -618,7 +653,7 @@ PUB pwr_ctrl(mode, ap, sap, bclkdiv1, bclkdiv2, bclkdiv3, bclkdiv4, bclkdiv5) | 
 '           4:          BCLK / 4
     mode := (NORMAL #> mode <# PARTIAL)
     ap := (OFF #> ap <# LARGE)
-    sap := ((OFF #> sap <# LARGE) << core#SAP)
+    sap := ((OFF #> sap <# LARGE) << core.SAP)
 
     case bclkdiv1
         1, 1_5, 2, 4:
@@ -665,7 +700,7 @@ PUB pwr_ctrl1(avdd, gvdd, gvcl, mode) | tmp
     gvdd := ((4_700 - (3_150 #> gvdd <# 4_700)) / 50) & core.VRHP_BITS
     tmp.byte[0] := (avdd | gvdd)
     tmp.byte[1] := ((4_700 - (-(-4_700 #> gvcl <# -3_150))) / 50) & core.VRHN_BITS
-    tmp.byte[2] := (((0 #> lookdownz(mode: 2, 3, AUTO) <# 2) << core.MODE) | core#MODE_RSVD)
+    tmp.byte[2] := (((0 #> lookdownz(mode: 2, 3, AUTO) <# 2) << core.MODE) | core.MODE_RSVD)
 
     writereg(core.PWCTR1, 3, @tmp)
 
@@ -710,7 +745,7 @@ PUB subpix_order(order)
 '   Valid values:
 '       RGB (0): Red-Green-Blue order
 '       BGR (1): Blue-Green-Red order
-    _madctl := ((_madctl & core.RGB_MASK) | ((0 #> order <# 1) << core#RGB))
+    _madctl := ((_madctl & core.RGB_MASK) | ((0 #> order <# 1) << core.RGB))
     writereg(core.MADCTL, 1, @_madctl)
 
 #ifndef GFX_DIRECT
@@ -727,17 +762,17 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff)
     case reg_nr
         ' single-byte commands
         $00, $01, $11, $12, $13, $20, $21, $28, $29, $38, $39:
-            pinl(_DC)                           ' D/C low = command
+            pinw(_DC, core.CMD)                 ' D/C low = command
             pinl(_CS)
             spi.wr_byte(reg_nr)
             pinh(_CS)
             return
         ' multi-byte commands
         $2A..$2C, $30, $36, $3A, $B1..$B4, $B6, $C0..$C5, $E0, $E1, $FC:
-            pinl(_DC)
+            pinw(_DC, core.CMD)
             pinl(_CS)
             spi.wr_byte(reg_nr)
-            pinh(_DC)
+            pinw(_DC, core.DATA)
             spi.wrblock_lsbf(ptr_buff, nr_bytes)
             pinh(_CS)
             return
