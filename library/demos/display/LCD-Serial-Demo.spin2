@@ -1,82 +1,50 @@
 {
     --------------------------------------------
     Filename: LCD-Serial-Demo.spin2
-    Description: Demo of the serial LCD driver
+    Description: Demo of the serial LCD driver (P2 version)
+        Works with e.g.:
+            Parallax #27977 (2x16), #27979 (4x20)
     Author: Jesse Burt
     Started Apr 29, 2006
-    Updated Oct 29, 2022
+    Updated Jan 1, 2023
     See end of file for terms of use.
     --------------------------------------------
 
-    NOTE: This is based on Serial_Lcd.spin,
-        originally by Jon Williams, Jeff Martin.
 }
-CON
 
-    _xtlfreq   = cfg._xtlfreq
-    _clkfreq   = cfg._clkfreq_def
+    _clkfreq    = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
 
-' -- User-modifiable constants
+' -- User-defined constants
+    SER_BAUD    = 2_000_000
+
     LCD_PIN     = 0
     LCD_BAUD    = 19_200                        ' 2400, 9600, 19200 (must match DIP switches)
-    LCD_LINES   = 4                             ' 2, 4
+    LCD_LINES   = 4
 ' --
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    lcd     : "display.lcd.serial"
+    cfg :   "boardcfg.p2eval"
+    disp:   "display.lcd.serial"
 
-PUB main() | idx
+PUB main()
 
-    lcd.start(LCD_PIN, LCD_BAUD, LCD_LINES)     ' start lcd
+    ser.start(SER_BAUD)
+    waitms(30)
+    ser.clear()
+    ser.strln(string("Serial terminal started"))
+
+    disp.startx(LCD_PIN, LCD_BAUD, LCD_LINES)
+    ser.strln(string("HD44780 driver started (Serial)"))
+
     waitms(1_000)
-    lcd.curs_mode(0)                            ' cursor off
-    lcd.backlight_ena(true)                     ' backlight on (if available)
-    lcd.def_chars(0, @bullet)                   ' create custom character 0
-    lcd.clear()
-    lcd.strln(@"LCD DEBUG")
-    lcd.char(0)                                 ' display custom bullet character
-    lcd.strln(@" Dec")
-    lcd.char(0)
-    lcd.strln(@" Hexs")
-    lcd.char(0)
-    lcd.strln(@" Bin")
+    disp.curs_mode(0)                            ' cursor off
+    disp.backlight_ena(1)
 
-    repeat
-        repeat idx from 0 to 255
-            update_lcd(idx)
-            waitms(200)                         ' pad with 1/5 sec
+    demo()
 
-        lcd.disp_vis_ena(false)                 ' turn off the LCD for 2secs
-        waitms(2000)
-        lcd.disp_vis_ena(true)                  ' then back on - contents should still be there
-
-        repeat idx from -255 to 0
-            update_lcd(idx)
-            waitms(200)
-
-PRI update_lcd(value)
-
-    lcd.pos_xy(12, 1)
-    lcd.putdec(abs(value))
-
-    lcd.pos_xy(12, 2)
-    lcd.puthexs(value, 8)
-
-    lcd.pos_xy(8, 3)
-    lcd.putbin(value, 12)
-
-DAT
-
-    bullet  byte    %00000000
-            byte    %00000100
-            byte    %00001110
-            byte    %00011111
-            byte    %00001110
-            byte    %00000100
-            byte    %00000000
-            byte    %00000000
+#include "alphanum-disp-demo.common.spin2h"
 
 DAT
 {
