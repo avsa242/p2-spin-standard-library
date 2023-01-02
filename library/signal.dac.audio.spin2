@@ -3,16 +3,16 @@
     Filename: signal.dac.audio.spin2
     Description: Audio output using smart pin-based DAC (2-channel)
     Author: Jesse Burt
+    Copyright (c) 2023
     Started: Mar 16, 2020
-    Updated: May 9, 2021
+    Updated: Jan 2, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
     DAC_INIT_VAL        = 128
-    SP_DAC_MODE         = sp.DAC_990OHM_3V3 | DAC_INIT_VAL << sp.DACLEVEL | {
-}   sp.OUTPUT_ENABLED | sp.DAC16B_DITH_PWM
+    SP_DAC_MODE         = P_DAC_990R_3V | (DAC_INIT_VAL << sp.DACLEVEL) | P_OE | P_DAC_DITHER_PWM
 
 VAR
 
@@ -23,7 +23,7 @@ OBJ
     sp  : "core.con.smartpins"                  ' smart-pin modes/constants
     evt : "core.con.events"                     ' background events/constants
 
-PUB Start(L_PIN, R_PIN, SAMPRATE_HZ): status | period, se1setup
+PUB start(L_PIN, R_PIN, SAMPRATE_HZ): status | period, se1setup
 ' Start DAC smart-pin on L_PIN, R_PIN at SAMPRATE_HZ
     if lookdown(L_PIN: 0..63) and lookdown(R_PIN: 0..63)
         longmove(@_L_PIN, @L_PIN, 2)
@@ -43,20 +43,21 @@ PUB Start(L_PIN, R_PIN, SAMPRATE_HZ): status | period, se1setup
         return cogid() + 1
     return FALSE
 
-PUB Stop()
-
+PUB stop()
+' Stop the DACs
     pinf(_L_PIN)
     pinf(_R_PIN)
     wrpin(0, _L_PIN)
     wrpin(0, _R_PIN)
 
-PUB SampleRate(rate)
+PUB samplerate = sample_rate
+PUB sample_rate(rate)
 ' Restart with new sample rate, in Hz
 '   NOTE: This re-starts the DAC smart pins
     stop()
     start(_L_PIN, _R_PIN, rate)
 
-PUB Output16(sample) | L_PIN, R_PIN
+PUB output16(sample) | L_PIN, R_PIN
 ' Output an 16-bit audio sample
     longmove(@L_PIN, @_L_PIN, 2)
     org
@@ -66,7 +67,7 @@ PUB Output16(sample) | L_PIN, R_PIN
         waitse1
     end
 
-PUB Output8(sample) | L_PIN, R_PIN
+PUB output8(sample) | L_PIN, R_PIN
 ' Output an 8-bit audio sample
     longmove(@L_PIN, @_L_PIN, 2)
 
@@ -77,3 +78,4 @@ PUB Output8(sample) | L_PIN, R_PIN
         wypin   sample, R_PIN                   ' Output sample on right channel
         waitse1
     end
+
