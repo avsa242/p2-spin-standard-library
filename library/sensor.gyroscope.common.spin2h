@@ -3,9 +3,9 @@
     Filename: sensor.gyroscope.common.spinh
     Author: Jesse Burt
     Description: Routines common to all sensor.gyroscope device drivers
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Aug 31, 2022
-    Updated Oct 1, 2022
+    Updated Jan 7, 2023
     See end of file for terms of use.
     --------------------------------------------
 
@@ -34,6 +34,7 @@ PUB calibrate_gyro() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[GYRO_DOF],
     gyro_data_rate(CAL_G_DR)
     samples := CAL_G_DR                         ' samples = DR, for 1 sec time
 
+    waitms(100)                                 ' let the gyro settle after changing the rate
     { accumulate and average approx. 1sec worth of samples }
     repeat samples
         repeat until gyro_data_rdy()
