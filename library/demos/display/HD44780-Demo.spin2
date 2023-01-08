@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: HD44780-Demo.spin2
     Author: Jesse Burt
-    Description: Demo of the HD44780 LCD driver
+    Description: Demo of the HD44780 LCD driver (P2 version)
     Copyright (c) 2022
     Started Sep 08, 2021
-    Updated Oct 30, 2022
+    Updated Jan 1, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -27,40 +27,28 @@ CON
 
 OBJ
 
-    cfg : "boardcfg.p2eval"
-    ser : "com.serial.terminal.ansi"
-    lcd : "display.lcd-alpha.hd44780"
+    cfg :   "boardcfg.p2eval"
+    disp:   "display.lcd-alpha.hd44780"
 
 PUB main()
-
-    setup()
-    lcd.reset()
-
-    lcd.backlight_ena(1)
-    lcd.puts(@"Testing 1 2 3")
-    waitms(2_000)
-    lcd.clear()
-    lcd.puts(@"Backlight")
-    repeat 10
-        lcd.backlight_ena(0)
-        waitms(100)
-        lcd.backlight_ena(1)
-        waitms(100)
-
-    repeat
-
-PUB setup()
 
     ser.start(SER_BAUD)
     waitms(30)
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    if lcd.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS)
+    if disp.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS)
         ser.strln(@"HD44780 driver started (I2C)")
     else
         ser.strln(@"HD44780 driver failed to start - halting")
         repeat
+
+    disp.reset()
+    disp.backlight_ena(1)
+
+    demo()
+
+#include "alphanum-disp-demo.common.spin2h"
 
 DAT
 {
@@ -80,5 +68,8 @@ NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPO
 NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 }
 
