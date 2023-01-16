@@ -3,9 +3,9 @@
     Filename: core.con.st7735.spin
     Author: Jesse Burt
     Description: ST7735-specific constants
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Mar 07, 2020
-    Updated Oct 8, 2022
+    Updated Jan 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -69,9 +69,25 @@ CON
     IDMON           = $39
 
     COLMOD          = $3A
-    COLMOD_MASK     = $07
+    COLMOD_MASK     = $77
+#ifdef ST7789
+        RGBICF      = 4
+        RGBICF_BITS = %111
+        RGBICF_MASK = (RGBICF_BITS << RGBICF) ^ COLMOD_MASK
+        RGB_65K     = (%101 << RGBICF)
+        RGB_262K    = (%110 << RGBICF)
+        CICF        = 0
+        CICF_BITS   = %111
+        CICF_MASK   = CICF_BITS ^ COLMOD_MASK
+        CICF_12BPP  = %011
+        CICF_16BPP  = %101
+        CICF_18BPP  = %110
+        CICF_16M_TR = %111                      ' 16M truncated
+#else ST7735
+        { assume/default to ST7735 if nothing specified at build-time }
         IFPF        = 0
         IFPF_BITS   = %111
+#endif
 
     FRMCTR1         = $B1
         RTNA        = 0
