@@ -3,11 +3,15 @@
     Filename: ST7735-Demo.spin2
     Description: ST7735-specific setup for graphics demo
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started: Feb 20, 2022
-    Updated: Oct 30, 2022
+    Updated: Jan 16, 2023
     See end of file for terms of use.
     --------------------------------------------
+
+    Build options available:
+        -DST7789 - build for ST7789 displays; if not defined, ST7735 will be chosen)
+        -DGFX_DIRECT - don't use a framebuffer; draw directly to the display
 }
 CON
 
@@ -18,20 +22,20 @@ CON
     LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    WIDTH       = 128
-    HEIGHT      = 128
+    WIDTH       = 240
+    HEIGHT      = 240
 
 { SPI configuration }
-    CS_PIN      = 0
-    SCK_PIN     = 1
-    MOSI_PIN    = 2
-    DC_PIN      = 3
+    CS_PIN      = 16+0
+    SCK_PIN     = 16+1
+    MOSI_PIN    = 16+2
+    DC_PIN      = 16+3
 
 { SPI bus speed: may work at up to about 20MHz, but speeds over 13MHz
     require a system clock of 240MHz or higher }
     SCK_FREQ    = 10_000_000
 
-    RES_PIN     = 4                             ' optional; -1 to disable
+    RES_PIN     = 16+4                             ' optional; -1 to disable
 ' --
 
     BPP         = disp.BYTESPERPX
@@ -51,7 +55,7 @@ VAR
     byte _framebuff                             ' dummy VAR for GFX_DIRECT
 #endif
 
-PUB Main()
+PUB main()
 
     ser.start(SER_BAUD)
     waitms(30)
@@ -69,9 +73,19 @@ PUB Main()
         repeat
 
 
-    disp.preset_greentab128x128()
-    disp.mirror_h(FALSE)
-    disp.mirror_v(FALSE)
+    { Presets for ST7735R }
+'    disp.preset_adafruit_1p44_128x128_land_up{}
+'    disp.preset_adafruit_1p44_128x128_land_down{}
+'    disp.preset_adafruit_1p44_128x128_port_up{}
+'    disp.preset_adafruit_1p44_128x128_port_down{}
+
+    { Presets for ST7789VW }
+    disp.preset_adafruit_1p3_240x240_land_up{}
+'    disp.preset_adafruit_1p3_240x240_land_down{}
+'    disp.preset_adafruit_1p3_240x240_port_up{}
+'    disp.preset_adafruit_1p3_240x240_port_down{}
+
+
     _time := 5_000                              ' time each demo runs (ms)
 
     demo()                                      ' start demo
@@ -80,8 +94,13 @@ PUB Main()
 #include "GFXDemo-common.spin2h"
 
 DAT
+#ifdef ST7789
+    _drv_name   byte    "ST7789 (SPI)", 0
+#else
     _drv_name   byte    "ST7735 (SPI)", 0
+#endif
 
+DAT
 {
 Copyright 2022 Jesse Burt
 
