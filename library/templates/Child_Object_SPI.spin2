@@ -12,8 +12,7 @@
 
 CON
 
-    DEF_SCK_FREQ    = 1_000_000
-    MAX_SCK_FREQ    = core.SPI_MAX_FREQ
+    SCK_FREQ_DEF    = 1_000_000
 
 VAR
 
@@ -21,44 +20,43 @@ VAR
 
 OBJ
 
-' choose an SPI engine below
-'    spi : "com.spi.10mhz"                     ' bit-banged SPI engine (~6.5MHz)
-'    spi : "com.spi.25mhz"                             ' smart-pin SPI engine (25MHz+)
+'    spi : "com.spi.10mhz"                      ' SPI engine ("classic" I/O bit-banged)
+'    spi : "com.spi.25mhz"                      ' SPI engine (smart-pin)
     core: "core.con.your_spi_device_here"       ' hw-specific low-level const's
 
-PUB Null()
+PUB null()
 ' This is not a top-level object
 
-PUB Startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=DEF_SCK_FREQ): status
+PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=SCK_FREQ_DEF): status
 ' Start using custom IO pins
     if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
-}   lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63)
-        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE))
+}      lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63)
+        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, SCK_FREQ))
             waitms(core.T_POR)                  ' wait for device startup
             _CS := CS_PIN                       ' copy i/o pin to hub var
             pinh(_CS)                           ' make sure CS starts high
 
-            if deviceid() == core.DEVID_RESP    ' validate device
+            if (dev_id() == core.DEVID_RESP)    ' validate device
                 return
     ' if this point is reached, something above failed
     ' Re-check I/O pin assignments, bus speed, connections, power
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 
-PUB Stop()
-
+PUB stop()
+' Stop the driver
     spi.deinit()
 
-PUB Defaults()
+PUB defaults()
 ' Set factory defaults
 
-PUB DeviceID(): id
+PUB dev_id(): id
 ' Read device identification
 
-PUB Reset()
+PUB reset()
 ' Reset the device
 
-PRI readReg(reg_nr, nr_bytes, ptr_buff)
+PRI readreg(reg_nr, nr_bytes, ptr_buff)
 ' Read nr_bytes from the device into ptr_buff
     case reg_nr                                 ' validate register num
         $00:
@@ -81,7 +79,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff)
     pinh(_CS)
     '
 
-PRI writeReg(reg_nr, nr_bytes, ptr_buff)
+PRI writereg(reg_nr, nr_bytes, ptr_buff)
 ' Write nr_bytes to the device from ptr_buff
     case reg_nr
         $00:
@@ -106,22 +104,19 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff)
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+
