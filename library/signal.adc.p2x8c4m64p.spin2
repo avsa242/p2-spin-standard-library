@@ -1,0 +1,130 @@
+{
+    --------------------------------------------
+    Filename: signal.adc.p2x8c4m64p.spin2
+    Description: P2 smart-pin-based ADC
+    Author: Jesse Burt
+    Started: Jan 24, 2023
+    Updated: Jan 24, 2023
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+CON
+
+    { ADC smart-pin X field }
+
+    SINC2_SMP   = %00 << 4
+    SINC2_FILT  = %01 << 4
+    SINC3_FILT  = %10 << 4
+    BITS_CAPT   = %11 << 4
+
+VAR
+
+    long _adc_pin
+    long _adc_bias
+    long _adc_range
+    byte _adc_res, _adc_samp_mode
+
+PUB startx(ADC_PIN, adcres, samp_mode): status
+' Start the ADC
+'   ADC_PIN: I/O pin to sample
+'   adcres: ADC resolution, in bits (2..14)
+'   samp_mode: sampling mode (see adc_set_sample_mode())
+'   Returns: cogid+1 of parent cog
+    _adc_pin := 0 #> ADC_PIN <# 63
+    adc_set_res(adcres)
+    adc_set_sample_mode(samp_mode)
+    calibrate_adc()                             ' must be done at least once
+    adc_update_mode()
+    return (cogid()+1)
+
+PUB adc_res(): bits
+' Get currently set ADC resolution
+'   Returns: bits
+    return _adc_res
+
+PUB adc_set_sample_mode(mode)
+' Set ADC sampling mode/filter
+'   Valid values:
+'       SINC2_SMP (0): SINC2 sampling mode
+'       SINC2_FILT (16): SINC2 filtering mode
+'       SINC3_FILT (32): SINC3 filtering mode
+'       BITS_CAPT (48): bitstream capturing mode
+    _adc_samp_mode := (SINC2_SMP #> mode <# BITS_CAPT)
+
+PUB adc_set_res(bits)
+' Set ADC resolution, in bits
+'   Valid values: 2..14
+    _adc_res := (2 #> bits <# 14)-1
+
+PUB adc_update_mode()
+' Update ADC mode, using current resolution and sample mode settings
+    wrpin(_adc_pin, P_ADC | P_ADC_1X)
+    wxpin(_adc_pin, _adc_samp_mode | _adc_res)
+    wypin(_adc_pin, 0)
+    pinw(_adc_pin, 1)
+ 
+PUB adc_word2volts(w): v
+' Convert ADC word to millivolts
+    return ((w * 1_000) / 3_300)
+
+PUB adc_word(): w
+' Get measurement word from ADC
+    return rdpin(_adc_pin)-_adc_bias            ' remove bias
+
+PUB calibrate_adc() | gio, vio, tmp, avg, range
+' Calibrate the ADC smart-pin
+
+    { get gio level }
+    wrpin(_adc_pin, P_ADC | P_ADC_GIO)
+    wxpin(_adc_pin, (_adc_samp_mode | _adc_res))
+    wypin(_adc_pin, 0)
+    pinw(_adc_pin, 1)
+    waitms(1)                                   ' wait for the pin to start up
+
+    tmp := 0
+    avg := 1000                                 ' number of samples to average
+    repeat avg
+        tmp += rdpin(_adc_pin)
+    _adc_bias := gio := (tmp / avg)             ' set gio as the reference level
+
+    { get vio level }
+    wrpin(_adc_pin, P_ADC | P_ADC_VIO)
+    wxpin(_adc_pin, (_adc_samp_mode | _adc_res))
+    wypin(_adc_pin, 0)
+    pinw(_adc_pin, 1)
+    waitms(1)
+
+    tmp := 0
+    avg := 1000
+    repeat avg
+        tmp += rdpin(_adc_pin)
+    vio := (tmp/avg)
+
+    _adc_range := (vio-gio)
+
+PUB voltage(): v
+' Get voltage measured at ADC
+'   Returns: millivolts
+    return adc_word2volts(adc_word())
+
+DAT
+{
+Copyright 2022 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+
