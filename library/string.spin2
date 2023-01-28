@@ -450,7 +450,7 @@ PUB mid(ptr_str, start, count): ptr_new
 ' Copy substring of characters
 '   ptr_str: source string
 '   start: offset within source string to start copying
-'   count: number of chars from ptr_src to copy
+'   count: number of chars from (ptr_str+start) to copy
 '   Returns: pointer to substring
     bytefill(@_tmp_buff, 0, FIELDSZ_MAX)        ' clear working buffer
     bytemove(@_tmp_buff, (ptr_str + start), count)
