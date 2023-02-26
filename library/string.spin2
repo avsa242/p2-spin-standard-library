@@ -3,9 +3,9 @@
     Filename: string.spin2
     Author: Jesse Burt
     Description: String processing and formatting (P2 version)
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started May 29, 2022
-    Updated Dec 29, 2022
+    Updated Feb 26, 2023
     See end of file for terms of use.
     --------------------------------------------
 
@@ -77,15 +77,15 @@ PUB atoib(ptr_str, base): val | n, digit
     repeat while ctype.isspace(byte[ptr_str])
         ++ptr_str
     digit := (byte[ptr_str++] & 127)
-    repeat while digit => "0"
-        if (digit => "a")
+    repeat while digit >= "0"
+        if (digit >= "a")
             digit -= ("a"-10)
         else
-            if (digit => "A")
+            if (digit >= "A")
                 digit -= ("A"-10)
             else
                 digit -= "0"
-        if (digit => base)
+        if (digit >= base)
             quit
         n := (base * n) + digit
         if (byte[ptr_str] == 0)
