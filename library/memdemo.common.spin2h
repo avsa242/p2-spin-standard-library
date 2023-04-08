@@ -3,9 +3,9 @@
     Filename: memdemo.common.spin2h
     Author: Jesse Burt
     Description: Routines common to all memory drivers (P2 version)
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Jul 30, 2022
-    Updated Dec 24, 2022
+    Updated Apr 8, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -25,6 +25,7 @@ CON
 
 PUB demo() | base_page, offs
 
+    ser.set_attrs(ser.ECHO)
     _pagesize := mem.page_size() <# 512
     ser.printf(@"Page size: %d\n\r", _pagesize)
     bytefill(@_pg_buff, 0, _pagesize)          ' clear out buffer
@@ -35,6 +36,7 @@ PUB demo() | base_page, offs
     ser.pos_xy(0, 4)
     ser.strln(@"Keys:")
     ser.strln(@"[, ]: go back, forward a page in memory")
+    ser.strln(@"a: go to specific address (hexdump will round down to page start address)")
     ser.strln(@"s, e: go to the first, last page")
     ser.strln(@"w: write test: fill current page with random value")
     ser.strln(@"x: erase test: fill the current page with the erase value")
@@ -58,6 +60,10 @@ PUB demo() | base_page, offs
                 base_page++
                 if (base_page > _lastpage)
                     base_page := _lastpage
+            "a":
+                ser.str(@"Enter address (hex): ")
+                base_page := ser.gethex() / _pagesize
+                ser.newline()
             "e":                                ' go to the last page
                 base_page := _lastpage
             "s":                                ' go to the first page
@@ -130,7 +136,7 @@ PRI pg2byte_offs(page_nr): b
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
