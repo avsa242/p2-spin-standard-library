@@ -6,7 +6,7 @@
         standard terminal routines (P2 version)
     Copyright (c) 2023
     Started Dec 14, 2019
-    Updated Apr 8, 2023
+    Updated Apr 9, 2023
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is based on std_text_routines.spinh,
@@ -66,7 +66,7 @@ PUB putudec(val, digits)
 ' Output an unsigned decimal number (zero-padded)
 '   val: value to print
 '   digits: number of digits to display
-    stl.atoib(val, stl.IDEC)
+    stl.itoab(val, @_tmp, stl.IDEC)
     puts(@_tmp)
 
 PUB hex = puthex
