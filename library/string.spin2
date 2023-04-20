@@ -5,7 +5,7 @@
     Description: String processing and formatting (P2 version)
     Copyright (c) 2023
     Started May 29, 2022
-    Updated Feb 26, 2023
+    Updated Apr 20, 2023
     See end of file for terms of use.
     --------------------------------------------
 
@@ -95,7 +95,7 @@ PUB atoib(ptr_str, base): val | n, digit
 
 PUB bin(val, digits): bin_str
 ' Convert binary value to string representation
-    itoab(val, @_tmp_buff, IBIN)
+    itoabp(val, @_tmp_buff, IBIN, digits, "0")
     return @_tmp_buff
 
 PUB clear(ptr_str)
@@ -255,7 +255,7 @@ PUB getfieldcount(ptr_str, delim): nr_flds | char, idx
 
 PUB hex(val, digits): hex_str
 ' Convert hexadecimal value to string representation
-    itoab(val, @_tmp_buff, IHEX)
+    itoabp(val, @_tmp_buff, IHEX, digits, "0")
     return @_tmp_buff
 
 PUB hexcase(hcase)
@@ -265,7 +265,7 @@ PUB hexcase(hcase)
 '       zero: lower-case
     _caps := hcase
 
-PUB hexs(val, digits): s | idx
+PUB hexs(val, digits): ptr | idx
 ' Convert hexadecimal value to string representation (small/standalone implementation)
 '   Returns: pointer to string
     bytefill(@_tmp_buff, 0, FIELDSZ_MAX)
@@ -322,7 +322,7 @@ PUB islower(ptr_str): flag
 
     return true
 
-PUB isspace(ptr_str):flag
+PUB isspace(ptr_str): flag
 ' Flag indicating entire string is whitespace
 '   Returns:
 '       TRUE (-1) if string contains only whitespace, FALSE (0) otherwise
@@ -342,95 +342,99 @@ PUB isupper(ptr_str): flag
 
     return true
 
-PUB itoa(num, ptr_str): ptr | str0, dvsr, temp
+PUB itoa(num, ptr_dest): ptr | str0, dvsr, temp
 ' Convert number (signed) to string representation
 '   num: integer value to convert
-'   ptr_str: string to copy output to
+'   ptr_dest: string to copy output to
 '   Returns: pointer to converted string
-    str0 := ptr_str
+    str0 := ptr_dest
     if (num < 0)
-        byte[ptr_str++] := "-"
+        byte[ptr_dest++] := "-"
         if (num == $80000000)
-            byte[ptr_str++] := "2"
+            byte[ptr_dest++] := "2"
             num += 2_000_000_000
         num := -num
     elseif (num == 0)
-        byte[ptr_str++] := "0"
-        byte[ptr_str] := NUL
+        byte[ptr_dest++] := "0"
+        byte[ptr_dest] := NUL
         return 1
     dvsr := 1_000_000_000
     repeat while (dvsr > num)
         dvsr /= 10
     repeat while (dvsr > 0)
         temp := num / dvsr
-        byte[ptr_str++] := temp + "0"
+        byte[ptr_dest++] := temp + "0"
         num -= temp * dvsr
         dvsr /= 10
-    byte[ptr_str++] := NUL
-    return ptr_str - str0 - 1
+    byte[ptr_dest++] := NUL
+    return ptr_dest - str0 - 1
 
-PUB itoab(num, ptr_str, base) | lowbit, sorg
+PUB itoab(num, ptr_dest, base) | lowbit, sorg
 ' Convert number (unsigned) in base to string representation
 '   num: integer value to convert
-'   ptr_str: string to copy output to
+'   ptr_dest: string to copy output to
 '   base: base/radix of number to copy to string
-'       (e.g., ItoAb(32, @mystr, 16) would copy the number 32 to mystr
+'       (e.g., itoab(32, @mystr, 16) would copy the number 32 to mystr
 '           as a string in base-16, or hex: 1F)
-    sorg := ptr_str
+    sorg := ptr_dest
     base := (base >> 1) & $f
     repeat                                      ' generate digits/letters in reverse order
         lowbit := (num & 1)
         num := (num >> 1) & $7FFFFFFF
-        byte[ptr_str] := ( (num // base) << 1 ) + lowbit
-        if (byte[ptr_str] < 10)
-            byte[ptr_str] += "0"
+        byte[ptr_dest] := ( (num // base) << 1 ) + lowbit
+        if (byte[ptr_dest] < 10)
+            byte[ptr_dest] += "0"
         else
             if (_caps)
-                byte[ptr_str] += ("A"-10)
+                byte[ptr_dest] += ("A"-10)
             else
-                byte[ptr_str] += ("a"-10)
-        ++ptr_str
+                byte[ptr_dest] += ("a"-10)
+        ++ptr_dest
         num := (num / base)
     until (num == 0)
-    byte[ptr_str] := NUL                        ' trailing null
+    byte[ptr_dest] := NUL                        ' trailing null
     reverse(sorg)
 
-PUB itoap(num, ptr_str, digits, pad_ch): ptr | str0, dvsr, temp, num_digits
+PUB itoabp(num, ptr_dest, base, digits, pad_ch): ptr | numlen, byte tmp[33]
+' Convert number (unsigned) in base to string representation, with padding
+'   num: integer value to convert
+'   ptr_dest: string to copy output to
+'   base: base/radix of number to copy to string
+'       (e.g., itoabp($beef, @mystr, 16, 8, "0") would copy the number $beef to mystr
+'           as a 0-padded (to 8 places) string in base-16, or hex: $0000beef)
+'   digits: number of digits to pad number string with (or to truncate to)
+'   pad_ch: character to pad digits with (e.g., " ", "0", etc)
+    itoab(num, @tmp, base)
+    numlen := strsize(@tmp)
+    if ( digits < numlen )
+        { number of digits called for is shorter than the number, so truncate most-significant
+            digits of the number }
+        bytemove(ptr_dest, @tmp+(numlen-digits), digits)
+    else
+        repeat digits-numlen                    ' output enough pad chars to make up the length
+            byte[ptr_dest++] := pad_ch
+        bytemove(ptr_dest, @tmp, numlen)
+    return @tmp
+
+PUB itoap(num, ptr_dest, digits, pad_ch): ptr | numlen, byte tmp[33]
 ' Convert number (signed) to string representation, with padding
 '   num: integer value to convert
-'   ptr_str: string to copy output to
+'   ptr_dest: string to copy output to
 '   digits: number of digits to output (number will be padded to this width)
 '   pad_ch: character to pad digits with (e.g., " ", "0", etc)
 '   Returns: pointer to converted string
-    bytefill(@_tmp_buff, 0, FIELDSZ_MAX)
-    str0 := ptr_str
-    if (num < 0)                                ' handle case: negative number
-        byte[ptr_str++] := "-"
-        if (num == $80000000)
-            byte[ptr_str++] := "2"
-            num += 2_000_000_000
-        num := -num
-
-    dvsr := 1_000_000_000                       ' init divisor
-    num_digits := 0
-
-    repeat while (dvsr > num)                   ' find # of digits in number
-        dvsr /= 10
-        num_digits++
-    digits := 0 #> (digits - num_digits)        ' adjust # pad digits to fit total # of digits
-    repeat digits                               ' pad requested width
-        byte[ptr_str++] := pad_ch
-
-    if (num == 0)                               ' handle case: number is 0
-        byte[ptr_str++] := "0"
-    else
-        repeat while (dvsr > 0)                 ' add digits to the output string
-            temp := num / dvsr
-            byte[ptr_str++] := temp + "0"
-            num -= temp * dvsr
-            dvsr /= 10
-        byte[ptr_str++] := NUL                  ' zero-terminate
-    return (ptr_str - str0 - 1)
+    if ( digits )                                   ' do something only if digits isn't 0
+        itoa(num, @tmp)
+        numlen := strsize(@tmp)
+        if ( digits < numlen )
+            { number of digits called for is shorter than the number, so truncate most-significant
+                digits of the number }
+            bytemove(ptr_dest, @tmp+(numlen-digits), digits)
+        else
+            repeat digits-numlen                    ' output enough pad chars to make up the length
+                byte[ptr_dest++] := pad_ch
+            bytemove(ptr_dest, @tmp, numlen)
+    return @tmp
 
 PUB left(ptr_str, count): ptr_new
 ' Copy left-most characters
