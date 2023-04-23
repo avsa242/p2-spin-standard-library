@@ -1,0 +1,64 @@
+{
+    --------------------------------------------
+    Filename: Freq-Counter.spin2
+    Author: Jesse Burt
+    Description: Simple utility to measure the frequency of a signal input to
+        an I/O pin
+    Copyright (c) 2023
+    Started Apr 22, 2023
+    Updated Apr 22, 2023
+    See end of file for terms of use.
+    --------------------------------------------
+}
+CON
+
+    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = cfg._clkfreq_def
+
+' -- User-modifiable constants
+    SER_BAUD    = 2_000_000
+    FRQ_CNT_PIN = 0                             ' pin connected to signal
+' --
+
+OBJ
+
+    ser : "com.serial.terminal.ansi"
+    cfg : "boardcfg.p2eval"
+
+VAR
+
+
+PUB main()
+
+    ser.start(SER_BAUD)
+    ser.clear()
+
+    { setup FRQ_CNT_PIN to count rising edges with a period equal to the system clock freq
+        (so, 1 second); ignore the BPIN field of the smart-pin }
+    pinstart(FRQ_CNT_PIN, P_COUNT_RISES, clkfreq, 0)
+
+    repeat
+        ser.pos_xy(0, 3)
+        ser.printf(@"freq = %dHz", rdpin(FRQ_CNT_PIN))
+        ser.clearline()
+
+DAT
+{
+Copyright 2023 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+
