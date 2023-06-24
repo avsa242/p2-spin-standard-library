@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: signal.audio.amp.max9744.i2c.spin2
+    Filename: audio.amp.max9744.spin2
     Author: Jesse Burt
     Description: Driver for the MAX9744 20W audio amplifier IC (P2 version)
-    Copyright (c) 2021
+    Copyright (c) 2023
     Started Nov 22, 2020
-    Updated Nov 21, 2022
+    Updated Jun 16, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -35,11 +35,10 @@ OBJ
 PUB null()
 ' This is not a top-level object
 
-PUB startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ, SHDN_PIN): status
+PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, SHDN_PIN): status
 ' Start using custom I/O settings
 '   Returns: Core/cog number+1 of I2C engine, FALSE if no cogs available
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
-}   I2C_HZ <= core.I2C_MAX_FREQ
+    if ( lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and (I2C_HZ <= core.I2C_MAX_FREQ) )
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitms(1)
             if (i2c.present(SLAVE_WR))          ' test device bus presence
@@ -57,7 +56,7 @@ PUB stop()
     powered(FALSE)
     i2c.deinit()
 
-PUB modulation_mode{}: curr_mode
+PUB modulation_mode(): curr_mode
 ' Get current output filter mode (cached)
     return _mod_mode
 
@@ -65,7 +64,7 @@ PUB mute()
 ' Set 0 Volume
     set_volume(0)
 
-PUB is_powered{}: curr_state
+PUB is_powered(): curr_state
 ' Get current powered state
     return pinr(_shdn)
 
@@ -103,12 +102,14 @@ PUB set_volume(level)
 PUB vol_down()
 ' Decrease volume level
     writereg(core.CMD_VOL_DN)
+    _vol_level := 0 #> (_vol_level - 1)
 
 PUB vol_up()
 ' Increase volume level
     writereg(core.CMD_VOL_UP)
+    _vol_level := (_vol_level + 1) <# 63
 
-PUB volume{}: curr_lvl
+PUB volume(): curr_lvl
 ' Get current volume level (cached)
     return _vol_level
 
@@ -123,7 +124,7 @@ PRI writereg(reg_nr) | cmd_pkt
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
