@@ -3,9 +3,10 @@
     Filename: MCP320X-Demo.spin2
     Author: Jesse Burt
     Description: Demo of the MCP320X driver (P2 version)
-        * Power data output
+        * Voltage data output
+    Copyright (c) 2023
     Started Nov 26, 2019
-    Updated Nov 22, 2022
+    Updated Jun 24, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -35,7 +36,6 @@ OBJ
 PUB main()
 
     ser.start(SER_BAUD)
-    waitms(10)
     ser.clear()
     ser.strln(@"Serial terminal started")
     if adc.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
@@ -45,14 +45,16 @@ PUB main()
         repeat
 
     adc.defaults()
+    adc.set_model(3002)                         ' 10bit: 3001, 2, 4, 8; 12bit: 3201, 2, 4, 8
     adc.set_adc_channel(0)                      ' select channel (# available is model-dependent)
+    adc.set_ref_voltage(3_300_000)              ' set voltage ADC is supplied by (= ref. voltage)
     show_adc_data()
 
 #include "adcdemo.common.spin2h"
 
 DAT
 {
-Copyright (c) 2022 Jesse Burt
+Copyright (c) 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
