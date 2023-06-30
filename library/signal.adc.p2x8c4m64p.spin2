@@ -4,7 +4,7 @@
     Description: P2 smart-pin-based ADC
     Author: Jesse Burt
     Started: Jan 24, 2023
-    Updated: Jan 24, 2023
+    Updated: Jun 30, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -23,6 +23,7 @@ VAR
     long _adc_pin
     long _adc_bias
     long _adc_range
+    long _adc_scaling
     byte _adc_res, _adc_samp_mode
 
 PUB startx(ADC_PIN, adcres, samp_mode): status
@@ -56,6 +57,7 @@ PUB adc_set_res(bits)
 ' Set ADC resolution, in bits
 '   Valid values: 2..14
     _adc_res := (2 #> bits <# 14)-1
+    _adc_scaling := (1 << (14-bits)) * 1_000_000
 
 PUB adc_update_mode()
 ' Update ADC mode, using current resolution and sample mode settings
@@ -66,7 +68,7 @@ PUB adc_update_mode()
  
 PUB adc_word2volts(w): v
 ' Convert ADC word to millivolts
-    return ((w * 1_000) / 3_300)
+    return muldiv64(w, _adc_scaling, 3_300)
 
 PUB adc_word(): w
 ' Get measurement word from ADC
@@ -105,7 +107,7 @@ PUB calibrate_adc() | gio, vio, tmp, avg, range
 
 PUB voltage(): v
 ' Get voltage measured at ADC
-'   Returns: millivolts
+'   Returns: microvolts
     return adc_word2volts(adc_word())
 
 DAT
