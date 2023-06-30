@@ -112,6 +112,9 @@ PUB set_adc_channel(ch)
 '   Valid values: 0..4 (availability dependent on specific model connected)
     _ch := 0 #> ch <# 1
 
+PUB set_model(m)
+' dummy method for API compatibility with other drivers
+
 { pull in code common to all ADC drivers, e.g., voltage() }
 #include "signal.adc.common.spin2h"
 
