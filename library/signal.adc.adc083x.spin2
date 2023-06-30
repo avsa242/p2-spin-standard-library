@@ -5,7 +5,7 @@
     Description: Driver for the TI ADC083x family of ADCs (P2 version)
     Copyright (c) 2023
     Started Jun 24, 2023
-    Updated Jun 24, 2023
+    Updated Jun 30, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -27,6 +27,7 @@ VAR
 
     long _CS, _SCK, _MOSI, _MISO
     long _sck_hperiod
+    byte _ch
 
 PUB null()
 ' This is not a top-level object
@@ -94,10 +95,22 @@ PUB adc_data(): w | cs, sck, mosi, miso, sck_hperiod
         w := (w << 1) | pinr(miso)              ' sample _after_ the clock pulse
     pinh(cs)
 
+PUB adc_scale(s)
+' dummy method for API compatibility with other drivers
+
 CON OVERHEAD_CYCLES = 29
 PUB calc_sck_half_period(sck_freq)
 ' Calculate SCK half period in system ticks
     _sck_hperiod := ((clkfreq / sck_freq) / 2)-OVERHEAD_CYCLES
+
+CON #0, CONT, SINGLE
+PUB opmode(m)
+' dummy method for API compatibility with other drivers
+
+PUB set_adc_channel(ch)
+' Set ADC channel for subsequent reads
+'   Valid values: 0..4 (availability dependent on specific model connected)
+    _ch := 0 #> ch <# 1
 
 { pull in code common to all ADC drivers, e.g., voltage() }
 #include "signal.adc.common.spin2h"
