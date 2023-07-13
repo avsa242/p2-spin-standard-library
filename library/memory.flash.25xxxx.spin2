@@ -3,9 +3,9 @@
     Filename: memory.flash.25xxxx.spin2
     Author: Jesse Burt
     Description: Driver for 25xxxx series SPI NOR flash (P2 version)
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Nov 09, 2019
-    Updated Oct 3, 2022
+    Updated Jul 13, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -27,29 +27,40 @@ CON
 
     ERASE_CELL  = $FF
 
+    { default I/O settings; these can be overridden in the parent object }
+    CS          = 61
+    SCK         = 60
+    MOSI        = 59
+    MISO        = 58
+    SPI_FREQ    = DEF_SPI_CLK
+
 VAR
 
     byte _CS
 
 OBJ
 
-    spi : "com.spi.25mhz"                             ' smart-pin SPI engine
-    core: "core.con.25xxxx"                     ' HW-specific constants
+    spi:    "com.spi.25mhz"                     ' smart-pin SPI engine
+    core:   "core.con.25xxxx"                   ' HW-specific constants
 
 PUB null()
 ' This is not a top-level object
 
-PUB startx(CS, SCK, MOSI, MISO, SCK_HZ): status
-' Start driver using SPI interface
+PUB start(): status
+' Start driver using default I/O settings
+    return startx(CS, SCK, MOSI, MISO, SPI_FREQ)
+
+PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ): status
+' Start driver using custom I/O settings
 '   CS: SPI chip-select
 '   SCK: SPI SCK/clock pin
 '   MOSI: SPI MOSI/Propeller to Device
 '   MISO: SPI MISO/Device to Propeller
 '   All pin assignments must be unique and in the range 0..63
 '   SCK_FREQ: SPI bus frequency (device and SPI-engine specific)
-    if lookdown(CS: 0..63) and lookdown(SCK: 0..63) and lookdown(MOSI: 0..63) {
-}   and lookdown(MISO: 0..63) and lookdown(SCK_HZ: 1..core.SCK_MAX_FREQ)
-        if (status := spi.init(SCK, MOSI, MISO, core.SPI_MODE, SCK_HZ))
+    if ( lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MOSI_PIN: 0..63) ...
+        and lookdown(MISO_PIN: 0..63) )
+        if ( status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, SCK_HZ) )
             waitus(core.T_POR)                  ' wait for device startup
             _CS := CS
             pinh(_CS)
@@ -62,6 +73,7 @@ PUB startx(CS, SCK, MOSI, MISO, SCK_HZ): status
 PUB stop()
 ' Stop the driver
     spi.deinit()
+    pinf(_CS)
     _CS := 0
 
 PUB busy(): flag
