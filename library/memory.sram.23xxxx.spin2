@@ -5,7 +5,7 @@
     Description: Driver for 23xxxx series SPI SRAM (P2 version)
     Copyright (c) 2023
     Started Dec 27, 2020
-    Updated Jul 4, 2023
+    Updated Jul 13, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -21,27 +21,37 @@ CON
 
     ERASE_CELL  = $00
 
+    { default I/O settings; these can be overridden in the parent object }
+    CS          = 0
+    SCK         = 1
+    MOSI        = 2
+    MISO        = 2
+    SPI_FREQ    = 1_000_000
+
 VAR
 
     long _CS
 
 OBJ
 
-    spi : "com.spi.25mhz"                       ' smart-pin SPI engine
-    core: "core.con.23xxxx"                     ' hw-specific constants
+    spi:    "com.spi.25mhz"                     ' smart-pin SPI engine
+    core:   "core.con.23xxxx"                   ' hw-specific constants
 
 PUB null()
 ' This is not a top-level object
 
+pub start(): status
+' Start the driver using default I/O settings
+    return startx(CS, SCK, MOSI, MISO, SPI_FREQ)
+
 PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=20_000_000): status
 ' Start the driver using custom I/O settings
-    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
-}   lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) and {
-}   SCK_FREQ >= 1 and SCK_FREQ <= core.SCK_MAX_FREQ
+    if ( lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and ...
+        lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) )
         _CS := CS_PIN
         pinh(_CS)
-        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, {
-}       SCK_FREQ))
+        if ( status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, ...
+            SCK_FREQ) )
             waitms(1)
             return status
     ' if this point is reached, something above failed

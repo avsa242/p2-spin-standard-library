@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Demo of the 23XXXX SRAM driver (P2 version)
         * Memory hexdump display
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Dec 27, 2020
-    Updated Oct 16, 2022
+    Updated Jul 13, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -18,14 +18,6 @@ CON
 
 ' -- User-modifiable constants
     SER_BAUD    = 2_000_000
-    LED         = cfg.LED1
-
-    { SPI configuration }
-    CS_PIN      = 0
-    SCK_PIN     = 1
-    MOSI_PIN    = 2
-    MISO_PIN    = 3
-    SPI_FREQ    = 20_000_000
 
     { memory size }
     PART        = 1024                          ' kbits
@@ -35,17 +27,17 @@ CON
 
 OBJ
 
-    cfg : "boardcfg.p2eval"
-    ser : "com.serial.terminal.ansi"
-    mem : "memory.sram.23xxxx"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi"
+    mem:    "memory.sram.23xxxx" | CS=0, SCK=1, MOSI=2, MISO=3, SPI_FREQ=20_000_000
 
 PUB setup()
 
     ser.start(SER_BAUD)
-    waitms(30)
     ser.clear()
     ser.strln(@"Serial terminal started")
-    if mem.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SPI_FREQ)
+
+    if ( mem.start() )
         ser.strln(@"23XXXX driver started")
     else
         ser.strln(@"23XXXX driver failed to start - halting")
