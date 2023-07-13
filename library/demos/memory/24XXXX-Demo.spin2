@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: Demo of the 24XXXX EEPROM driver (P2 version)
         * Memory hexdump display
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started May 9, 2020
-    Updated Jul 30, 2022
+    Updated Jul 13, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,12 +20,6 @@ CON
     SER_BAUD    = 2_000_000
     LED         = cfg.LED1
 
-    { I2C configuration }
-    SCL_PIN     = 0
-    SDA_PIN     = 1
-    I2C_FREQ    = 1_000_000
-    ADDR_BITS   = 0
-
     { memory size }
     PART        = 256                           ' kbits
 ' --
@@ -34,17 +28,16 @@ CON
 
 OBJ
 
-    cfg : "boardcfg.p2eval"
-    ser : "com.serial.terminal.ansi"
-    mem : "memory.eeprom.24xxxx"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi"
+    mem:    "memory.eeprom.24xxxx" | SCL=28, SDA=29, I2C_FREQ=400_000, I2C_ADDR=0
 
 PUB setup()
 
     ser.start(SER_BAUD)
-    waitms(30)
     ser.clear()
     ser.strln(@"Serial terminal started")
-    if mem.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS)
+    if ( mem.start() )
         ser.strln(@"24XXXX driver started")
     else
         ser.strln(@"24XXXX driver failed to start - halting")
