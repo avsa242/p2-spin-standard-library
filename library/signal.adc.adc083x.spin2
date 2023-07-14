@@ -23,6 +23,13 @@ CON
     ADC_MAX         = ADC_RANGE-1
     ADC_SCALE_1V    = 1_000
 
+    { default I/O settings; these can be overridden in the parent object }
+    CS          = 0
+    SCK         = 1
+    MOSI        = 2
+    MISO        = 2
+    SPI_FREQ    = 100_000
+
 VAR
 
     long _CS, _SCK, _MOSI, _MISO
@@ -31,6 +38,10 @@ VAR
 
 PUB null()
 ' This is not a top-level object
+
+PUB start(): status
+' Start the driver using default I/O settings
+    return startx(CS, SCK, MOSI, MISO, SPI_FREQ)
 
 PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=SCK_FREQ_DEF): status
 ' Start using custom IO pins
