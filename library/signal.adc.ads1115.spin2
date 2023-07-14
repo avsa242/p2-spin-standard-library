@@ -16,7 +16,10 @@ CON
     SLAVE_WR        = core.SLAVE_ADDR
     SLAVE_RD        = core.SLAVE_ADDR|1
 
+    DEF_SCL         = 0
+    DEF_SDA         = 1
     DEF_HZ          = 100_000
+    DEF_ADDR        = 0
     I2C_MAX_FREQ    = core.I2C_MAX_FREQ
 
     { Operation modes }
@@ -27,6 +30,12 @@ CON
     LOW             = 0
     HIGH            = 1
 
+    { default I/O settings; these can be overridden in the parent object }
+    SCL             = DEF_SCL
+    SDA             = DEF_SDA
+    I2C_FREQ        = DEF_HZ
+    I2C_ADDR        = DEF_ADDR
+
 VAR
 
     long _uvolts_lsb
@@ -35,22 +44,24 @@ VAR
 
 OBJ
 
-    i2c : "com.i2c"                             ' I2C engine
-    core: "core.con.ads1115"                    ' HW-specific constants
-    u64 : "math.unsigned64"                     ' unsigned 64-bit int math
+    i2c:    "com.i2c"                             ' I2C engine
+    core:   "core.con.ads1115"                    ' HW-specific constants
 
 PUB null()
 ' This is not a top-level object
 
+PUB start(): status
+' Start using default I/O settings
+    return startx(SCL, SDA, I2C_FREQ, I2C_ADDR)
+
 PUB startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ, ADDR_BITS=0): status
 ' Start using custom I/O settings and bus speed
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
-}   I2C_HZ <= core.I2C_MAX_FREQ
-        if lookdown(ADDR_BITS: %00, %01, %10, %11)
-            if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+    if ( lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) )
+        if ( lookdown(ADDR_BITS: %00, %01, %10, %11) )
+            if ( status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ) )
                 waitus(core.T_POR)
                 _addr_bits := ADDR_BITS << 1
-                if (i2c.present(SLAVE_WR | _addr_bits))
+                if ( i2c.present(SLAVE_WR | _addr_bits) )
                     defaults()
                     return
     ' if this point is reached, something above failed
@@ -77,6 +88,7 @@ PUB adc_data(): adc_word
 ' Read measurement from channel ch
 '   Valid values: *0, 1, 2, 3
 '   Any other value is ignored
+    adc_word := 0
     readreg(core.CONVERSION, 2, @adc_word)
     adc_word signx= 15                          ' extend sign bit
     _last_adc := adc_word
@@ -129,7 +141,6 @@ PUB adc_scale(scale): curr_scl
 
 PUB adc2volts(adc_word): volts
 ' Scale ADC word to microvolts
-'   NOTE: It is possible to read negative voltages (down to -300mV)
     return muldiv64(adc_word, _uvolts_lsb, 1_0000)
 
 CON
@@ -272,7 +283,7 @@ PUB set_adc_channel(ch)
 
 PUB volts2adc(volts): adc_word
 ' Scale microvolts to ADC word
-    return u64.multdiv(volts, 1_0000, _uvolts_lsb)
+    return muldiv64(volts, 1_0000, _uvolts_lsb)
 
 PRI adc_chan_ena(ch): curr_ch
 ' Set active ADC channel
@@ -320,7 +331,7 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
