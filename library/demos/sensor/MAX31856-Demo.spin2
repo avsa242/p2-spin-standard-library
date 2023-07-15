@@ -5,8 +5,8 @@
     Description: MAX31856 driver demo (P2 version)
         * Temp data output
     Copyright (c) 2022
-    Started Sep 30, 2018
-    Updated Oct 16, 2022
+    Started Nov 21, 2019
+    Updated Jul 15, 2023
     See end of file for terms of use.
     --------------------------------------------
 
@@ -21,28 +21,21 @@ CON
 
 ' -- User-modifiable constants
     SER_BAUD    = 2_000_000
-
-    { SPI configuration }
-    CS_PIN      = 0
-    SCK_PIN     = 1
-    MOSI_PIN    = 2                             ' SDI
-    MISO_PIN    = 3                             ' SDO
 ' --
 
 OBJ
 
     cfg:    "boardcfg.p2eval"
-    sensor:  "sensor.thermocouple.max31856"
+    sensor: "sensor.thermocouple.max31856" | CS=0, SCK=1, MOSI=2, MISO=3, SPI_FREQ=5_000_000
     ser:    "com.serial.terminal.ansi"
 
 PUB setup()
 
     ser.start(SER_BAUD)
-    waitms(10)
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    if (sensor.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN))
+    if ( sensor.start() )
         ser.strln(@"MAX31856 driver started")
     else
         ser.strln(@"MAX31856 driver failed to start - halting")
@@ -62,7 +55,7 @@ PUB setup()
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
