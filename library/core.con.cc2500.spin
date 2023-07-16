@@ -3,9 +3,9 @@
     Filename: core.con.cc2500.spin
     Author: Jesse Burt
     Description: CC2500-specific constants
-    Copyright (c) 2021
+    Copyright (c) 2023
     Started Jul 7, 2019
-    Updated May 16, 2021
+    Updated Jul 16, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -24,6 +24,8 @@ CON
     BURST                       = 1 << 6
 
     T_POR                       = 5_000         ' usec
+
+    DEVID_RESP                  = $03
 
 ' Register definitions
 '   Status byte
@@ -486,12 +488,12 @@ CON
     PATABLE                     = $3E 'PA power control
     FIFO                        = $3F 'TX and RX FIFO access (differentiated by R/W bit)
 
-PUB null{}
+PUB null()
 ' This is not a top-level object
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
