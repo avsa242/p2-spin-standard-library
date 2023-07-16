@@ -3,9 +3,9 @@
     Filename: HT16K33-SimpleDemo.spin2
     Description: Simplified Demo of the HT16K33 driver
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2023
     Created: Nov 21, 2020
-    Updated: Oct 16, 2022
+    Updated: Jul 16, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -17,59 +17,43 @@ CON
 
 ' -- User-modifiable constants
     SER_BAUD    = 2_000_000
-    LED         = cfg.LED1
-
-    I2C_SCL     = 0
-    I2C_SDA     = 1
-    I2C_FREQ    = 400_000                       ' 400_000 max
-    ADDR_BITS   = %000                          ' %000..%111
-
-    WIDTH       = 8
-    HEIGHT      = 8
 ' --
-
-    BUFFSZ      = (WIDTH * HEIGHT) / 8
-    XMAX        = WIDTH-1
-    YMAX        = HEIGHT-1
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    ser     : "com.serial.terminal.ansi"
-    matrix  : "display.led.ht16k33"
-    fnt     : "font.5x8"
-
-VAR
-
-    byte _framebuff[BUFFSZ]
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi"
+    matrix: "display.led.ht16k33" | SCL=0, SDA=1, I2C_FREQ=400_000, I2C_ADDR=%000, ...
+                                    WIDTH=8, HEIGHT=8
+    fnt:    "font.5x8"
 
 PUB main() | i
 
     setup()
     matrix.defaults()
-    matrix.fontsize(6, 8)
-    matrix.fontaddress(fnt.ptr())
+    matrix.font_sz(fnt.WIDTH, fnt.HEIGHT)
+    matrix.font_addr(fnt.ptr())
 
     matrix.fgcolor(1)                           ' fg/bg color of following text
     matrix.bgcolor(0)                           '   (colors: -1, 0, 1)
-    matrix.charattrs(matrix.DRAWBG)
+    matrix.char_attrs(matrix.DRAWBG)
     repeat 5
         repeat i from 0 to 9
-            matrix.char(48+i)                   ' ASCII 48+i (nums 0..9)
+            matrix.putchar(48+i)                ' ASCII 48+i (nums 0..9)
             waitms(100)
             matrix.show()                       ' show display
 
     waitms(2_000)
     matrix.clear()
 
-    matrix.box(0, 0, XMAX, YMAX, 1, false)      ' x1, y1, x2, y2, color, fill
+    matrix.box(0, 0, matrix.XMAX, matrix.YMAX, 1, false)      ' x1, y1, x2, y2, color, fill
     matrix.show()
 
     waitms(2_000)
     matrix.clear()
 
     matrix.box(0, 0, 5, 5, -1, true)
-    matrix.box(XMAX, YMAX, XMAX-5, YMAX-5, -1, true)
+    matrix.box(matrix.XMAX, matrix.YMAX, matrix.XMAX-5, matrix.YMAX-5, -1, true)
     matrix.show()
 
     waitms(2_000)
@@ -101,7 +85,7 @@ PUB setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if matrix.startx(I2C_SCL, I2C_SDA, I2C_FREQ, ADDR_BITS, WIDTH, HEIGHT, @_framebuff)
+    if ( matrix.start() )
         ser.strln(string("HT16K33 driver started"))
     else
         ser.strln(string("HT16K33 driver failed to start - halting"))
@@ -109,7 +93,7 @@ PUB setup()
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

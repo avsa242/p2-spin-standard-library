@@ -3,9 +3,9 @@
     Filename: display.led.ht16k33.spin2
     Description: Driver for HT16K33-based LED displays (P2 version, matrix type)
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2023
     Created: Oct 11, 2018
-    Updated: Oct 5, 2022
+    Updated: Jul 16, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,20 +20,40 @@ CON
     MAX_COLOR   = 1
     BYTESPERPX  = 1
 
-PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT, ptr_dispbuff): status
+    { default I/O settings; these can be overridden in the parent object }
+    SCL         = DEF_SCL
+    SDA         = DEF_SDA
+    I2C_FREQ    = DEF_HZ
+    I2C_ADDR    = DEF_ADDR
+
+    WIDTH       = 8
+    HEIGHT      = 8
+    BUFFSZ      = (WIDTH * HEIGHT) / 8
+    XMAX        = WIDTH-1
+    YMAX        = HEIGHT-1
+
+VAR
+
+    byte _framebuff[BUFFSZ]
+
+PUB start(): status
+' Start using default I/O settings
+    return startx(SCL, SDA, I2C_FREQ, I2C_ADDR, WIDTH, HEIGHT, 0)
+
+PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, DISP_W, DISP_H, ptr_dispbuff=0): status
 ' width, height: dimensions of matrix, in pixels
 ' SCL_PIN, SDA_PIN, I2C_HZ: I2C bus I/O pins and speed
 ' ADDR_BITS: specify LSBs of slave address (%000..%111)
 ' ptr_disp: pointer to display buffer, of minimum (W*H)/8 bytes
 '   (e.g., for an 8x8 matrix, 8*8=64 / 8 = 8 bytes)
-    if (lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and I2C_HZ <= core.I2C_MAX_FREQ)
-        if (lookdown(ADDR_BITS: %000..%111))
-            if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+    if ( lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) )
+        if ( lookdown(ADDR_BITS: %000..%111) )
+            if ( status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ) )
                 waitus(core.T_POR)              ' wait for device startup
                 _addr_bits := ADDR_BITS << 1
-                if (i2c.present(SLAVE_WR | _addr_bits))' test device presence
-                    _disp_width := WIDTH
-                    _disp_height := HEIGHT
+                if ( i2c.present(SLAVE_WR | _addr_bits) )' test device presence
+                    _disp_width := DISP_W
+                    _disp_height := DISP_H
                     _disp_xmax := _disp_width-1
                     _disp_ymax := _disp_height-1
                     _buff_sz := (_disp_width * _disp_height) / 8
@@ -50,11 +70,13 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT, ptr_dispbuff): st
 PUB address(addr): curr_addr
 ' Set framebuffer address
     case addr
+        0:
+            _ptr_drawbuffer := @_framebuff
         $0004..$7FFFF-_buff_sz:
             _ptr_drawbuffer := addr
-            return _ptr_drawbuffer
         other:
-            return _ptr_drawbuffer
+
+    return _ptr_drawbuffer
 
 #ifndef GFX_DIRECT
 PUB clear()
@@ -102,7 +124,7 @@ PUB show()
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

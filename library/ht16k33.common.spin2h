@@ -3,9 +3,9 @@
     Filename: ht16k33.common.spin2h
     Description: Low-level code common to HT16K33-based LED displays (P2 version)
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2023
     Created: Sep 3, 2022
-    Updated: Nov 5, 2022
+    Updated: Jul 16, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,7 +15,10 @@ CON
     SLAVE_WR    = core.SLAVE_ADDR
     SLAVE_RD    = core.SLAVE_ADDR|1
 
+    DEF_SCL     = 0
+    DEF_SDA     = 1
     DEF_HZ      = 100_000
+    DEF_ADDR    = 0
 
     { display visibility }
     OFF         = 0
@@ -106,7 +109,8 @@ PRI writereg(reg_nr, ptr_buff) | cmd_pkt[2], i
     cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
 
     case reg_nr
-        core.DISP_RAM:                          ' Display RAM
+        core.DISP_RAM:
+            { Display RAM }
             cmd_pkt.byte[1] := core.DISP_RAM
             i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 2)
@@ -115,8 +119,8 @@ PRI writereg(reg_nr, ptr_buff) | cmd_pkt[2], i
                 i2c.write($00)
             i2c.stop()
 
-        core.OSCILLATOR, core.DISPSETUP, core.ROWINT, {
-        } core.BRIGHTNESS:                      ' Control registers
+        core.OSCILLATOR, core.DISPSETUP, core.ROWINT, core.BRIGHTNESS:
+            { Control registers }
             cmd_pkt.byte[1] := reg_nr | ptr_buff
             i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 2)
@@ -126,7 +130,7 @@ PRI writereg(reg_nr, ptr_buff) | cmd_pkt[2], i
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
