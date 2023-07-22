@@ -3,14 +3,14 @@
     Filename: graphics.common.spin2h
     Author: Jesse Burt
     Description: Generic bitmap-oriented graphics rendering routines (P2 version)
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started May 19, 2019
-    Updated Dec 30, 2022
+    Updated Jul 22, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
 
-#include "terminal.common.spin2h"               ' for PrintF(), Str(), etc
+#include "terminal.common.spin2h"               ' for printf(), puts(), etc
 
 CON
 
@@ -30,7 +30,7 @@ VAR
 
     { font parameters }
     long _char_attrs
-    long _font_width, _font_height, _font_addr, _fnt_scl
+    long _font_width, _font_height, _font_addr, _fnt_xscl, _fnt_yscl
     word _charpx_xmax, _charpx_ymax
     word _charpx_x, _charpx_y
     byte _charcell_w, _charcell_h
@@ -79,9 +79,9 @@ PUB box(x0, y0, x1, y1, color, filled=FALSE) | x, y
                 repeat x from x0 to x1
                     plot(x, y, color)
 #else
-            if (x0 >= 0) and (x0 <= _disp_xmax) and (y0 >= 0) and {
-}           (y0 <= _disp_ymax) and (x1 >= 0) and (x1 <= _disp_xmax) and {
-}           (y1 >= 0) and (y1 <= _disp_ymax)
+            if  (x0 >= 0) and (x0 <= _disp_xmax) and (y0 >= 0) and {
+}               (y0 <= _disp_ymax) and (x1 >= 0) and (x1 <= _disp_xmax) and {
+}               (y1 >= 0) and (y1 <= _disp_ymax)
 #ifdef GFX_DIRECT
             repeat y from y0 to y1
                 repeat x from x0 to x1
@@ -107,44 +107,51 @@ PUB putchar(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_gly
 ' Write a character to the display
     last_glyph_col := _font_width-1             ' last column of pixels in font
     last_glyph_row := _font_height-1            '   definition
-    char_wid := _charcell_w * _fnt_scl          ' scaled character dimensions
-    char_ht := _charcell_h * _fnt_scl           '
+    char_wid := _charcell_w * _fnt_xscl          ' scaled character dimensions
+    char_ht := _charcell_h * _fnt_yscl           '
 
     case ch
         LF:                                     ' line feed
             _charpx_y += char_ht                ' increment row by one char
             if _charpx_y > _charpx_ymax         ' if last row reached,
                 _charpx_y -= char_ht            '   don't go further; instead,
+#ifdef 1BPP
+                scroll_up_fs(char_ht)
+#else
                 repeat char_ht                  '   scroll up one text row
                     scrollup(0, 0, _disp_xmax, _disp_ymax)
+#endif
+            return
         CR:                                     ' carriage return
             _charpx_x := 0
+            return
         32..127:                                ' printable characters
             ch <<= 3                            ' char position in font table
-            case _fnt_scl
-                0, 1:                           ' no scaling applied
-                    repeat glyph_col from 0 to last_glyph_col
-                        xs := _charpx_x + glyph_col  ' x-coord to draw dot from font
-                        glyph := ch + glyph_col ' point to current glyph data
-                        repeat glyph_row from 0 to last_glyph_row
-                            if byte[_font_addr][glyph] & decod(glyph_row)
-                                plot(xs, _charpx_y + glyph_row, _fgcolor)
-                            else
-                                if (_char_attrs & DRAWBG)
-                                    plot(xs, _charpx_y + glyph_row, _bgcolor)
-                2..8:                           ' scale 2..8x
-                    repeat glyph_col from 0 to last_glyph_col
-                        xs := _charpx_x + (glyph_col * _fnt_scl)
-                        xe := xs + _fnt_scl
-                        glyph := ch + glyph_col ' offs. in glyph definition
-                        repeat glyph_row from 0 to last_glyph_row
-                            ys := _charpx_y + (glyph_row * _fnt_scl)
-                            ye := ys + _fnt_scl
-                            if byte[_font_addr][glyph] & decod(glyph_row)
-                                box(xs, ys, xe, ye, _fgcolor, true)
-                            else
-                                if (_char_attrs & DRAWBG)
-                                    box(xs, ys, xe, ye, _bgcolor, true)
+            if ( (_fnt_xscl == 1) and (_fnt_yscl == 1) )
+                { no scaling; render font 1:1 }
+                repeat glyph_col from 0 to last_glyph_col
+                    xs := _charpx_x + glyph_col  ' x-coord to draw dot from font
+                    glyph := ch + glyph_col ' point to current glyph data
+                    repeat glyph_row from 0 to last_glyph_row
+                        if byte[_font_addr][glyph] & decod(glyph_row)
+                            plot(xs, _charpx_y + glyph_row, _fgcolor)
+                        else
+                            if (_char_attrs & DRAWBG)
+                                plot(xs, _charpx_y + glyph_row, _bgcolor)
+            else
+                { scale font rendering up by an integer factor (x, y independently) }
+                repeat glyph_col from 0 to last_glyph_col
+                    xs := _charpx_x + (glyph_col * _fnt_xscl)
+                    xe := xs + _fnt_xscl
+                    glyph := ch + glyph_col ' offs. in glyph definition
+                    repeat glyph_row from 0 to last_glyph_row
+                        ys := _charpx_y + (glyph_row * _fnt_yscl)
+                        ye := ys + _fnt_yscl
+                        if byte[_font_addr][glyph] & decod(glyph_row)
+                            box(xs, ys, xe, ye, _fgcolor, true)
+                        else
+                            if (_char_attrs & DRAWBG)
+                                box(xs, ys, xe, ye, _bgcolor, true)
 
             _charpx_x += char_wid               ' inc column after rendering
             if _charpx_x > _charpx_xmax         ' if last column reached,
@@ -152,8 +159,12 @@ PUB putchar(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_gly
                 _charpx_y += char_ht            '   the next row
             if _charpx_y > _charpx_ymax         ' if last row is reached,
                 _charpx_y -= char_ht            '   stay there and scroll up
+#ifdef 1BPP
+                scroll_up_fs(char_ht)
+#else
                 repeat char_ht                  '   the display
                     scrollup(0, 0, _disp_xmax, _disp_ymax)
+#endif
 #endif
 
 PUB charattrs = char_attrs
@@ -237,22 +248,18 @@ PUB font_height(): curr_ht
     return _font_height
 
 PUB fontscale = font_scl
-PUB font_scl(fntscale): curr_scl
+PUB font_scl(x, y): curr_scl
 ' Set font rendering scale factor
 '   Valid values: 1..8
 '   Any other value returns the current scale
-    case fntscale
-        1..8:
-            _fnt_scl := fntscale
-        other:
-            return _fnt_scl
+    _fnt_xscl := 1 #> x <# 8
+    _fnt_yscl := 1 #> y <# 8
 
 PUB fontsize = font_sz
 PUB font_sz(width, height)
 ' Set expected dimensions of font glyphs, in pixels
-'   NOTE: This doesn't have to be the same as the size of the font glyphs.
-'       e.g., if you have a 5x8 font, you may want to set the width to 6 or 8.
-'       This will affect the number of text columns
+'   NOTE: This has a direct impact on the number of text columns and rows
+'   NOTE: font_spacing() should be called before calling this method
     _font_width := width
     _font_height := height
     _charcell_w := (_font_width + _char_hspace) ' calc overall character cell
@@ -312,16 +319,16 @@ PUB line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 PUB position = pos_xy
 PUB pos_xy(x, y)
 ' Set text draw position, in character-cell col and row
-    x := 0 #> x <# _charcell_xmax               ' clamp to min/max coordinates
-    y := 0 #> y <# _charcell_ymax
-    _charpx_x := (x * _charcell_w) * _fnt_scl   ' calc pixel position:
-    _charpx_y := (y * _charcell_h) * _fnt_scl   ' char cell coords * font dims
+    x := 0 #> x <# text_cols()-1                ' clamp to min/max coordinates
+    y := 0 #> y <# text_rows()-1
+    _charpx_x := (x * _charcell_w) * _fnt_xscl   ' calc pixel position:
+    _charpx_y := (y * _charcell_h) * _fnt_yscl   ' char cell coords * font dims
 
 PUB r5g6b5_rgb565(r, g, b): rgb565
 ' Return 16-bit color in RGB565 format, given red (5), green (6), blue (5) components
     return ((r << 11) | (g << 5) | b)
 
-PUB rgbW8888_RGB32(r, g, b, w): rgb32
+PUB rgbw8888_rgb32(r, g, b, w): rgb32
 ' Return 32-bit long from discrete Red, Green, Blue, White color components (values 0..255)
     rgb32.byte[3] := r
     rgb32.byte[2] := g
@@ -396,6 +403,27 @@ PUB scroll_down(sx, sy, ex, ey) | scr_width, src, dest, x, y
         MEMMV_NATIVE(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #endif
 
+#ifndef GFX_DIRECT
+#ifdef 1BPP
+PUB scroll_down_fs(px) | max_pg, y, x, fb_off
+' Scroll down full screen (1bpp displays only)
+'   px: number of rows or lines to scroll
+    px := px <# _disp_height                    ' clamp scroll length to display height
+    max_pg := (_disp_height / 8)                ' get # of pages from set display height
+    repeat px
+        repeat y from max_pg to 0               ' bottom-up so it doesn't look strange
+            fb_off := (y * _disp_width)
+            repeat x from 0 to _disp_xmax
+                { scroll down a page of display memory (lsh), then put the bottom-most pixel of the
+                    previous page into the top-most pixel of this one }
+                byte[_ptr_drawbuffer][fb_off + x] <<= 1
+                if ( y > 0 )
+                    { don't try to copy pixels from before the first page }
+                    byte[_ptr_drawbuffer][fb_off + x] |= (byte[_ptr_drawbuffer] ...
+                                                         [((y-1) * _disp_width) + x ] >> 7) & 1
+#endif
+#endif
+
 PUB scrollleft = scroll_left
 PUB scroll_left(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
 ' Scroll a region of the display left by 1 pixel
@@ -438,6 +466,26 @@ PUB scroll_up(sx, sy, ex, ey) | scr_width, src, dest, x, y
 #endif
 #endif
 
+#ifndef GFX_DIRECT
+#ifdef 1BPP
+PUB scroll_up_fs(px) | max_pg, y, x, fb_off
+' Scroll up full screen (1bpp displays only)
+'   px: number of rows or lines to scroll
+    px := px <# _disp_height                    ' clamp scroll length to display height
+    max_pg := (_disp_height / 8)                ' get # of pages from set display height
+    repeat px
+        repeat y from 0 to max_pg
+            fb_off := (y * _disp_width)
+            repeat x from 0 to _disp_xmax
+                { scroll up a page of display memory (rsh), then put the top-most pixel of the next
+                    page into the bottom-most pixel of this one }
+                byte[_ptr_drawbuffer][fb_off + x] >>= 1
+                if ( y < max_pg )
+                    byte[_ptr_drawbuffer][fb_off + x] |= (byte[_ptr_drawbuffer] ...
+                                                         [((y+1) * _disp_width) + x] & 1) << 7
+#endif
+#endif
+
 PUB set_dims(width, height)
 ' Set display dimensions
 '   width: width of display (X-axis) in pixels
@@ -454,12 +502,12 @@ PUB set_dims(width, height)
 PUB textcols = text_cols
 PUB text_cols(): cols
 ' Returns number of displayable text columns, based on set display width, font width, and scale
-    return (_disp_width / _charcell_w) / _fnt_scl
+    return _charcell_xmax / _fnt_xscl
 
 PUB textrows = text_rows
 PUB text_rows(): rows
 ' Returns number of displayable text rows, based on set display height, font height, and scale
-    return (_disp_height / _charcell_h) / _fnt_scl
+    return _charcell_ymax / _fnt_yscl
 
 DAT
 {
