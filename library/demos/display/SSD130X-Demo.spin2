@@ -3,9 +3,9 @@
     Filename: SSD130X-Demo.spin2
     Description: SSD130X-specific setup for graphics demo
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started: Feb 20, 2022
-    Updated: Nov 1, 2022
+    Updated: Jul 22, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -65,7 +65,7 @@ PUB main()
 #endif
         ser.printf(@"%s driver started", @_drv_name)
         disp.font_spacing(1, 0)
-        disp.font_scl(1)
+        disp.font_scl(1, 1)
         disp.font_sz(fnt.WIDTH, fnt.HEIGHT)
         disp.font_addr(fnt.ptr())
     else
