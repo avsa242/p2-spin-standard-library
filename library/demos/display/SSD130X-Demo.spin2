@@ -15,54 +15,24 @@ CON
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    LED         = cfg.LED1
     SER_BAUD    = 2_000_000
-
-    WIDTH       = 128
-    HEIGHT      = 64
-
-{ I2C configuration }
-    SCL_PIN     = 0
-    SDA_PIN     = 1
-    ADDR_BITS   = 0
-    SCL_FREQ    = 1_000_000
-
-{ SPI configuration }
-    CS_PIN      = 0
-    SCK_PIN     = 1
-    MOSI_PIN    = 2
-    DC_PIN      = 3
-    SCK_FREQ    = 10_000_000
-
-    RES_PIN     = 4                            ' optional; -1 to disable
 ' --
-
-    BPP         = disp.BYTESPERPX
-    BYTESPERLN  = WIDTH * BPP
-    BUFFSZ      = ((WIDTH * HEIGHT) * BPP) / 8
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    disp    : "display.oled.ssd130x"
-
-VAR
-
-    byte _framebuff[BUFFSZ]                     ' display buffer
+    cfg:    "boardcfg.p2eval"
+    disp:   "display.oled.ssd130x" | WIDTH=128, HEIGHT=64, ...
+                                    {SPI}   CS=0, DC=1, RST=2, MOSI=3, SCK=4, ...
+                                            SPI_FREQ=10_000_000, ...
+                                    {I2C}   SCL=0, SDA=1, I2C_FREQ=1_000_000, I2C_ADDR=%0
 
 PUB main()
 
     ser.start(SER_BAUD)
-    waitms(30)
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-#ifdef SSD130X_SPI
-    if disp.startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, SCK_FREQ, WIDTH, HEIGHT, @_framebuff)
-#else
-#define SSD130X_I2C
-    if disp.startx(SCL_PIN, SDA_PIN, RES_PIN, SCL_FREQ, ADDR_BITS, WIDTH, HEIGHT, @_framebuff)
-#endif
+    if ( disp.start() )
         ser.printf(@"%s driver started", @_drv_name)
         disp.char_attrs(disp.TERMINAL)
         disp.font_spacing(1, 0)
@@ -84,11 +54,14 @@ PUB main()
 #include "GFXDemo-common.spin2h"
 
 DAT
-#ifdef SSD130X_I2C
-    _drv_name   byte    "SSD130X (I2C)", 0
-#elseifdef SSD130X_SPI
-    _drv_name   byte    "SSD130X (SPI)", 0
-#endif
+
+    _drv_name   byte    "SSD130X", 0
+
+CON
+
+    WIDTH   = disp.WIDTH
+    HEIGHT  = disp.HEIGHT
+
 
 {
 Copyright 2022 Jesse Burt
