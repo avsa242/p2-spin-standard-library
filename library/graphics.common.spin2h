@@ -9,6 +9,11 @@
     See end of file for terms of use.
     --------------------------------------------
 }
+#ifndef GFX_DIRECT
+#ifndef putchar
+#define putchar putchar_90deg
+#endif
+#endif
 
 #include "terminal.common.spin2h"               ' for printf(), puts(), etc
 
@@ -166,9 +171,6 @@ PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char
 #endif
 
 #ifndef GFX_DIRECT
-#ifndef putchar
-#define putchar putchar_90deg
-#endif
 PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_row, glyph, char_ht, char_wid
 ' Low-level character rendering routine
 '   For font file definitions with these characteristics:
