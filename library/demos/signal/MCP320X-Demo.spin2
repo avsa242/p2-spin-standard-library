@@ -6,7 +6,7 @@
         * Voltage data output
     Copyright (c) 2023
     Started Nov 26, 2019
-    Updated Jun 24, 2023
+    Updated Jul 23, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -17,28 +17,21 @@ CON
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    LED         = cfg.LED1
     SER_BAUD    = 2_000_000
-
-    { SPI configuration }
-    CS_PIN      = 0                             ' CSn/SHDN
-    SCK_PIN     = 1                             ' CLK
-    MOSI_PIN    = 2                             ' DIN
-    MISO_PIN    = 3                             ' DOUT
 ' --
 
 OBJ
 
-    cfg : "boardcfg.p2eval"
-    ser : "com.serial.terminal.ansi"
-    adc : "signal.adc.mcp320x"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi"
+    adc:    "signal.adc.mcp320x" | CS=0, SCK=1, MOSI=2, MISO=3, SPI_FREQ=1_000_000
 
 PUB main()
 
     ser.start(SER_BAUD)
     ser.clear()
     ser.strln(@"Serial terminal started")
-    if adc.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN)
+    if ( adc.start() )
         ser.strln(@"MCP320X driver started")
     else
         ser.strln(@"MCP320X driver failed to start - halting")
