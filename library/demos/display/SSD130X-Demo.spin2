@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2023
     Started: Feb 20, 2022
-    Updated: Jul 22, 2023
+    Updated: Jul 23, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -32,7 +32,7 @@ CON
     SCK_PIN     = 1
     MOSI_PIN    = 2
     DC_PIN      = 3
-    SCK_FREQ    = 100_000
+    SCK_FREQ    = 10_000_000
 
     RES_PIN     = 4                            ' optional; -1 to disable
 ' --
@@ -64,6 +64,7 @@ PUB main()
     if disp.startx(SCL_PIN, SDA_PIN, RES_PIN, SCL_FREQ, ADDR_BITS, WIDTH, HEIGHT, @_framebuff)
 #endif
         ser.printf(@"%s driver started", @_drv_name)
+        disp.char_attrs(disp.TERMINAL)
         disp.font_spacing(1, 0)
         disp.font_scl(1, 1)
         disp.font_sz(fnt.WIDTH, fnt.HEIGHT)
