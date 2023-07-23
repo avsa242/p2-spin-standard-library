@@ -3,9 +3,9 @@
     Filename: display.oled.ssd130x.spin2
     Description: Driver for Solomon Systech SSD130x OLED displays
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2023
     Created: Apr 26, 2018
-    Updated: Nov 5, 2022
+    Updated: Jul 23, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -24,7 +24,10 @@ CON
     SLAVE_WR        = core.SLAVE_ADDR
     SLAVE_RD        = core.SLAVE_ADDR|1
 
+    DEF_SCL         = 0
+    DEF_SDA         = 1
     DEF_HZ          = 100_000
+    DEF_ADDR        = 0
     MAX_COLOR       = 1
     BYTESPERPX      = 1
 
@@ -42,18 +45,38 @@ CON
     VERT            = 1
     PAGE            = 2
 
+    { default I/O settings; these can be overridden in the parent object }
+    { display dimensions }
+    WIDTH       = 128
+    HEIGHT      = 64
+
+    { I2C }
+    SCL         = DEF_SCL
+    SDA         = DEF_SDA
+    RST         = 0
+    I2C_FREQ    = DEF_HZ
+    I2C_ADDR    = DEF_ADDR
+
+    { SPI }
+    CS          = 0
+    SCK         = 1
+    MOSI        = 2
+    DC          = 3
+    RST         = 0
+    SPI_FREQ    = 10_000_000
+
 OBJ
 
     core: "core.con.ssd130x"
 
 #ifdef SSD130X_SPI
-    spi : "com.spi.25mhz"                             ' SPI engine (up to ~16MHz)
+    spi : "com.spi.25mhz"                       ' SPI engine
 
 #else
 
 { default to I2C }
 #define SSD130X_I2C
-    i2c : "com.i2c"                             ' I2C engine (~1MHz)
+    i2c : "com.i2c"                             ' I2C engine
 
 #endif
 
@@ -61,27 +84,32 @@ VAR
 
     long _CS, _DC, _RES
     byte _addr_bits
+    byte _fb[ (WIDTH*HEIGHT) / 8 ]
 
 PUB null()
 ' This is not a top-level object
 
 #ifdef SSD130X_I2C
-PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT, ptr_dispbuff): status
+PUB start(): status
+' Start using default I/O settings
+    return startx(SCL, SDA, RST, I2C_FREQ, I2C_ADDR, WIDTH, HEIGHT, @_fb)
+
+PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, DISP_WID, DISP_HT, ptr_dispbuff): status
 ' Start the driver with custom I/O settings
 '   SCL_PIN: 0..63
 '   SDA_PIN: 0..63
 '   RES_PIN: 0..31 (optional; use -1 to disable)
 '   I2C_HZ: max official is 400_000 (unenforced, YMMV!)
 '   SLAVE_LSB: 0, 1
-'   WIDTH: 96, 128
-'   HEIGHT: 32, 64
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+'   DISP_WID: 96, 128
+'   DISP_HT: 32, 64
+    if ( lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) )
+        if ( status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ) )
             waitus(core.TPOR)                   ' wait for device startup
             _addr_bits := abs(ADDR_BITS == 1) << 1 ' slave address bit option
             _RES := RES_PIN                     ' -1 to disable
             reset()
-            if i2c.present(SLAVE_WR | _addr_bits)  ' test device bus presence
+            if ( i2c.present(SLAVE_WR | _addr_bits) )  ' test device bus presence
                 _disp_width := width
                 _disp_height := height
                 _disp_xmax := _disp_width-1
@@ -97,6 +125,10 @@ PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT, ptr_disp
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 #elseifdef SSD130X_SPI
+PUB start(): status
+' Start the driver using default I/O settings
+    return startx(CS, SCK, MOSI, DC, RST, SPI_FREQ, WIDTH, HEIGHT, @_fb)
+
 PUB startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, SCK_HZ, WIDTH, HEIGHT, ptr_dispbuff): status
 ' Start the driver with custom I/O settings
 '   CS_PIN: 0..63
@@ -107,10 +139,9 @@ PUB startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, SCK_HZ, WIDTH, HEIGHT, pt
 '   SCK_HZ: max official is 10_000_000 (YMMV!)
 '   WIDTH: 96, 128
 '   HEIGHT: 32, 64
-    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
-}   lookdown(SDIN_PIN: 0..63) and lookdown(DC_PIN: 0..63)
-        if (status := spi.init(SCK_PIN, SDIN_PIN, -1, core.SPI_MODE, {
-}       SCK_HZ))
+    if ( lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(SDIN_PIN: 0..63) and ...
+        lookdown(DC_PIN: 0..63) )
+        if ( status := spi.init(SCK_PIN, SDIN_PIN, -1, core.SPI_MODE, SCK_HZ) )
             waitus(core.TPOR)                   ' wait for device startup
             _CS := CS_PIN
             _DC := DC_PIN
@@ -216,7 +247,7 @@ PUB addr_mode(mode)
 '   Any other value is ignored
     case mode
         HORIZ, VERT, PAGE:
-            writereg(core.MEM_ADDRMODE, 1, mode)
+            writereg(core.MEM_ADDRMODE, 1, @mode)
         other:
             return
 
@@ -273,7 +304,7 @@ PUB chg_pump_voltage(v)
         other:
             return
 
-    writereg(core.CHGPUMP, 1, v)
+    writereg(core.CHGPUMP, 1, @v)
 #endif
 
 PUB clear()
@@ -289,7 +320,7 @@ PUB clear()
 #elseifdef SSD130X_SPI
     pinw(_DC, DATA)
     pinl(_CS)
-    spi.wrbytex(_bgcolor, _buff_sz)
+    spi.wr_bytex(_bgcolor, _buff_sz)
     pinh(_CS)
 #endif
 #else
@@ -315,7 +346,7 @@ PUB clk_freq(freq)
 #elseifdef SSD1309
             freq := ((freq / 12) - 30) << core.OSCFREQ
 #endif
-            writereg(core.SETOSCFREQ, 1, freq)
+            writereg(core.SETOSCFREQ, 1, @freq)
         other:
             return
 
@@ -336,23 +367,25 @@ PUB com_pin_cfg(pin_config, remap) | config
             config := config | (1 << 5)
         other:
 
-    writereg(core.SETCOM_CFG, 1, config)
+    writereg(core.SETCOM_CFG, 1, @config)
 
 PUB contrast(level)
 ' Set Contrast Level
 '   Valid values: 0..255 (clamped to range)
     level := (0 #> level <# 255)
-    writereg(core.CONTRAST, 1, level)
+    writereg(core.CONTRAST, 1, @level)
 
-PUB draw_area(sx, sy, ex, ey)
+PUB draw_area(sx, sy, ex, ey) | tmp
 ' Set displayable area
     ifnot (lookup(sx: 0..127) or lookup(sy: 0..63) or lookup(ex: 0..127) or lookup(ey: 0..63))
         return
 
     sy >>= 3                                    ' convert y-coordinates to
     ey >>= 3                                    '   page numbers
-    writereg(core.SET_COLADDR, 2, (ex << 8) | sx)
-    writereg(core.SET_PAGEADDR, 2, (ey << 8) | sy)
+    tmp := (ex << 8) | sx
+    writereg(core.SET_COLADDR, 2, @tmp)
+    tmp := (ey << 8) | sy
+    writereg(core.SET_PAGEADDR, 2, @tmp)
 
 PUB invert_colors(state) | tmp
 ' Invert display colors
@@ -367,32 +400,31 @@ PUB disp_lines(lines)
 '   Typical values: 32, 64
 '   Any other value is ignored
     lines := ((16 #> lines <# 64) - 1)
-    writereg(core.SETMUXRATIO, 1, lines)
+    writereg(core.SETMUXRATIO, 1, @lines)
 
 PUB disp_offset(offset)
 ' Set display offset/vertical shift
 '   Valid values: 0..63 (default: 0)
 '   Any other value sets the default value
     offset := (0 #> offset <# 63)
-    writereg(core.SETDISPOFFS, 1, offset)
+    writereg(core.SETDISPOFFS, 1, @offset)
 
 PUB disp_start_line(line)
 ' Set Display Start Line
 '   Valid values: 0..63 (default: 0)
 '   Any other value sets the default value
-    line := (0 #> line <# 63)
-    writereg(core.DISP_STLINE, 0, line)
+    command(core.DISP_STLINE + (0 #> line <# 63))
 
 PUB visibility(mode)
 ' Set display visibility
     case mode
         NORMAL:
-            writereg(core.RAMDISP_ON, 0, 0)
-            writereg(core.DISP_NORM, 0, 0)
+            command(core.RAMDISP_ON)
+            command(core.DISP_NORM)
         ALL_ON:
-            writereg(core.RAMDISP_ON, 0, 1)
+            command(core.RAMDISP_ON | 1)
         INVERTED:
-            writereg(core.DISP_NORM, 0, 1)
+            command(core.DISP_NORM | 1)
         other:
             return
 
@@ -401,8 +433,7 @@ PUB mirror_h(state)
 '   Valid values: TRUE (non-zero), *FALSE (0)
 '   Any other value is ignored
 '   NOTE: Takes effect only after next display update
-    state := ((state <> 0) & 1)
-    writereg(core.SEG_MAP0, 0, ((state <> 0) & 1))
+    command(core.SEG_MAP0 | ((state <> 0) & 1))
 
 PUB mirror_v(state)
 ' Mirror display, vertically
@@ -411,7 +442,7 @@ PUB mirror_v(state)
 '   NOTE: Takes effect only after next display update
     if (state)
         state := 8
-    writereg(core.COMDIR_NORM, 0, state)
+    command(core.COMDIR_NORM | state)
 
 PUB plot(x, y, color)
 ' Plot pixel at (x, y) in color
@@ -445,14 +476,15 @@ PUB point(x, y): pix_clr
 PUB powered(state) | tmp
 ' Enable display power
     state := (((state <> 0) & 1) + core.DISP_OFF)
-    writereg(state, 0, 0)
+    command(state)
 
-PUB precharge_period(phs1_clks, phs2_clks)
+PUB precharge_period(phs1_clks, phs2_clks) | tmp
 ' Set display refresh pre-charge period, in display clocks
 '   Valid values: 1..15 (clamped to range)
     phs1_clks := (1 #> phs1_clks <# 15)
     phs2_clks := (1 #> phs2_clks <# 15)
-    writereg(core.SETPRECHARGE, 1, (phs2_clks << 4) | phs1_clks)
+    tmp := (phs2_clks << 4) | phs1_clks
+    writereg(core.SETPRECHARGE, 1, @tmp)
 
 PUB reset()
 ' Reset the display controller
@@ -462,6 +494,80 @@ PUB reset()
         pinl(_RES)
         waitus(3)
         pinh(_RES)
+
+PUB scroll_left_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
+' Scroll a region of the display left, continuously
+'   (sx, sy): upper-left coordinates (sx: 0..127, sy: 0..63)
+'   (ex, ey): lower-right coordinates (ex: sx..127, ey: sy..63)
+'   dly: inter-scroll step delay, in frames (2, 3, 4, 5, 6, 32, 64, 128)
+'   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
+'   NOTE: ey must be greater than or equal to sy
+'   NOTE: scrolling is continuous, until stopped by calling scroll_stop()
+    scroll_stop()
+    cmd_pkt.byte[0] := 0                        ' dummy byte
+    cmd_pkt.byte[1] := ((0 #> sy <# 63) >> 3)   ' div coord by 8
+    cmd_pkt.byte[2] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
+    cmd_pkt.byte[3] := ((sy #> ey <# 63) >> 3)
+    cmd_pkt.byte[4] := (0 #> sx <# 127)
+    cmd_pkt.byte[5] := (sx #> ex <# 127)        ' ex _must_ be >= sx
+    writereg(core.HSCROLL_L, 6, @cmd_pkt)
+    command(core.STARTSCROLL)
+
+PUB scroll_left_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
+' Scroll a region of the display left and up, continously
+'   (sy, ey): top and bottom of scroll region (0..63)
+'   vlines: vertical lines to scroll in each step (1..63)
+'   dly: inter-scroll step delay, in frames
+'   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
+'   NOTE: ey must be greater than or equal to sy
+'   NOTE: scrolling is continuous, until stopped by calling scroll_stop()
+    scroll_stop()
+    cmd_pkt.byte[0] := 0
+    cmd_pkt.byte[1] := (0 #> sy <# 63) / 8
+    cmd_pkt.byte[2] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
+    cmd_pkt.byte[3] := (sy #> ey <# 63) / 8
+    cmd_pkt.byte[4] := (1 #> vlines <# 63)
+    writereg(core.SCROLL_VHL, 5, @cmd_pkt)
+    command(core.STARTSCROLL)
+
+PUB scroll_right_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
+' Scroll a region of the display right, continously
+'   (sx, sy): upper-left coordinates (sx: 0..127, sy: 0..63)
+'   (ex, ey): lower-right coordinates (ex: sx..127, ey: sy..63)
+'   dly: inter-scroll step delay, in frames (2, 3, 4, 5, 6, 32, 64, 128)
+'   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
+'   NOTE: ey must be greater than or equal to sy
+'   NOTE: scrolling is continuous, until stopped by calling scroll_stop()
+    scroll_stop()
+    cmd_pkt.byte[0] := 0
+    cmd_pkt.byte[1] := (0 #> sy <# 63) / 8
+    cmd_pkt.byte[2] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
+    cmd_pkt.byte[3] := (sy #> ey <# 63) / 8
+    cmd_pkt.byte[4] := (0 #> sx <# 127)
+    cmd_pkt.byte[5] := (sx #> ex <# 127)
+    writereg(core.HSCROLL_R, 6, @cmd_pkt)
+    command(core.STARTSCROLL)
+
+PUB scroll_right_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
+' Scroll a region of the display right and up, continously
+'   (sy, ey): top and bottom of scroll region (0..63)
+'   vlines: vertical lines to scroll in each step (1..63)
+'   dly: inter-scroll step delay, in frames
+'   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
+'   NOTE: ey must be greater than or equal to sy
+'   NOTE: scrolling is continuous, until stopped by calling scroll_stop()
+    scroll_stop()
+    cmd_pkt.byte[0] := 0
+    cmd_pkt.byte[1] := (0 #> sy <# 63) / 8
+    cmd_pkt.byte[2] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
+    cmd_pkt.byte[3] := (sy #> ey <# 63) / 8
+    cmd_pkt.byte[4] := (1 #> vlines <# 63)
+    writereg(core.SCROLL_VHR, 5, @cmd_pkt)
+    command(core.STARTSCROLL)
+
+PUB scroll_stop()
+' Stop a running scroll command
+    command(core.STOPSCROLL)
 
 PUB show() | tmp
 ' Write display buffer to display
@@ -511,7 +617,7 @@ PUB vcomh_voltage(level)
         other:
             return
 
-    writereg(core.SETVCOMDESEL, 1, level)
+    writereg(core.SETVCOMDESEL, 1, @level)
 
 PUB wr_buffer(ptr_buff, buff_sz) | tmp
 ' Write alternate buffer to display
@@ -531,6 +637,23 @@ PUB wr_buffer(ptr_buff, buff_sz) | tmp
     pinh(_CS)
 #endif
 
+PRI command(c) | cmd_pkt
+' Issue a command with no parameters to the display
+#ifdef SSD130X_I2C
+    cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
+    cmd_pkt.byte[1] := core.CTRLBYTE_CMD
+    cmd_pkt.byte[2] := c
+
+    i2c.start()
+    i2c.wrblock_lsbf(@cmd_pkt, 3)
+    i2c.stop()
+#elseifdef SSD130X_SPI
+    outa[_DC] := CMD
+    outa[_CS] := 0
+    spi.wr_byte(c)
+    outa[_CS] := 1
+#endif
+
 #ifndef GFX_DIRECT
 PRI memfill(xs, ys, val, count)
 ' Fill region of display buffer memory
@@ -540,56 +663,27 @@ PRI memfill(xs, ys, val, count)
     bytefill(_ptr_drawbuffer + (xs + (ys * _bytesperln)), val, count)
 #endif
 
-PRI writereg(reg_nr, nr_bytes, val) | cmd_pkt[2], tmp, ackbit
+PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2]
 ' Write nr_bytes from val to device
 #ifdef SSD130X_I2C
     cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
     cmd_pkt.byte[1] := core.CTRLBYTE_CMD
-    case nr_bytes
-        0:
-            cmd_pkt.byte[2] := reg_nr | val 'Simple command
-            nr_bytes := 3
-        1:
-            cmd_pkt.byte[2] := reg_nr       'Command w/1-byte argument
-            cmd_pkt.byte[3] := val
-            nr_bytes := 4
-        2:
-            cmd_pkt.byte[2] := reg_nr       'Command w/2-byte argument
-            cmd_pkt.byte[3] := val & $FF
-            cmd_pkt.byte[4] := (val >> 8) & $FF
-            nr_bytes := 5
-        other:
-            return
-
+    cmd_pkt.byte[2] := reg_nr
     i2c.start()
-    i2c.wrblock_lsbf(@cmd_pkt, nr_bytes)
+    i2c.wrblock_lsbf(@cmd_pkt, 3)
+    i2c.wrblock_lsbf(ptr_buff, nr_bytes)
     i2c.stop()
 #elseifdef SSD130X_SPI
-    case nr_bytes
-        0:
-            cmd_pkt.byte[0] := reg_nr | val 'Simple command
-            nr_bytes := 1
-        1:
-            cmd_pkt.byte[0] := reg_nr       'Command w/1-byte argument
-            cmd_pkt.byte[1] := val
-            nr_bytes := 2
-        2:
-            cmd_pkt.byte[0] := reg_nr       'Command w/2-byte argument
-            cmd_pkt.byte[1] := val & $FF
-            cmd_pkt.byte[2] := (val >> 8) & $FF
-            nr_bytes := 3
-        other:
-            return
-
     pinw(_DC, CMD)
     pinl(_CS)
-    spi.wrblock_lsbf(@cmd_pkt, nr_bytes)
+    spi.wr_byte(reg_nr)
+    spi.wrblock_lsbf(ptr_buff, nr_bytes)
     pinh(_CS)
 #endif
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
