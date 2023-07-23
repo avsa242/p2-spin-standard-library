@@ -5,17 +5,12 @@
     Description: Generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2023
     Started May 19, 2019
-    Updated Jul 22, 2023
+    Updated Jul 23, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
 
 #include "terminal.common.spin2h"               ' for printf(), puts(), etc
-
-CON
-
-    { character attributes }
-    DRAWBG  = (1 << 0)
 
 VAR
 
@@ -100,72 +95,173 @@ PUB box(x0, y0, x1, y1, color, filled=FALSE) | x, y
 #endif
 #endif
 
-#ifndef GFX_DIRECT
 PUB tx = putchar
 PUB char = putchar
-PUB putchar(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_row, glyph, char_ht, char_wid
-' Write a character to the display
+
+#ifndef GFX_DIRECT
+PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char_ht
+' Low-level character rendering routine
+'   For font file definitions with these characteristics:
+'   * 0 degrees rotation (portrait, top-down)
+'   * each glyph word is a row of the glyph, e.g. for 5x8 'A':
+'       %00100000
+'       %01010000
+'       %10001000
+'       %10001000
+'       %11111000
+'       %10001000
+'       %10001000
+'       %00000000
+'   * bit order can be normal (MSBit in each glyph word is left edge)
+'       or reversed (MSBit in each glyph word is right edge; build with -DFNT_GLYPH_REV)
+    p := _font_addr + (ch * _font_height)
+    last_glcol := _font_width-1                 ' last column of pixels in font
+    last_glrow := _font_height-1                '   definition
+    char_wid := _charcell_w * _fnt_xscl         ' scaled character dimensions
+    char_ht := _charcell_h * _fnt_yscl          '
+
+    if ( _char_attrs & TERMINAL )
+        { process control characters, don't draw them }
+        case ch
+            LF:
+                { line feed }
+                _charpx_y += char_ht            ' goto next text row
+                if ( _charpx_y > _charpx_ymax )
+                    _charpx_y -= char_ht        ' scroll the display up a row if we try to go
+                    scroll_up_fs(char_ht)       '   past the end
+                return
+            CR:
+                { carriage return }
+                _charpx_x := 0                  ' goto first text column
+                return
+
+    { read a glyph in from the font table }
+    repeat gl_row from 0 to last_glrow
+        repeat gl_col from 0 to last_glcol
+#ifdef FNT_GLYPH_REV
+            { reverse byte-order glyphs (MSBit in each glyph word is right edge) }
+            if ( byte[p][gl_row] & (1 << gl_col) )
+#else
+            { normal byte-order glyphs (MSBit in each glyph word is left edge) }
+            if ( (byte[p][gl_row] rev 7 ) & (1 << gl_col) )
+#endif
+                plot(   _charpx_x + gl_col, ...
+                        _charpx_y + gl_row, ...
+                        _fgcolor )
+            else
+                { draw the background color for unset pixels if the DRAWBG attribute is set
+                    ( see char_attr() )
+                otherwise, unset pixels will be ignored (effectively transparent) }
+                if ( _char_attrs & DRAWBG )
+                    plot(   _charpx_x + gl_col, ...
+                            _charpx_y + gl_row, ...
+                            _bgcolor )
+    _charpx_x += char_wid                       ' goto next column
+    if ( _charpx_x > _charpx_xmax )
+        _charpx_x := 0                          ' goto the first column of the next row if we try
+        _charpx_y += char_ht                    '   to go past the right edge
+    if ( _charpx_y > _charpx_ymax )
+        _charpx_y -= char_ht                    ' scroll the display up a row if we try to go
+        scroll_up_fs(char_ht)                   '   past the end
+#endif
+
+#ifndef GFX_DIRECT
+#ifndef putchar
+#define putchar putchar_90deg
+#endif
+PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_row, glyph, char_ht, char_wid
+' Low-level character rendering routine
+'   For font file definitions with these characteristics:
+'   * 90 degrees rotation (landscape)
+'   * each glyph word is a column of the glyph, e.g. for 5x8 'A':
+'       %01111100
+'       %00010010
+'       %00010001
+'       %00010010
+'       %01111100
+'   * byte order can be normal (leftmost bytes first)
+'       or reversed (rightmost bytes first)
     last_glyph_col := _font_width-1             ' last column of pixels in font
     last_glyph_row := _font_height-1            '   definition
-    char_wid := _charcell_w * _fnt_xscl          ' scaled character dimensions
-    char_ht := _charcell_h * _fnt_yscl           '
+    char_wid := _charcell_w * _fnt_xscl         ' scaled character dimensions
+    char_ht := _charcell_h * _fnt_yscl          '
 
-    case ch
-        LF:                                     ' line feed
-            _charpx_y += char_ht                ' increment row by one char
-            if _charpx_y > _charpx_ymax         ' if last row reached,
-                _charpx_y -= char_ht            '   don't go further; instead,
-#ifdef 1BPP
-                scroll_up_fs(char_ht)
-#else
-                repeat char_ht                  '   scroll up one text row
-                    scrollup(0, 0, _disp_xmax, _disp_ymax)
-#endif
-            return
-        CR:                                     ' carriage return
-            _charpx_x := 0
-            return
-        32..127:                                ' printable characters
-            ch <<= 3                            ' char position in font table
-            if ( (_fnt_xscl == 1) and (_fnt_yscl == 1) )
-                { no scaling; render font 1:1 }
-                repeat glyph_col from 0 to last_glyph_col
-                    xs := _charpx_x + glyph_col  ' x-coord to draw dot from font
-                    glyph := ch + glyph_col ' point to current glyph data
-                    repeat glyph_row from 0 to last_glyph_row
-                        if byte[_font_addr][glyph] & decod(glyph_row)
-                            plot(xs, _charpx_y + glyph_row, _fgcolor)
-                        else
-                            if (_char_attrs & DRAWBG)
-                                plot(xs, _charpx_y + glyph_row, _bgcolor)
-            else
-                { scale font rendering up by an integer factor (x, y independently) }
-                repeat glyph_col from 0 to last_glyph_col
-                    xs := _charpx_x + (glyph_col * _fnt_xscl)
-                    xe := xs + _fnt_xscl
-                    glyph := ch + glyph_col ' offs. in glyph definition
-                    repeat glyph_row from 0 to last_glyph_row
-                        ys := _charpx_y + (glyph_row * _fnt_yscl)
-                        ye := ys + _fnt_yscl
-                        if byte[_font_addr][glyph] & decod(glyph_row)
-                            box(xs, ys, xe, ye, _fgcolor, true)
-                        else
-                            if (_char_attrs & DRAWBG)
-                                box(xs, ys, xe, ye, _bgcolor, true)
+    if ( _char_attrs & TERMINAL )
+        { process control characters, don't draw them }
+        case ch
+            LF:
+                { line feed }
+                _charpx_y += char_ht            ' goto next text row
+                if ( _charpx_y > _charpx_ymax )
+                    _charpx_y -= char_ht        ' scroll the display up a row if we try to go
+                    scroll_up_fs(char_ht)       '   past the end
+                return
+            CR:
+                { carriage return }
+                _charpx_x := 0                  ' goto first text column
+                return
 
-            _charpx_x += char_wid               ' inc column after rendering
-            if _charpx_x > _charpx_xmax         ' if last column reached,
-                _charpx_x := 0                  '   return to col 0 and go to
-                _charpx_y += char_ht            '   the next row
-            if _charpx_y > _charpx_ymax         ' if last row is reached,
-                _charpx_y -= char_ht            '   stay there and scroll up
-#ifdef 1BPP
-                scroll_up_fs(char_ht)
+    { read a glyph in from the font table }
+    ch *= _font_width
+    if ( (_fnt_xscl == 1) and (_fnt_yscl == 1) )
+        { no scaling; render font 1:1 }
+        repeat glyph_col from 0 to last_glyph_col
+#ifdef FNT_GLYPH_REV
+            { reversed byte order fonts }
+            xs := _charpx_x + (_font_width-glyph_col)
 #else
-                repeat char_ht                  '   the display
-                    scrollup(0, 0, _disp_xmax, _disp_ymax)
+            { normal byte order fonts }
+            xs := _charpx_x + glyph_col
 #endif
+            glyph := ch + glyph_col             ' point to current glyph data
+            repeat glyph_row from 0 to last_glyph_row
+                if ( byte[_font_addr][glyph] & decod(glyph_row) )
+                    plot(   xs, ...
+                            _charpx_y + glyph_row, ...
+                            _fgcolor )
+                else
+                    if ( _char_attrs & DRAWBG )
+                        { actually draw the currently set background color (see bgcolor() ) }
+                        { NOTE: This incurs a significant speed penalty if enabled }
+                        plot(   xs, ...
+                                _charpx_y + glyph_row, ...
+                                _bgcolor )
+    else
+        { scale font rendering up by an integer factor (x, y independently) }
+        { use filled boxes to draw each pixel of the glyph }
+        repeat glyph_col from 0 to last_glyph_col
+#ifdef FNT_GLYPH_REV
+            { reversed byte order fonts }
+            xs := _charpx_x + (_font_width*_fnt_xscl)-(glyph_col * _fnt_xscl)
+#else
+            { normal byte order fonts }
+            xs := _charpx_x + (glyph_col * _fnt_xscl)
 #endif
+            xe := (xs + _fnt_xscl)
+            glyph := ch + glyph_col             ' point to current glyph data
+            repeat glyph_row from 0 to last_glyph_row
+                ys := _charpx_y + (glyph_row * _fnt_yscl)
+                ye := ys + _fnt_yscl
+                if ( byte[_font_addr][glyph] & (1 << glyph_row) )
+                    box(xs, ys, xe, ye, _fgcolor, true)
+                else
+                    if ( _char_attrs & DRAWBG )
+                        box(xs, ys, xe, ye, _bgcolor, true)
+
+    _charpx_x += char_wid                       ' goto next column
+    if ( _charpx_x > _charpx_xmax )
+        _charpx_x := 0                          ' goto the first column of the next row if we try
+        _charpx_y += char_ht                    '   to go past the right edge
+    if ( _charpx_y > _charpx_ymax )
+        _charpx_y -= char_ht                    ' scroll the display up a row if we try to go
+        scroll_up_fs(char_ht)                   '   past the end
+#endif
+
+CON
+
+    { character attributes }
+    DRAWBG  = (1 << 0)                          ' draw background color
+    TERMINAL= (1 << 1)                          ' process control characters
 
 PUB charattrs = char_attrs
 PUB char_attrs(attrs)
@@ -467,10 +563,10 @@ PUB scroll_up(sx, sy, ex, ey) | scr_width, src, dest, x, y
 #endif
 
 #ifndef GFX_DIRECT
-#ifdef 1BPP
 PUB scroll_up_fs(px) | max_pg, y, x, fb_off
-' Scroll up full screen (1bpp displays only)
+' Scroll up full screen
 '   px: number of rows or lines to scroll
+#ifdef 1BPP
     px := px <# _disp_height                    ' clamp scroll length to display height
     max_pg := (_disp_height / 8)                ' get # of pages from set display height
     repeat px
@@ -483,6 +579,9 @@ PUB scroll_up_fs(px) | max_pg, y, x, fb_off
                 if ( y < max_pg )
                     byte[_ptr_drawbuffer][fb_off + x] |= (byte[_ptr_drawbuffer] ...
                                                          [((y+1) * _disp_width) + x] & 1) << 7
+#else
+    repeat char_ht                  '   scroll up one text row
+        scrollup(0, 0, _disp_xmax, _disp_ymax)
 #endif
 #endif
 
