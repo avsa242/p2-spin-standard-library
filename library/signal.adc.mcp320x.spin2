@@ -33,7 +33,7 @@ OBJ
 PUB null()
 ' This is not a top-level object
 
-PUB start{}: status
+PUB start(): status
 ' Start the driver using default I/O settings
     return startx(CS, SCK, MOSI, MISO, SPI_FREQ)
 
