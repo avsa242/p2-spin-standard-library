@@ -3,9 +3,9 @@
     Filename: wireless.transceiver.nrf24l01.spin2
     Author: Jesse Burt
     Description: Driver for Nordic Semi. nRF24L01+ (P2 version)
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Nov 2, 2019
-    Updated Nov 13, 2022
+    Updated Jul 15, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -30,6 +30,14 @@ CON
     PKTLEN_FIXED    = 0
     PKTLEN_VAR      = 1
 
+    { default I/O settings; these can be overridden in the parent object }
+    CE          = 0
+    CS          = 1
+    SCK         = 2
+    MOSI        = 3
+    MISO        = 4
+    SPI_FREQ    = 1_000_000
+
 VAR
 
     long _CE, _CS
@@ -39,18 +47,21 @@ VAR
 
 OBJ
 
-    spi     : "com.spi.25mhz"                         ' smart-pin SPI engine (20MHz+)
+    spi     : "com.spi.25mhz"                   ' smart-pin SPI engine (20MHz+)
     core    : "core.con.nrf24l01"               ' hw-specific constants
 
 PUB null()
 ' This is not a top-level object
 
+PUB start(): status
+' Start the driver using default I/O settings
+    return startx(CE, CS, SCK, MOSI, MISO, SPI_FREQ)
+
 PUB startx(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ=5_000_000): status | tmp[2], i
 ' Start using custom I/O settings
-    if (lookdown(CE_PIN: 0..63) and lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) {
-}   and lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63))
-        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, {
-}       SCK_HZ))
+    if ( lookdown(CE_PIN: 0..63) and lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and ...
+        lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) )
+        if ( status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, SCK_HZ) )
             longmove(@_CE, @CE_PIN, 2)
             waitus(core.TPOR)
             waitus(core.TPD2STBY)
@@ -60,9 +71,9 @@ PUB startx(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ=5_000_000): statu
 
             defaults()                          ' nRF24L01+ has no RESET pin,
                                                 '   so set defaults
-            rx_addr(@tmp, 0, READ)               ' there's also no device ID, so
+            rx_addr(@tmp, 0, READ)              ' there's also no device ID, so
             repeat i from 0 to 4                '   read pipe #0's address
-                if (tmp.byte[i] <> $E7)         ' doesn't match default?
+                if ( tmp.byte[i] <> $E7 )       ' doesn't match default?
                     return FALSE                ' connection prob, or no nRF24
             return                              ' nRF24 found
     ' if this point is reached, something above failed
@@ -72,8 +83,8 @@ PUB startx(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_HZ=5_000_000): statu
 
 PUB stop()
 ' Stop the driver
-    pinh(_CS) 
-    pinl(_CE)
+    pinf(_CS)
+    pinf(_CE)
     spi.deinit()
 
 PUB defaults() | pipe_nr
@@ -246,7 +257,7 @@ PUB chip_ena(state)
     pinw(_CE, state)
     waitus(core.THCE)
 
-PUB ack_next{}
+PUB ack_next()
 ' Acknowledge the next payload
 '   NOTE: Use to resume normal auto-acknowledgement of packets after dont_ack_next() is called
     _tx_cmd := core#CMD_W_TX_PAYLOAD            ' change the TX command strobe for the next payload
@@ -949,7 +960,7 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | tmp
             return
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

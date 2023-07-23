@@ -4,9 +4,9 @@
     Author: Jesse Burt 
     Description: nRF24L01+ Receive demo
         Will display data from all 6 data pipes
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Nov 23, 2019
-    Updated Nov 13, 2022
+    Updated Jul 17, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -17,25 +17,15 @@ CON
     _xtlfreq    = cfg#_xtlfreq
 
 ' -- User-modifiable constants
-    LED         = cfg.LED1
     SER_BAUD    = 2_000_000
-
-    { SPI configuration }
-    CE_PIN      = 0
-    CS_PIN      = 1
-    SCK_PIN     = 2
-    MOSI_PIN    = 3                             ' MOSI and MISO must be within
-    MISO_PIN    = 4                             '   3 pins +/- of SCK
-    SCK_FREQ    = 10_000_000                    ' 10_000_000 max
-
     CHANNEL     = 2                             ' 0..125
 ' --
 
 OBJ
 
-    ser  : "com.serial.terminal.ansi"
-    cfg  : "boardcfg.p2eval"
-    nrf24: "wireless.transceiver.nrf24l01"
+    ser:    "com.serial.terminal.ansi"
+    cfg:    "boardcfg.p2eval"
+    nrf24:  "wireless.transceiver.nrf24l01" | CE=0, CS=1, SCK=2, MOSI=3, MISO=4, SPI_FREQ=10_000_000
 
 VAR
 
@@ -106,7 +96,7 @@ PUB setup()
 
     ser.start(SER_BAUD)
 
-    if nrf24.startx(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
+    if ( nrf24.start() )
         ser.strln(@"nRF24L01+ driver started")
     else
         ser.strln(@"nRF24L01+ driver failed to start - halting")
@@ -115,7 +105,7 @@ PUB setup()
 DAT
 
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
