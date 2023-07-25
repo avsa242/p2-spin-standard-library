@@ -5,19 +5,17 @@
     Description: Generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2023
     Started May 19, 2019
-    Updated Jul 24, 2023
+    Updated Jul 25, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
-#ifndef GFX_DIRECT
-#ifndef putchar
-#define putchar putchar_90deg
-#endif
-#endif
 
 #include "terminal.common.spin2h"               ' for printf(), puts(), etc
 
 VAR
+
+    { putchar() function pointer }
+    long putchar
 
     { display buffer and dimensions }
     long _ptr_drawbuffer
@@ -30,12 +28,13 @@ VAR
 
     { font parameters }
     long _char_attrs
-    long _font_width, _font_height, _font_addr, _fnt_xscl, _fnt_yscl
+    long _font_addr
     word _charpx_xmax, _charpx_ymax
     word _charpx_x, _charpx_y
+    byte _fnt_width, _fnt_height, _fnt_rot, _fnt_cmin, _fnt_cmax, _char_hspace, _char_vspace
+    byte _fnt_xscl, _fnt_yscl
     byte _charcell_w, _charcell_h
     byte _charcell_xmax, _charcell_ymax
-    byte _char_hspace, _char_vspace
 
 PUB bgcolor(col): curr_clr
 ' Set background color for subsequent drawing
@@ -113,9 +112,12 @@ PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char
 '       %00000000
 '   * bit order can be normal (MSBit in each glyph word is left edge)
 '       or reversed (MSBit in each glyph word is right edge; build with -DFNT_GLYPH_REV)
-    p := _font_addr + (ch * _font_height)
-    last_glcol := _font_width-1                 ' last column of pixels in font
-    last_glrow := _font_height-1                '   definition
+    if ( (ch < _fnt_cmin) or (ch > _fnt_cmax) ) ' don't waste any time if the char is invalid
+        return
+
+    p := _font_addr + (ch * _fnt_height)
+    last_glcol := _fnt_width-1                  ' last column of pixels in font
+    last_glrow := _fnt_height-1                 '   definition
     char_wid := _charcell_w * _fnt_xscl         ' scaled character dimensions
     char_ht := _charcell_h * _fnt_yscl          '
 
@@ -177,8 +179,11 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
 '       %01111100
 '   * byte order can be normal (leftmost bytes first)
 '       or reversed (rightmost bytes first)
-    last_glyph_col := _font_width-1             ' last column of pixels in font
-    last_glyph_row := _font_height-1            '   definition
+    if ( (ch < _fnt_cmin) or (ch > _fnt_cmax) ) ' don't waste any time if the char is invalid
+        return
+
+    last_glyph_col := _fnt_width-1              ' last column of pixels in font
+    last_glyph_row := _fnt_height-1             '   definition
     char_wid := _charcell_w * _fnt_xscl         ' scaled character dimensions
     char_ht := _charcell_h * _fnt_yscl          '
 
@@ -198,13 +203,13 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
                 return
 
     { read a glyph in from the font table }
-    ch *= _font_width
+    ch *= _fnt_width
     if ( (_fnt_xscl == 1) and (_fnt_yscl == 1) )
         { no scaling; render font 1:1 }
         repeat glyph_col from 0 to last_glyph_col
 #ifdef FNT_GLYPH_REV
             { reversed byte order fonts }
-            xs := _charpx_x + (_font_width-glyph_col)
+            xs := _charpx_x + (_fnt_width-glyph_col)
 #else
             { normal byte order fonts }
             xs := _charpx_x + glyph_col
@@ -228,7 +233,7 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
         repeat glyph_col from 0 to last_glyph_col
 #ifdef FNT_GLYPH_REV
             { reversed byte order fonts }
-            xs := _charpx_x + (_font_width*_fnt_xscl)-(glyph_col * _fnt_xscl)
+            xs := _charpx_x + (_fnt_width*_fnt_xscl)-(glyph_col * _fnt_xscl)
 #else
             { normal byte order fonts }
             xs := _charpx_x + (glyph_col * _fnt_xscl)
@@ -337,7 +342,7 @@ PUB font_addr(addr): curr_addr
 PUB fontheight = font_height
 PUB font_height(): curr_ht
 ' Return the set font height
-    return _font_height
+    return _fnt_height
 
 PUB fontscale = font_scl
 PUB font_scl(x, y): curr_scl
@@ -351,10 +356,13 @@ PUB font_sz(width, height)
 ' Set expected dimensions of font glyphs, in pixels
 '   NOTE: This has a direct impact on the number of text columns and rows
 '   NOTE: font_spacing() should be called before calling this method
-    _font_width := width
-    _font_height := height
-    _charcell_w := (_font_width + _char_hspace) ' calc overall character cell
-    _charcell_h := (_font_height + _char_vspace)'   dims (font size + spacing)
+    _fnt_width := width
+    _fnt_height := height
+    _fnt_xscl := 1 #> _fnt_xscl
+    _fnt_yscl := 1 #> _fnt_yscl
+
+    _charcell_w := (_fnt_width + _char_hspace) ' calc overall character cell
+    _charcell_h := (_fnt_height + _char_vspace)'   dims (font size + spacing)
     _charpx_xmax := (_disp_width - _charcell_w) ' calc maximum x, y character
     _charpx_ymax := (_disp_height - _charcell_h)'   pixel position
     _charcell_xmax := (_disp_width / _charcell_w)
@@ -369,7 +377,7 @@ PUB font_spacing(h, v)
 PUB fontwidth = font_width
 PUB font_width(): curr_wid
 ' Return the set font width
-    return _font_width
+    return _fnt_width
 
 #ifndef GFX_DIRECT
 PUB line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
@@ -410,10 +418,17 @@ PUB line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 PUB position = pos_xy
 PUB pos_xy(x, y)
 ' Set text draw position, in character-cell col and row
+#ifdef FNT_POS_FREEHAND
+    { if set, position is set freehand - any pixel location on screen }
+    _charpx_x := 0 #> x <# _disp_width
+    _charpx_y := 0 #> y <# _disp_height
+#else
+    { default: position is set in terms of character cell columns and rows }
     x := 0 #> x <# text_cols()-1                ' clamp to min/max coordinates
     y := 0 #> y <# text_rows()-1
     _charpx_x := (x * _charcell_w) * _fnt_xscl  ' calc pixel position:
     _charpx_y := (y * _charcell_h) * _fnt_yscl  ' char cell coords * font dims
+#endif
 
 PUB r5g6b5_rgb565(r, g, b): rgb565
 ' Return 16-bit color in RGB565 format, given red (5), green (6), blue (5) components
@@ -595,6 +610,46 @@ PUB set_dims(width, height)
     { update the buffer size, and the bytes per line }
     _buff_sz := (_disp_width * _disp_height) * BYTESPERPX
     _bytesperln := _disp_width * BYTESPERPX
+
+PUB set_font(ptr_fnt, ptr_setup)
+' Setup the font and character routines
+'   ptr_fnt: pointer to the font glyph table (the font bitmaps)
+'   ptr_setup: pointer to 7-byte structure containing font characteristics:
+'       byte[ptr_setup][0]: font width
+'       byte[ptr_setup][1]: font height
+'       byte[ptr_setup][2]: font rotation
+'       byte[ptr_setup][3]: font first character
+'       byte[ptr_setup][4]: font last character
+'       byte[ptr_setup][5]: font space between chars (horiz.)
+'       byte[ptr_setup][6]: font space between chars (vert.)
+    font_addr(ptr_fnt)
+    bytemove(@_fnt_width, ptr_setup, 7)
+
+    { set up size, spacing }
+    font_sz( byte[ptr_setup][0], byte[ptr_setup][1] )
+
+    { check rotation }
+    if ( byte[ptr_setup][2] == 0 )
+        set_font_rotation_0deg()
+    elseif ( byte[ptr_setup][2] == 90 )
+        set_font_rotation_90deg()
+
+PUB set_font_char_range(cmin, cmax)
+' Set range of ASCII values contained in font
+    _fnt_cmin := cmin
+    _fnt_cmax := cmax
+
+PUB set_font_rotation_0deg()
+' Set putchar function to 0-degree rotated type
+    putchar := @putchar_0deg
+
+PUB set_font_rotation_90deg()
+' Set putchar function to 90-degree rotated type
+    putchar := @putchar_90deg
+
+PUB set_putchar(ptr)
+' Set a custom putchar function
+    putchar := ptr
 
 PUB textcols = text_cols
 PUB text_cols(): cols
