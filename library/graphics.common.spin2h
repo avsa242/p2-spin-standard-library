@@ -157,13 +157,21 @@ PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char
                     plot(   _charpx_x + gl_col, ...
                             _charpx_y + gl_row, ...
                             _bgcolor )
+
     _charpx_x += char_wid                       ' goto next column
+
+#ifndef FNT_POS_NOGRID
     if ( _charpx_x > _charpx_xmax )
         _charpx_x := 0                          ' goto the first column of the next row if we try
         _charpx_y += char_ht                    '   to go past the right edge
     if ( _charpx_y > _charpx_ymax )
         _charpx_y -= char_ht                    ' scroll the display up a row if we try to go
         scroll_up_fs(char_ht)                   '   past the end
+#else
+    if ( {(_charpx_x < 0) or} (_charpx_x > _disp_xmax) or ...
+         {(_charpx_y < 0) or} (_charpx_y > _disp_ymax) )
+        return
+#endif
 #endif
 
 #ifndef GFX_DIRECT
@@ -250,12 +258,18 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
                         box(xs, ys, xe, ye, _bgcolor, true)
 
     _charpx_x += char_wid                       ' goto next column
+#ifndef FNT_POS_NOGRID
     if ( _charpx_x > _charpx_xmax )
         _charpx_x := 0                          ' goto the first column of the next row if we try
         _charpx_y += char_ht                    '   to go past the right edge
     if ( _charpx_y > _charpx_ymax )
         _charpx_y -= char_ht                    ' scroll the display up a row if we try to go
         scroll_up_fs(char_ht)                   '   past the end
+#else
+    if ( (_charpx_x < 0) or (_charpx_x > _disp_xmax) or ...
+         (_charpx_y < 0) or (_charpx_y > _disp_ymax) )
+        return
+#endif
 #endif
 
 CON
@@ -418,10 +432,10 @@ PUB line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 PUB position = pos_xy
 PUB pos_xy(x, y)
 ' Set text draw position, in character-cell col and row
-#ifdef FNT_POS_FREEHAND
+#ifdef FNT_POS_NOGRID
     { if set, position is set freehand - any pixel location on screen }
-    _charpx_x := 0 #> x <# _disp_width
-    _charpx_y := 0 #> y <# _disp_height
+    _charpx_x := x                              ' leave untouched; plot() will validate whether
+    _charpx_y := y                              '   any pixels are offscreen
 #else
     { default: position is set in terms of character cell columns and rows }
     x := 0 #> x <# text_cols()-1                ' clamp to min/max coordinates
