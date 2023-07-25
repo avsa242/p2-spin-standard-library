@@ -35,10 +35,7 @@ PUB main()
     if ( disp.start() )
         ser.printf(@"%s driver started", @_drv_name)
         disp.char_attrs(disp.TERMINAL)
-        disp.font_spacing(1, 0)
-        disp.font_scl(1, 1)
-        disp.font_sz(fnt.WIDTH, fnt.HEIGHT)
-        disp.font_addr(fnt.ptr())
+        disp.set_font(fnt.ptr(), fnt.setup())
     else
         ser.printf(@"%s driver failed to start - halting", @_drv_name)
         repeat
