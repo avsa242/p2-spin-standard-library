@@ -4,7 +4,7 @@
     Description: 8-bits per pixel bitmap VGA driver (320x240)
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Dec 17, 2022
+    Updated: Jul 30, 2023
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is based on raycast5b_SpinDisplay2a.spin2,
@@ -76,7 +76,7 @@ PUB address(addr)
 
 PUB clear()
 ' Clear the display
-    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
+    bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
 
 PUB draw_to(addr)
 ' Set address of (optional) draw/render buffer
