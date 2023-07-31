@@ -4,9 +4,9 @@
     Description: Graphics benchmark for all supported
         display types (common code)
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started: Feb 20, 2022
-    Updated: Dec 24, 2022
+    Updated: Jul 31, 2023
     See end of file for terms of use.
     --------------------------------------------
 
@@ -16,8 +16,8 @@
 
 OBJ
 
-    ser     : "com.serial.terminal.ansi"
-    fnt     : "font.5x8"
+    ser:    "com.serial.terminal.ansi"
+    fnt:    "font.5x8"
 
 CON
 
@@ -61,7 +61,7 @@ PUB benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
 
     color := disp.MAX_COLOR
     time_ms := 2_000                            ' time to run each test
-    if (disp.MAX_COLOR > 1)
+    if ( disp.MAX_COLOR > 1 )
         bench := BITMAP                         ' starting benchmark
     else
         bench := BOX                            ' skip BITMAP on 1BPP for now
@@ -117,12 +117,13 @@ PUB benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
                     iteration++
             TEXT:
                 { convert powers of 2 to 1..7 }
-                disp.fontscale(lookdown(sz: 2, 4, 8, 16, 32, 64, 128))
+                disp.font_scl(  lookdown(sz: 2, 4, 8, 16, 32, 64, 128), ...
+                                lookdown(sz: 2, 4, 8, 16, 32, 64, 128) )
                 disp.pos_xy(0, 0)
                 repeat while _timer_set
                     disp.char(ch)
                     ch++
-                    if (ch > $7F)
+                    if ( ch > $7F )
                         ch := $20
                     disp.show()
                     iteration++
@@ -138,11 +139,11 @@ PUB benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
 
         sz *= 2
 
-        if (sz > maxsz) or (bench == PLOT)      ' if max size reached,
+        if ( (sz > maxsz) or (bench == PLOT) )  ' if max size reached,
             sz := 1                             ' reset it and move on to
             bench++                             ' the next test
 
-        if (bench > VLINE)
+        if ( bench > VLINE )
             quit
 
     ser.strln(string("COMPLETE"))
@@ -153,8 +154,8 @@ PRI Report(testtime, iterations) | rate_iterations, frame_time
 ' Display benchmark test results
     rate_iterations := iterations / (testtime/1000)         ' # frames/sec
     frame_time := (testtime * 1_000) / iterations           ' frame time (usec)
-    ser.printf(@"Total iterations: %d, iterations/sec: %d, frame time: %dms\n\r", {
-}   iterations, rate_iterations, frame_time)
+    ser.printf(@"Total iterations: %d, iterations/sec: %d, frame time: %dms\n\r", ...
+                iterations, rate_iterations, frame_time)
 
 PRI cog_timer() | time_left
 ' Benchmark timer loop
@@ -181,8 +182,9 @@ DAT
                 byte "Text         ", 0
                 byte "VLine        ", 0
 
+DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
