@@ -3,9 +3,9 @@
     Filename: SSD1351-MinimalDemo.spin2 (P2 version)
     Description: Graphics demo using minimal code
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started: May 28, 2022
-    Updated: Oct 30, 2022
+    Updated: Jul 31, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,63 +14,28 @@ CON
     _clkfreq    = 180_000_000
     _xtlfreq    = 20_000_000
 
-' -- User-modifiable constants:
-    { display size, in pixels }
-    WIDTH       = 128
-    HEIGHT      = 128
-
-    { SPI-connected displays }
-    CS_PIN      = 0
-    SCK_PIN     = 1
-    MOSI_PIN    = 2
-    DC_PIN      = 3
-    SCK_FREQ    = 10_000_000
-
-    { reset pin (must be driven either by an I/O pin or other external signal,
-    such as the Propeller's reset pin) }
-    RES_PIN     = 4
-' --
-
-    BUFFSZ      = (WIDTH * HEIGHT) * disp.BYTESPERPX
-    XMAX        = (WIDTH - 1)
-    YMAX        = (HEIGHT - 1)
-    CENTERX     = (WIDTH / 2)
-    CENTERY     = (HEIGHT / 2)
-
 OBJ
 
-    fnt     : "font.5x8"
-    disp    : "display.oled.ssd1351"
-
-VAR
-
-#ifndef GFX_DIRECT
-    { memory for the display buffer }
-    word _framebuff[BUFFSZ]
-#else
-    { or just a placeholder, if drawing directly to the display }
-    word _framebuff
-#endif
+    fnt:    "font.5x8"
+    disp:   "display.oled.ssd1351" | WIDTH=128, HEIGHT=128, CS=24, SCK=25, MOSI=26, DC=27, RST=28, ...
+                                    SPI_FREQ=10_000_000
 
 PUB main()
 
     { start the driver }
-    disp.startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, SCK_FREQ, WIDTH, HEIGHT, @_framebuff)
+    disp.start()
 
     { configure the display with the minimum required setup:
         1. Use a common settings preset for 128x. displays
         2. Tell the driver the size of the font }
     disp.preset_128x()
-    disp.font_spacing(1, 1)
-    disp.font_scl(1)
-    disp.font_sz(fnt.WIDTH, fnt.HEIGHT)
-    disp.font_addr(fnt.ptr())
+    disp.set_font(fnt.ptr(), fnt.setup())
     disp.clear()
 
     { draw some text }
-    disp.position(0, 0)
+    disp.pos_xy(0, 0)
     disp.fgcolor($ffff)
-    disp.strln(string("Testing 12345"))
+    disp.str(@"Testing 12345")
     disp.show()                               ' send the buffer to the display
 
     { draw one pixel at the center of the screen }
@@ -85,9 +50,18 @@ PUB main()
 
     repeat
 
+CON
+
+    WIDTH   = disp.WIDTH
+    HEIGHT  = disp.HEIGHT
+    XMAX    = WIDTH-1
+    YMAX    = HEIGHT-1
+    CENTERX = WIDTH/2
+    CENTERY = HEIGHT/2
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
