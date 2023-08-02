@@ -3,9 +3,9 @@
     Filename: display.lcd.ili9341.spin2
     Author: Jesse Burt
     Description: Driver for ILI9341 LCD controllers (P2 version)
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Jan 10, 2022
-    Updated Dec 29, 2022
+    Updated Aug 1, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -41,6 +41,16 @@ CON
     FCLK_DIV        = 0                         ' FRMCTR1
     FRM_RT          = 1
 
+    { default I/O settings - can be overridden in the parent object }
+    WIDTH           = 320
+    HEIGHT          = 240
+    DBASEPIN        = 0
+    RST             = 8
+    CS              = 9
+    DC              = 10
+    WRX             = 11
+    RDX             = 12
+
 OBJ
 
     core: "core.con.ili9341"                    ' HW-specific constants
@@ -55,20 +65,24 @@ VAR
     byte _madctl, _pwr_ctrl2, _vmctrl1[2], _vcomoffs, _colmod, _frmctr1[2]
     byte _g3ctrl
 
-PUB startx(DATA_BASEPIN, RES_PIN, CS_PIN, DC_PIN, WR_PIN, RD_PIN, WIDTH, HEIGHT): status
+PUB start(): status
+' Start the driver using default I/O settings
+    return startx(DBASEPIN, RST, CS, DC, WRX, RDX, WIDTH, HEIGHT)
+
+PUB startx(DATA_BASEPIN, RES_PIN, CS_PIN, DC_PIN, WR_PIN, RD_PIN, DISP_W, DISP_H): status
 ' Start driver using custom I/O settings
 '   DATA_BASEPIN: first (lowest) pin of 8 data pin block (must be contiguous)
 '   RES_PIN: display's hardware reset pin (optional, -1 to ignore)
 '   CS_PIN: Chip Select
 '   DC_PIN: Data/Command (sometimes labeled RS, or Register Select)
 '   WR_PIN: Write clock
-'   RD_PIN: Read clock (not currently implemented; ignored)
+'   RD_PIN: Read clock (not currently used, but needs to be pulled high)
 '   WIDTH, HEIGHT: display dimensions, in pixels
-    if (lookdown(DATA_BASEPIN: 0..56) and lookdown(CS_PIN: 0..63) and lookdown(DC_PIN: 0..63) and {
-}   lookdown(WR_PIN: 0..63))
-        if (status := com.init(DATA_BASEPIN, CS_PIN, DC_PIN, WR_PIN, RD_PIN))
+    if (    lookdown(DATA_BASEPIN: 0..56) and lookdown(CS_PIN: 0..63) and ...
+            lookdown(DC_PIN: 0..63) and lookdown(WR_PIN: 0..63) )
+        if ( status := com.init(DATA_BASEPIN, CS_PIN, DC_PIN, WR_PIN, RD_PIN) )
             _RESET := RES_PIN
-            set_dims(WIDTH, HEIGHT)
+            set_dims(DISP_W, DISP_H)
             return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
@@ -406,41 +420,6 @@ PUB powered(state)
         com.wrbyte_cmd(core.DISPOFF)
         com.wrbyte_cmd(core.SLPIN)
 
-PUB tx = putchar
-PUB char = putchar
-PUB putchar(ch) | gl_c, gl_r, lastgl_c, lastgl_r
-' Draw character from currently loaded font
-    lastgl_c := _font_width-1
-    lastgl_r := _font_height-1
-    case ch
-        CR:
-            _charpx_x := 0
-        LF:
-            _charpx_y += _charcell_h
-            if (_charpx_y > _charpx_xmax)
-                _charpx_y := 0
-        0..127:                                 ' validate ASCII code
-            { walk through font glyph data }
-            repeat gl_c from 0 to lastgl_c      ' column
-                repeat gl_r from 0 to lastgl_r  ' row
-                    { if the current offset in the glyph is a set bit, draw it }
-                    if (byte[_font_addr][(ch << 3) + gl_c] & (decod(gl_r)))
-                        plot((_charpx_x + gl_c), (_charpx_y + gl_r), _fgcolor)
-                    else
-                    { otherwise, draw the background color, if enabled }
-                        if (_char_attrs & DRAWBG)
-                            plot((_charpx_x + gl_c), (_charpx_y + gl_r), _bgcolor)
-            { move the cursor to the next column, wrapping around to the left, }
-            { and wrap around to the top of the display if the bottom is reached }
-            _charpx_x += _charcell_w
-            if (_charpx_x > _charpx_xmax)
-                _charpx_x := 0
-                _charpx_y += _charcell_h
-            if (_charpx_y > _charpx_ymax)
-                _charpx_y := 0
-        other:
-            return
-
 PUB reset()
 ' Reset the display controller
     if (lookdown(_RESET: 0..63))                ' perform hard reset, if
@@ -462,6 +441,11 @@ PUB rotation(state)
     _madctl := ((_madctl & core.MV_MASK) | state)
     com.wrbyte_cmd(core.MADCTL)
     com.wrbyte_dat(_madctl)
+
+#ifdef GFX_DIRECT
+PUB scroll_up_fs(px)
+' dummy method
+#endif
 
 PUB show()
 ' dummy method for compatibility with other drivers
@@ -560,7 +544,7 @@ DAT
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

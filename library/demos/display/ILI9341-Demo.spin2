@@ -3,9 +3,9 @@
     Filename: ILI9341-Demo.spin2
     Description: ILI9341-specific setup for graphics demo
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started: Feb 20, 2022
-    Updated: Nov 13, 2022
+    Updated: Aug 1, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,37 +15,14 @@ CON
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    LED         = cfg.LED1
     SER_BAUD    = 2_000_000
-
-    WIDTH       = 320
-    HEIGHT      = 240
-
-{ Parallel (8-bit) configuration }
-    DATA        = 0                             ' 0, 8, 16, 24
-    RESX        = 8
-    CS          = 9
-    DC          = 10
-    WRX         = 11
-    RDX         = 12
 ' --
-
-    BPP         = disp.BYTESPERPX
-    BYTESPERLN  = WIDTH * BPP
-    BUFFSZ      = (WIDTH * HEIGHT) * BPP
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    disp    : "display.lcd.ili9341"
-
-VAR
-
-#ifndef GFX_DIRECT
-    word _framebuff[BUFFSZ]                     ' display buffer
-#else
-    byte _framebuff                             ' dummy VAR for GFX_DIRECT
-#endif
+    cfg:    "boardcfg.p2eval"
+    disp:   "display.lcd.ili9341" | WIDTH=320, HEIGHT=240, ...
+                                    DBASEPIN=0, RST=8, CS=9, DC=10, WRX=11, RDX=12
 
 PUB main()
 
@@ -54,22 +31,25 @@ PUB main()
     ser.clear()
     ser.strln(string("Serial terminal started"))
 
-    if disp.startx(DATA, RESX, CS, DC, WRX, RDX, WIDTH, HEIGHT)
+    if ( disp.start() ) 
         ser.printf(string("%s driver started"), @_drv_name)
-        disp.fontspacing(1, 0)
-        disp.fontscale(1)
-        disp.fontsize(fnt.WIDTH, fnt.HEIGHT)
-        disp.fontaddress(fnt.ptr())
+        disp.set_font(fnt.ptr(), fnt.setup())
+        disp.char_attrs(disp.TERMINAL)
     else
         ser.printf(string("%s driver failed to start - halting"), @_drv_name)
         repeat
 
-    disp.preset_def()
+    { uncomment one of the following presets if it applies to your LCD module }
+    disp.preset_hiletgo_2p4_320x240_land_up()
+'    disp.preset_hiletgo_2p4_320x240_land_down()
+'    disp.preset_hiletgo_2p4_240x320_port_up()
+'    disp.preset_hiletgo_2p4_240x320_port_down()
 
-    { change these to suit the orientation of your display }
-    disp.rotation(1)
-    disp.mirror_h(FALSE)
-    disp.mirror_v(TRUE)
+
+    { OR, change these to suit the orientation of your display }
+'    disp.rotation(0)                           ' 0, 1
+'    disp.mirror_h(false)
+'    disp.mirror_v(false)
 
     _time := 5_000                              ' time each demo runs (ms)
 
@@ -81,24 +61,27 @@ PUB main()
 DAT
     _drv_name   byte    "ILI9341 (8bit Par.)", 0
 
-{
-TERMS OF USE: MIT License
+CON
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+    WIDTH   = disp.WIDTH
+    HEIGHT  = disp.HEIGHT
+
+{
+Copyright 2023 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+

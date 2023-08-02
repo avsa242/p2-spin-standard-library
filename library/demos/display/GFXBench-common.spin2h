@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2023
     Started: Feb 20, 2022
-    Updated: Jul 31, 2023
+    Updated: Aug 1, 2023
     See end of file for terms of use.
     --------------------------------------------
 
@@ -154,7 +154,7 @@ PRI Report(testtime, iterations) | rate_iterations, frame_time
 ' Display benchmark test results
     rate_iterations := iterations / (testtime/1000)         ' # frames/sec
     frame_time := (testtime * 1_000) / iterations           ' frame time (usec)
-    ser.printf(@"Total iterations: %d, iterations/sec: %d, frame time: %dms\n\r", ...
+    ser.printf(@"Total iterations: %d, iterations/sec: %d, frame time: %dus\n\r", ...
                 iterations, rate_iterations, frame_time)
 
 PRI cog_timer() | time_left
