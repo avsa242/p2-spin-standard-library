@@ -5,9 +5,12 @@
     Author: Jesse Burt
     Copyright (c) 2023
     Created: Nov 21, 2020
-    Updated: Jul 16, 2023
+    Updated: Aug 2, 2023
     See end of file for terms of use.
     --------------------------------------------
+
+    NOTE: -DFNT_POS_NOGRID must be defined when building for the text portion of this demo
+        to function correctly.
 }
 
 CON
@@ -31,14 +34,14 @@ PUB main() | i
 
     setup()
     matrix.defaults()
-    matrix.font_sz(fnt.WIDTH, fnt.HEIGHT)
-    matrix.font_addr(fnt.ptr())
+    matrix.set_font(fnt.ptr(), fnt.setup())
 
     matrix.fgcolor(1)                           ' fg/bg color of following text
     matrix.bgcolor(0)                           '   (colors: -1, 0, 1)
     matrix.char_attrs(matrix.DRAWBG)
     repeat 5
         repeat i from 0 to 9
+            matrix.pos_xy(0, 0)
             matrix.putchar(48+i)                ' ASCII 48+i (nums 0..9)
             waitms(100)
             matrix.show()                       ' show display

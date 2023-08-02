@@ -46,19 +46,14 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, DISP_W, DISP_H, ptr_dispbuff=0):
 ' ADDR_BITS: specify LSBs of slave address (%000..%111)
 ' ptr_disp: pointer to display buffer, of minimum (W*H)/8 bytes
 '   (e.g., for an 8x8 matrix, 8*8=64 / 8 = 8 bytes)
+'   omit or specify 0 to use the internal framebuffer
     if ( lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) )
         if ( lookdown(ADDR_BITS: %000..%111) )
             if ( status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ) )
                 waitus(core.T_POR)              ' wait for device startup
                 _addr_bits := ADDR_BITS << 1
                 if ( i2c.present(SLAVE_WR | _addr_bits) )' test device presence
-                    _disp_width := DISP_W
-                    _disp_height := DISP_H
-                    _disp_xmax := _disp_width-1
-                    _disp_ymax := _disp_height-1
-                    _buff_sz := (_disp_width * _disp_height) / 8
-                    _bytesperln := _disp_width * BYTESPERPX
-
+                    set_dims(DISP_W, DISP_H)
                     address(ptr_dispbuff)
 
                     return
