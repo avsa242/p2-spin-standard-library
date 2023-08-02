@@ -3,9 +3,9 @@
     Filename: display.led.hub75.spin2
     Author: Jesse Burt
     Description: Driver for HUB75 RGB LED matrix displays (P2 version)
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started: Oct 31, 2021
-    Updated: Oct 30, 2022
+    Updated: Aug 2, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -18,10 +18,28 @@ CON
     BYTESPERPX  = 1
     MAX_COLOR   = 7
 
+    { default I/O settings - can be overridden by the parent object }
+    WIDTH       = 64
+    HEIGHT      = 32
+    RGB_BASE    = 0
+    ADDR_BASE   = 6
+    CLK         = 10
+    LAT         = 11
+    BL          = 12
+
+
+    XMAX        = WIDTH-1
+    YMAX        = HEIGHT-1
+    CENTERX     = WIDTH/2
+    CENTERY     = HEIGHT/2
+    BPL         = WIDTH*BYTESPERPX
+
 VAR
 
     long _eng_stack[100]
     long _bl, _clk, _lat
+
+    byte _fb[(WIDTH*HEIGHT)]
     byte _rgbio, _addr
     byte _vsync
     byte _cog
@@ -29,7 +47,11 @@ VAR
 PUB null()
 ' This is not a top-level object
 
-PUB startx(RGB_BASEPIN, ADDR_BASEPIN, BLPIN, CLKPIN, LATPIN, WIDTH, HEIGHT, PTR_DISP): status
+PUB start(): status
+' Start the driver using default settings
+    return startx(RGB_BASE, ADDR_BASE, BL, CLK, LAT, WIDTH, HEIGHT, 0)
+
+PUB startx(RGB_BASEPIN, ADDR_BASEPIN, BLPIN, CLKPIN, LATPIN, DISP_W, DISP_H, PTR_DISP=0): status
 ' Start using custom I/O settings
 '   RGB_BASEPIN: starting (lowest) pin of 6 contiguous RGB data pins
 '       (LSB..MSB: R0, G0, B0, R1, G1, B1)
@@ -42,16 +64,10 @@ PUB startx(RGB_BASEPIN, ADDR_BASEPIN, BLPIN, CLKPIN, LATPIN, WIDTH, HEIGHT, PTR_
 '   WIDTH, HEIGHT: dimensions of RGB matrix display, in pixels
 '   PTR_DISP: pointer to display buffer
 '       (must be at least (WIDTH * HEIGHT) bytes)
-    if lookdown(RGB_BASEPIN: 0..57) and lookdown(ADDR_BASEPIN: 0..59) and {
-}   lookdown(BLPIN: 0..63) and lookdown(CLKPIN: 0..63) and {
-}   lookdown(LATPIN: 0..63)
-        if (_cog := status := (cogspin(NEWCOG, hub75_engine(), @_eng_stack) + 1))
-            _disp_width := WIDTH
-            _disp_height := HEIGHT
-            _disp_xmax := _disp_width - 1
-            _disp_ymax := _disp_height - 1
-            _buff_sz := (_disp_width * _disp_height) * BYTESPERPX
-            _bytesperln := _disp_width * BYTESPERPX
+    if ( lookdown(RGB_BASEPIN: 0..57) and lookdown(ADDR_BASEPIN: 0..59) and ...
+        lookdown(BLPIN: 0..63) and lookdown(CLKPIN: 0..63) and lookdown(LATPIN: 0..63) )
+        if ( _cog := status := (cogspin(NEWCOG, hub75_engine(), @_eng_stack) + 1) )
+            set_dims(DISP_W, DISP_H)
 
             _rgbio := RGB_BASEPIN
             _addr := ADDR_BASEPIN
@@ -66,7 +82,7 @@ PUB startx(RGB_BASEPIN, ADDR_BASEPIN, BLPIN, CLKPIN, LATPIN, WIDTH, HEIGHT, PTR_
 
 PUB stop()
 ' Stop engine, clear variable space
-    if _cog
+    if ( _cog )
         cogstop(_cog-1)
         longfill(@_eng_stack, 0, 54)
         wordfill(@_disp_width, 0, 6)
@@ -75,6 +91,8 @@ PUB stop()
 PUB address(addr): curr_addr
 ' Set framebuffer/display buffer address
     case addr
+        0:
+            _ptr_drawbuffer := @_fb
         $0004..$7FFFF-_buff_sz:
             _ptr_drawbuffer := addr
         other:
@@ -88,7 +106,7 @@ PUB clear()
 
 PUB plot(x, y, color) | tmp
 ' Plot pixel at (x, y) in color
-    if (x < 0 or x > _disp_xmax) or (y < 0 or y > _disp_ymax)
+    if ( (x < 0) or (x > _disp_xmax) or (y < 0) or (y > _disp_ymax) )
         return                                  ' coords out of bounds, ignore
 #ifdef GFX_DIRECT
 ' direct to display
@@ -137,8 +155,8 @@ PRI hub75_engine() | r0, g0, b0, r1, g1, b1, a, b, c, d, bl, clk, lat, tmp, {
             repeat x from 0 to _disp_xmax       ' (( X/column loop ))
                 top_offs := (ty_offs + x)       ' calc top and bottom bank
                 bot_offs := (by_offs + x)       '   offsets
-                pinw(r0 addpins 5, (byte[_ptr_drawbuffer][bot_offs] << 3) | {
-}               byte[_ptr_drawbuffer][top_offs])' output the pixel data
+                pinw(r0 addpins 5, (byte[_ptr_drawbuffer][bot_offs] << 3) | ...
+                                    byte[_ptr_drawbuffer][top_offs])' output the pixel data
                 pinh(clk)
                 pinl(clk)
             pinh(lat)
@@ -156,7 +174,7 @@ PRI memfill(xs, ys, val, count)
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
