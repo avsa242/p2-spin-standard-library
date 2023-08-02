@@ -3,9 +3,9 @@
     Filename: QVGA8BPP-Bench.spin2
     Description: QVGA 8bpp-specific setup for graphics benchmark
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started: Feb 20, 2022
-    Updated: Oct 30, 2022
+    Updated: Aug 2, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,45 +15,26 @@ CON
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    LED         = cfg.LED1
     SER_BAUD    = 2_000_000
-
-    WIDTH       = 320
-    HEIGHT      = 240
-
-{ VGA configuration }
-    VGA_BASEPIN = 32
 ' --
-
-    BPP         = disp.BYTESPERPX
-    BYTESPERLN  = WIDTH * BPP
-    BUFFSZ      = (WIDTH * HEIGHT)
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    disp    : "display.vga.bitmap-8bpp"
+    cfg: "boardcfg.p2eval"
+    disp: "display.vga.bitmap-8bpp" | BASEPIN=32, VF=10, VB=33, HF=16, HS=89, HB=85, HV=640, ...
+                                        INTENSITY=127
 
-VAR
-
-    byte _disp_buff[BUFFSZ]                     ' display buffer
-
-PUB Main()
+PUB main()
 
     ser.start(SER_BAUD)
-    waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
 
-    { these two must be called before starting the driver }
-    setup_palette()
-    disp.set_timings(10, 33, 16, 96, 48, 640)
-    if disp.start(VGA_BASEPIN, WIDTH, HEIGHT, @_disp_buff)
+    disp.defaults()                             ' *** must be called before starting the driver
+    if ( disp.start() ) 
         ser.printf(string("%s driver started"), @_drv_name)
-        disp.fontspacing(1, 0)
-        disp.fontscale(1)
-        disp.fontsize(fnt.WIDTH, fnt.HEIGHT)
-        disp.fontaddress(fnt.ptr())
+        disp.set_font(fnt.ptr(), fnt.setup())
+        disp.char_attrs(disp.TERMINAL)
     else
         ser.printf(string("%s driver failed to start - halting"), @_drv_name)
         repeat
@@ -63,43 +44,16 @@ PUB Main()
 { demo routines (common to all display types) included here }
 #include "GFXBench-common.spin2h"
 
-PRI setup_palette() | i, r, g, b, c, ptr_pal
-' Set up palette
-    r := 0
-    g := 0
-    b := 0
-    ptr_pal := disp.palette_ptr()
-    repeat i from 0 to disp.MAX_COLOR
-        c := 0 | (r << 16) | (g << 8) | b
-        long[ptr_pal][i] := c
-
-        case i
-            0..63:
-                r += 4
-                g := 0
-                b := 0
-            64..127:
-                r := 0
-                g += 4
-                b := 0
-            128..191:
-                r := 0
-                g := 0
-                b += 4
-            192..253:
-                r += 4
-                g += 4
-                b := 0
-            254..255:
-                r := 255
-                g := 255
-                b := 255
-
 DAT
     _drv_name   byte    "QVGA 8BPP", 0
 
+CON
+
+    WIDTH   = disp.WIDTH
+    HEIGHT  = disp.HEIGHT
+
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

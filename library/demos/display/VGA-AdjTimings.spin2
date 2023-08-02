@@ -17,51 +17,29 @@ CON
 
 ' -- User-modifiable constants
     SER_BAUD        = 2_000_000
-    VGA_BASEPIN     = 48                         ' 0, 8, 16, 24, 32, 40, 48
 ' --
-
-    WIDTH           = 320
-    HEIGHT          = 240
-    XMAX            = WIDTH-1
-    YMAX            = HEIGHT-1
-    BUFFSZ          = WIDTH * HEIGHT
-    BPP             = 1
-    BPL             = WIDTH * BPP
-
-    { Default 640x480 timings }
-    VF_DEF          = 10        ' vert front porch
-    VB_DEF          = 33        ' vert back porch
-    HF_DEF          = 16        ' horiz front porch
-    HS_DEF          = 96        ' horiz sync pulse
-    HB_DEF          = 48        ' horiz back porch
-    HV_DEF          = 640       ' active horizontal
-
-VAR
-
-    byte _disp_buff[BUFFSZ]
 
 OBJ
 
-    cfg : "boardcfg.p2eval"
-    ser : "com.serial.terminal.ansi"
-    vga : "display.vga.bitmap-8bpp"
-    fnt : "font.5x8"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi"
+    vga:    "display.vga.bitmap-8bpp" | BASEPIN=32, VF=10, VB=33, HF=16, HS=96, HB=48, HV=640, ...
+                                        INTENSITY=127
+    ' NOTE: Timings can also be changed with set_timings() (before calling driver start() )
 
 PUB main() | ch, vf, vb, hf, hs, hb, hv
 
-    vf := VF_DEF
-    vb := VB_DEF
-    hf := HF_DEF
-    hs := HS_DEF
-    hb := HB_DEF
-    hv := HV_DEF
-
-    vga.set_timings(vf, vb, hf, hs, hb, hv)
+    vf := vga.VF
+    vb := vga.VB
+    hf := vga.HF
+    hs := vga.HS
+    hb := vga.HB
+    hv := vga.HV
 
     setup()
     vga.clear()
 
-    ser.position(0, 3)
+    ser.pos_xy(0, 3)
     ser.strln(@"Keys:")
     ser.strln(@"   VF   VB   HF   HS   HB   HV")
     ser.strln(@"+  q    w    e    r    t    y")
@@ -69,15 +47,15 @@ PUB main() | ch, vf, vb, hf, hs, hb, hv
     ser.strln(@"<SPACE> resets all to defaults")
 
     repeat
-        vga.box(0, 0, XMAX, YMAX, 255)
-        vga.line(0, 0, XMAX, YMAX, 255)
-        vga.line(XMAX, 0, 0, YMAX, 255)
-        vga.circle(XMAX/2, YMAX/2, YMAX/2, 255)
+        vga.box(0, 0, vga.XMAX, vga.YMAX, 255)
+        vga.line(0, 0, vga.XMAX, vga.YMAX, 255)
+        vga.line(vga.XMAX, 0, 0, vga.YMAX, 255)
+        vga.circle(vga.CENTERX, vga.CENTERY, vga.YMAX/2, 255)
 
-        ser.position(0, 10)
-        ser.printf(@"vga.SetTimings(%d, %d, %d, %d, %d, %d)", vf, vb, hf, hs, hb, hv)
+        ser.pos_xy(0, 10)
+        ser.printf(@"vga.set_timings(%d, %d, %d, %d, %d, %d)", vf, vb, hf, hs, hb, hv)
 
-        case ser.charin()
+        case ser.getchar()
             "q": vf++
             "a": vf--
             "w": vb++
@@ -91,20 +69,20 @@ PUB main() | ch, vf, vb, hf, hs, hb, hv
             "y": hv++
             "h": hv--
             " ":
-                vf := VF_DEF
-                vb := VB_DEF
-                hf := HF_DEF
-                hs := HS_DEF
-                hb := HB_DEF
-                hv := HV_DEF
+                vf := vga.VF
+                vb := vga.VB
+                hf := vga.HF
+                hs := vga.HS
+                hb := vga.HS
+                hv := vga.HV
             other:
                 next
 
         { timings are read on driver startup - re-cycle the driver
             when changes are made }
         vga.stop()
-        vga.start(VGA_BASEPIN, WIDTH, HEIGHT, @_disp_buff)
         vga.set_timings(vf, vb, hf, hs, hb, hv)
+        vga.start()
         vga.wait_vsync()
         vga.show()
     repeat
@@ -115,48 +93,14 @@ PUB setup()
     ser.clear()
     ser.printf(@"Serial terminal started - p2 @ %dMHz\n\r", (clkfreq/1000000))
 
-    setup_palette()
-    vga.start(VGA_BASEPIN, WIDTH, HEIGHT, @_disp_buff)
+    vga.defaults()                              ' *** must be called before starting the driver
+    vga.start()
     ser.strln(@"VGA 8bpp driver started")
-    vga.fontaddress(fnt.ptr())
-    vga.fontsize(fnt.WIDTH, fnt.HEIGHT)
     vga.clear()
-
-PRI setup_palette() | i, r, g, b, c, ptr_pal
-' Set up palette
-    r := 0
-    g := 0
-    b := 0
-    ptr_pal := vga.palette_ptr()
-    repeat i from 0 to 255
-        c := 0 | (r << 16) | (g << 8) | b
-        long[ptr_pal][i] := c
-
-        case i
-            0..63:
-                r += 4
-                g := 0
-                b := 0
-            64..127:
-                r := 0
-                g += 4
-                b := 0
-            128..191:
-                r := 0
-                g := 0
-                b += 4
-            192..253:
-                r += 4
-                g += 4
-                b := 0
-            254..255:
-                r := 255
-                g := 255
-                b := 255
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

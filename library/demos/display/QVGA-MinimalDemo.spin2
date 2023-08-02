@@ -3,88 +3,73 @@
     Filename: QVGA-MinimalDemo.spin2
     Description: Demo of the 8bpp QVGA bitmap driver
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started: Jul 4, 2022
-    Updated: Oct 30, 2022
+    Updated: Aug 2, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
-    _clkfreq        = 180_000_000
+    _clkfreq        = 180_000_000               ' 20MHz minimum (varies depending on monitor)
     _xtlfreq        = 20_000_000
 
 ' -- User-modifiable constants
     VGA_BASEPIN     = 0                         ' 0, 8, 16, 24, 32, 40, 48
 ' --
 
-    WIDTH           = 320
-    HEIGHT          = 240
-    XMAX            = WIDTH-1
-    YMAX            = HEIGHT-1
-    CENTERX         = WIDTH/2
-    CENTERY         = HEIGHT/2
-    BUFFSZ          = WIDTH * HEIGHT
-
-VAR
-
-    byte _disp_buff[BUFFSZ]
-
 OBJ
 
-    disp: "display.vga.bitmap-8bpp"
-    fnt : "font.5x8"
+    disp:   "display.vga.bitmap-8bpp" | BASEPIN=32, VF=10, VB=33, HF=16, HS=89, HB=85, HV=640, ...
+                                        INTENSITY=127
+    fnt:    "font.5x8"
 
 PUB main()
 
-    { set VGA display timings and a color palette
+    { use default built-in settings for display timings and color palette }
+    disp.defaults()
+
+    { alternatively, set your own display timings and palette
         NOTES:
-        1. These _must_ be done _before_ starting the driver
+        1. These _must_ be called _before_ starting the driver
         2. Setting the color palette is mandatory - display will be blank otherwise
         3. Timings can be experimentally found, or by using the VGA-AdjTimings.spin2 utility }
-    disp.set_timings(10, 33, 16, 96, 48, 640)
-    setup_palette()
+'    disp.set_timings(10, 33, 16, 96, 48, 640)
+'    setup_palette()
 
     { start the driver }
-    disp.start(VGA_BASEPIN, WIDTH, HEIGHT, @_disp_buff)
+    disp.start()
 
     { tell the driver the size of the font }
-    disp.fontspacing(1, 1)
-    disp.fontscale(1)
-    disp.fontsize(fnt.WIDTH, fnt.HEIGHT)
-    disp.fontaddress(fnt.ptr())
+    disp.set_font(fnt.ptr(), fnt.setup())
     disp.clear()
 
     { draw some text }
-    disp.position(0, 0)
+    disp.pos_xy(0, 0)
     disp.fgcolor($ffff)
-    disp.strln(@"Testing 12345")
-    disp.show()                               ' send the buffer to the display
+    disp.str(@"Testing 12345")
 
     { draw one pixel at the center of the screen }
     { disp.plot(x, y, color) }
-    disp.plot(CENTERX, CENTERY, disp.MAX_COLOR)
-    disp.show()
+    disp.plot(disp.CENTERX, disp.CENTERY, disp.MAX_COLOR)
 
     { draw a box at the screen edges }
     { disp.box(x_start, y_start, x_end, y_end, color, filled) }
-    disp.box(0, 0, XMAX, YMAX, disp.MAX_COLOR, false)
-    disp.show()
+    disp.box(0, 0, disp.XMAX, disp.YMAX, disp.MAX_COLOR, false)
 
     repeat
 
 PRI setup_palette() | i, r, g, b, c, ptr_pal
-' Set up palette
+' Set up a custom palette (optional)
+'   NOTE: This must be called _before_ starting the VGA driver
     r := 0
     g := 0
     b := 0
     ptr_pal := disp.palette_ptr()
-    repeat i from 0 to disp.MAX_COLOR
-        c := 0 | (r << 16) | (g << 8) | b
-        long[ptr_pal][i] := c
-
+    long[ptr_pal][0] := 0
+    repeat i from 1 to disp.MAX_COLOR
         case i
-            0..63:
+            1..63:
                 r += 4
                 g := 0
                 b := 0
@@ -96,18 +81,22 @@ PRI setup_palette() | i, r, g, b, c, ptr_pal
                 r := 0
                 g := 0
                 b += 4
-            192..253:
+            192..254:
                 r += 4
                 g += 4
                 b := 0
-            254..255:
+            255:
                 r := 255
                 g := 255
                 b := 255
 
+        c := 0 | (r << 16) | (g << 8) | b
+        long[ptr_pal][i] := c
+
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

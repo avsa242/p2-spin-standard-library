@@ -1,10 +1,11 @@
 {
     --------------------------------------------
     Filename: display.vga.bitmap-8bpp.spin2
-    Description: 8-bits per pixel bitmap VGA driver (320x240)
+    Description: 8-bits per pixel bitmap VGA driver
+        * QVGA (320x240 - signalled as 640x480)
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Jul 30, 2023
+    Updated: Aug 2, 2023
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is based on raycast5b_SpinDisplay2a.spin2,
@@ -12,6 +13,9 @@
 }
 #define MEMMV_NATIVE bytemove
 #include "graphics.common.spin2h"
+#ifdef GFX_DIRECT
+#error "direct drawing to display not supported"
+#endif
 
 CON
 
@@ -25,7 +29,26 @@ CON
     VSYNC_PAR   = 4
     PTR_FB_PAR  = 5
 
-    INTENSITY   = 127                                        ' 0..128
+
+    { default I/O settings - can be overridden in the parent object }
+    WIDTH       = 320                           ' only 320 supported
+    HEIGHT      = 240                           ' only 240 supported
+    BASEPIN     = 0
+    INTENSITY   = 127 <# 127                    ' 0..127
+
+    { default timings }
+    VF          = 10
+    VB          = 33
+    HF          = 16
+    HS          = 96
+    HB          = 48
+    HV          = 640
+
+
+    XMAX        = WIDTH-1
+    YMAX        = HEIGHT-1
+    CENTERX     = WIDTH/2
+    CENTERY     = HEIGHT/2
 
 OBJ
 
@@ -37,10 +60,19 @@ VAR
     long _palette[256]
     long _cog, _params[6]
     long _ptr_dispbuff
+
+    byte _fb[(WIDTH*HEIGHT)]
     byte _vsync_pin
 
-PUB start(BASEPIN, WIDTH, HEIGHT, ptr_dispbuff): okay
+PUB start(): status
+' Start using default I/O settings
+    return startx(BASEPIN, WIDTH, HEIGHT, @_fb)
 
+PUB startx(BASE_PIN, DISP_W, DISP_H, ptr_dispbuff): status
+' Start using custom I/O settings
+'   BASE_PIN: lowest pin number of 5-pin (consecutive) block
+'   DISP_W, DISP_H: display dimensions (currently only 320, 240 is supported)
+'   ptr_dispbuff: pointer to display buffer
     _ptr_palette := @_palette
     _params[HSYNC_PAR] := BASEPIN
     _params[RED_PAR] := BASEPIN+1
@@ -49,24 +81,51 @@ PUB start(BASEPIN, WIDTH, HEIGHT, ptr_dispbuff): okay
     _params[VSYNC_PAR] := BASEPIN+4
     _params[PTR_FB_PAR] := ptr_dispbuff
 
-    _disp_width := WIDTH
-    _disp_height := HEIGHT
-    _disp_xmax := _disp_width-1
-    _disp_ymax := _disp_height-1
-    _bytesperln := 320
-    _buff_sz := (WIDTH * HEIGHT)
-    Address(ptr_dispbuff)
-    _cog := okay := coginit(16, @DisplayEntry, @_params) + 1
+    set_dims(DISP_W, DISP_H)
+    address(ptr_dispbuff)
+    _cog := status := coginit(NEWCOG, @DisplayEntry, @_params) + 1
     return
 
 PUB stop()
 ' Stop the driver
-    if _cog
+    if ( _cog )
         cogstop(_cog-1)
 
 PUB defaults()
 ' Default timings for 640x480 signalling
-    set_timings(10, 33, 16, 96, 48, 640)
+    set_timings(VF, VB, HF, HS, HB, HV)
+    default_palette()
+
+PUB default_palette() | i, r, g, b, c
+' Set up palette
+    r := 0
+    g := 0
+    b := 0
+    _palette[0] := 0
+    repeat i from 0 to MAX_COLOR
+        case i
+            1..63:
+                r += 4
+                g := 0
+                b := 0
+            64..127:
+                r := 0
+                g += 4
+                b := 0
+            128..191:
+                r := 0
+                g := 0
+                b += 4
+            192..254:
+                r += 4
+                g += 4
+                b := 0
+            255:
+                r := 255
+                g := 255
+                b := 255
+        c := 0 | (r << 16) | (g << 8) | b
+        _palette[i] := c
 
 PUB address(addr)
 ' Set address of display buffer
@@ -91,7 +150,7 @@ PUB palette_ptr(): addr
 
 PUB plot(x, y, color)
 ' Plot pixel at (x, y) in color
-    if (x < 0 or x > _disp_xmax) or (y < 0 or y > _disp_ymax)
+    if ( (x < 0) or (x > _disp_xmax) or (y < 0) or (y > _disp_ymax) )
         return                                  ' coords out of bounds, ignore
     byte[_ptr_drawbuffer][x + (y * _disp_width)] := color
 
@@ -127,14 +186,16 @@ PUB wait_vsync()
     repeat until _pinr(_params[VSYNC_PAR]) == 0
     repeat until _pinr(_params[VSYNC_PAR]) == 1
 
-#ifndef GFX_DIRECT
+PUB vsync(): state
+' Get current state of vsync pin
+    return _pinr(_params[VSYNC_PAR])
+
 PRI memfill(xs, ys, val, count)
 ' Fill region of display buffer memory
 '   xs, ys: Start of region
 '   val: Color
 '   count: Number of consecutive memory locations to write
     bytefill(_ptr_drawbuffer + (xs + (ys * _bytesperln)), val, count)
-#endif
 
 DAT
                         orgh
@@ -263,7 +324,7 @@ CON
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
