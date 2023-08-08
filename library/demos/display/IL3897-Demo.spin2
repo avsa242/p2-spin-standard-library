@@ -5,7 +5,7 @@
     Description: IL3897-specific setup for E-Ink/E-Paper graphics demo
     Copyright (c) 2022
     Started: Feb 21, 2021
-    Updated: Dec 3, 2022
+    Updated: Aug 8, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -17,35 +17,27 @@ CON
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    WIDTH       = 122
-    HEIGHT      = 250
-
-    { SPI configuration }
-    { If using a MikroE click board, define CLICK_BASE. Otherwise, comment out the #include
-        line above, and uncomment the discrete I/O pin defines below }
-    CLICK_BASE  = 0
-'    CS_PIN      = 0
-'    SCK_PIN     = 1
-'    MOSI_PIN    = 2                             ' SDI
-'    DC_PIN      = 3
-'    BUSY_PIN    = 4
-'    RES_PIN     = 5
-    SPI_FREQ    = 10_000_000                    ' max is 20_000_000
-    ' NOTE: To use SPI_FREQ > 15MHz, _clkfreq needs to be
-    '   increased to 250MHz or higher.
+    { base pin for MikroE click adaptor board, if used }
+    CLICK_BASE  = 16
 ' --
-
-    BPP         = epaper.BYTESPERPX
-    BYTESPERLN  = WIDTH * BPP
-    BUFF_SZ     = ((WIDTH + 6) * HEIGHT) / 8
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    epaper  : "display.epaper.il3897"
+    cfg:    "boardcfg.p2eval"
+    epaper: "display.epaper.il3897" | WIDTH=122, HEIGHT=250, ...
+                                        CS=21, SCK=20, MOSI=19, DC=18, RST=17, BUSY=16, ...
+                                        SPI_FREQ=10_000_000
+    ' NOTE: To use SPI_FREQ > 15MHz, _clkfreq needs to be
+    '   increased to 250MHz or higher.
+
+    { uncomment below to use MikroE Click adaptor }
+'    epaper: "display.epaper.il3897" | WIDTH=122, HEIGHT=250, ...
+'                                        CS=CS_PIN, SCK=SCK_PIN, MOSI=MOSI_PIN, DC=DC_PIN, ...
+'                                        RST=RES_PIN, BUSY=BUSY_PIN, ...
+'                                        SPI_FREQ=10_000_000
+
 
 PUB main()
 
@@ -54,13 +46,9 @@ PUB main()
     ser.clear()
     ser.strln(string("Serial terminal started"))
 
-    if epaper.startx(CS_PIN, SCK_PIN, MOSI_PIN, RES_PIN, DC_PIN, BUSY_PIN, SPI_FREQ, WIDTH, {
-}                    HEIGHT, @_disp_buff)
+    if ( epaper.start() )
         ser.printf(string("%s driver started"), @_drv_name)
-        epaper.font_spacing(1, 0)
-        epaper.font_sz(fnt.WIDTH, fnt.HEIGHT)
-        epaper.font_scl(1)
-        epaper.font_addr(fnt.ptr())
+        epaper.set_font(fnt.ptr(), fnt.setup())
     else
         ser.printf(string("%s driver failed to start - halting"), @_drv_name)
         repeat
@@ -77,7 +65,7 @@ DAT
     _drv_name   byte    "IL3897 (SPI)", 0
 
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
