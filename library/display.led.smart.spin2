@@ -3,9 +3,9 @@
     Filename: display.led.smart.spin2
     Author: Jesse Burt
     Description: Driver for various smart LED arrays
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Jun 13, 2021
-    Updated Oct 30, 2022
+    Updated Aug 8, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,6 +16,15 @@ CON
 
     BYTESPERPX      = 4
     MAX_COLOR       = 16_777_215
+
+    { -- default I/O configuration - can be overridden in the parent object }
+    LED_PIN         = 0
+    WIDTH           = 1
+    HEIGHT          = 1
+    MODEL           = WS2812B
+    { -- }
+
+    BUFF_SZ         = (WIDTH*HEIGHT)*BYTESPERPX
 
     BLACK           = $00_00_00_00
     RED             = $FF_00_00_00
@@ -113,29 +122,34 @@ VAR
     long _mdl_t0h, _mdl_t0l, _mdl_t1h, _mdl_t1l, _mdl_per, _show, _model
     long _t0h, _t0l, _t1h, _t1l, _smled_pin, _tres
 
+    long _fb[(WIDTH*HEIGHT)*BYTESPERPX]
+
 PUB null()
 ' This is not a top-level object
 
-PUB startx(SMLED_PIN, WIDTH, HEIGHT, MODEL, PTR_DISP)
+PUB start(): status
+' Start the driver using default I/O settings
+    return startx(LED_PIN, WIDTH, HEIGHT, MODEL, @_fb)
+
+PUB startx(SMLED_PIN, DISP_W, DISP_H, led_model, ptr_fb)
 ' Start smart-LED engine
-'   Valid values:
-'       SMLED_PIN: I/O pin connected to smart-LED strip/array (0..63)
-'       WIDTH: strip/array width, in pixels (1..1024)
-'       HEIGHT: strip/array height, in pixels (1..1024)
-'       MODEL: Specific model of LEDs; see set_model()
-'       PTR_DISP: pointer to display buffer
-'   NOTE: (WIDTH * HEIGHT) must be <= 1024
+'   SMLED_PIN: I/O pin connected to smart-LED strip/array (0..63)
+'   WIDTH: strip/array width, in pixels (1..1024)
+'   HEIGHT: strip/array height, in pixels (1..1024)
+'       NOTE: (WIDTH * HEIGHT) must be <= 1024
+'   led_model: Specific model of LEDs; see set_model()
+'   ptr_fb: pointer to display buffer
 '   NOTE: Minimum Fsys = 16MHz
-    if (lookdown(SMLED_PIN: 0..63) and ((WIDTH * HEIGHT) <= 1024))
+    if (lookdown(SMLED_PIN: 0..63) and ((DISP_W * DISP_H) <= 1024))
         _smled_pin := SMLED_PIN
-        set_model(MODEL)
-        _disp_width := width
-        _disp_height := height
+        set_model(led_model)
+        _disp_width := DISP_W
+        _disp_height := DISP_H
         _disp_xmax := _disp_width - 1
         _disp_ymax := _disp_height - 1
-        _buff_sz := _nr_pix := (WIDTH * HEIGHT)
+        _buff_sz := _nr_pix := (DISP_W * DISP_H)
         _bytesperln := _disp_width * BYTESPERPX
-        address(PTR_DISP)
+        address(ptr_fb)
         pinl(_smled_pin)
         return _cog := (cogid() + 1)
     return FALSE
@@ -355,7 +369,7 @@ PRI memfill(xs, ys, val, count)
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
