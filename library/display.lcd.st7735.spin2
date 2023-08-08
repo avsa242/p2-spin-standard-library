@@ -5,7 +5,7 @@
     Description: Driver for Sitronix ST77xx-based displays (P2 version)
     Copyright (c) 2023
     Started Mar 7, 2020
-    Updated Jul 24, 2023
+    Updated Aug 8, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -761,43 +761,6 @@ PUB powered(state)
     command( (((state <> 0) & 1) + core.SLPIN) )
     waitms(120)
 
-#ifdef GFX_DIRECT
-PUB tx = putchar
-PUB char = putchar
-PUB putchar(ch) | gl_c, gl_r, lastgl_c, lastgl_r
-' Draw character from currently loaded font
-    lastgl_c := _font_width-1
-    lastgl_r := _font_height-1
-    case ch
-        CR:
-            _charpx_x := 0
-        LF:
-            _charpx_y += _charcell_h
-            if (_charpx_y > _charpx_xmax)
-                _charpx_y := 0
-        0..127:                                 ' validate ASCII code
-            { walk through font glyph data }
-            repeat gl_c from 0 to lastgl_c
-                repeat gl_r from 0 to lastgl_r
-                    { if the current offset in the glyph is a set bit, draw it }
-                    if (byte[_font_addr][(ch * _font_width) + gl_c] & (1 << gl_r) )
-                        plot((_charpx_x + gl_c), (_charpx_y + gl_r), _fgcolor)
-                    else
-                    { otherwise, draw the background color, if enabled }
-                        if (_char_attrs & DRAWBG)
-                            plot((_charpx_x + gl_c), (_charpx_y + gl_r), _bgcolor)
-            { move the cursor to the next column, wrapping around to the left, }
-            { and wrap around to the top of the display if the bottom is reached }
-            _charpx_x += _charcell_w
-            if (_charpx_x > _charpx_xmax)
-                _charpx_x := 0
-                _charpx_y += _charcell_h
-            if (_charpx_y > _charpx_ymax)
-                _charpx_y := 0
-        other:
-            return
-#endif
-
 PUB pwr_ctrl(mode, ap, sap, bclkdiv1, bclkdiv2, bclkdiv3, bclkdiv4, bclkdiv5) | byte tmp[2]
 ' Set partial mode/full-colors power control
 '   Valid values:
@@ -891,6 +854,11 @@ PUB reset()
         waitms(5)
     else                                        ' no I/O pin defined - do
         command(core.SOFT_RESET)                    '   soft reset instead
+
+#ifdef GFX_DIRECT
+PUB scroll_up_fs(px)
+' dummy method
+#endif
 
 PUB show()
 ' Write the draw buffer to the display
