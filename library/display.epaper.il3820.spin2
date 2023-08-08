@@ -3,9 +3,9 @@
     Filename: display.epaper.il3820.spin2
     Author: Jesse Burt
     Description: Driver for the IL3820 electrophoretic display controller (P2 version)
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Nov 30, 2019
-    Updated Nov 5, 2022
+    Updated Aug 8, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -79,11 +79,30 @@ CON
     DL              = 74
     GT              = 75
 
+    { -- default I/O settings; these can be overridden in the parent object }
+    { display dimensions }
+    WIDTH           = 128
+    HEIGHT          = 296
+
+    { SPI }
+    CS              = 0
+    SCK             = 1
+    MOSI            = 2
+    DC              = 3
+    RST             = 4
+    BUSY            = 5
+    SPI_FREQ        = 1_000_000
+    ' --
+
+    BYTESPERLN  = WIDTH * BYTESPERPX
+    BUFF_SZ     = ((WIDTH * HEIGHT) * BYTESPERPX) / 8
+
 VAR
 
     byte _CS, _DC, _RST, _BUSY
     byte _data_entr_mode, _drv_out_ctrl[3]
     byte _gate_drv_volt
+    byte _fb[BUFF_SZ]
 
 OBJ
 
@@ -93,13 +112,16 @@ OBJ
 PUB null()
 ' This is not a top-level object
 
-PUB startx(CS_PIN, CLK_PIN, DIN_PIN, DC_PIN, RST_PIN, BUSY_PIN, SPI_FREQ, WIDTH, HEIGHT, {
-}   ptr_dispbuff): status
+PUB start(): status
+' Start using default I/O settings
+    return startx(CS, SCK, MOSI, DC, RST, BUSY, SPI_FREQ, WIDTH, HEIGHT, @_fb)
+
+PUB startx(CS_PIN, CLK_PIN, DIN_PIN, DC_PIN, RST_PIN, BUSY_PIN, SCK_FREQ, DISP_W, DISP_H, ptr_fb): status
 ' Start using custom I/O pins
-    if lookdown(CS_PIN: 0..63) and lookdown(CLK_PIN: 0..63) and {
-}   lookdown(DIN_PIN: 0..63) and lookdown(DC_PIN: 0..63) and {
-}   lookdown(RST_PIN: 0..63) and lookdown(BUSY_PIN: 0..63)
-        if (status := spi.init(CLK_PIN, DIN_PIN, DIN_PIN, core.SPI_MODE, SPI_FREQ))
+    if ( lookdown(CS_PIN: 0..63) and lookdown(CLK_PIN: 0..63) and ...
+        lookdown(DIN_PIN: 0..63) and lookdown(DC_PIN: 0..63) and ...
+        lookdown(RST_PIN: 0..63) and lookdown(BUSY_PIN: 0..63) )
+        if ( status := spi.init(CLK_PIN, DIN_PIN, DIN_PIN, core.SPI_MODE, SPI_FREQ) )
             _CS := CS_PIN
             _DC := DC_PIN
             _RST := RST_PIN
@@ -108,13 +130,9 @@ PUB startx(CS_PIN, CLK_PIN, DIN_PIN, DC_PIN, RST_PIN, BUSY_PIN, SPI_FREQ, WIDTH,
             pinh(_CS)
             pinl(_DC)
 
-            _disp_width := WIDTH
-            _disp_height := HEIGHT
-            _disp_xmax := _disp_width-1
-            _disp_ymax := _disp_height-1
+            set_dims(DISP_W, DISP_H)
             _buff_sz := _disp_width * ((_disp_height + 7) / 8)
-            _bytesperln := _disp_width * BYTESPERPX
-            address(ptr_dispbuff)
+            address(ptr_fb)
             reset()
             return status
     ' if this point is reached, something above failed
@@ -125,6 +143,7 @@ PUB startx(CS_PIN, CLK_PIN, DIN_PIN, DC_PIN, RST_PIN, BUSY_PIN, SPI_FREQ, WIDTH,
 PUB stop()
 ' Stop SPI engine, float I/O pins, and clear variable space
     spi.deinit()
+    pinf(_CS)
     pinf(_DC)
     pinf(_BUSY)
     longfill(@_ptr_drawbuffer, 0, 4)
@@ -134,9 +153,34 @@ PUB stop()
 PUB defaults()
 ' Factory defaults
     reset()
+    disp_lines(_disp_height)                    ' MUX
+    gate_high_voltage(22_000)                   ' VGH
+    gate_low_voltage(-20_000)                   ' VGL
+    vsh1_voltage(15_000)                        ' VSH/VSL
+    dummy_line_per(26)
+    gate_line_width(62)
 
-PUB preset_2p9_bw()
+    tmp.byte[0] := $D7
+    tmp.byte[1] := $D6
+    tmp.byte[2] := $9D
+    writereg(core.BOOST_CTRL, 3, @tmp)
+
+    tmp := $A8
+    writereg(core.WR_VCOM, 1, @tmp)
+
+    'dataentrymode(%0_11)
+
+    wr_lut(@_lut_2p9_bw_full)
+
+    repeat until disp_rdy()
+
+    draw_area(0, 0, _disp_width-1, _disp_height-1)
+    disp_pos(0, 0)
+
+PUB preset_2p9_bw = preset_e029a01_bw
+PUB preset_e029a01_bw()
 ' Presets for 2.9" BW E-ink panel, 128x296
+'   (e.g., Parallax #28084, Waveshare #12563)
     reset()
     repeat until disp_rdy()
 
@@ -280,7 +324,7 @@ PUB disp_pos(x, y) | tmp
 PUB disp_rdy(): flag
 ' Flag indicating display is ready to accept commands
 '   Returns: TRUE (-1) if display is ready, FALSE (0) otherwise
-    return (ina[_BUSY] == 1)
+    return (pinr(_BUSY) == 0)
 
 PUB disp_upd_ctrl2() | tmp
 
@@ -340,8 +384,8 @@ PUB gate_line_width(usec)
 '   Any other value is ignored
     case usec
         30, 34, 38, 40, 44, 46, 52, 56, 62, 68, 78, 88, 104, 125, 156, 208:
-            usec := lookdownz(usec: 30, 34, 38, 40, 44, 46, 52, 56, 62, 68, {
-}           78, 88, 104, 125, 156, 208)
+            usec := lookdownz(usec: 30, 34, 38, 40, 44, 46, 52, 56, 62, 68, ...
+                                    78, 88, 104, 125, 156, 208)
         other:
             return
 
@@ -387,7 +431,7 @@ PUB interlace_ena(state): curr_state
 
 PUB master_act()
 
-    writereg(core.MASTER_ACT, 0, 0)
+    command(core.MASTER_ACT)
 
 PUB mirror_v(state): curr_state  'XXX not functional yet
 ' Mirror display, vertically
@@ -438,39 +482,15 @@ PUB point(x, y): pix_clr
 
 PUB reset() | tmp
 ' Reset the display controller
-    if (lookdown(_RST: 0..31))                  ' only touch the reset pin
-        outa[_RST] := 0
+    if (lookdown(_RST: 0..63))                  ' only touch the reset pin
+        pinl(_RST)
         waitus(core.T_POR)
-        outa[_RST] := 1
+        pinh(_RST)
         waitus(core.T_POR)
     else                                        ' otherwise, just perform
-        writereg(core.SWRESET, 0, 0)            '   soft-reset
+        command(core.SWRESET)
         waitus(core.T_POR)
     repeat until disp_rdy()
-
-    disp_lines(_disp_height)                    ' MUX
-    gate_high_voltage(22_000)                   ' VGH
-    gate_low_voltage(-20_000)                   ' VGL
-    vsh1_voltage(15_000)                        ' VSH/VSL
-    dummy_line_per(26)
-    gate_line_width(62)
-
-    tmp.byte[0] := $D7
-    tmp.byte[1] := $D6
-    tmp.byte[2] := $9D
-    writereg(core.BOOST_CTRL, 3, @tmp)
-
-    tmp := $A8
-    writereg(core.WR_VCOM, 1, @tmp)
-
-    'dataentrymode(%0_11)
-
-    wr_lut(@_lut_2p9_bw_full)
-
-    repeat until disp_rdy()
-
-    draw_area(0, 0, _disp_width-1, _disp_height-1)
-    disp_pos(0, 0)
 
 PUB show() | tmp
 ' Send the draw buffer to the display
@@ -483,8 +503,8 @@ PUB show() | tmp
 
     tmp := core.SEQ_CLK_CP_EN | core.SEQ_PATT_DISP
     writereg(core.DISP_UP_CTRL2, 1, @tmp)
-    writereg(core.MASTER_ACT, 0, 0)
-    writereg(core.NOOP, 0, 0)
+    command(core.MASTER_ACT)
+    command(core.NOOP)
 
     repeat until disp_rdy()
 
@@ -530,18 +550,13 @@ PRI memfill(xs, ys, val, count)
 PRI writereg(reg_nr, nr_bytes, ptr_buff)
 ' Write nr_bytes from ptr_buff to device
     case reg_nr
-        $01, $03, $04, $0C, $10, $11, $1A, $21, $22, $24, $2C, $32, $3A..$3C, {
-}       $44, $45, $4E, $4F:                     ' Commands w/data bytes
+        $01, $03, $04, $0C, $10, $11, $1A, $21, $22, $24, $2C, $32, $3A..$3C, $44, $45, $4E, $4F:
+            { commands with parameters }
             pinl(_CS)
             pinw(_DC, CMD)                      ' D/C low = command
             spi.wr_byte(reg_nr)
             pinw(_DC, DATA)                     ' D/C high = data
             spi.wrblock_lsbf(ptr_buff, nr_bytes)
-            pinh(_CS)
-        core.SWRESET, core.MASTER_ACT, core.NOOP:' Simple commands
-            pinl(_CS)
-            pinw(_DC, CMD)
-            spi.wr_byte(reg_nr)
             pinh(_CS)
         other:
             return
@@ -554,7 +569,7 @@ DAT
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
