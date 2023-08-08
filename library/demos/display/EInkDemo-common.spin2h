@@ -4,15 +4,17 @@
     Author: Jesse Burt
     Description: Electrophoretic/E-Ink/E-Paper demo
         (common code)
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Jul 2, 2022
-    Updated Dec 24, 2022
+    Updated Aug 8, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
 
+    WIDTH       = epaper.WIDTH
+    HEIGHT      = epaper.HEIGHT
     XMAX        = WIDTH-1
     YMAX        = HEIGHT-1
     CENTERX     = (WIDTH / 2)
@@ -22,10 +24,6 @@ OBJ
 
     ser : "com.serial.terminal.ansi"
     fnt : "font.5x8"
-
-VAR
-
-    byte _disp_buff[BUFF_SZ]
 
 DAT
 
@@ -81,7 +79,7 @@ PUB vrule() | y, grad_len
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
