@@ -5,7 +5,7 @@
         * QVGA (320x240 - signalled as 640x480)
     Modified by: Jesse Burt
     Started: Apr 6, 2020
-    Updated: Aug 2, 2023
+    Updated: Oct 6, 2023
     See end of file for terms of use.
     --------------------------------------------
     NOTE: This is based on raycast5b_SpinDisplay2a.spin2,
@@ -61,12 +61,12 @@ VAR
     long _cog, _params[6]
     long _ptr_dispbuff
 
-    byte _fb[(WIDTH*HEIGHT)]
+    byte _framebuffer[(WIDTH*HEIGHT)]
     byte _vsync_pin
 
 PUB start(): status
 ' Start using default I/O settings
-    return startx(BASEPIN, WIDTH, HEIGHT, @_fb)
+    return startx(BASEPIN, WIDTH, HEIGHT, @_framebuffer)
 
 PUB startx(BASE_PIN, DISP_W, DISP_H, ptr_dispbuff): status
 ' Start using custom I/O settings
@@ -82,7 +82,8 @@ PUB startx(BASE_PIN, DISP_W, DISP_H, ptr_dispbuff): status
     _params[PTR_FB_PAR] := ptr_dispbuff
 
     set_dims(DISP_W, DISP_H)
-    address(ptr_dispbuff)
+    set_address(ptr_dispbuff)
+    _ptr_dispbuff := ptr_dispbuff
     _cog := status := coginit(NEWCOG, @DisplayEntry, @_params) + 1
     return
 
@@ -126,12 +127,6 @@ PUB default_palette() | i, r, g, b, c
                 b := 255
         c := 0 | (r << 16) | (g << 8) | b
         _palette[i] := c
-
-PUB address(addr)
-' Set address of display buffer
-'   NOTE: Also sets address of (optional) offscreen buffer to the same address
-    _ptr_dispbuff := addr
-    _ptr_drawbuffer := addr
 
 PUB clear()
 ' Clear the display

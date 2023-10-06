@@ -5,7 +5,7 @@
     Description: Driver for various smart LED arrays
     Copyright (c) 2023
     Started Jun 13, 2021
-    Updated Aug 8, 2023
+    Updated Oct 6, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -122,14 +122,14 @@ VAR
     long _mdl_t0h, _mdl_t0l, _mdl_t1h, _mdl_t1l, _mdl_per, _show, _model
     long _t0h, _t0l, _t1h, _t1l, _smled_pin, _tres
 
-    long _fb[(WIDTH*HEIGHT)*BYTESPERPX]
+    long _framebuffer[(WIDTH*HEIGHT)*BYTESPERPX]
 
 PUB null()
 ' This is not a top-level object
 
 PUB start(): status
 ' Start the driver using default I/O settings
-    return startx(LED_PIN, WIDTH, HEIGHT, MODEL, @_fb)
+    return startx(LED_PIN, WIDTH, HEIGHT, MODEL, @_framebuffer)
 
 PUB startx(SMLED_PIN, DISP_W, DISP_H, led_model, ptr_fb)
 ' Start smart-LED engine
@@ -149,7 +149,7 @@ PUB startx(SMLED_PIN, DISP_W, DISP_H, led_model, ptr_fb)
         _disp_ymax := _disp_height - 1
         _buff_sz := _nr_pix := (DISP_W * DISP_H)
         _bytesperln := _disp_width * BYTESPERPX
-        address(ptr_fb)
+        set_address(ptr_fb)
         pinl(_smled_pin)
         return _cog := (cogid() + 1)
     return FALSE
@@ -158,14 +158,6 @@ PUB stop()
 ' Deinitialize engine
     pinf(_smled_pin)
     longfill(@_ptr_drawbuffer, 0, 22)
-
-PUB address(addr)
-' Set address of display buffer
-    case addr
-        0..$7ffff-_buff_sz:
-            _ptr_drawbuffer := addr
-        other:
-            return _ptr_drawbuffer
 
 PUB clear()
 ' Clear the display buffer

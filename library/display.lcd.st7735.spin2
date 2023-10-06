@@ -5,7 +5,7 @@
     Description: Driver for Sitronix ST77xx-based displays (P2 version)
     Copyright (c) 2023
     Started Mar 7, 2020
-    Updated Aug 8, 2023
+    Updated Oct 6, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -69,6 +69,8 @@ CON
 
 VAR
 
+    word _framebuffer[(WIDTH * HEIGHT)]
+
     word _framerate
     byte _CS, _RESET, _DC
     byte _offs_x, _offs_y
@@ -86,7 +88,7 @@ PUB null()
 
 PUB start(): status
 ' Start the driver using default I/O settings
-    return startx(CS, SCK, MOSI, DC, RST, SPI_FREQ, WIDTH, HEIGHT, 0)
+    return startx(CS, SCK, MOSI, DC, RST, SPI_FREQ, WIDTH, HEIGHT, @_framebuffer)
 
 PUB startx(CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RESET_PIN, SCK_FREQ, DISP_W, DISP_H, ptr_drawbuff): status
 ' Start using custom I/O settings
@@ -102,7 +104,7 @@ PUB startx(CS_PIN, SCK_PIN, SDA_PIN, DC_PIN, RESET_PIN, SCK_FREQ, DISP_W, DISP_H
             reset()
             set_dims(DISP_W, DISP_H)
 #ifndef GFX_DIRECT
-            address(ptr_drawbuff)
+            set_address(ptr_drawbuff)
 #endif
             return
     ' if this point is reached, something above failed
@@ -302,14 +304,6 @@ PUB preset_adafruit_1p44_128x128_port_down()
     mirror_v(false)
     disp_offset(1, 2)
     draw_area(0, 0, _disp_xmax, _disp_ymax)
-
-PUB address(addr=-2): curr_addr
-' Set framebuffer/display buffer address
-    case addr
-        $0000..$7ffff-_buff_sz:
-            _ptr_drawbuffer := addr
-        other:
-            return _ptr_drawbuffer
 
 #ifdef GFX_DIRECT
 PUB bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs, nr_pix
@@ -924,7 +918,7 @@ DAT
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

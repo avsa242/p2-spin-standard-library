@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2023
     Created: Oct 11, 2018
-    Updated: Jul 16, 2023
+    Updated: Oct 6, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -38,7 +38,7 @@ VAR
 
 PUB start(): status
 ' Start using default I/O settings
-    return startx(SCL, SDA, I2C_FREQ, I2C_ADDR, WIDTH, HEIGHT, 0)
+    return startx(SCL, SDA, I2C_FREQ, I2C_ADDR, WIDTH, HEIGHT, @_framebuff)
 
 PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, DISP_W, DISP_H, ptr_dispbuff=0): status
 ' width, height: dimensions of matrix, in pixels
@@ -54,24 +54,13 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, DISP_W, DISP_H, ptr_dispbuff=0):
                 _addr_bits := ADDR_BITS << 1
                 if ( i2c.present(SLAVE_WR | _addr_bits) )' test device presence
                     set_dims(DISP_W, DISP_H)
-                    address(ptr_dispbuff)
+                    set_address(ptr_dispbuff)
 
                     return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
-
-PUB address(addr): curr_addr
-' Set framebuffer address
-    case addr
-        0:
-            _ptr_drawbuffer := @_framebuff
-        $0004..$7FFFF-_buff_sz:
-            _ptr_drawbuffer := addr
-        other:
-
-    return _ptr_drawbuffer
 
 #ifndef GFX_DIRECT
 PUB clear()

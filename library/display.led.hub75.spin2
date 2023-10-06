@@ -5,7 +5,7 @@
     Description: Driver for HUB75 RGB LED matrix displays (P2 version)
     Copyright (c) 2023
     Started: Oct 31, 2021
-    Updated: Aug 2, 2023
+    Updated: Oct 6, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -39,7 +39,7 @@ VAR
     long _eng_stack[100]
     long _bl, _clk, _lat
 
-    byte _fb[(WIDTH*HEIGHT)]
+    byte _framebuffer[(WIDTH*HEIGHT)]
     byte _rgbio, _addr
     byte _vsync
     byte _cog
@@ -49,7 +49,7 @@ PUB null()
 
 PUB start(): status
 ' Start the driver using default settings
-    return startx(RGB_BASE, ADDR_BASE, BL, CLK, LAT, WIDTH, HEIGHT, 0)
+    return startx(RGB_BASE, ADDR_BASE, BL, CLK, LAT, WIDTH, HEIGHT, @_framebuffer)
 
 PUB startx(RGB_BASEPIN, ADDR_BASEPIN, BLPIN, CLKPIN, LATPIN, DISP_W, DISP_H, PTR_DISP=0): status
 ' Start using custom I/O settings
@@ -73,7 +73,7 @@ PUB startx(RGB_BASEPIN, ADDR_BASEPIN, BLPIN, CLKPIN, LATPIN, DISP_W, DISP_H, PTR
             _addr := ADDR_BASEPIN
             longmove(@_bl, @BLPIN, 3)
 
-            address(PTR_DISP)
+            set_address(PTR_DISP)
             return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
@@ -88,15 +88,6 @@ PUB stop()
         wordfill(@_disp_width, 0, 6)
         bytefill(@_rgbio, 0, 4)
 
-PUB address(addr): curr_addr
-' Set framebuffer/display buffer address
-    case addr
-        0:
-            _ptr_drawbuffer := @_fb
-        $0004..$7FFFF-_buff_sz:
-            _ptr_drawbuffer := addr
-        other:
-            return _ptr_drawbuffer
 
 #ifndef GFX_DIRECT
 PUB clear()

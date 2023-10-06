@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2023
     Created: Apr 26, 2018
-    Updated: Jul 23, 2023
+    Updated: Oct 6, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -84,7 +84,7 @@ VAR
 
     long _CS, _DC, _RES
     byte _addr_bits
-    byte _fb[ (WIDTH*HEIGHT) / 8 ]
+    byte _framebuffer[ (WIDTH*HEIGHT) / 8 ]
 
 PUB null()
 ' This is not a top-level object
@@ -92,7 +92,7 @@ PUB null()
 #ifdef SSD130X_I2C
 PUB start(): status
 ' Start using default I/O settings
-    return startx(SCL, SDA, RST, I2C_FREQ, I2C_ADDR, WIDTH, HEIGHT, @_fb)
+    return startx(SCL, SDA, RST, I2C_FREQ, I2C_ADDR, WIDTH, HEIGHT, @_framebuffer)
 
 PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, DISP_WID, DISP_HT, ptr_dispbuff): status
 ' Start the driver with custom I/O settings
@@ -118,7 +118,7 @@ PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, DISP_WID, DISP_HT, ptr_
                 _buff_sz := (_disp_width * _disp_height) / 8
                 _bytesperln := _disp_width * BYTESPERPX
 
-                address(ptr_dispbuff)           ' set display buffer address
+                set_address(ptr_dispbuff)       ' set display buffer address
                 return
     ' if this point is reached, something above failed
     ' Re-check I/O pin assignments, bus speed, connections, power
@@ -157,8 +157,7 @@ PUB startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, SCK_HZ, WIDTH, HEIGHT, pt
             ' calc display memory usage from dimensions and 1bpp depth
             _buff_sz := (_disp_width * _disp_height) / 8
             _bytesperln := _disp_width * BYTESPERPX
-
-            address(ptr_dispbuff)               ' set display buffer address
+            set_address(ptr_dispbuff)           ' set display buffer address
             return
     ' if this point is reached, something above failed
     ' Re-check I/O pin assignments, bus speed, connections, power
@@ -229,14 +228,6 @@ PUB preset_128x64()
     visibility(NORMAL)
     com_pin_cfg(1, 0)
     powered(TRUE)
-
-PUB address(addr): curr_addr
-' Set framebuffer address
-    case addr
-        $0004..$7FFF-_buff_sz:
-            _ptr_drawbuffer := addr
-        other:
-            return _ptr_drawbuffer
 
 PUB addr_mode(mode)
 ' Set Memory Addressing Mode
