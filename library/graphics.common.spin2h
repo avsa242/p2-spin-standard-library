@@ -5,7 +5,7 @@
     Description: Generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2023
     Started May 19, 2019
-    Updated Aug 1, 2023
+    Updated Oct 6, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -36,9 +36,9 @@ VAR
     byte _charcell_w, _charcell_h
     byte _charcell_xmax, _charcell_ymax
 
-PUB bgcolor(col): curr_clr
+PUB bgcolor(col)
 ' Set background color for subsequent drawing
-    return _bgcolor := col
+    _bgcolor := col
 
 #ifndef GFX_DIRECT
 PUB bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs
@@ -328,18 +328,9 @@ PUB cut(sx, sy, ex, ey, dx, dy) | x, y, tmp
             plot(x, y, _bgcolor)                            ' Cut the original region
 #endif
 
-PUB fgcolor(col): curr_clr
+PUB fgcolor(col)
 ' Set foreground color of subsequent drawing operations
-    return _fgcolor := col
-
-PUB fontaddress = font_addr
-PUB font_addr(addr): curr_addr
-' Set address of font definition
-    case addr
-        $0004..$7FFFF:
-            _font_addr := addr
-        OTHER:
-            return _font_addr
+    _fgcolor := col
 
 PUB fontheight = font_height
 PUB font_height(): curr_ht
@@ -380,6 +371,10 @@ PUB fontwidth = font_width
 PUB font_width(): curr_wid
 ' Return the set font width
     return _fnt_width
+
+PUB get_address(): addr
+' Get the currently set display buffer address
+    return _ptr_drawbuffer
 
 #ifndef GFX_DIRECT
 PUB line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
@@ -600,6 +595,17 @@ PUB scroll_up_fs(px) | max_pg, y, x, fb_off
 #endif
 #endif
 
+PUB address = set_address
+PUB set_address(addr=0)
+' Set display buffer address
+'   addr: address of display buffer to use (or 0 to use the driver's internal buffer)
+    if ( addr == 0 )
+        { use the buffer built-in to the display driver }
+        _ptr_drawbuffer := @_framebuffer
+    else
+        { use an external buffer }
+        _ptr_drawbuffer := addr
+
 PUB set_dims(w, h)
 ' Set display dimensions
 '   w: width of display (X-axis) in pixels
@@ -635,6 +641,12 @@ PUB set_font(ptr_fnt, ptr_setup)
         set_font_rotation_0deg()
     elseif ( byte[ptr_setup][2] == 90 )
         set_font_rotation_90deg()
+
+PUB fontaddress = font_addr
+PUB font_addr = set_font_addr
+PUB set_font_addr(addr)
+' Set address of font definition
+    _font_addr := addr
 
 PUB set_font_char_range(cmin, cmax)
 ' Set range of ASCII values contained in font
