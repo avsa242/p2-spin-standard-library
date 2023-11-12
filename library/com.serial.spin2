@@ -3,9 +3,9 @@
     Filename: com.serial.spin2
     Author: Jesse Burt
     Description: Low-level UART serial driver
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Jun 28, 2019
-    Updated Oct 16, 2022
+    Updated Nov 12, 2023
     See end of file for terms of use.
     --------------------------------------------
 
@@ -15,16 +15,22 @@
 
 CON
 
-    WORDLEN = 8-1                               ' serial word length, in bits-1
+    { I/O configuration - these can be overridden by the parent object }
+    RX_PIN          = 63
+    TX_PIN          = 62
+    SER_BAUD        = 2_000_000
+
+
+    WORDLEN         = 8-1                       ' serial word length, in bits-1
 
 VAR
 
     long _rx_pin, _tx_pin
 
 PUB start = init_def
-PUB init_def(bps=-1): status
+PUB init_def(): status
 ' Start using P2 default serial pins
-    return init(63, 62, 0, bps)
+    return init(RX_PIN, TX_PIN, 0, SER_BAUD)
 
 PUB startrxtx = init
 PUB init(rxpin, txpin, mode, bps=-1): status | bitperiod, bit_mode
