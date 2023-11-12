@@ -3,9 +3,9 @@
     Filename: sensor.temp_rh.aht20.spin2
     Author: Jesse Burt
     Description: Driver for AHT20 temperature/RH sensors (P2 version)
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Mar 27, 2022
-    Updated Dec 28, 2022
+    Updated Nov 12, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -18,10 +18,17 @@ CON
     SLAVE_WR    = core.SLAVE_ADDR
     SLAVE_RD    = core.SLAVE_ADDR | 1
     DEF_HZ      = 100_000
+    DEF_ADDR    = 0
 
     FP_SCALE    = 10_000
     TWO20       = (1 << 20)                     ' 2^20
 
+
+    { default I/O settings; these can be overridden in the parent object }
+    SCL         = 0
+    SDA         = 1
+    I2C_FREQ    = DEF_HZ
+    I2C_ADDR    = DEF_ADDR
 
 OBJ
 
@@ -29,7 +36,11 @@ OBJ
     core: "core.con.aht20"                      ' AHT20-specific constants
     crc : "math.crc"
 
-PUB startx(SCL_PIN, SDA_PIN, I2C_HZ): status
+PUB start(): status
+' Start using "standard" Propeller I2C pins and 100kHz
+    return startx(SCL, SDA, I2C_FREQ, I2C_ADDR)
+
+PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, I2C_ADDR=0): status
 ' Start using custom IO pins and I2C bus frequency
     if (lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
 }       I2C_HZ <= core.I2C_MAX_FREQ)            ' validate pins and bus freq
@@ -190,7 +201,7 @@ PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

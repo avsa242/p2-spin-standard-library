@@ -4,9 +4,9 @@
     Author: Jesse Burt
     Description: AHT20 driver demo (P2 version)
         * Temp/RH data output
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Jun 16, 2021
-    Updated Oct 30, 2022
+    Updated Nov 12, 2023
     See end of file for terms of use.
     --------------------------------------------
 
@@ -18,29 +18,21 @@ CON
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
-' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
-
-    { I2C configuration }
-    SCL_PIN     = 0
-    SDA_PIN     = 1
-    I2C_FREQ    = 400_000                       ' max is 400_000
-' --
 
 OBJ
 
     cfg:    "boardcfg.p2eval"
-    sensor:  "sensor.temp_rh.aht20"
-    ser:    "com.serial.terminal.ansi"
+    sensor: "sensor.temp_rh.aht20" | SCL=0, SDA=1, I2C_FREQ=400_000
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+
 
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(10)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    if (sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ))
+    if ( sensor.start() )
         ser.strln(@"AHT20 driver started")
     else
         ser.strln(@"AHT20 driver failed to start - halting")
@@ -54,7 +46,7 @@ PUB setup()
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
