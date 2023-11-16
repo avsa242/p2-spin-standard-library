@@ -5,7 +5,7 @@
     Description: String processing and formatting (P2 version)
     Copyright (c) 2023
     Started May 29, 2022
-    Updated Apr 20, 2023
+    Updated Nov 16, 2023
     See end of file for terms of use.
     --------------------------------------------
 
@@ -276,6 +276,17 @@ PUB hexs(val, digits): ptr | idx
         _tmp_buff[idx++] := lookupz((val rol= 4) & $F : "0".."9", "a".."f")
     return @_tmp_buff
 
+PUB iptostr(ip): ptr | tmp, i
+' Convert 32-bit IP address to "dotted-quad" string representation
+'   ip: 32-bit IP address (LSB-first)
+'   Returns: pointer to string
+    repeat i from 0 to 3
+        tmp := itoa(    ip.byte[i], ...         ' copy each byte to the end of the string
+                        @_tmp_buff+strsize(@_tmp_buff) )
+        if ( i < 3 )                            ' place a dot between each octet
+            append(@_tmp_buff, @".")
+    return @_tmp_buff
+
 PUB isalpha(ptr_str): flag
 ' Flag indicating entire string is alphabetic
 '   Returns:
@@ -442,6 +453,20 @@ PUB left(ptr_str, count): ptr_new
 '   count: left-most number of chars from source to copy
 '   Returns: pointer to substring
     return mid(ptr_str, 0, count)
+
+PUB mactostr(ptr_mac): ptr | tmp, i
+' Convert 6-byte array to colon-delimited (":") string representation of a MAC address
+'   ptr_mac: pointer to 6-byte array containing integer representation of MAC address
+'   Returns: pointer to string
+    repeat i from 0 to 5
+        itoabp( byte[ptr_mac][i], ...           ' copy each byte to
+                @_tmp_buff+strsize(@_tmp_buff), ...   '   the end of the string
+                IHEX, ...                       ' we want hexadecimal/base-16
+                2, ...                          ' pad width
+                "0")                            ' pad with 0's
+        if ( i < 5 )
+            append(@_tmp_buff, @":")
+    return @_tmp_buff
 
 PUB match(ptr_str1, ptr_str2): ismatch
 ' Flag indicating strings match
@@ -768,6 +793,23 @@ PUB stripchar(ptr_str, stripchr): newstr | chr, idx, sz, nextchr, lastchr, movec
     { clear out after the end of the newly modified string }
     bytefill(ptr_str+sz-mcnt, 0, mcnt)
     return ptr_str
+
+PUB strtoip(ptr): ip | o
+' Convert string "dotted-quad" representation to a 32-bit IP address
+'   ptr: pointer to string representation of IP address
+'   Returns: 32-bit IP address (LSB-first)
+    repeat o from 0 to 3
+        ip.byte[o] := atoi( getfield(ptr, o, ".") )
+
+PUB strtomac(pstr, dest): ptr_mac | o
+' Convert string representation of a MAC address to the equivalent array of integers
+'   pstr: pointer to MAC address string (e.g., @"01:02:03:04:05:06" )
+'   dest: destination to copy the byte array to
+'   Returns: pointer to start of integer/byte array
+    repeat o from 0 to 5
+        byte[dest][o] := atoib( getfield(pstr, o, ":"), ...
+                                IHEX )          ' convert each hex number
+    return dest
 
 PUB tokenize(ptr_str): ptr_strtok
 ' Remove white space and new lines around the inside of string at ptr_str
