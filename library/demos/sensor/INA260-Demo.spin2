@@ -5,7 +5,7 @@
     Description: Demo of the INA260 driver (P2 version)
         * Power data output
     Started Sep 18, 2019
-    Updated Oct 16, 2022
+    Updated Dec 17, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,30 +15,20 @@ CON
     _clkfreq        = cfg._clkfreq_def
     _xtlfreq        = cfg._xtlfreq
 
-' -- User-modifiable constants
-    LED             = cfg.LED1
-    SER_BAUD        = 2_000_000
-
-    { I2C configuration }
-    SCL_PIN         = 0
-    SDA_PIN         = 1
-    I2C_FREQ        = 400_000                   ' max is 400_000
-    ADDR_BITS       = %0000                     ' %0000..%1111 (see driver)
-' --
 
 OBJ
 
-    cfg: "boardcfg.p2eval"
-    ser: "com.serial.terminal.ansi"
-    sensor: "sensor.power.ina260"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    sensor: "sensor.power.ina260" | SCL=0, SDA=1, I2C_FREQ=400_000, I2C_ADDR=%0000
 
 PUB main()
 
-    ser.start(SER_BAUD)
-    waitms(10)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
-    if sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS)
+
+    if ( sensor.start() )
         ser.strln(@"INA260 driver started")
     else
         ser.strln(@"INA260 driver failed to start - halting")
@@ -50,7 +40,7 @@ PUB main()
 
 DAT
 {
-Copyright (c) 2022 Jesse Burt
+Copyright (c) 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
