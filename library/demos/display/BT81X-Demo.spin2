@@ -3,9 +3,9 @@
     Filename: BT81X-Demo.spin2
     Author: Jesse Burt
     Description: Demo of the BT81x driver (P2 version)
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Dec 31, 2020
-    Updated Oct 16, 2022
+    Updated Jul 14, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,18 +16,9 @@ CON
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    CS_PIN      = 0
-    SCK_PIN     = 1
-    MOSI_PIN    = 2
-    MISO_PIN    = 3
-    RST_PIN     = 4                             ' optional; pull high if unused
-    SCK_FREQ    = 20_000_000                    ' max is 30_000_000
-
     BRIGHTNESS  = 100                           ' Initial brightness (0..128)
-
 ' --
 
     INTER_DELAY = 2_000                         ' wait ms between demos
@@ -43,9 +34,10 @@ CON
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    ser     : "com.serial.terminal.ansi"
-    eve     : "display.lcd.bt81x"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi"
+    eve:    "display.lcd.bt81x" | CS=0, SCK=1, MOSI=2, MISO=3, RST=4, SPI_FREQ=20_000_000
+'   NOTE: Pull RST high (tip: tie to Propeller reset) and define as -1 if unused
 
 PUB main()
 
@@ -566,7 +558,7 @@ PUB setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if eve.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ, RST_PIN, @_disp_setup)
+    if ( eve.start(@_disp_setup) )
         ser.strln(string("BT81x driver started"))
     else
         ser.strln(string("BT81x driver failed to start - halting"))
@@ -574,7 +566,7 @@ PUB setup()
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

@@ -3,11 +3,14 @@
     Filename: BT81X-TouchDemo.spin2
     Author: Jesse Burt
     Description: Demo of the BT81x driver touchscreen functionality (P2 version)
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Dec 31, 2020
-    Updated Oct 16, 2022
+    Updated Jul 14, 2023
     See end of file for terms of use.
     --------------------------------------------
+
+    NOTE: This demo will write touchscreen calibration data to the P2's flash
+        (above the bottom 512k area by default)
 }
 
 CON
@@ -16,18 +19,19 @@ CON
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    LED         = cfg.LED1
     SER_BAUD    = 2_000_000
 
-    CS_PIN      = 0
-    SCK_PIN     = 1
-    MOSI_PIN    = 2
-    MISO_PIN    = 3
-    RST_PIN     = 4                             ' optional; pull high if unused
     SCK_FREQ    = 20_000_000                    ' max is 30_000_000
 
     BRIGHTNESS  = 100                           ' Initial brightness (0..128)
 
+    { touchscreen calibration storage }
+    ERASE_TS_CAL= false                         ' set non-zero to delete TS cal from P2 flash
+    FL_MAGICADDR= $80000                        ' flash addr of 'magic' number (cal. identifier)
+    FL_CALBASE  = FL_MAGICADDR+4                ' flash base addr of calibration data (24 bytes)
+                                                ' NOTE: These need to be above the lower 512kbytes
+                                                '   of the flash to avoid being overwritten by
+                                                '   writing a P2 binary image
 ' --
 
     BUTTON_W    = 100
@@ -36,16 +40,22 @@ CON
 ' Uncomment one of the following, depending on your display size/resolution
 '   NOTE: WIDTH, HEIGHT, XMAX, YMAX, CENTERX, CENTERY symbols are defined
 '   in the display timings file.
-#include "eve3-lcdtimings.800x480.spinh"
-'#include "eve3-lcdtimings.480x272.spinh"
+'#include "eve3-lcdtimings.800x480.spinh"
+#include "eve3-lcdtimings.480x272.spinh"
 '#include "eve3-lcdtimings.320x240.spinh"
 '#include "eve3-lcdtimings.320x102.spinh"
 
 OBJ
 
-    cfg         : "boardcfg.p2eval"
-    ser         : "com.serial.terminal.ansi"
-    eve         : "display.lcd.bt81x"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi"
+    flash:  "memory.flash.25xxxx"
+    eve:    "display.lcd.bt81x" | CS=0, SCK=1, MOSI=2, MISO=3, RST=4, SPI_FREQ=20_000_000
+'   NOTE: Pull RST high (tip: tie to Propeller reset) and define as -1 if unused
+
+VAR
+
+    long _ts[7]
 
 PUB main() | count, idle, state, x, y, t1, t2, t3, t4
 
@@ -133,11 +143,11 @@ PUB update_btn(state) | btn_cx, btn_cy
     if state                                    ' button pressed
         eve.color_rgb(255, 255, 255)            ' button text color (pressed)
         eve.tag_attach(1)                       ' tag or id. for this button
-        eve.button(btn_cx, btn_cy, 100, 50, 30, 0, string("TEST"))
+        eve.button(btn_cx, btn_cy, 100, 50, 30, 0, @"TEST")
     else
         eve.color_rgb(0, 0, 192)                ' button text color (up)
         eve.tag_attach(1)
-        eve.button(btn_cx, btn_cy, 100, 50, 30, 0, string("TEST"))
+        eve.button(btn_cx, btn_cy, 100, 50, 30, 0, @"TEST")
     eve.dl_end()                                ' end list; display everything
 
 PUB update_scrlbar(val) | w, h, x, y, sz
@@ -191,26 +201,55 @@ PRI ts_cal()
     eve.ts_cal()
     eve.dl_end()
     eve.wait_rdy()
-    ser.str(@"Press any key to continue, once touchscreen calibration is complete")
-    ser.charin()
+    _ts[0] := eve.TCAL
+    eve.ts_rd_cal_matrix(@_ts+4)                ' read in the touch calibration results
+    flash.global_lock(false)                    ' turn off write-protection
+    flash.writes_ena(true)
+    flash.wr_block_lsbf(FL_MAGICADDR, @_ts, 28) ' write the cal results to flash
+    repeat while flash.busy()                   ' wait for it to finish writing
 
 PUB setup()
 
     ser.start(SER_BAUD)
-    waitms(30)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
-    if eve.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ, RST_PIN, @_disp_setup)
-        ser.strln(string("BT81x driver started"))
+    ser.strln(@"Serial terminal started")
+    if ( eve.start(@_disp_setup) )
+        ser.strln(@"BT81x driver started")
     else
-        ser.str(string("BT81x driver failed to start - halting"))
+        ser.str(@"BT81x driver failed to start - halting")
         repeat
 
-    if (eve.model_id() == eve.BT816)             ' resistive TS?
-        ts_cal()
+    if ( flash.startx(cfg.FLASH_CS, cfg.FLASH_CLK, cfg.FLASH_DI, cfg.FLASH_DO, SCK_FREQ) )
+        ser.strln(@"flash driver started")
+        if ( ERASE_TS_CAL )
+            erase_tscal()
+    else
+        ser.strln(@"flash driver failed to start - halting")
+        repeat
+
+    if ( eve.model_id() == eve.BT816 )          ' resistive TS?
+        if ( flash.rd_long_lsbf(FL_MAGICADDR) == eve.TCAL )
+            { look for magic number in EEPROM }
+            ser.strln(@"calibration found - restoring")
+            flash.rd_block_lsbf(@_ts, FL_CALBASE, 24)   ' read the calibration matrix
+            eve.ts_wr_cal_matrix(@_ts)          ' write it to EVE
+        else
+            { no calibration stored in EE - perform calibration }
+            ser.strln(@"no calibration found")
+            ts_cal()
+
+PUB erase_tscal()
+' Erase calibration data and magic number from flash
+    ser.str(@"erasing touchscreen calibration from flash...")
+    flash.global_lock(false)
+    flash.writes_ena(true)
+    flash.erase(FL_MAGICADDR, flash.SECTOR)
+    repeat while flash.busy()                   ' wait for the erase to finish
+    ser.strln(@"done")
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

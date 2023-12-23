@@ -3,9 +3,9 @@
     Filename: core.con.bt81x.spin
     Author: Jesse Burt
     Description: Low-level constants
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Sep 25, 2019
-    Updated Jul 17, 2022
+    Updated Jul 15, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -233,6 +233,7 @@ CON
     CMD_SCALE                   = $FFFFFF28
     CMD_ROTATE                  = $FFFFFF29
     CMD_SETMATRIX               = $FFFFFF2A
+    CMD_SETFONT                 = $ffffff2b
     CMD_TRACK                   = $FFFFFF2C
     CMD_DIAL                    = $FFFFFF2D
     CMD_NUMBER                  = $FFFFFF2E
@@ -240,6 +241,7 @@ CON
     CMD_SETBASE                 = $FFFFFF38
     CMD_ROMFNT                  = $FFFFFF3F
     CMD_PLAYVID                 = $FFFFFF3A
+    CMD_SETFONT2                = $ffffff3b
     CMD_MEDIAFIFO               = $FFFFFF39
     CMD_GRADIENTA               = $FFFFFF57
     CMD_FILLWIDTH               = $FFFFFF58

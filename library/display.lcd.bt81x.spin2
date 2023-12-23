@@ -3,33 +3,31 @@
     Filename: display.lcd.bt81x.spin2
     Author: Jesse Burt
     Description: Driver for the Bridgetek
-        Advanced Embedded Video Engine (EVE) Graphic controller
-        (P2 version)
-    Copyright (c) 2022
+        Advanced Embedded Video Engine (EVE) Graphic controller (P2 version)
+    Copyright (c) 2023
     Started Dec 31, 2020
-    Updated Nov 3, 2022
+    Updated Jul 15, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
-
 CON
 
-' Recognized IDs
+    { Recognized IDs }
     BT815               = $00_0815_01
     BT816               = $00_0816_01
 
-' Clock freq presets
+    { Clock freq presets }
     DEF                 = 60
     HIGH                = 72
     LOW                 = 24
 
-' CPU Reset status
+    { CPU Reset status }
     READY               = %000
     RST_AUDIO           = %100
     RST_TOUCH           = %010
     RST_COPRO           = %001
 
-' Output RGB signal swizzle
+    { Output RGB signal swizzle }
     SWIZZLE_RGBM        = 0
     SWIZZLE_RGBL        = 1
     SWIZZLE_BGRM        = 2
@@ -43,19 +41,19 @@ CON
     SWIZZLE_RBGM        = 14
     SWIZZLE_RBGL        = 15
 
-' Pixel clock polarity
+    { Pixel clock polarity }
     PCLKPOL_RISING      = 0
     PCLKPOL_FALLING     = 1
 
-' Display list swap modes
+    { Display list swap modes }
     DLSWAP_LINE         = 1
     DLSWAP_FRAME        = 2
 
-' Graphics primitives
-    #1, BITMAPS, POINTS, LINES, LINE_STRIP, EDGE_STRIP_R, EDGE_STRIP_L,{
-}   EDGE_STRIP_A, EDGE_STRIP_B, RECTS
+    { Graphics primitives }
+    #1, BITMAPS, POINTS, LINES, LINE_STRIP, EDGE_STRIP_R, EDGE_STRIP_L, EDGE_STRIP_A, ...
+    EDGE_STRIP_B, RECTS
 
-' Various rendering options
+    { Various rendering options }
     OPT_3D              = 0
     OPT_RGB565          = 0
     OPT_MONO            = 1
@@ -80,28 +78,37 @@ CON
     OPT_MEDIAFIFO       = (1 << 4)
     OPT_SOUND           = (1 << 5)
 
-' Transform and screen rotation
-    #0, ROT_LAND, ROT_INV_LAND, ROT_PORT, ROT_INV_PORT, ROT_MIR_LAND,{
-}   ROT_MIR_INV_LAND, ROT_MIR_PORT, ROT_MIR_INV_PORT
+    { button state aliases }
+    UP                  = OPT_3D
+    RELEASED            = OPT_3D
+    DOWN                = OPT_FLAT
+    PUSHED              = OPT_FLAT
 
-' Spinner styles
+    { Transform and screen rotation }
+    #0, ROT_LAND, ROT_INV_LAND, ROT_PORT, ROT_INV_PORT, ROT_MIR_LAND, ROT_MIR_INV_LAND, ...
+    ROT_MIR_PORT, ROT_MIR_INV_PORT
+
+    { Spinner styles }
     SPIN_CIRCLE_DOTS    = 0
     SPIN_LINE_DOTS      = 1
     SPIN_CLOCKHAND      = 2
     SPIN_ORBIT_DOTS     = 3
 
-' Box bevel corners
-    UL                  = %0001
-    UR                  = %0010
-    LR                  = %0100
-    LL                  = %1000
-
-' Built-in fonts
-
+    { Built-in fonts }
     VGA8X8_ROM          = 16                    ' VGA ROM-like 8x8 font ($20..$7E)
     VGA8X8_ROM_HI       = 17                    ' same, but $80..$FF mapped to $00..$7F
     VGA8X12_ROM         = 18                    ' 8x12 variant of the above
     VGA8X12_ROM_HI      = 19
+
+    TCAL                = $4c_41_43_54          ' "TCAL" magic number
+
+    { default I/O settings; these can be overridden in the parent object }
+    CS                  = 0
+    SCK                 = 1
+    MOSI                = 2
+    MISO                = 3
+    RST                 = 4
+    SPI_FREQ            = 1_000_000
 
 VAR
 
@@ -120,6 +127,11 @@ OBJ
 PUB null()
 ' This is not a top-level object
 
+PUB start(ptr_disp): status
+' Start the driver using default I/O settings
+'   ptr_disp: pointer to display setup (see startx() below)
+    return startx(CS, SCK, MOSI, MISO, SPI_FREQ, RST, ptr_disp)
+
 PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ, RST_PIN, PTR_DISP): status
 ' Start the driver using custom I/O settings
 '   CS_PIN: SPI Chip Select
@@ -133,11 +145,12 @@ PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ, RST_PIN, PTR_DISP): st
 '       WIDTH, HEIGHT, XMAX, YMAX, HCYCLE_CLKS, HOFFSET_CYCS, HSYNC0_CYCS,
 '       HSYNC1_CYCS, VCYCLE_CLKS, VOFFSET_LNS, VSYNC0_CYCS, VSYNC1_CYCS,
 '       CLKDIV, SWIZZLE_MD, PCLK_POL, CLKSPRD, DITHER_MD, TS_I2CADDR
-    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
-}   lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63)
-        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, {
-}       SCK_FREQ))
+    if ( lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and ...
+        lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) )
+        if ( status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, ...
+                                SCK_FREQ) )
             _CS := CS_PIN
+            pinh(_CS)
             _RST := RST_PIN
             reset()
             pll_clk_ext()
@@ -576,6 +589,17 @@ PUB dl_swap_mode(mode): dl_status
             readreg(core.DLSWAP, 1, @dl_status)
             return dl_status & %11
 
+CON FONT_ROOT = $20_b834                        ' pointer read from ROM_FNTROOT_START
+PUB glyph_width(fnt_handle, ch): w | widths
+' Get width of a glyph
+'   fnt_handle: font handle/number (e.g., 31)
+'   ch: glyph/character (e.g., "g")
+'   Returns: width of glyph in pixels
+    widths := (FONT_ROOT + (148 * (fnt_handle-16)) ) + ch
+    w := 0
+    readreg(widths, 1, @w)
+    return w
+
 PUB gauge(x, y, radius, opts, major, minor, val, range)
 ' Draw a gauge
     x := 0 #> x <# _disp_xmax
@@ -859,6 +883,23 @@ PUB set_base(radix)  'XXX rename to SetNumBase()?
     coproc_cmd(core.CMD_SETBASE)
     coproc_cmd(2 #> radix <# 36)
 
+PUB setup_font(mem_ptr, fnt_sz, fnt_ptr, fnt_nr, first_ch)
+' Upload and set up a custom font
+'   mem_ptr: pointer within EVE's memory where the font will be placed
+'       ($00_0000..$0f_ffff-size of .raw file)
+'   fnt_sz: size of font .raw file (this must fit in Propeller RAM alongside the application)
+'   fnt_ptr: pointer to font .raw file in RAM
+'   first_ch: first printable character in font (usually 32)
+'   NOTE: This requires an OpenType or TrueType font file converted to a .raw file,
+'       generated by Bridgetek's EVE Asset Builder using the Font Converter tab
+    writereg(mem_ptr, fnt_sz, fnt_ptr)
+    dl_start()
+        coproc_cmd(core.CMD_SETFONT2)
+        coproc_cmd(0 #> fnt_nr <# 31)
+        coproc_cmd(mem_ptr)
+        coproc_cmd(first_ch)
+    dl_end()
+
 PUB sleep()
 ' Power clock gate, PLL and oscillator off
 '   NOTE: Call Active() to wake up
@@ -907,15 +948,13 @@ PUB str(x, y, font, opts, ptr_str) | i, j   'XXX rename to StrXY() or similar an
 '       font: 0..31 XXX expand/clarify
 '       opts: Options for the drawn text XXX expand/clarify
 '       ptr_str: Pointer to string
-    x := 0 #> x <# _disp_xmax
-    y := 0 #> y <# _disp_ymax
     coproc_cmd(core.CMD_TEXT)
-    coproc_cmd((y << 16) + x)
+    coproc_cmd(( (0 #> y <# _disp_ymax) << 16) + (0 #> x <# _disp_xmax) )
     coproc_cmd((opts << 16) + font)
-    j := (strsize(ptr_str) + 4) / 4
+    j := (strsize(ptr_str) + 4) >> 2 { / 4 }
     repeat i from 1 to j
         coproc_cmd(byte[ptr_str][3] << 24 + byte[ptr_str][2] << 16 + {
-}       byte[ptr_str][1] << 8 + byte[ptr_str][0])
+}                  byte[ptr_str][1] << 8 + byte[ptr_str][0])
         ptr_str += 4
 
 PUB swizzle(mode): curr_mode
@@ -965,8 +1004,7 @@ PUB tag_area(tag_nr, sx, sy, w, h)
 
 PUB tag_attach(val)
 ' Attach tag value for the following objects drawn on the screen
-    val := 1 #> val <# 255
-    coproc_cmd(core.ATTACH_TAG | val)
+    coproc_cmd(core.ATTACH_TAG | (1 #> val <# 255) )
 
 PUB tag_ena(state)
 ' Enable numbered tags to be assigned to display regions
@@ -996,6 +1034,16 @@ PUB toggle(x, y, width, font, opts, state, ptr_str) | i, j
         coproc_cmd(byte[ptr_str][3] << 24 + byte[ptr_str][2] << 16 + {
 }       byte[ptr_str][1] << 8 + byte[ptr_str][0])
         ptr_str += 4
+
+PUB ts_rd_cal_matrix(ptr_buff)
+' Read the currently used touchscreen calibration matrix into MCU RAM
+'   ptr_buff: pointer to minimum 24-byte array to hold calibration matrix
+    readreg(core.TOUCH_TRANSFORM_A, 24, ptr_buff)
+
+PUB ts_wr_cal_matrix(ptr_buff)
+' Write the touchscreen calibration matrix to EVE
+'   ptr_buff: pointer to minimum 24-byte array containing a calibration matrix
+    writereg(core.TOUCH_TRANSFORM_A, 24, ptr_buff)
 
 PUB ts_cal()
 ' Calibrate the touchscreen
@@ -1156,37 +1204,31 @@ PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
     spi.rdblock_lsbf(ptr_buff, nr_bytes)
     pinh(_CS)
 
-PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
+PRI writereg(reg_nr, nr_bytes, ptr_buff)
 ' Write nr_bytes from ptr_buff to device
-    cmd_pkt.byte[0] := reg_nr.byte[2] | core.WRITE' %01 + reg_nr ..
-    cmd_pkt.byte[1] := reg_nr.byte[1]           ' .. address
-    cmd_pkt.byte[2] := reg_nr.byte[0]           ' ..
-
+    reg_nr.byte[2] |= core.WRITE
     pinl(_CS)
-    spi.wrblock_lsbf(@cmd_pkt, 3)
+    spi.wrblock_msbf(@reg_nr, 3)
     spi.wrblock_lsbf(ptr_buff, nr_bytes)
     pinh(_CS)
 
 DAT
 {
-TERMS OF USE: MIT License
+Copyright 2023 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 
