@@ -5,7 +5,7 @@
     Description: Demo of the BT81x driver touchscreen functionality (P2 version)
     Copyright (c) 2023
     Started Dec 31, 2020
-    Updated Jul 14, 2023
+    Updated Dec 30, 2023
     See end of file for terms of use.
     --------------------------------------------
 
@@ -19,8 +19,6 @@ CON
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
-
     SCK_FREQ    = 20_000_000                    ' max is 30_000_000
 
     BRIGHTNESS  = 100                           ' Initial brightness (0..128)
@@ -40,15 +38,15 @@ CON
 ' Uncomment one of the following, depending on your display size/resolution
 '   NOTE: WIDTH, HEIGHT, XMAX, YMAX, CENTERX, CENTERY symbols are defined
 '   in the display timings file.
-'#include "eve3-lcdtimings.800x480.spinh"
-#include "eve3-lcdtimings.480x272.spinh"
+#include "eve3-lcdtimings.800x480.spinh"
+'#include "eve3-lcdtimings.480x272.spinh"
 '#include "eve3-lcdtimings.320x240.spinh"
 '#include "eve3-lcdtimings.320x102.spinh"
 
 OBJ
 
     cfg:    "boardcfg.p2eval"
-    ser:    "com.serial.terminal.ansi"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
     flash:  "memory.flash.25xxxx"
     eve:    "display.lcd.bt81x" | CS=0, SCK=1, MOSI=2, MISO=3, RST=4, SPI_FREQ=20_000_000
 '   NOTE: Pull RST high (tip: tie to Propeller reset) and define as -1 if unused
@@ -63,6 +61,8 @@ PUB main() | count, idle, state, x, y, t1, t2, t3, t4
     eve.set_brightness(BRIGHTNESS)
     eve.clear_color(0, 0, 0)                    ' clear screen black
     eve.clear()
+    eve.ts_oversample_factor(15)                ' 0..15 (higher numbers give smoother response
+                                                '   but with more current draw)
 
     update_btn(0)                               ' set initial button state
     idle := TRUE
@@ -210,7 +210,7 @@ PRI ts_cal()
 
 PUB setup()
 
-    ser.start(SER_BAUD)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
     if ( eve.start(@_disp_setup) )
