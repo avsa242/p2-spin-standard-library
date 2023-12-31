@@ -804,20 +804,20 @@ PUB set_syncwd(ptr_syncwd) | addr_w
     writereg(core#TX_ADDR, 5, ptr_syncwd)
 
 PUB addr_width = syncwd_len
-PUB syncwd_len(bytes=-2): curr_width
+PUB syncwd_len(l=-2): curr_width
 ' Set length of syncword, in bytes
 '   Valid values: 3, 4, 5 (default: 5)
 '   Any other value polls the chip and returns the current setting
     curr_width := 0
     readreg(core.SETUP_AW, 1, @curr_width)
-    case bytes
+    case l
         3, 4, 5:
-            bytes -= 2                          ' adjust to bitfield value
+            l -= 2                              ' adjust to bitfield value
         other:
             return ((curr_width & core.AW_BITS) + 2)
 
-    bytes := ((curr_width & core.AW_MASK) | bytes)
-    writereg(core.SETUP_AW, 1, @bytes)
+    l := ((curr_width & core.AW_MASK) | l)
+    writereg(core.SETUP_AW, 1, @l)
 
 PUB test_cw(state=-2): curr_state
 ' Enable continuous carrier transmit (intended for testing only)
