@@ -6,7 +6,7 @@
         RX Mode (P2 version)
     Copyright (c) 2023
     Started Apr 30, 2020
-    Updated Jul 17, 2023
+    Updated Dec 31, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,7 +16,6 @@ CON
     _xtlfreq    = cfg#_xtlfreq
 
 ' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
     PKTLEN      = 32                            ' 1..32 (bytes)
     CHANNEL     = 2                             ' 0..125 (2.400..2.525GHz)
 ' --
@@ -26,7 +25,7 @@ CON
 OBJ
 
     cfg:    "boardcfg.p2eval"
-    ser:    "com.serial.terminal.ansi"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
     nrf24:  "wireless.transceiver.nrf24l01" | CE=0, CS=1, SCK=2, MOSI=3, MISO=4, SPI_FREQ=10_000_000
 
 VAR
@@ -106,8 +105,7 @@ PRI report(testtime, iterations) | rate_iterations, rate_bytes, rate_kbits
 
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
