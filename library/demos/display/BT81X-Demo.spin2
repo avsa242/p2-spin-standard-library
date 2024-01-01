@@ -3,9 +3,9 @@
     Filename: BT81X-Demo.spin2
     Author: Jesse Burt
     Description: Demo of the BT81x driver (P2 version)
-    Copyright (c) 2023
+    Copyright (c) 2024
     Started Dec 31, 2020
-    Updated Jul 14, 2023
+    Updated Jan 1, 2024
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,8 +16,6 @@ CON
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
-
     BRIGHTNESS  = 100                           ' Initial brightness (0..128)
 ' --
 
@@ -35,7 +33,7 @@ CON
 OBJ
 
     cfg:    "boardcfg.p2eval"
-    ser:    "com.serial.terminal.ansi"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
     eve:    "display.lcd.bt81x" | CS=0, SCK=1, MOSI=2, MISO=3, RST=4, SPI_FREQ=20_000_000
 '   NOTE: Pull RST high (tip: tie to Propeller reset) and define as -1 if unused
 
@@ -554,10 +552,10 @@ PUB fadeout(delay_ms) | i
 
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
     ser.clear()
     ser.strln(string("Serial terminal started"))
+
     if ( eve.start(@_disp_setup) )
         ser.strln(string("BT81x driver started"))
     else
@@ -566,7 +564,7 @@ PUB setup()
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -582,5 +580,5 @@ NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPO
 NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-SOFTWARE.
 }
+

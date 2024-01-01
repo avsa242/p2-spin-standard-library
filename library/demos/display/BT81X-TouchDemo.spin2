@@ -3,9 +3,9 @@
     Filename: BT81X-TouchDemo.spin2
     Author: Jesse Burt
     Description: Demo of the BT81x driver touchscreen functionality (P2 version)
-    Copyright (c) 2023
+    Copyright (c) 2024
     Started Dec 31, 2020
-    Updated Dec 30, 2023
+    Updated Jan 1, 2024
     See end of file for terms of use.
     --------------------------------------------
 
@@ -19,8 +19,6 @@ CON
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    SCK_FREQ    = 20_000_000                    ' max is 30_000_000
-
     BRIGHTNESS  = 100                           ' Initial brightness (0..128)
 
     { touchscreen calibration storage }
@@ -47,7 +45,7 @@ OBJ
 
     cfg:    "boardcfg.p2eval"
     ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
-    flash:  "memory.flash.25xxxx"
+    flash:  "memory.flash.25xxxx" | CS=61, SCK=60, MOSI=59, MISO=58, SPI_FREQ=10_000_000
     eve:    "display.lcd.bt81x" | CS=0, SCK=1, MOSI=2, MISO=3, RST=4, SPI_FREQ=20_000_000
 '   NOTE: Pull RST high (tip: tie to Propeller reset) and define as -1 if unused
 
@@ -97,22 +95,22 @@ PUB main() | count, idle, state, x, y, t1, t2, t3, t4
     update_tog(0, 0, 0, 0)                      ' set toggles' initial state
     repeat
         case state := eve.tag_active()          ' which toggle was touched?
-            1:                                  ' toggle .1
+            1:                                  ' toggle #1
                 if idle == TRUE
                     idle := FALSE
                     t1 ^= $FFFF                 ' flip all bits to change state
                     update_tog(t1, t2, t3, t4)
-            2:                                  ' toggle .2
+            2:                                  ' toggle #2
                 if idle == TRUE
                     idle := FALSE
                     t2 ^= $FFFF
                     update_tog(t1, t2, t3, t4)
-            3:                                  ' toggle .3
+            3:                                  ' toggle #3
                 if idle == TRUE
                     idle := FALSE
                     t3 ^= $FFFF
                     update_tog(t1, t2, t3, t4)
-            4:                                  ' toggle .4
+            4:                                  ' toggle #4
                 if idle == TRUE
                     idle := FALSE
                     t4 ^= $FFFF
@@ -142,7 +140,7 @@ PUB update_btn(state) | btn_cx, btn_cy
     eve.widget_fgcolor($55_55_55)               '
     if state                                    ' button pressed
         eve.color_rgb(255, 255, 255)            ' button text color (pressed)
-        eve.tag_attach(1)                       ' tag or id. for this button
+        eve.tag_attach(1)                       ' tag or id# for this button
         eve.button(btn_cx, btn_cy, 100, 50, 30, 0, @"TEST")
     else
         eve.color_rgb(0, 0, 192)                ' button text color (up)
@@ -213,13 +211,14 @@ PUB setup()
     ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
+
     if ( eve.start(@_disp_setup) )
         ser.strln(@"BT81x driver started")
     else
         ser.str(@"BT81x driver failed to start - halting")
         repeat
 
-    if ( flash.startx(cfg.FLASH_CS, cfg.FLASH_CLK, cfg.FLASH_DI, cfg.FLASH_DO, SCK_FREQ) )
+    if ( flash.start() )
         ser.strln(@"flash driver started")
         if ( ERASE_TS_CAL )
             erase_tscal()
@@ -249,7 +248,7 @@ PUB erase_tscal()
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
