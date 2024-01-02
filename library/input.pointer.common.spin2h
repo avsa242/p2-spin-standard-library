@@ -1,0 +1,97 @@
+{
+    --------------------------------------------
+    Filename: input.pointer.common.spin2h
+    Description: Code common to pointing input devices (P2 version)
+    Author: Jesse Burt
+    Copyright (c) 2024
+    Started: Jan 2, 2024
+    Updated: Jan 2, 2024
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+VAR
+
+    long _pointer_x, _pointer_y
+    long _pointer_x_max, _pointer_y_max, _pointer_x_min, _pointer_y_min
+    long _pointer_x_sens, _pointer_y_sens
+
+
+PUB abs_x(): x
+' Get the pointer absolute position, X-axis
+'   Returns: absolute X position (signed 32-bit)
+    return _pointer_x
+
+
+PUB abs_y(): y
+' Get the pointer absolute position, Y-axis
+'   Returns: absolute Y position (signed 32-bit)
+    return _pointer_y
+
+
+PUB set_abs_x(x)
+' Manually set pointer absolute position, X-axis
+    _pointer_x := x
+
+
+PUB set_abs_y(y)
+' Manually set pointer absolute position, Y-axis
+    _pointer_y := y
+
+
+PUB set_abs_x_max(x)
+' Set pointer absolute position X-axis maximum
+'   Valid values: negx to posx
+    _pointer_x_max := x
+
+
+PUB set_abs_y_max(y)
+' Set pointer absolute position Y-axis maximum
+'   Valid values: negx to posx
+    _pointer_y_max := y
+
+
+PUB set_abs_x_min(x)
+' Set pointer absolute position X-axis maximum
+'   Valid values: negx to posx
+    _pointer_x_min := x
+
+
+PUB set_abs_y_min(y)
+' Set pointer absolute position Y-axis maximum
+'   Valid values: negx to posx
+    _pointer_y_min := y
+
+
+PUB set_sensitivity_x(sx)
+' Set pointer sensitivity, X-axis
+'   Valid values: 1 (least sensitive) .. 8 (most sensitive)
+    _pointer_x_sens := 9-(1 #> sx <# 8)
+
+
+PUB set_sensitivity_y(sy)
+' Set pointer sensitivity, y-axis
+'   Valid values: 1 (least sensitive) .. 8 (most sensitive)
+    _pointer_y_sens := 9-(1 #> sy <# 8)
+
+
+DAT
+{
+Copyright 2024 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+
