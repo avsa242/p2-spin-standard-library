@@ -1,53 +1,49 @@
 {
     --------------------------------------------
-    Filename: SSD1331-MinimalDemo.spin2
-    Description: Demo of the SSD1331 driver (P2 version)
-        * minimal code example
+    Filename: HUB75-MinimalDemo.spin2
+    Description: Demo of the HUB75 driver (P2 version)
+        * Minimal code example
     Author: Jesse Burt
     Copyright (c) 2024
-    Started: May 28, 2022
-    Updated: Jan 3, 2024
+    Started: Jan 2, 2024
+    Updated: Jan 2, 2024
     See end of file for terms of use.
     --------------------------------------------
 }
 CON
 
-    _clkfreq    = 180_000_000
+    _clkfreq    = 160_000_000                   ' 180MHz+ may yield an unstable display
     _xtlfreq    = 20_000_000
+
 
 OBJ
 
     fnt:    "font.5x8"
-    disp:   "display.oled.ssd1331" | WIDTH=96, HEIGHT=64, CS=0, SCK=1, MOSI=2, DC=3, RST=4, ...
-                                    SPI_FREQ=10_000_000
+    disp:   "display.led.hub75" | WIDTH=64, HEIGHT=32, RGB_BASE=0, ADDR_BASE=6, ...
+                                    CLK=10, LAT=11, BL=12
+
 
 PUB main()
 
-    { start the driver }
     disp.start()
 
-    { configure the display with the minimum required setup:
-        1. Use a common settings preset for 96x# displays
-        2. Tell the driver the size of the font }
-    disp.preset_96x64()
-    disp.set_font(fnt.ptr(), fnt.setup())
-    disp.clear()
+    disp.bgcolor(0)                             ' set background color to black and
+    disp.clear()                                '   clear the screen
+
+    disp.set_font(fnt.ptr(), fnt.setup())       ' point the driver to the font
 
     { draw some text }
     disp.pos_xy(0, 0)
-    disp.fgcolor($ffff)
+    disp.fgcolor(1)                             ' set foreground color for drawing
     disp.strln(@"Testing 12345")
-    disp.show()                               ' send the buffer to the display
-
-    { draw one pixel at the center of the screen }
-    { disp.plot(x, y, color) }
-    disp.plot(disp.CENTERX, disp.CENTERY, $ffff)
-    disp.show()
 
     { draw a box at the screen edges }
-    { disp.box(x_start, y_start, x_end, y_end, color, filled) }
-    disp.box(0, 0, disp.XMAX, disp.YMAX, $ffff, false)
-    disp.show()
+    {   disp.box(x_start, y_start, x_end, y_end, color, filled) }
+    disp.box(0, 0, disp.XMAX, disp.YMAX, 3, false)
+
+    { draw one pixel at the center of the screen }
+    {   disp.plot(x, y, color) }
+    disp.plot(disp.CENTERX, disp.CENTERY, 7)
 
     repeat
 

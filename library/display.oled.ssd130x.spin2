@@ -3,9 +3,9 @@
     Filename: display.oled.ssd130x.spin2
     Description: Driver for Solomon Systech SSD130x OLED displays
     Author: Jesse Burt
-    Copyright (c) 2023
+    Copyright (c) 2024
     Created: Apr 26, 2018
-    Updated: Oct 6, 2023
+    Updated: Jan 2, 2024
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -21,34 +21,38 @@
 #endif
 CON
 
-    SLAVE_WR        = core.SLAVE_ADDR
-    SLAVE_RD        = core.SLAVE_ADDR|1
+    SLAVE_WR    = core.SLAVE_ADDR
+    SLAVE_RD    = core.SLAVE_ADDR|1
 
-    DEF_SCL         = 0
-    DEF_SDA         = 1
-    DEF_HZ          = 100_000
-    DEF_ADDR        = 0
-    MAX_COLOR       = 1
-    BYTESPERPX      = 1
+    DEF_SCL     = 0
+    DEF_SDA     = 1
+    DEF_HZ      = 100_000
+    DEF_ADDR    = 0
+    MAX_COLOR   = 1
+    BYTESPERPX  = 1
 
 ' States for D/C pin
-    DATA            = 1
-    CMD             = 0
+    DATA        = 1
+    CMD         = 0
 
 ' Display visibility modes
-    NORMAL          = 0
-    ALL_ON          = 1
-    INVERTED        = 2
+    NORMAL      = 0
+    ALL_ON      = 1
+    INVERTED    = 2
 
 ' Addressing modes
-    HORIZ           = 0
-    VERT            = 1
-    PAGE            = 2
+    HORIZ       = 0
+    VERT        = 1
+    PAGE        = 2
 
     { default I/O settings; these can be overridden in the parent object }
     { display dimensions }
     WIDTH       = 128
     HEIGHT      = 64
+    XMAX        = WIDTH-1
+    YMAX        = HEIGHT-1
+    CENTERX     = WIDTH/2
+    CENTERY     = HEIGHT/2
 
     { I2C }
     SCL         = DEF_SCL
@@ -127,7 +131,7 @@ PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, DISP_WID, DISP_HT, ptr_
 #elseifdef SSD130X_SPI
 PUB start(): status
 ' Start the driver using default I/O settings
-    return startx(CS, SCK, MOSI, DC, RST, SPI_FREQ, WIDTH, HEIGHT, @_fb)
+    return startx(CS, SCK, MOSI, DC, RST, SPI_FREQ, WIDTH, HEIGHT, @_framebuffer)
 
 PUB startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, SCK_HZ, WIDTH, HEIGHT, ptr_dispbuff): status
 ' Start the driver with custom I/O settings
@@ -674,7 +678,7 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2]
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

@@ -3,9 +3,9 @@
     Filename: display.epaper.il3897.spin2
     Author: Jesse Burt
     Description: Driver for IL3897/SSD1675 AM E-Paper display controller (P2 version)
-    Copyright (c) 2023
+    Copyright (c) 2024
     Started Apr 4, 2021
-    Updated Oct 6, 2023
+    Updated Jan 2, 2024
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -80,6 +80,10 @@ CON
     { display dimensions }
     WIDTH           = 128
     HEIGHT          = 296
+    XMAX            = WIDTH-1
+    YMAX            = HEIGHT-1
+    CENTERX         = WIDTH/2
+    CENTERY         = HEIGHT/2
 
     { SPI }
     CS              = 0
@@ -156,7 +160,7 @@ PUB defaults()
 ' Factory default settings
     reset()
 
-PUB preset_2_13_bw()
+PUB preset_2p13_bw()
 ' Presets for 2.13" BW E-ink panel, 122x250
     repeat until disp_rdy()
     reset()

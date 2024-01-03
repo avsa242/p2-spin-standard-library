@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: ST7735-MinimalDemo.spin2 (P2 version)
+    Filename: ST7735-MinimalDemo.spin
     Description: Graphics demo using minimal code
     Author: Jesse Burt
-    Copyright (c) 2023
+    Copyright (c) 2024
     Started: May 28, 2022
-    Updated: Aug 8, 2023
+    Updated: Jan 3, 2024
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,26 +19,32 @@ OBJ
     fnt:    "font.5x8"
     disp:   "display.lcd.st7735" | WIDTH=240, HEIGHT=240, CS=0, SCK=1, MOSI=2, DC=3, RST=4, ...
                                     SPI_FREQ=10_000_000
-{ SPI bus speed: may work at up to about 20MHz, but speeds over 13MHz
-    require a system clock of 240MHz or higher }
+    ' NOTE: Ensure the WIDTH, HEIGHT settings here match the display preset chosen below
 
 PUB main()
 
     { start the driver }
     disp.start()
 
+    { optionally uncomment the two lines below to draw directly to the display, instead of
+        using a display buffer }
+'#define GFX_DIRECT
+'#pragma exportdef(GFX_DIRECT)
+
     { configure the display with the minimum required setup }
     { Presets for ST7735R }
-'    disp.preset_adafruit_1p44_128x128_land_up{}
-'    disp.preset_adafruit_1p44_128x128_land_down{}
-'    disp.preset_adafruit_1p44_128x128_port_up{}
-'    disp.preset_adafruit_1p44_128x128_port_down{}
+'    disp.preset_adafruit_1p44_128x128_land_up()
+'    disp.preset_adafruit_1p44_128x128_land_down()
+'    disp.preset_adafruit_1p44_128x128_port_up()
+'    disp.preset_adafruit_1p44_128x128_port_down()
 
-    { Presets for ST7789VW (build with -DST7789 defined) }
-    disp.preset_adafruit_1p3_240x240_land_up{}
-'    disp.preset_adafruit_1p3_240x240_land_down{}
-'    disp.preset_adafruit_1p3_240x240_port_up{}
-'    disp.preset_adafruit_1p3_240x240_port_down{}
+    { Presets for ST7789VW (make sure the #define and #pragma lines below are uncommented) }
+'#define ST7789
+'#pragma exportdef(ST7789)
+    disp.preset_adafruit_1p3_240x240_land_up()
+'    disp.preset_adafruit_1p3_240x240_land_down()
+'    disp.preset_adafruit_1p3_240x240_port_up()
+'    disp.preset_adafruit_1p3_240x240_port_down()
 
     disp.set_font(fnt.ptr(), fnt.setup())
     disp.clear()
@@ -47,33 +53,20 @@ PUB main()
     disp.pos_xy(0, 0)
     disp.fgcolor($ffff)
     disp.strln(@"Testing 12345")
-    disp.show()                               ' send the buffer to the display
 
     { draw one pixel at the center of the screen }
-    { disp.plot(x, y, color) }
-    disp.plot(CENTERX, CENTERY, $ffff)
-    disp.show()
+    {   disp.plot(x, y, color) }
+    disp.plot(disp.CENTERX, disp.CENTERY, $ffff)
 
     { draw a box at the screen edges }
-    { disp.box(x_start, y_start, x_end, y_end, color, filled) }
-    disp.box(0, 0, XMAX, YMAX, $ffff, false)
-    disp.show()
+    {   disp.box(x_start, y_start, x_end, y_end, color, filled) }
+    disp.box(0, 0, disp.XMAX, disp.YMAX, $ffff, false)
 
     repeat
 
-CON
-
-    WIDTH       = disp.WIDTH
-    HEIGHT      = disp.HEIGHT
-    XMAX        = (WIDTH - 1)
-    YMAX        = (HEIGHT - 1)
-    CENTERX     = (WIDTH / 2)
-    CENTERY     = (HEIGHT / 2)
-
-
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

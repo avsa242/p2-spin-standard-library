@@ -1,12 +1,12 @@
 {
     --------------------------------------------
-    Filename: SSD1331-MinimalDemo.spin2
-    Description: Demo of the SSD1331 driver (P2 version)
+    Filename: Il3820-MinimalDemo.spin2
+    Description: Demo of the IL3820 driver (P2 version)
         * minimal code example
     Author: Jesse Burt
     Copyright (c) 2024
-    Started: May 28, 2022
-    Updated: Jan 3, 2024
+    Started: Jan 2, 2024
+    Updated: Jan 2, 2024
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,42 +15,44 @@ CON
     _clkfreq    = 180_000_000
     _xtlfreq    = 20_000_000
 
+
 OBJ
 
     fnt:    "font.5x8"
-    disp:   "display.oled.ssd1331" | WIDTH=96, HEIGHT=64, CS=0, SCK=1, MOSI=2, DC=3, RST=4, ...
-                                    SPI_FREQ=10_000_000
+    disp:   "display.epaper.il3820" |   WIDTH=128, HEIGHT=296, ...
+                                        CS=0, SCK=1, MOSI=2, DC=3, RST=4, BUSY=5
 
 PUB main()
 
-    { start the driver }
     disp.start()
 
-    { configure the display with the minimum required setup:
-        1. Use a common settings preset for 96x# displays
-        2. Tell the driver the size of the font }
-    disp.preset_96x64()
+    disp.preset_2p9_bw()                        ' Preset for 2.9" black & white
+
+    repeat until disp.disp_rdy()                ' wait for the e-paper display to be ready
+
     disp.set_font(fnt.ptr(), fnt.setup())
-    disp.clear()
+    disp.bgcolor(disp.WHITE)                    ' set background color to white
+    disp.clear()                                '   and clear the screen
 
     { draw some text }
     disp.pos_xy(0, 0)
-    disp.fgcolor($ffff)
+    disp.fgcolor(disp.BLACK)                    ' set foreground color to black
     disp.strln(@"Testing 12345")
-    disp.show()                               ' send the buffer to the display
 
     { draw one pixel at the center of the screen }
     { disp.plot(x, y, color) }
-    disp.plot(disp.CENTERX, disp.CENTERY, $ffff)
-    disp.show()
+    disp.plot(disp.CENTERX, disp.CENTERY, 1)
 
     { draw a box at the screen edges }
     { disp.box(x_start, y_start, x_end, y_end, color, filled) }
-    disp.box(0, 0, disp.XMAX, disp.YMAX, $ffff, false)
+    disp.box(0, 0, disp.XMAX, disp.YMAX, 1, false)
+
+    { The display is actually "drawn" to a buffer in P2 RAM. Once you've completed all
+        the drawing operations you want for the frame you're displaying, you must tell
+        the driver to send the buffer to the display with show(): }
     disp.show()
 
     repeat
-
 
 DAT
 {

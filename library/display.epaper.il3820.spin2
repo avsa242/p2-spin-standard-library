@@ -3,9 +3,9 @@
     Filename: display.epaper.il3820.spin2
     Author: Jesse Burt
     Description: Driver for the IL3820 electrophoretic display controller (P2 version)
-    Copyright (c) 2023
+    Copyright (c) 2024
     Started Nov 30, 2019
-    Updated Oct 6, 2023
+    Updated Jan 2, 2024
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -83,6 +83,10 @@ CON
     { display dimensions }
     WIDTH           = 128
     HEIGHT          = 296
+    XMAX            = WIDTH-1
+    YMAX            = HEIGHT-1
+    CENTERX         = WIDTH/2
+    CENTERY         = HEIGHT/2
 
     { SPI }
     CS              = 0

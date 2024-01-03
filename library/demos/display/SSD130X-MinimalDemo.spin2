@@ -3,9 +3,9 @@
     Filename: SSD130X-MinimalDemo.spin2
     Description: Graphics demo using minimal code (P2 version)
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2024
     Started: May 28, 2022
-    Updated: Nov 1, 2022
+    Updated: Jan 2, 2024
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,89 +14,56 @@ CON
     _clkfreq    = 180_000_000
     _xtlfreq    = 20_000_000
 
-' -- User-modifiable constants:
-    { display size, in pixels }
-    WIDTH       = 128
-    HEIGHT      = 64
-
-    { I2C-connected displays }
-    SCL_PIN     = 1
-    SDA_PIN     = 2
-    ADDR_BITS   = 0
-    SCL_FREQ    = 400_000
-
-    { SPI-connected displays }
-    CS_PIN      = 0
-    SCK_PIN     = 1
-    MOSI_PIN    = 2
-    DC_PIN      = 3
-    SCK_FREQ    = 10_000_000
-
-    { reset pin (must be driven either by an I/O pin or other external signal,
-    such as the Propeller's reset pin) }
-    RES_PIN     = 4
-' --
-
-    BUFFSZ      = (WIDTH * HEIGHT) / 8
-    XMAX        = (WIDTH - 1)
-    YMAX        = (HEIGHT - 1)
-    CENTERX     = (WIDTH / 2)
-    CENTERY     = (HEIGHT / 2)
 
 OBJ
 
-    fnt     : "font.5x8"
-    disp    : "display.oled.ssd130x"
+    fnt:    "font.5x8"
+    disp:   "display.oled.ssd130x" | WIDTH=128, HEIGHT=64, ...
+                                    {I2C} SCL=28, SDA=29, I2C_ADDR=0, I2C_FREQ=400_000, ...
+                                    {SPI} CS=0, SCK=1, MOSI=2, DC=3, RST=4, SPI_FREQ=10_000_000
 
-VAR
-
-    { memory for the display buffer }
-    byte _framebuff[BUFFSZ]
 
 PUB main()
 
-    { start the driver - define the preprocessor symbol appropriate to the display's interface 
-    and also which specific display controller is used: SSD1306 or SSD1309
-    SSD130X_I2C, SSD130X_SPI
-    SSD1306, SSD1309 }
+    { Uncomment one or both pairs of the below if applicable.
+        The driver defaults to I2C, SSD1306 model if nothing is specified }
+'#define SSD130X_SPI                             { SPI-connected displays }
+'#pragma exportdef(SSD130X_SPI)
 
-#ifdef SSD130X_I2C
-    if disp.startx(SCL_PIN, SDA_PIN, RES_PIN, SCL_FREQ, ADDR_BITS, WIDTH, HEIGHT, @_framebuff)
-#elseifdef SSD130X_SPI
-    disp.startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, SCK_FREQ, WIDTH, HEIGHT, @_framebuff)
-#endif
+'#define SSD1309                                { SSD1309 models only }
+'#pragma exportdef(SSD1309)
+
+    disp.start()
 
     { configure the display with the minimum required setup:
-        1. Use a common settings preset for 128x. displays
-        2. Tell the driver the size of the font }
+        1. Use a common settings preset for 128x# displays
+        2. Tell the driver where to find the font setup }
     disp.preset_128x()
-    disp.font_spacing(1, 1)
-    disp.font_scl(1)
-    disp.font_sz(fnt.WIDTH, fnt.HEIGHT)
-    disp.font_addr(fnt.ptr())
+    disp.set_font(fnt.ptr(), fnt.setup())
     disp.clear()
 
     { draw some text }
-    disp.position(0, 0)
+    disp.pos_xy(0, 0)
     disp.fgcolor(1)
-    disp.strln(string("Testing 12345"))
-    disp.show()                               ' send the buffer to the display
+    disp.strln(@"Testing 12345")
+    disp.show()                                 ' send the buffer to the display
+                                                ' (ignored if GFX_DIRECT is #defined)
 
     { draw one pixel at the center of the screen }
-    { disp.plot(x, y, color) }
-    disp.plot(CENTERX, CENTERY, 1)
+    {   disp.plot(x, y, color) }
+    disp.plot(disp.CENTERX, disp.CENTERY, 1)
     disp.show()
 
     { draw a box at the screen edges }
-    { disp.box(x_start, y_start, x_end, y_end, color, filled) }
-    disp.box(0, 0, XMAX, YMAX, 1, false)
+    {   disp.box(x_start, y_start, x_end, y_end, color, filled) }
+    disp.box(0, 0, disp.XMAX, disp.YMAX, 1, false)
     disp.show()
 
     repeat
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
