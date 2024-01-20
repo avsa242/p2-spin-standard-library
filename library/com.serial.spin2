@@ -3,9 +3,9 @@
     Filename: com.serial.spin2
     Author: Jesse Burt
     Description: Low-level UART serial driver
-    Copyright (c) 2023
+    Copyright (c) 2024
     Started Jun 28, 2019
-    Updated Nov 12, 2023
+    Updated Jan 20, 2024
     See end of file for terms of use.
     --------------------------------------------
 
@@ -16,22 +16,41 @@
 CON
 
     { I/O configuration - these can be overridden by the parent object }
-    RX_PIN          = 63
-    TX_PIN          = 62
-    SER_BAUD        = 2_000_000
+    RX_PIN      = 63
+    TX_PIN      = 62
+    SER_BAUD    = 2_000_000
 
 
-    WORDLEN         = 8-1                       ' serial word length, in bits-1
+    { TX/RX buffers size (_must_ be a power of 2) }
+#ifndef TXBUFF_SZ
+    TXBUFF_SZ   = 64
+#endif
+#ifndef RXBUFF_SZ
+    RXBUFF_SZ   = 64
+#endif
+
 
 VAR
 
     long _rx_pin, _tx_pin
+    long _buff_cog
+
+
+OBJ
+
+    { ring buffers }
+    txbuff: "memory.ring-buffer" | RBUFF_SZ=TXBUFF_SZ
+    rxbuff: "memory.ring-buffer" | RBUFF_SZ=RXBUFF_SZ
+
 
 PUB start = init_def
 PUB init_def(): status
 ' Start using P2 default serial pins
     return init(RX_PIN, TX_PIN, 0, SER_BAUD)
 
+
+
+con WORDLEN         = 8-1                       ' serial word length, in bits-1
 PUB startrxtx = init
 PUB init(rxpin, txpin, mode, bps=-1): status | bitperiod, bit_mode
 ' Start using custom I/O pins and configuration
@@ -39,8 +58,8 @@ PUB init(rxpin, txpin, mode, bps=-1): status | bitperiod, bit_mode
 '   txpin: transmit pin
 '   mode: unused; currently for compatibility only
 '   bps: bits per second/baud (-1 to attempt auto-baud)
-    if (bps == -1)
-        bitperiod := autobaud(rxpin)
+    if ( bps == -1 )
+        bitperiod := autobaud(rxpin)            ' try to detect link speed if unspecified
     else
         bitperiod := (clkfreq / bps)
 
@@ -49,19 +68,77 @@ PUB init(rxpin, txpin, mode, bps=-1): status | bitperiod, bit_mode
 
     bit_mode := ((bitperiod << 16) + WORDLEN)
 
-    if (lookdown(txpin: 0..63))
+    { start a buffer I/O manager in a new cog if buffered I/O is requested at build time,
+        otherwise just return the parent cog ID+1 }
+#ifdef BUFFERED_IO
+    return _buff_cog := ( cogspin(  NEWCOG, ...
+                                    cog_buffered_io(txpin, rxpin, bit_mode), ...
+                                    @_buffer_stack) + 1 )
+#else
+    if ( lookdown(txpin: 0..63) )
         pinf(txpin)
-        wrpin(txpin, P_ASYNC_TX | P_OE)
+        wrpin(txpin, (P_ASYNC_TX | P_OE) )      ' async serial TX mode, enable output
         wxpin(txpin, bit_mode)
         pinl(txpin)
 
-    if (lookdown(rxpin: 0..63))
+    if ( lookdown(rxpin: 0..63) )
         pinf(rxpin)
-        wrpin(rxpin, P_ASYNC_RX)
+        wrpin(rxpin, P_ASYNC_RX)                ' async serial RX mode
         wxpin(rxpin, bit_mode)
         pinl(rxpin)
 
     return (cogid() + 1)
+#endif
+
+
+#ifdef BUFFERED_IO
+
+PUB flush_rx()
+' Flush receive buffer
+    rxbuff.flush()
+
+
+PUB flush_tx()
+' Flush transmit buffer
+    txbuff.flush()
+
+
+PUB rx = getchar
+PUB charin = getchar
+PUB getchar(): ch
+' Receive a single byte (blocking)
+'   Returns: $00..$FF
+    repeat
+        ch := rxbuff.getchar()
+    while ( ch == -1)
+
+
+PUB rxcheck = getchar_noblock
+PUB rx_check = getchar_noblock
+PUB getchar_noblock(): ch
+' Check if byte received (non-blocking)
+'   Returns:
+'       -1 if no byte, otherwise byte
+    return rxbuff.getchar()
+
+
+PUB tx = putchar
+PUB char = putchar
+PUB putchar(ch): s
+' Send single-byte character (blocking)
+'   ch: character (ASCII byte value) to send
+    repeat
+        s := txbuff.putchar(ch)
+    while ( s == -1 )                           ' keep trying until there's space in the TX buffer
+
+
+PUB putchar_noblock(ch): s
+' Send single-byte character (non-blocking)
+'   ch: character (ASCII byte value) to send
+    return txbuff.putchar(ch)
+
+
+#else
 
 PUB tx = putchar
 PUB char = putchar
@@ -69,7 +146,7 @@ PUB putchar(ch)
 ' Send single-byte character (blocking)
 '   ch: character (ASCII byte value) to send
     wypin(_tx_pin, ch)
-    tx_flush()
+    flush_tx()
 
 PUB rx = getchar
 PUB charin = getchar
@@ -80,23 +157,48 @@ PUB getchar(): ch
         ch := rx_check()
     while (ch == -1)
 
-PUB rxcheck = rx_check
-PUB rx_check(): rxbyte
+PUB rxcheck = getchar_noblock
+PUB rx_check = getchar_noblock
+PUB getchar_noblock(): ch
 ' Check if byte received (non-blocking)
 '   Returns:
 '       -1 if no byte, otherwise byte
-    rxbyte := -1
-    if pinr(_rx_pin)
+    ch := -1
+    if ( pinr(_rx_pin) )
         return (rdpin(_rx_pin) >> 24)
 
-PUB tx_flush()
+PUB flush_tx()
 ' Flush transmit buffer
     repeat until pinr(_tx_pin)
 
+#endif
+
+VAR long _buffer_stack[50]
+PUB cog_buffered_io(txpin, rxpin, bit_mode)
+
+    if ( lookdown(txpin: 0..63) )
+        pinf(txpin)
+        wrpin(txpin, (P_ASYNC_TX | P_OE) )      ' async serial TX mode, enable output
+        wxpin(txpin, bit_mode)
+        pinl(txpin)
+
+    if ( lookdown(rxpin: 0..63) )
+        pinf(rxpin)
+        wrpin(rxpin, P_ASYNC_RX)                ' async serial RX mode
+        wxpin(rxpin, bit_mode)
+        pinl(rxpin)
+
+    repeat
+        if ( pinr(_rx_pin) )                    ' if there's a char waiting, buffer it
+            rxbuff.putchar( rdpin(_rx_pin) >> 24 )
+        if ( txbuff.available() )               ' if there's a char waiting, send it
+            wypin(_tx_pin, txbuff.getchar() )
+            repeat until pinr(_tx_pin)          ' wait for data to be flushed
+
 PRI autobaud(pin): bitperiod | a, b, c, port, mask
 
-    pinf(pin)                                               ' set pin as input
-    waitx(1000)                                             ' wait to settle
+    pinf(pin)                                   ' set pin as input
+    waitx(1000)                                 ' wait to settle
     if pin >= 32
         port := 1
         mask := 1 << (pin-32)
