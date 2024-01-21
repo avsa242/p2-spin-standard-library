@@ -1,14 +1,12 @@
 {
-    --------------------------------------------
-    Filename: Serial-Logwindow.spin2
-    Author: Jesse Burt
-    Description: Display a scrolling text/logging
-        "window" on the serial terminal
-    Copyright (c) 2024
-    Started Oct 25, 2020
-    Updated Jan 21, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       Serial-Logwindow.spin2
+    Description:    Display a scrolling text/logging "window" on the serial terminal
+    Author:         Jesse Burt
+    Started:        Oct 25, 2020
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 CON
