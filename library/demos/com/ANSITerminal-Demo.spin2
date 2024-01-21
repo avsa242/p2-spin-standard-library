@@ -3,9 +3,9 @@
     Filename: ANSITerminal-Demo.spin2
     Description: Demo of the ANSI serial terminal driver
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2024
     Created: Jun 18, 2019
-    Updated: Oct 29, 2022
+    Updated: Jan 21, 2024
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,15 +15,12 @@ CON
     _xtlfreq    = cfg._xtlfreq
     _clkfreq    = cfg._clkfreq_def
 
-' -- User-modifiable constants
-    LED         = cfg.LED1
-    SER_BAUD    = 2_000_000
-' --
 
 OBJ
 
-    ser         : "com.serial.terminal.ansi"
-    cfg         : "boardcfg.p2eval"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+
 
 PUB main() | fg, bg
 
@@ -102,23 +99,27 @@ PUB main() | fg, bg
         waitms(500)
 
     ser.newline()
+    ser.reset()
     repeat
+
 
 PUB demo_text(inp_text)
 
     ser.printf(@"This is %s text\n\r", inp_text)
     ser.reset()
 
+
 PUB setup()
 
-    ser.start(SER_BAUD)
+    ser.start()
     ser.reset()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

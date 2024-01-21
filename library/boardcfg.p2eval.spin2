@@ -5,18 +5,18 @@
     Description: Board configuration for Parallax P2EVAL
         Includes constants for IO Pins for onboard peripherals
         Parallax #64000-ES
-    Copyright (c) 2022
+    Copyright (c) 2024
     Started Jun 15, 2019
-    Updated Oct 16, 2022
+    Updated Jan 21, 2024
     See end of file for terms of use.
     --------------------------------------------
 }
-#include "p2x8c4m64p.common.spin2h"
 
 CON
     { --- clock settings --- }
     _xtlfreq    = 20_000_000
     _clkfreq_def= 180_000_000
+
 
     { --- pin definitions --- }
     { 8x blue LEDs }
@@ -41,9 +41,15 @@ CON
     FLASH_CLK   = 60
     FLASH_CS    = 61
 
+    { async serial }
+    SER_RX      = 63
+    SER_TX      = 62
+    SER_BAUD    = 2_000_000
+
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
