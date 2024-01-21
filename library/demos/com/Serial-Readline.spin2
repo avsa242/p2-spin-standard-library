@@ -1,17 +1,16 @@
 {
-    --------------------------------------------
-    Filename: Serial-Readline.spin
-    Description: Read a line (of maximum length set by the user) from the
+---------------------------------------------------------------------------------------------------
+    Filename:       Serial-Readline.spin2
+    Description:    Read a line (of maximum length set by the user) from the
         serial terminal and display it
-    Author: Jesse Burt
-    Copyright (c) 2024
-    Started Jan 9, 2016
-    Updated Jan 21, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+    Author:         Jesse Burt
+    Started:        Jan 6, 2016
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     NOTE: This is based on LoopBack.spin,
-        originally written by Brett Weir
+        originally written by Brett Weir.
 }
 
 CON
