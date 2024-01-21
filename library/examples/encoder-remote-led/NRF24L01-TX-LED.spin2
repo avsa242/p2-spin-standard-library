@@ -1,17 +1,18 @@
 {
-    --------------------------------------------
-    Filename: NRF24L01-TX-LED.spin2
-    Author: Jesse Burt
-    Description: Wireless control of a Smart LED (transmitter)
-        Uses:
-        * nRF24L01+
-        * Quadrature encoder
-    Copyright (c) 2022
-    Started Aug 29, 2022
-    Updated Nov 13, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       NRF24L01-TX-LED.spin2
+    Description:    Wireless control of a Smart LED (transmitter)
+    Author:         Jesse Burt
+    Started:        Aug 29, 2022
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
+
+    Additional devices required:
+    * nRF24L01+
+    * Quadrature encoder
 }
+
 
 CON
 
@@ -19,31 +20,22 @@ CON
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    LED         = cfg.LED1
-    SER_BAUD    = 2_000_000
-
-    { SPI configuration - nRF24L01+ }
-    CE_PIN      = 20
-    CS_PIN      = 21
-    SCK_PIN     = 18
-    MOSI_PIN    = 16                            ' MOSI and MISO must be within
-    MISO_PIN    = 17                            '   3 pins +/- of SCK
-    SCK_FREQ    = 10_000_000                    ' 10_000_000 max
-
-    { encoder basepin (uses 2 consecutive pins) }
-    ENC_BASEPIN = 1
+    ENC_BASEPIN = 1                             ' encoder base pin (uses 2 consecutive pins)
 ' --
 
 OBJ
 
-    ser     : "com.serial.terminal.ansi"
-    cfg     : "boardcfg.p2eval"
-    nrf24   : "wireless.transceiver.nrf24l01"
-    encoder : "input.encoder.quadrature"
+    cfg:        "boardcfg.p2eval"
+    ser:        "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    nrf24:      "wireless.transceiver.nrf24l01"| CE=0, CS=1, SCK=2, MOSI=3, MISO=4, ...
+                                                SPI_FREQ=10_000_000
+    encoder:    "input.encoder.quadrature"
+
 
 VAR
 
     long _encoders[2]                           ' [0]: position + [1]: delta
+
 
 PUB main() | delta
 
@@ -62,7 +54,7 @@ PUB main() | delta
 
     ser.clear()
     ser.position(0, 0)
-    ser.printf(string("Transmit mode (channel %d)\n\r"), nrf24.channel(-2))
+    ser.printf(@"Transmit mode (channel %d)\n\r", nrf24.channel())
 
     repeat
         repeat
@@ -71,31 +63,32 @@ PUB main() | delta
         ser.printf(@"delta: %d\n\r", delta)
         nrf24.tx_payld(4, @delta)
 
+
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(20)
+    ser.start()
     ser.clear()
 
-    if (nrf24.startx(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN))
-        ser.strln(string("nRF24L01+ driver started"))
+    if ( nrf24.start() )
+        ser.strln(@"nRF24L01+ driver started")
         nrf24.preset_tx2m_noaa()                ' 2Mbps, no Auto-Ack
         nrf24.crc_check_ena(true)
         nrf24.crc_len(2)
         nrf24.payld_len(4)
     else
-        ser.strln(string("nRF24L01+ driver failed to start - halting"))
+        ser.strln(@"nRF24L01+ driver failed to start - halting")
         repeat
 
-    if (encoder.startx(ENC_BASEPIN, 1, clkfreq/10_000_000))
+    if ( encoder.startx(ENC_BASEPIN, 1, clkfreq/10_000_000) )
         ser.strln(@"Quadrature encoder driver started")
     else
         ser.strln(@"Quadrature encoder driver failed to start - halting")
         repeat
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

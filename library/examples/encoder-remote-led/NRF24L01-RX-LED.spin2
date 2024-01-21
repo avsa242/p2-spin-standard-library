@@ -1,16 +1,16 @@
 {
-    --------------------------------------------
-    Filename: NRF24L01-RX-LED.spin2
-    Author: Jesse Burt
-    Description: Wireless control of a Smart LED (receiver)
-        Uses:
-        * nRF24L01+
-        * 1x Smart LED (NeoPixel)
-    Copyright (c) 2022
-    Started Aug 29, 2022
-    Updated Nov 13, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       NRF24L01-RX-LED.spin2
+    Description:    Wireless control of a Smart LED (receiver)
+    Author:         Jesse Burt
+    Started:        Jan 6, 2016
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
+
+    Additional devices required:
+    * nRF24L01+
+    * 1x Smart LED (aka NeoPixel; can be any model supported by display.led.smart.spin2)
 }
 
 CON
@@ -19,20 +19,6 @@ CON
     _xtlfreq    = cfg#_xtlfreq
 
 ' -- User-modifiable constants
-    LED1        = cfg.LED1
-    SER_BAUD    = 2_000_000
-
-    { SPI configuration - nRF24L01+ }
-    CE_PIN      = 20
-    CS_PIN      = 21
-    SCK_PIN     = 18
-    MOSI_PIN    = 16                            ' MOSI and MISO must be within
-    MISO_PIN    = 17                            '   3 pins +/- of SCK
-    SCK_FREQ    = 10_000_000                    ' 10_000_000 max
-
-    { Smart LED configuration }
-    LED_PIN     = 8
-    LED_MODEL   = led.WS2812
     COLOR       = RED                           ' choose from below
 ' --
 
@@ -41,16 +27,20 @@ CON
     BLUE        = 8
     WHITE       = 0                             ' not all models have this
 
+
 OBJ
 
-    ser  : "com.serial.terminal.ansi"
-    cfg  : "boardcfg.p2eval"
-    nrf24: "wireless.transceiver.nrf24l01"
-    led  : "display.led.smart"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    nrf24:  "wireless.transceiver.nrf24l01" | CE=0, CS=1, SCK=2, MOSI=3, MISO=4, ...
+                                                SPI_FREQ=10_000_000
+    led:    "display.led.smart" | LED_PIN=5, MODEL=$2812
+
 
 VAR
 
     long _led
+
 
 PUB main() | bright, last, payload
 
@@ -87,14 +77,15 @@ PUB main() | bright, last, payload
             led.show()
 
         { clear interrupt and receive buffer for next loop }
-        nrf24.int_clear(nrf24.PAYLD_RDY)
+        nrf24.int_clear(nrf24.INT_PAYLD_RDY)
         nrf24.flush_rx()
+
 
 PUB setup()
 
-    ser.start(SER_BAUD)
+    ser.start()
     ser.clear()
-    if nrf24.startx(CE_PIN, CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
+    if ( nrf24.start() )
         ser.strln(@"nRF24L01+ driver started")
         nrf24.preset_rx2m_noaa()                ' 2Mbps, No Auto-Ack
         nrf24.crc_check_ena(true)
@@ -104,13 +95,14 @@ PUB setup()
         ser.strln(@"nRF24L01+ driver failed to start - halting")
         repeat
 
-    led.startx(LED_PIN, 1, 1, LED_MODEL, @_led)
+    led.start()
     led.clear()
     led.show()
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
