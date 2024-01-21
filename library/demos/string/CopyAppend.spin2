@@ -1,46 +1,79 @@
+{
+---------------------------------------------------------------------------------------------------
+    Filename:       CopyAppend.spin2
+    Description:    Demo of the string object copy() and append() functions
+    Author:         Jesse Burt
+    Started:        Jan 6, 2016
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
+
+    NOTE: This is based on CopyAppend.spin,
+        originally written by Brett Weir.
+}
+
 CON
 
-     _xtlfreq   = cfg._xtlfreq
-     _clkfreq   = cfg._clkfreq_def
+    _clkfreq    = 180_000_000
+    _xtlfreq    = 20_000_000
 
-' -- User-modifiable constants
-    LED         = cfg#LED1
-    SER_RX      = cfg#SER_RX
-    SER_TX      = cfg#SER_TX
-    SER_BAUD    = 2_000_000
-' --
 
 OBJ
 
-    cfg  : "boardcfg.p2eval"
-    term : "com.serial.terminal"
-    str  : "string"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    str:    "string"
+
 
 VAR
 
-    byte    str1[32]
+    byte _str[32]                               ' buffer to hold the string
 
-PUB Main()
 
-    term.start (SER_BAUD)
+PUB main()
 
-    str.copy  (@str1, string("BACON"))
-    term.str  (@str1)
-    term.newline()
+    ser.start()
+    ser.clear()
 
-    str.append(@str1, string(" AND"))
-    term.str  (@str1)
-    term.newline()
+    str.copy(@_str, @"BACON")
+    ser.str(@_str)
+    ser.newline()
 
-    str.append(@str1, string(" CHICKEN"))
-    term.str  (@str1)
-    term.newline()
+    str.append(@_str, @" AND")
+    ser.str(@_str)
+    ser.newline()
 
-    str.append(@str1, string(" IS"))
-    term.str  (@str1)
-    term.newline()
+    str.append(@_str, @" CHICKEN")
+    ser.str(@_str)
+    ser.newline()
 
-    str.append(@str1, string(" GOOD"))
-    term.str  (@str1)
+    str.append(@_str, @" IS")
+    ser.str(@_str)
+    ser.newline()
+
+    str.append(@_str, @" GOOD")
+    ser.str(@_str)
+
     repeat
+
+
+DAT
+{
+Copyright 2024 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+}
 

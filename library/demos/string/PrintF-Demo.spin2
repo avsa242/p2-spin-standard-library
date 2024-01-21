@@ -1,40 +1,44 @@
 {
-    --------------------------------------------
-    Filename: PrintF-Demo.spin2
-    Description: Demonstrate the functionality of
-        the (s)printf() method variants
-    Author: Jesse Burt
-    Copyright (c) 2020
-    Started Nov 9, 2020
-    Updated Oct 29, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       PrintF-Demo.spin2
+    Description:    Demo of the (s)printf() method variants
+    Author:         Jesse Burt
+    Started:        Nov 9, 2020
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
 CON
 
-    _clkfreq    = cfg#_clkfreq_def
-    _xtlfreq    = cfg#_xtlfreq
-
-' -- User-modifiable constants
-    LED         = cfg#LED1
-    SER_BAUD    = 2_000_000
+    _clkfreq    = 180_000_000
+    _xtlfreq    = 20_000_000
 
     BUFFSZ      = 200                           ' maximum buffer size, in bytes
-' --
+
 
 OBJ
 
-    cfg : "boardcfg.p2eval"
-    ser : "com.serial.terminal.ansi"
-    str : "string"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    str:    "string"
+
 
 VAR
 
     byte _buff[BUFFSZ]
 
+
 PUB main() | sz, format, str1, str2
 
-    setup{}
+    setup()
+
+'   (s)printf() are convenient methods for displaying formatted strings/text to a
+'       buffer (sprintf) or a display of some sort (printf)
+'   A string is passed to define the basic format or layout of the final output
+'   It can be as simple as one character or a string (e.g.,: printf(@"A"), printf(@"some text") )
+'       or it can include placeholders for values stored in variables
+'       (e.g.,: printf(@"Contents of varible a = %d", a) would replace '%d' with the value
+'           currently stored in the variable 'a')
 
 '   printf() is embedded in a string library, used by most display/terminal output device drivers,
 '       (serial, vga, oled, lcd, etc), so can be used directly through the respective drivers,
@@ -78,8 +82,8 @@ PUB main() | sz, format, str1, str2
     ser.pos_xy(0, 0)
 
     ' You can specify the format inline:
-    ser.printf(@"Test literal: %%  char: %c  dec: %d  hex: %x  str: %s  str: %s\n\r",{
-}   "A", -1000, $DEADBEEF, str1, str2)
+    ser.printf( @"Test literal: %%  char: %c  dec: %d  hex: %x  str: %s  str: %s\n\r", ...
+                "A", -1000, $DEADBEEF, str1, str2)
 
     '   or use a pre-defined format:
     ser.printf(format, "A", -1000, $DEADBEEF, str1, str2)
@@ -99,15 +103,17 @@ PUB main() | sz, format, str1, str2
 
     repeat
 
+
 PUB setup()
 
-    ser.start(SER_BAUD)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

@@ -1,62 +1,64 @@
 {
-    --------------------------------------------
-    Filename: LeftMidRight.spin2
-    Author: Brett Weir
-    Modified by: Jesse Burt
-    Description: Demo of the Left(), Mid() and Right()
-        functions from the string object
-    Started Jan 5, 2016
-    Updated Sep 5, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       LeftMidRight.spin2
+    Description:    Demo of the string object left(), mid() and right() functions
+    Author:         Jesse Burt
+    Started:        Jan 5, 2016
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
+
+    NOTE: This is based on LeftMidRight.spin,
+        originally written by Brett Weir.
 }
 
 CON
 
-    _xtlfreq   = cfg._xtlfreq
-    _clkfreq   = cfg._clkfreq_def
+    _clkfreq    = 180_000_000
+    _xtlfreq    = 20_000_000
 
-' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
-' --
 
 OBJ
 
-    cfg  : "boardcfg.p2eval"
-    term : "com.serial.terminal.ansi"
-    str  : "string"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    str:    "string"
+
 
 VAR
 
-    byte _str_temp[20]
+    byte _str[20]                               ' buffer to hold the string
 
-PUB Main()
 
-    term.start(SER_BAUD)
-    term.clear()
+PUB main() | n, s
 
-    term.str(str.left(@dinosaur, 4))
-    term.newline()
+    ser.start()
+    ser.clear()
 
-    term.str(str.mid(@dinosaur, 5, 9))
-    term.newline()
+    n := 4
+    ser.strln(str.left(@dinosaur, n))           ' get and show the leftmost n chars from a string
 
-    term.str(str.right(@dinosaur, 6))
-    term.newline()
+    s := 5
+    n := 9
+    ser.strln(str.mid(@dinosaur, s, n))         ' get and show n chars starting from s
 
-    str.copy(@_str_temp, str.left(@dinosaur, 2))
-    str.append(@_str_temp, str.right(@dinosaur, 6))
-    term.str(@_str_temp)
-    term.newline()
+    n := 6
+    ser.strln(str.right(@dinosaur, n))          ' get and show the rightmost n chars
+
+    str.copy(@_str, str.left(@dinosaur, 2))     ' make a new string from the leftmost n chars
+    str.append(@_str, str.right(@dinosaur, 6))  '   and the rightmost 6 chars
+    ser.strln(@_str)
 
     repeat
+
 
 DAT
 
 dinosaur    byte    "dass pineapplesaurus",0
 
+
+DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
