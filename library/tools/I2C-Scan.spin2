@@ -1,39 +1,38 @@
 {
-    --------------------------------------------
-    Filename: I2C-Scan.spin2
-    Author: Jesse Burt
-    Description: Utility to scan for active devices on an I2C bus
-    Copyright (c) 2022
-    Started Jun 17, 2019
-    Updated Nov 1, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       I2C-Scan.spin2
+    Description:    Utility to scan for active devices on an I2C bus
+    Author:         Jesse Burt
+    Started:        Jun 17, 2019
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 CON
 
-    _xtlfreq   = cfg._xtlfreq
-    _clkfreq   = cfg._clkfreq_def
+    _clkfreq    = 180_000_000
+    _xtlfreq    = 20_000_000
+
 
 ' -- User-modifiable constants
-    LED         = cfg.LED1
-    SER_BAUD    = 2_000_000
-
     I2C_SCL     = 0
     I2C_SDA     = 1
     I2C_HZ      = 100_000
 ' --
 
+
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    ser     : "com.serial.terminal.ansi"
-    i2c     : "com.i2c"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    i2c:    "com.i2c"
+
 
 VAR
 
     long _key_cog, _keyinput_stack[50]
     byte _fmt
+
 
 PUB main() | slave_addr, flag, x, y, offsetx, offsety
 
@@ -71,6 +70,7 @@ PUB main() | slave_addr, flag, x, y, offsetx, offsety
     ser.reset()
     repeat
 
+
 PUB show_addr(x, y, slave_addr, flag)            
 ' Show I2C device address
     if (_fmt == 7)                              ' 7-bit display format
@@ -92,6 +92,7 @@ PUB show_addr(x, y, slave_addr, flag)
             ser.pos_xy(x, y)
             ser.puthexs(slave_addr << 1, 2)
 
+
 PRI cog_key_input()
 ' Wait for keypress from user
     repeat
@@ -101,24 +102,26 @@ PRI cog_key_input()
             "8":
                 _fmt := 8
             "q", "Q":
-                _key_cog := 0
-                cogstop(cogid())
+                _key_cog := 0                   ' stopping this cog informs the main cog,
+                cogstop(cogid())                '   which then resets the terminal settings
+
 
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(5)
+    ser.start()
     ser.reset()
     ser.clear()
     ser.strln(@"Serial terminal started")
+
     i2c.init(I2C_SCL, I2C_SDA, I2C_HZ)
-    ser.strln(@"I2C driver started")
-    _key_cog := cogspin(16, cog_key_input(), @_keyinput_stack)
+    ser.strln(@"I2C engine started")
+    _key_cog := cogspin(NEWCOG, cog_key_input(), @_keyinput_stack)
     _fmt := 7
+
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
