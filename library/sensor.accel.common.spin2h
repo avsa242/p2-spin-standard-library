@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: sensor.accel.common.spin2h
-    Author: Jesse Burt
-    Description: Routines common to all sensor.accel device drivers
-    Copyright (c) 2022
-    Started Aug 31, 2022
-    Updated Sep 30, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       sensor.accel.common.spin2h
+    Description:    Routines common to all sensor.accel device drivers
+    Author:         Jesse Burt
+    Started:        Aug 31, 2022
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     NOTE: This file must be included by the compiler using the
         #include preprocessor directive, _outside_ of any existing
@@ -16,15 +15,18 @@
 
 OBJ math: "math.int"
 
+
 VAR
 
     long _ares
     long _abias[ACCEL_DOF]
     long _ax, _ay, _az
 
+
 PUB accel_data_cache()
 ' Cache an accelerometer data sample
     accel_data(@_ax, @_ay, @_az)
+
 
 PUB accel_g(ax, ay, az) | tmp[ACCEL_DOF]
 ' Read the Accelerometer data and scale the outputs to
@@ -34,16 +36,16 @@ PUB accel_g(ax, ay, az) | tmp[ACCEL_DOF]
     long[ay] := accel_word2g(tmp[Y_AXIS])
     long[az] := accel_word2g(tmp[Z_AXIS])
 
-PUB accel_word2g(accel_word): accel_g
+
+PUB accel_word2g(accel_word): g
 ' Convert accelerometer ADC word to g's
     return (accel_word * _ares)
+
 
 PUB calibrate_accel() | axis, orig_scl, orig_dr, tmp[ACCEL_DOF], tmpx, tmpy, tmpz, samples
 ' Calibrate the accelerometer
 '   NOTE: The accelerometer must be oriented with the package top facing up
 '       for this method to be successful
-    longfill(@axis, 0, 10)                      ' initialize vars to 0
-
     { save current settings }
     orig_scl := accel_scale()
     orig_dr := accel_data_rate()
@@ -54,6 +56,8 @@ PUB calibrate_accel() | axis, orig_scl, orig_dr, tmp[ACCEL_DOF], tmpx, tmpy, tmp
     accel_scale(CAL_XL_SCL)
     accel_data_rate(CAL_XL_DR)
     samples := CAL_XL_DR                        ' samples = DR, for 1 sec time
+
+    longfill(@tmp, 0, 6)                        ' initialize vars to 0
 
     { accumulate and average approx. 1sec worth of samples }
     repeat samples
@@ -74,7 +78,8 @@ PUB calibrate_accel() | axis, orig_scl, orig_dr, tmp[ACCEL_DOF], tmpx, tmpy, tmp
     accel_scale(orig_scl)
     accel_data_rate(orig_dr)
 
-PUB pitch()
+
+PUB pitch(): a
 ' Get pitch angle of accelerometer, in degrees
 #ifdef PITCH_INV
     return math.atan2(-_ay, _az)
@@ -82,11 +87,33 @@ PUB pitch()
     return math.atan2(_ay, _az)
 #endif
 
-PUB roll()
+
+PUB roll(): a
 ' Get roll angle of accelerometer, in degrees
 #ifdef ROLL_INV
     return math.atan2(-_ax, _az)
 #else
     return math.atan2(_ax, _az)
 #endif
+
+DAT
+{
+Copyright 2024 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+}
 
