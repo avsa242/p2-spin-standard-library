@@ -1,17 +1,17 @@
 {
-    --------------------------------------------
-    Filename: Serial-DataBlast.spin2
-    Description: Simple serial demo that sends all
-        printable characters to the terminal
-    Author: Jesse Burt
-    Copyright (c) 2024
-    Updated: Jan 21, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       Serial-DataBlast.spin2
+    Description:    Simple serial demo that sends all printable characters to the terminal
+    Author:         Jesse Burt
+    Started:        Jan 5, 2016
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
-    NOTE: This is based on code originally written
-        by Brett Weir
+    NOTE: This is based on DataBlast.spin,
+        originally written by Brett Weir.
 }
+
 CON
 
     _xtlfreq    = cfg._xtlfreq
@@ -32,7 +32,7 @@ PUB main() | ch
         if ( ch > 127 )
             ch := 32
         ser.putchar(ch++)
-        repeat 10000
+        waitms(1)
 
 
 DAT
