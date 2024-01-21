@@ -1,0 +1,78 @@
+{
+    --------------------------------------------
+    Filename: Parallel-Test.spin2
+    Description: Demo of the 8-bit parallel engine
+    Author: Jesse Burt
+    Copyright (c) 2024
+    Started: Feb 17, 2022
+    Updated: Jan 21, 2024
+    See end of file for terms of use.
+    --------------------------------------------
+}
+CON
+
+    _clkfreq    = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
+
+' -- User-modifiable constants
+{ Parallel (8-bit) configuration }
+    DATA        = 0                             ' 0, 8, 16, 24
+    RESX        = 8
+    CS          = 9
+    DC          = 10
+    WRX         = 11
+    RDX         = 12
+' --
+
+
+OBJ
+
+    cfg:    "boardcfg.p2eval"
+    para:   "com.parallel-8bit"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+
+
+PUB main() | i
+
+    ser.start()
+    ser.clear()
+    ser.strln(@"Serial terminal started")
+    ser.newline()
+
+    ser.strln(@"Press a key to begin writing test data to the parallel interface")
+    ser.strln(@"(now is a good time to have a logic analyzer connected and ready to monitor")
+    ser.strln(@" the interface)")
+    ser.getchar()
+
+    para.init(DATA, CS, DC, WRX, RDX)
+    ser.strln(@"Parallel engine started")
+
+    { write ascending bytes to the parallel interface as commands first, then data }
+    repeat i from $00 to $ff
+        para.wrbyte_cmd(i)
+
+    repeat i from $00 to $ff
+        para.wrbyte_dat(i)
+
+    repeat
+
+DAT
+{
+Copyright 2024 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+
