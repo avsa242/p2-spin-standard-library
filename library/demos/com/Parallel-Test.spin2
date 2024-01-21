@@ -1,14 +1,14 @@
 {
-    --------------------------------------------
-    Filename: Parallel-Test.spin2
-    Description: Demo of the 8-bit parallel engine
-    Author: Jesse Burt
-    Copyright (c) 2024
-    Started: Feb 17, 2022
-    Updated: Jan 21, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       Parallel-Test.spin2
+    Description:    Demo of the 8-bit parallel engine
+    Author:         Jesse Burt
+    Started:        Feb 17, 2022
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
 CON
 
     _clkfreq    = cfg._clkfreq_def
