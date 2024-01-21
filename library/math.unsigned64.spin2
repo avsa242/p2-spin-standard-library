@@ -1,17 +1,18 @@
 {
-    --------------------------------------------
-    Filename: math.unsigned64.spin2
-    Description: Unsigned 64-bit int math
-    Author: Jesse Burt
-    Created Jun 11, 2019
-    Updated Oct 12, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       math.unsigned64.spin2
+    Description:    Unsigned 64-bit int math
+    Author:         Jesse Burt
+    Started:        Jun 11, 2019
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     NOTE: This is based on the following sources:
         umath.spin - Philip C. Pilgrim
         29124_altimeter.spin - Parallax, inc.
 }
+
 CON
 
     { high, low 32-bits of 64-bit value }
@@ -68,7 +69,7 @@ PUB mult(ptr_prod, mplr, mpld) | prod64[2]
         dadd(@prod64, ((mplr << 1) >> 2), (mplr << 31))
     longmove(ptr_prod, @prod64, 2)
 
-PUB multdiv(mplr, mpld, dvsr) | prod64[2]
+PUB multdiv(mplr, mpld, dvsr): q32 | prod64[2]
 ' Multiply two 32-bit numbers, with (*internal) 64-bit product divided by a 32-bit divisor
 '   mplr: 32-bit multiplier
 '   mpld: 32-bit multiplicand
@@ -78,14 +79,14 @@ PUB multdiv(mplr, mpld, dvsr) | prod64[2]
     mult(@prod64, mplr, mpld)
     return div(prod64[H], prod64[L], dvsr)
 
-PRI ult(x, y)
+PRI ult(x, y): b
 ' Test for (unsigned x) < (unsigned y)
 '   Returns: TRUE (-1) if less than, FALSE otherwise
     return (x ^ $8000_0000) < (y ^ $8000_0000)
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
