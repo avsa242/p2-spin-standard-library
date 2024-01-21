@@ -1,12 +1,12 @@
 {
-    --------------------------------------------
-    Filename: SoftRTC-Demo.spin2
-    Description: Demo of the software RTC
-    Author: Jesse Burt
-    Started 2009
-    Updated Dec 24, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       SoftRTC-Demo.spin2
+    Description:    Demo of the software RTC
+    Author:         Jesse Burt
+    Started:        2009
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     NOTE: This is based on PropellerRTC_Emulator_DEMO.spin,
         originally written by Beau Schwabe.
@@ -14,33 +14,31 @@
 
 CON
 
-    _clkfreq    = cfg._clkfreq_def
-    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = 180_000_000
+    _xtlfreq    = 20_000_000
 
-' -- User-definable constants
-    SER_BAUD    = 2_000_000
-' --
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    rtc     : "time.rtc.soft"
-    ser     : "com.serial.terminal.ansi"
+    rtc:    "time.rtc.soft"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+
 
 VAR
 
     long  _timestring
     byte  _datestamp[11], _timestamp[11]
 
+
 PUB main()
 
     setup()
 
     rtc.suspend()                               ' halt the RTC so we can set the date/time
-    rtc.set_year(22)                            ' 00..31 (Valid from 2000 to 2031)
-    rtc.set_month(12)                           ' 01..12
-    rtc.set_date(31)                            ' 01..31
-    rtc.set_weekday(5)                          ' 01..07
+    rtc.set_year(24)                            ' 00..31 (Valid from 2000 to 2031)
+    rtc.set_month(01)                           ' 01..12
+    rtc.set_date(21)                            ' 01..31
+    rtc.set_weekday(1)                          ' 01..07
 
     rtc.set_hours(23)                           ' 01..12
     rtc.set_minutes(59)                         ' 00..59
@@ -52,17 +50,18 @@ PUB main()
         rtc.parse_time_stamp(@_timestamp)
 
         ser.pos_xy(0, 3)
-        ser.printf(@"%s %s  %s", @_datestamp, @weekday[(rtc.weekday() - 1) * 4], {
-}                                @_timestamp)
+        ser.printf(@"%s %s  %s",    @_datestamp, ...
+                                    @weekday[(rtc.weekday() - 1) * 4], ...
+                                    @_timestamp)
 
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
     rtc.start(@_timestring)
     ser.strln(@"SoftRTC started")
+
 
 DAT
 
@@ -77,7 +76,7 @@ DAT
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
