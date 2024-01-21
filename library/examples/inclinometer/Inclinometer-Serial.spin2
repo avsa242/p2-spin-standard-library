@@ -1,24 +1,20 @@
 {
-    --------------------------------------------
-    Filename: Inclinometer-Serial.spin2
-    Author: Jesse Burt
-    Description: Simple inclinometer using an LSM9DS1 IMU
-        (serial display)
-    Copyright (c) 2022
-    Started Jan 29, 2020
-    Updated Oct 31, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       Inclinometer-Serial.spin2
+    Description:    Simple inclinometer using an LSM9DS1 IMU (serial display)
+    Author:         Jesse Burt
+    Started:        Jan 29, 2020
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
 CON
 
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    LED         = cfg.LED1
-    SER_BAUD    = 2_000_000
-
     { SPI configuration }
     CS_M_PIN    = 0
     CS_AG_PIN   = 1
@@ -35,11 +31,13 @@ CON
     ADDR_BITS   = 0                             ' 0, 1
 ' --
 
+
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    ser     : "com.serial.terminal.ansi"
-    imu     : "sensor.imu.9dof.lsm9ds1"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    imu:    "sensor.imu.9dof.lsm9ds1"
+
 
 PUB main() | pitch, roll
 
@@ -67,6 +65,7 @@ PUB main() | pitch, roll
         if (ser.rxcheck() == "z")
             set_zero()
 
+
 PRI set_zero()
 ' Re-set the 'zero' of the inclinometer (set accelerometer bias offsets)
     ser.pos_xy(0, 7)
@@ -75,10 +74,10 @@ PRI set_zero()
     ser.pos_x(0)
     ser.clear_line()
 
+
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
@@ -92,9 +91,10 @@ PUB setup()
         ser.strln(@"LSM9DS1 driver failed to start - halting")
         repeat
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
