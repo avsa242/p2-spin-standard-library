@@ -1,14 +1,12 @@
 {
-    --------------------------------------------
-    Filename: Serial-Loopback.spin2
-    Description: Serial loopback demo:
-        echo back every character received on the serial terminal
-    Author: Jesse Burt
-    Copyright (c) 2024
-    Started Dec 31, 2015
-    Updated Jan 21, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       Serial-Loopback.spin2
+    Description:    Serial loopback demo: echo back every character received on the serial terminal
+    Author:         Jesse Burt
+    Started:        Dec 31, 2015
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     NOTE: This is based on LoopBack.spin,
         originally written by Brett Weir
