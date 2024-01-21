@@ -4,7 +4,7 @@
     Description: ANSI-compatible serial terminal
     Author: Jesse Burt
     Created: Jun 15, 2019
-    Updated: May 13, 2023
+    Updated: Jan 20, 2024
     See end of file for terms of use.
     --------------------------------------------
 
@@ -19,6 +19,13 @@
 #ifndef SER_STR_BUFF_SZ
 #define SER_STR_BUFF_SZ 49
 #endif
+
+DAT
+
+    { set some initial terminal colors }
+    _bgcolor long BLACK
+    _fgcolor long GREY
+
 
 VAR
 
@@ -110,7 +117,7 @@ PUB read_line(ptr_str, max_len): size | c
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

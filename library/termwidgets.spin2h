@@ -3,9 +3,9 @@
     Filename: termwidgets.spin2
     Description: Library of terminal widgets (P2 version)
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2024
     Started Dec 14, 2019
-    Updated Oct 26, 2022
+    Updated Jan 20, 2024
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -17,48 +17,104 @@
 '           puts(param)
 '           puthexs(param, digits)
 
-PUB hexdump(ptr_buff, base_addr, adr_digits, nr_bytes, columns) | hex_offs, asc_offs, asc_addr, col
+PUB hexdump(ptr_buff, baddr, adigits, len, cols) | hoffs, aoffs, aaddr, col
 ' Display a hexdump of a region of memory
 '   ptr_buff: pointer to location in memory to hexdump
-'   base_addr: address used to display as base address in hex dump
-'       (affects display only - useful for dumps of an EE, flash chip, etc)
-'   adr_digits: number of digits used to display address
-'   nr_bytes: total number of bytes to display
-'   columns: number of bytes to display on each line
-    col := 0
-    hex_offs := asc_offs := 0                   ' initialize offsets to base
-                                                '   address
-    repeat while (hex_offs < nr_bytes)
-        puthexs(base_addr+hex_offs, adr_digits)  ' show memory offset of line
+'   baddr: address used to display as base address in hex dump (affects display only)
+'   adigits: number of digits used to display address
+'   len: total number of bytes to display
+'   cols: number of bytes to display on each line
+    hoffs := aoffs := 0                         ' initialize offsets to base address
+    repeat while (hoffs < len)
+        col := 0
+        puthexs(baddr+hoffs, adigits)           ' show memory offset of line
         puts(@": ")
 
         { display data in hex }
-        repeat while (col < columns)
-            puthexs(byte[ptr_buff+hex_offs], 2)
-            putchar(" ")                        ' space between each byte
+        repeat while (col < cols)
+            puthexs(byte[ptr_buff+hoffs], 2)    ' show the byte in hex
+            putchar(" ")                        ' draw a space between each byte
             col++
-            hex_offs++
+            hoffs++
 
         putchar("|")                            ' separate hex from ASCII
         col := 0
 
         { display data in ASCII }
-        repeat while (col < columns)
-            asc_addr := ptr_buff+asc_offs
-            if (lookdown(byte[asc_addr]: 32..126))
-                putchar(byte[asc_addr])         ' display printable chars as-is
+        repeat while (col < cols)
+            aaddr := ptr_buff+aoffs
+            if (lookdown(byte[aaddr]: 32..126))
+                putchar(byte[aaddr])            ' display printable chars as-is
             else
                 putchar(".")                    ' and unprintable chars as "."
             col++
-            asc_offs++
+            aoffs++
 
         putchar("|")
-        col := 0                                ' ready for next line
-        newline()
+        newline()                               ' ready for next line
+
+
+PUB hexdumphl(ptr_buff, baddr, adigits, len, cols, hl_st, hl_len) | hoffs, aoffs, aaddr, col
+' Display a hexdump of a region of memory, with region highlighting
+'   ptr_buff: pointer to location in memory to hexdump
+'   baddr: address used to display as base address in hex dump (affects display only)
+'   adigits: number of digits used to display address
+'   len: total number of bytes to display
+'   cols: number of bytes to display on each line
+'   hl_st: byte position/number within hexdump to start highlighting
+'       (relative to 0, not the base address)
+'   hl_len: number of bytes within hexdump to highlight
+    hoffs := aoffs := 0                         ' initialize offsets to base address
+    repeat while (hoffs < len)
+        col := 0
+        puthexs(baddr+hoffs, adigits)           ' show memory offset of line
+        puts(@": ")
+
+        { display data in hex }
+        repeat while (col < cols)
+            if ( (hoffs >= hl_st) and (hoffs <= (hl_st+hl_len)) )
+                bgcolor(_hl_bg)                 ' set highlight colors if we're within
+                fgcolor(_hl_fg)                 '   the highlight range
+            puthexs(byte[ptr_buff+hoffs], 2)    ' show the byte in hex
+            col++
+            hoffs++
+            if ( (hoffs > (hl_st+hl_len)) )     ' stop setting the highlight color at the end
+                bgcolor(_bgcolor)               '   of the line of hex display
+            putchar(" ")                        ' draw a space between each byte
+        bgcolor(_bgcolor)                       ' go back to the previously set background color
+
+        putchar("|")                            ' separate hex from ASCII
+
+        { display data in ASCII }
+        col := 0
+        repeat while (col < cols)
+            aaddr := ptr_buff+aoffs
+            if (lookdown(byte[aaddr]: 32..126))
+                putchar(byte[aaddr])            ' display printable chars as-is
+            else
+                putchar(".")                    ' and unprintable chars as "."
+            col++
+            aoffs++
+
+        putchar("|")
+        newline()                               ' ready for next line
+
+
+VAR long _hl_bg
+PUB set_hl_bgcolor(c)
+' Set hexdump highlight background color
+    _hl_bg := c
+
+
+VAR long _hl_fg
+PUB set_hl_fgcolor(c)
+' Set hexdump highlight foreground color
+    _hl_fg := c
+
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
