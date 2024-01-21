@@ -1,20 +1,25 @@
 {
-    --------------------------------------------
-    Filename: LSM9DS1-Demo.spin2
-    Author: Jesse Burt
-    Description: LSM9DS1 driver demo (P2 version)
-        * 9DoF data output
-    Copyright (c) 2022
-    Started Aug 12, 2017
-    Updated Nov 21, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       LSM9DS1-Demo.spin2
+    Description:    LSM9DS1 driver demo
+    Author:         Jesse Burt
+    Started:        Aug 12, 2017
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     Build-time symbols supported by driver:
         -DLSM9DS1_SPI
         -DLSM9DS1_I2C (default if none specified)
 }
-'#include "core.con.click.spin2"
+
+'#include "core.con.click.spin2"                ' uncomment to use the Click board (I2C only)
+
+' uncomment the four lines below to use SPI
+'#ifndef MIKROE_CLICK
+'# define LSM9DS1_SPI
+'# pragma exportdef(LSM9DS1_SPI)
+'#endif
 
 CON
 
@@ -22,47 +27,34 @@ CON
     _xtlfreq    = cfg._xtlfreq
 
 ' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
-
     CLICK_BASE  = 16
-
-    { I2C configuration }
-    { custom I/O pin definitions - uncomment the below, and comment out the #include
-        line above to use }
-    SCL_PIN     = 0
-    SDA_PIN     = 1
-    I2C_FREQ    = 400_000                       ' max is 400_000
-    ADDR_BITS   = 0                             ' 0, 1
-
-    { SPI configuration }
-    { custom I/O pin definitions - uncomment the below, and comment out the #include
-        line above to use }
-    CS_AG_PIN   = 0
-    CS_M_PIN    = 1
-    SCK_PIN     = 2
-    MOSI_PIN    = 3                             ' SDA
-    MISO_PIN    = 4                             ' SDOAG + SDOM
-    SPI_FREQ    = 10_000_000
 ' --
 
 OBJ
 
     cfg: "boardcfg.p2eval"
-    sensor: "sensor.imu.9dof.lsm9ds1"
+#ifndef MIKROE_CLICK
+    { modify pin settings in this section for non-MikroE Click LSM9DS1 boards }
+    { to use 3-wire SPI, set MOSI and MISO to the same pin }
+    sensor: "sensor.imu.9dof.lsm9ds1" | {I2C} SCL=0, SDA=1, I2C_FREQ=400_000, I2C_ADDR=0, ...
+                                        {SPI} CS_AG=16, CS_M=17, SCK=18, MOSI=19, MISO=20, ...
+                                            SPI_FREQ=1_000_000
+#else
+    { for MikroE Click boards, set the base pin above (CLICK_BASE) }
+    { the MikroE Click board only supports I2C }
+    sensor: "sensor.imu.9dof.lsm9ds1" | {I2C} SCL=SCL_PIN, SDA=SDA_PIN, I2C_FREQ=400_000, ...
+                                            I2C_ADDR=0
+#endif
     ser: "com.serial.terminal.ansi"
+
 
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(10)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-#ifdef LSM9DS1_SPI
-    if (sensor.startx(CS_AG_PIN, CS_M_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SPI_FREQ))
-#else
-    if (sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS))
-#endif
+    if ( sensor.start() )
         ser.strln(@"LSM9DS1 driver started")
     else
         ser.strln(@"LSM9DS1 driver failed to start - halting")
@@ -75,7 +67,7 @@ PUB setup()
         show_accel_data()
         show_gyro_data()
         show_mag_data()
-        if (ser.rx_check() == "c")
+        if ( ser.rx_check() == "c" )
             cal_accel()
             cal_gyro()
             cal_mag()
@@ -86,7 +78,7 @@ PUB setup()
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

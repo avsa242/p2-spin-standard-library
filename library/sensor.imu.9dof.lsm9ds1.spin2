@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: sensor.imu.9dof.lsm9ds1.spin2
-    Author: Jesse Burt
-    Description: Driver for the ST LSM9DS1 9DoF/3-axis IMU
-    Copyright (c) 2022
-    Started Aug 12, 2017
-    Updated Dec 17, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       sensor.imu.9dof.lsm9ds1.spin2
+    Description:    Driver for the ST LSM9DS1 9DoF/3-axis IMU
+    Author:         Jesse Burt
+    Started:        Aug 12, 2017
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
 #include "sensor.accel.common.spin2h"
 #include "sensor.gyroscope.common.spin2h"
@@ -15,6 +14,22 @@
 #include "sensor.temp.common.spin2h"
 
 CON
+
+    { default I/O configuration - these can be overridden by the parent object }
+    { /// I2C /// }
+    SCL                     = 28
+    SDA                     = 29
+    I2C_FREQ                = 100_000
+    I2C_ADDR                = 0
+
+    { /// SPI /// }
+    CS_AG                   = 0
+    CS_M                    = 1
+    SCK                     = 2
+    MOSI                    = 3
+    MISO                    = 4
+    SPI_FREQ                = 1_000_000
+
 
     DEF_HZ                  = 100_000
     I2C_MAX_FREQ            = core.I2C_MAX_FREQ
@@ -113,13 +128,13 @@ OBJ
 
 { SPI? }
 #ifdef LSM9DS1_SPI
-    spi : "com.spi.10mhz"                     ' bitbanged SPI engine
+    spi:    "com.spi.10mhz"                     ' bitbanged SPI engine
 #else
 { no, not SPI - default to I2C }
-#define LSM9DS1_I2C
-    i2c : "com.i2c"                             ' I2C engine
+# define LSM9DS1_I2C
+    i2c:    "com.i2c"                           ' I2C engine
 #endif
-    core    : "core.con.lsm9ds1"
+    core:   "core.con.lsm9ds1"
 
 VAR
 
@@ -131,14 +146,18 @@ PUB null()
 ' This is not a top-level object
 
 #ifdef LSM9DS1_I2C
+PUB start(): status
+' Start the driver using default settings
+    return startx(SCL, SDA, I2C_FREQ, I2C_ADDR)
+
+
 PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): status
 ' Start using custom I/O pins
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
-}   I2C_HZ <= core.I2C_MAX_FREQ
-        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+    if ( lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) )
+        if ( status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ) )
             waitus(core.TPOR)                   ' startup time
             _addr_bits := (ADDR_BITS << 1)
-            if (dev_id{} == core.WHOAMI_BOTH_RESP)
+            if ( dev_id() == core.WHOAMI_BOTH_RESP )
                 xlg_soft_reset()                  ' reset/initialize to
                 mag_soft_reset()                  ' POR defaults
                 return status                   ' validate device
@@ -149,21 +168,25 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): status
 
 #elseifdef LSM9DS1_SPI
 
+PUB start(): status
+' Start the driver using default settings
+    return startx(CS_AG, CS_M, SCK, MOSI, MISO, SPI_FREQ)
+
+
 PUB startx(CS_AG_PIN, CS_M_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SPI_HZ=1_000_000): status
 ' Start using custom I/O pins
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
-}   lookdown(CS_AG_PIN: 0..63) and lookdown(CS_M_PIN: 0..63) and {
-}   lookdown(SDO_PIN: 0..63) and SPI_HZ <= core.SPI_MAX_FREQ
-        if (status := spi.init(SCL_PIN, SDA_PIN, SDO_PIN, core.SPI_MODE))
+    if (    lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and ...
+            lookdown(CS_AG_PIN: 0..63) and lookdown(CS_M_PIN: 0..63) and ...
+            lookdown(SDO_PIN: 0..63) )
+        if ( status := spi.init(SCL_PIN, SDA_PIN, SDO_PIN, core.SPI_MODE) )
             longmove(@_CS_AG, @CS_AG_PIN, 2)
-
             pinh(_CS_AG)                        ' make sure CS starts
             pinh(_CS_M)                         '   high
             waitus(core.TPOR)                   ' startup time
 
             { if SDA_PIN and SDO_PIN are the same, }
             { assume 3-wire SPI mode is wanted }
-            if (SDA_PIN == SDO_PIN)
+            if ( SDA_PIN == SDO_PIN )
                 spi_mode(3)
             else
                 spi_mode(4)
@@ -171,7 +194,7 @@ PUB startx(CS_AG_PIN, CS_M_PIN, SCL_PIN, SDA_PIN, SDO_PIN, SPI_HZ=1_000_000): st
             xlg_soft_reset()                      ' reset/initialize to
             mag_soft_reset()                      ' POR defaults
 
-            if (dev_id() == core.WHOAMI_BOTH_RESP)
+            if ( dev_id() == core.WHOAMI_BOTH_RESP )
                 xlg_soft_reset()                  ' reset/initialize to
                 mag_soft_reset()                  ' POR defaults
                 return status                   ' validate device
@@ -279,19 +302,18 @@ PUB accel_data_rate(rate=-2): curr_rate
 '       (hardware limitation)
     return xlg_data_rate(rate)
 
-PUB accel_data_rdy() | tmp
+PUB accel_data_rdy(): f | tmp
 ' Flag indicating new accelerometer data available
 '   Returns TRUE or FALSE
     tmp := 0
     readreg(XLG, core.STATUS_REG, 1, @tmp)
-    result := (((tmp >> core.XLDA) & 1) == 1)
+    return (((tmp >> core.XLDA) & 1) == 1)
 
 PUB accel_high_res_ena(state=-2): curr_state
 ' Enable high resolution mode for accelerometer
 '   Valid values: FALSE (0) or TRUE (1 or -1)
 '   Any other value polls the chip and returns the current setting
-    return bool_choice(XLG, core.CTRL_REG7_XL, core.HR, core.HR, {
-}   core.CTRL_REG7_XL_MASK, state, 1)
+    return bool_choice(XLG, core.CTRL_REG7_XL, core.HR, core.HR, core.CTRL_REG7_XL_MASK, state, 1)
 
 PUB accel_int(): int_src
 ' Read accelerometer interrupts
@@ -339,7 +361,7 @@ PUB accel_int_hyst(state=-2): curr_state
     state := ((curr_state & core.WAIT_XL_MASK) | state)
     writereg(XLG, core.INT_GEN_DUR_XL, 1, @state)
 
-PUB accel_int_mask{}: mask
+PUB accel_int_mask(): mask
 ' Get accelerometer interrupt mask
 '   Valid values:
 '       bits 7..0
@@ -370,7 +392,7 @@ PUB accel_int_set_mask(mask)
     mask &= %1111_1111
     writereg(XLG, core.INT_GEN_CFG_XL, 1, @mask)
 
-PUB accel_int_thresh_x{}: thresh | ascl, lsb
+PUB accel_int_thresh_x(): thresh | ascl, lsb
 ' Get accelerometer interrupt threshold, X-axis
 '   Returns: micro-g's
     ascl := (accel_scale() * 1_000000)
@@ -380,7 +402,7 @@ PUB accel_int_thresh_x{}: thresh | ascl, lsb
     readreg(XLG, core.INT_GEN_THS_X_XL, 1, @tmp)
     return (tmp * lsb)                          ' scale to micro-g's
 
-PUB accel_int_thresh_y{}: thresh | ascl, lsb
+PUB accel_int_thresh_y(): thresh | ascl, lsb
 ' Get accelerometer interrupt threshold, Y-axis
 '   Returns: micro-g's
     ascl := (accel_scale() * 1_000000)
@@ -390,7 +412,7 @@ PUB accel_int_thresh_y{}: thresh | ascl, lsb
     readreg(XLG, core.INT_GEN_THS_Y_XL, 1, @tmp)
     return (tmp * lsb)                          ' scale to micro-g's
 
-PUB accel_int_thresh_z{}: thresh | ascl, lsb
+PUB accel_int_thresh_z(): thresh | ascl, lsb
 ' Get accelerometer interrupt threshold, Z-axis
 '   Returns: micro-g's
     ascl := (accel_scale() * 1_000000)
@@ -455,8 +477,8 @@ PUB fifo_ena(state=-2): curr_state
 ' Enable FIFO memory
 '   Valid values: FALSE (0), TRUE(1 or -1)
 '   Any other value polls the chip and returns the current setting
-    return bool_choice(XLG, core.CTRL_REG9, core.FIFO_EN, core.FIFO_EN,{
-}   core.CTRL_REG9_MASK, state, 1)
+    return bool_choice( XLG, core.CTRL_REG9, core.FIFO_EN, core.FIFO_EN, core.CTRL_REG9_MASK, ...
+                        state, 1)
 
 PUB fifo_full(): flag
 ' FIFO Threshold status
@@ -592,7 +614,7 @@ PUB gyro_data_rdy(): flag
 
 PUB gyro_hpf_freq(freq=-2): curr_freq
 ' Set gyroscope high-pass filter cutoff frequency, in milli-Hz
-'   Valid values: dependent on GyroDataRate(), see table below
+'   Valid values: dependent on gyro_data_rate(), see table below
 '   Any other value polls the chip and returns the current setting
     curr_freq := 0
     readreg(XLG, core.CTRL_REG3_G, 1, @curr_freq)
@@ -600,50 +622,62 @@ PUB gyro_hpf_freq(freq=-2): curr_freq
         15:
             case freq
                 0_001, 0_002, 0_005, 0_010, 0_020, 0_050, 0_100, 0_200, 0_500, 1_000:
-                    freq := lookdownz(freq: 1_000, 0_500, 0_200, 0_100, 0_050, 0_020, 0_010, 0_005, 0_002, 0_001) << core.HPCF_G
+                    freq := lookdownz(freq: 1_000, 0_500, 0_200, 0_100, 0_050, 0_020, 0_010, ...
+                                            0_005, 0_002, 0_001) << core.HPCF_G
                 other:
                     curr_freq := (curr_freq >> core.HPCF_G) & core.HPCF_G_BITS
-                    return lookupz(curr_freq: 1_000, 0_500, 0_200, 0_100, 0_050, 0_020, 0_010, 0_005, 0_002, 0_001)
+                    return lookupz(curr_freq:   1_000, 0_500, 0_200, 0_100, 0_050, 0_020, ...
+                                                0_010, 0_005, 0_002, 0_001)
         60:
             case freq
                 0_005, 0_010, 0_020, 0_050, 0_100, 0_200, 0_500, 1_000, 2_000, 4_000:
-                    freq := lookdownz(freq: 4_000, 2_000, 1_000, 0_500, 0_200, 0_100, 0_050, 0_020, 0_010, 0_005) << core.HPCF_G
+                    freq := lookdownz(freq: 4_000, 2_000, 1_000, 0_500, 0_200, 0_100, 0_050, ...
+                                            0_020, 0_010, 0_005) << core.HPCF_G
                 other:
                     curr_freq := (curr_freq >> core.HPCF_G) & core.HPCF_G_BITS
-                    return lookupz(curr_freq: 1_000, 0_500, 0_200, 0_100, 0_050, 0_020, 0_010, 0_005, 0_002, 0_001)
+                    return lookupz(curr_freq:   1_000, 0_500, 0_200, 0_100, 0_050, 0_020, ...
+                                                0_010, 0_005, 0_002, 0_001)
         119:
             case freq
                 0_010, 0_020, 0_050, 0_100, 0_200, 0_500, 1_000, 2_000, 4_000, 8_000:
-                    freq := lookdownz(freq: 8_000, 4_000, 2_000, 1_000, 0_500, 0_200, 0_100, 0_050, 0_020, 0_010) << core.HPCF_G
+                    freq := lookdownz(freq: 8_000, 4_000, 2_000, 1_000, 0_500, 0_200, 0_100, ...
+                                            0_050, 0_020, 0_010) << core.HPCF_G
                 other:
                     curr_freq := (curr_freq >> core.HPCF_G) & core.HPCF_G_BITS
-                    return lookupz(curr_freq: 1_000, 0_500, 0_200, 0_100, 0_050, 0_020, 0_010, 0_005, 0_002, 0_001)
+                    return lookupz(curr_freq:   1_000, 0_500, 0_200, 0_100, 0_050, 0_020, ...
+                                                0_010, 0_005, 0_002, 0_001)
         238:
             case freq
                 0_020, 0_050, 0_100, 0_200, 0_500, 1_000, 2_000, 4_000, 8_000, 15_000:
-                    freq := lookdownz(freq: 15_000, 8_000, 4_000, 2_000, 1_000, 0_500, 0_200, 0_100, 0_050, 0_020) << core.HPCF_G
+                    freq := lookdownz(freq: 15_000, 8_000, 4_000, 2_000, 1_000, 0_500, 0_200, ...
+                                            0_100, 0_050, 0_020) << core.HPCF_G
                 other:
                     curr_freq := (curr_freq >> core.HPCF_G) & core.HPCF_G_BITS
-                    return lookupz(curr_freq: 1_000, 0_500, 0_200, 0_100, 0_050, 0_020, 0_010, 0_005, 0_002, 0_001)
+                    return lookupz(curr_freq:   1_000, 0_500, 0_200, 0_100, 0_050, 0_020, ...
+                                                0_010, 0_005, 0_002, 0_001)
         476:
             case freq
                 0_050, 0_100, 0_200, 0_500, 1_000, 2_000, 4_000, 8_000, 15_000, 30_000:
-                    freq := lookdownz(freq: 30_000, 15_000, 8_000, 4_000, 2_000, 1_000, 0_500, 0_200, 0_100, 0_050) << core.HPCF_G
+                    freq := lookdownz(freq: 30_000, 15_000, 8_000, 4_000, 2_000, 1_000, 0_500, ...
+                                            0_200, 0_100, 0_050) << core.HPCF_G
                 other:
                     curr_freq := (curr_freq >> core.HPCF_G) & core.HPCF_G_BITS
-                    return lookupz(curr_freq: 1_000, 0_500, 0_200, 0_100, 0_050, 0_020, 0_010, 0_005, 0_002, 0_001)
+                    return lookupz(curr_freq:   1_000, 0_500, 0_200, 0_100, 0_050, 0_020, ...
+                                                0_010, 0_005, 0_002, 0_001)
         952:
             case freq
                 0_100, 0_200, 0_500, 1_000, 2_000, 4_000, 8_000, 15_000, 30_000, 57_000:
-                    freq := lookdownz(freq: 57_000, 30_000, 15_000, 8_000, 4_000, 2_000, 1_000, 0_500, 0_200, 0_100) << core.HPCF_G
+                    freq := lookdownz(freq: 57_000, 30_000, 15_000, 8_000, 4_000, 2_000, ...
+                                            1_000, 0_500, 0_200, 0_100) << core.HPCF_G
                 other:
                     curr_freq := (curr_freq >> core.HPCF_G) & core.HPCF_G_BITS
-                    return lookupz(curr_freq: 1_000, 0_500, 0_200, 0_100, 0_050, 0_020, 0_010, 0_005, 0_002, 0_001)
+                    return lookupz(curr_freq:   1_000, 0_500, 0_200, 0_100, 0_050, 0_020, ...
+                                                0_010, 0_005, 0_002, 0_001)
 
     freq := ((curr_freq & core.HPCF_G_MASK) | freq)
     writereg(XLG, core.CTRL_REG3_G, 1, @freq)
 
-PUB gyro_inact_dur{}: dur
+PUB gyro_inact_dur(): dur
 ' Get gyroscope inactivity timer
     dur := 0
     readreg(XLG, core.ACT_DUR, 1, @dur)
@@ -675,8 +709,8 @@ PUB gyro_inact_sleep_ena(state=-2): curr_state
 '       FALSE (0): gyroscope powers down
 '       TRUE (1 or -1) gyroscope enters sleep mode
 '   Any other value polls the chip and returns the current setting
-    return bool_choice(XLG, core.ACT_THS, core.SLP_ON_INACT, {
-}   core.SLP_ON_INACT_MASK, core.ACT_THS_MASK, state, 1)
+    return bool_choice( XLG, core.ACT_THS, core.SLP_ON_INACT, core.SLP_ON_INACT_MASK, ...
+                        core.ACT_THS_MASK, state, 1)
 
 PUB gyro_int(): int_src
 ' Read gyroscope interrupts
@@ -742,7 +776,7 @@ PUB gyro_int_hyst_ena(state=-2): curr_state
     state := ((curr_state & core.WAIT_G_MASK) | state)
     writereg(XLG, core.INT_GEN_DUR_G, 1, @state)
 
-PUB gyro_int_thresh_x{}: thresh | ascl, lsb
+PUB gyro_int_thresh_x(): thresh | ascl, lsb
 ' Get gyroscope interrupt threshold, X-axis
 '   Returns: micro-g's
     ascl := (gyro_scale() * 1_000000)
@@ -752,7 +786,7 @@ PUB gyro_int_thresh_x{}: thresh | ascl, lsb
     readreg(XLG, core.INT_GEN_THS_XH_G, 2, @thresh)
     return ((thresh & core#INT_G_BITS) signx 14)
 
-PUB gyro_int_thresh_y{}: thresh | ascl, lsb
+PUB gyro_int_thresh_y(): thresh | ascl, lsb
 ' Get gyroscope interrupt threshold, X-axis
 '   Returns: micro-g's
     ascl := (gyro_scale() * 1_000000)
@@ -762,7 +796,7 @@ PUB gyro_int_thresh_y{}: thresh | ascl, lsb
     readreg(XLG, core.INT_GEN_THS_YH_G, 2, @thresh)
     return ((thresh & core#INT_G_BITS) signx 14)
 
-PUB gyro_int_thresh_z{}: thresh | ascl, lsb
+PUB gyro_int_thresh_z(): thresh | ascl, lsb
 ' Get gyroscope interrupt threshold, X-axis
 '   Returns: micro-g's
     ascl := (gyro_scale() * 1_000000)
@@ -829,7 +863,7 @@ PUB gyro_sleep(state=-2): curr_state
     return bool_choice(XLG, core.CTRL_REG9, core.SLP_G, core.SLP_G_MASK,{
 }   core.CTRL_REG9_MASK, state, 1)
 
-PUB int1_mask{}: mask
+PUB int1_mask(): mask
 ' Get interrupt enable mask on INT1 pin
 '   Bits: 7..0 (1 = enabled, 0 = disabled)
 '       7: gyroscope interrupt
@@ -857,7 +891,7 @@ PUB int1_set_mask(mask)
     mask &= %1111_1111
     writereg(XLG, core.INT1_CTRL, 1, @mask)
 
-PUB int2_mask{}: mask
+PUB int2_mask(): mask
 ' Get interrupt enable mask on INT2 pin
 '   Bits: 7..0 (1 = enabled, 0 = disabled)
 '       7: gyroscope interrupt
@@ -989,8 +1023,8 @@ PUB mag_fast_read_ena(state=-2): curr_state
 '   the cost of precision and accuracy
 '   Valid values: TRUE(-1 or 1), FALSE(0)
 '   Any other value polls the chip and returns the current setting
-    return bool_choice (MAG, core.CTRL_REG5_M, core.FAST_READ, {
-}   core.FAST_READ_MASK, core.CTRL_REG5_M_MASK, state, 1)
+    return bool_choice (MAG, core.CTRL_REG5_M, core.FAST_READ, core.FAST_READ_MASK, ...
+                        core.CTRL_REG5_M_MASK, state, 1)
 
 PUB mag_int(): intsrc
 ' Magnetometer interrupt source(s)
@@ -1027,7 +1061,7 @@ PUB mag_int_polarity(state=-2): curr_state
 
 PUB mag_int_clear()
 ' Clear magnetometer interrupts
-'   NOTE: This is only required if MagIntsLatched() is set to TRUE
+'   NOTE: This is only required if mag_int_latch_ena() is set to TRUE
     mag_int()
 
 PUB mag_int_mask(mask=-2): curr_mask
@@ -1059,11 +1093,10 @@ PUB mag_int_latch_ena(state=-2): curr_state
 ' Latch interrupts asserted by the magnetometer
 '   Valid values: TRUE (-1 or 1) or FALSE
 '   Any other value polls the chip and returns the current setting
-'   NOTE: If enabled, interrupts must be explicitly cleared using MagClearInt()
-    return bool_choice(MAG, core.INT_CFG_M, core.IEL, core.IEL_MASK,{
-}   core.INT_CFG_M, state, -1)
+'   NOTE: If enabled, interrupts must be explicitly cleared using mag_int_clear()
+    return bool_choice(MAG, core.INT_CFG_M, core.IEL, core.IEL_MASK, core.INT_CFG_M, state, -1)
 
-PUB mag_int_thresh{}: thresh
+PUB mag_int_thresh(): thresh
 ' Get magnetometer interrupt threshold
     thresh := 0
     readreg(MAG, core.INT_THS_L_M, 2, @thresh)
@@ -1081,8 +1114,8 @@ PUB mag_low_pwr_ena(state=-2): curr_state
 ' Enable magnetometer low-power mode
 '   Valid values: TRUE (-1 or 1) or FALSE
 '   Any other value polls the chip and returns the current setting
-    return bool_choice(MAG, core.CTRL_REG3_M, core.LP, core.LP_MASK, {
-}   core.CTRL_REG3_M_MASK, state, 1)
+    return bool_choice( MAG, core.CTRL_REG3_M, core.LP, core.LP_MASK, core.CTRL_REG3_M_MASK, ...
+                        state, 1)
 
 PUB mag_opmode(mode=-2): curr_mode
 ' Set magnetometer operating mode
@@ -1152,8 +1185,8 @@ PUB mag_self_test(state=-2): curr_state
 ' Enable on-chip magnetometer self-test
 '   Valid values: TRUE (-1 or 1) or FALSE
 '   Any other value polls the chip and returns the current setting
-    return bool_choice(MAG, core.CTRL_REG1_M, core.ST, core.ST_MASK, {
-}   core.CTRL_REG1_M_MASK, state, 1)
+    return bool_choice( MAG, core.CTRL_REG1_M, core.ST, core.ST_MASK, core.CTRL_REG1_M_MASK, ...
+                        state, 1)
 
 PUB mag_soft_reset() | tmp
 ' Perform soft-test of magnetometer
@@ -1170,8 +1203,8 @@ PUB temp_comp_ena(enable=-2): curr_setting
 ' Enable on-chip temperature compensation for magnetometer readings
 '   Valid values: TRUE (-1 or 1) or FALSE
 '   Any other value polls the chip and returns the current setting
-    return bool_choice(MAG, core.CTRL_REG1_M, core.TEMP_COMP, {
-}   core.TEMP_COMP_MASK, core.CTRL_REG1_M, enable, 1)
+    return bool_choice( MAG, core.CTRL_REG1_M, core.TEMP_COMP, core.TEMP_COMP_MASK, ...
+                        core.CTRL_REG1_M, enable, 1)
 
 PUB temp_data(): temp_adc
 ' Temperature ADC data
@@ -1249,7 +1282,7 @@ PRI addr_auto_inc_ena(state): curr_state
     state := ((curr_state & core.IF_ADD_INC_MASK) | state)
     writereg(XLG, core.CTRL_REG8, 1, @state)
 
-PRI blk_updt_ena{} | tmp
+PRI blk_updt_ena() | tmp
 ' Wait to update the output data registers until both the MSB and LSB
 '   are updated internally
     tmp := 0
@@ -1334,12 +1367,12 @@ PRI readreg(device, reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 #ifdef LSM9DS1_I2C
             cmd_pkt.byte[0] := (core.SLAVE_ADDR_XLG | _addr_bits)
             cmd_pkt.byte[1] := reg_nr
-            i2c.start{}
+            i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 2)
-            i2c.start{}
+            i2c.start()
             i2c.write(core.SLAVE_ADDR_XLG | _addr_bits | 1)
             i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c.NAK)
-            i2c.stop{}
+            i2c.stop()
 #elseifdef LSM9DS1_SPI
             pinl(_CS_AG)
             spi.wr_byte(reg_nr | READ)
@@ -1360,12 +1393,12 @@ PRI readreg(device, reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 #ifdef LSM9DS1_I2C
             cmd_pkt.byte[0] := (core.SLAVE_ADDR_MAG | (_addr_bits << 1))
             cmd_pkt.byte[1] := reg_nr
-            i2c.start{}
+            i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 2)
-            i2c.start{}
+            i2c.start()
             i2c.write(core.SLAVE_ADDR_MAG | (_addr_bits << 1) | 1)
             i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c.NAK)
-            i2c.stop{}
+            i2c.stop()
 #elseifdef LSM9DS1_SPI
             pinl(_CS_M)
             spi.wr_byte(reg_nr | READ)
@@ -1387,10 +1420,10 @@ PRI writereg(device, reg_nr, nr_bytes, ptr_buff) | cmd_pkt
                 $04..$0D, $10..$13, $1E..$24, $2E, $30..$37:
                     cmd_pkt.byte[0] := (core.SLAVE_ADDR_XLG | _addr_bits)
                     cmd_pkt.byte[1] := reg_nr
-                    i2c.start{}
+                    i2c.start()
                     i2c.wrblock_lsbf(@cmd_pkt, 2)
                     i2c.wrblock_lsbf(ptr_buff, nr_bytes)
-                    i2c.stop{}
+                    i2c.stop()
                     return
 #elseifdef LSM9DS1_SPI
                 $04..$0D, $10..$13, $1E..$21, $23, $24, $2E, $30..$37:
@@ -1403,7 +1436,7 @@ PRI writereg(device, reg_nr, nr_bytes, ptr_buff) | cmd_pkt
                     spi.wr_byte(reg_nr)
 
                     { enforce 3-wire SPI mode }
-                    if (_spi_wire_md == 3)
+                    if ( _spi_wire_md == 3 )
                         byte[ptr_buff][0] := byte[ptr_buff][0] | (1 << core.SIM)
                     spi.wrblock_lsbf(ptr_buff, nr_bytes)
                     pinh(_CS_AG)
@@ -1416,7 +1449,7 @@ PRI writereg(device, reg_nr, nr_bytes, ptr_buff) | cmd_pkt
                 $05..$0A, $0F, $20, $21..$24, $27..$2D, $30..$33:
                     cmd_pkt.byte[0] := (core.SLAVE_ADDR_MAG | (_addr_bits << 1))
                     cmd_pkt.byte[1] := reg_nr | core.MB_I2C
-                    i2c.start{}
+                    i2c.start()
                     i2c.wrblock_lsbf(@cmd_pkt, 2)
                     i2c.wrblock_lsbf(ptr_buff, nr_bytes)
                     i2c.stop
@@ -1434,7 +1467,7 @@ PRI writereg(device, reg_nr, nr_bytes, ptr_buff) | cmd_pkt
                     spi.wr_byte(reg_nr)
 
                     { enforce 3-wire SPI mode }
-                    if (_spi_wire_md == 3)
+                    if ( _spi_wire_md == 3 )
                         byte[ptr_buff][0] := byte[ptr_buff][0] | (1 << core.M_SIM)
                     spi.wrblock_lsbf(ptr_buff, nr_bytes)
                     pinh(_CS_M)
@@ -1444,9 +1477,11 @@ PRI writereg(device, reg_nr, nr_bytes, ptr_buff) | cmd_pkt
         other:
             return
 
+
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
