@@ -1,35 +1,33 @@
 {
-    --------------------------------------------
-    Filename: printf.spin2
-    Author: Jesse Burt
-    Description: (s)printf() benchmark
-    Copyright (c) 2022
-    Started 2022
-    Updated Oct 30, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       printf2.spin2
+    Description:    (s)printf() benchmark
+    Author:         Jesse Burt
+    Started:        2022
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 CON
 
-    _clkfreq    = cfg#_clkfreq_def
-    _xtlfreq    = cfg#_xtlfreq
-
-' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
-' --
+    _clkfreq    = 180_000_000
+    _xtlfreq    = 20_000_000
 
     BUFF_SZ     = 200
+
+
 OBJ
 
-    cfg : "boardcfg.p2eval"
-    ser : "com.serial.terminal.ansi"
-    str : "string"
-    
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    str:    "string"
+
+
 VAR
 
     long _stack_timer[50]
     long _timer_set
     byte _buff[BUFF_SZ]
+
 
 PUB main() | count, time_tmp
 
@@ -44,8 +42,6 @@ PUB main() | count, time_tmp
     _timer_set := time_tmp                      ' Time in msec (e.g., 10_000 = 10000ms, or 10sec)
     repeat                                      ' Loop to time a piece of code
 '        ser.printf(@"Test %d\n", 1)
-'        bytefill(@_buff, 0, BUFF_SZ)
-        longfill(@_buff, 0, BUFF_SZ/4)
         str.sprintf(@_buff, @"Test %d\n", 1)
         count++                                 '   count how many iterations
     while _timer_set                            '   until the timer has been reset by the timer cog
@@ -55,6 +51,7 @@ PUB main() | count, time_tmp
     ser.printf(@"Loops/sec: %d", count / (time_tmp/1000))
 
     repeat
+
 
 PRI cog_timer() | time_left
 ' Simple timer that runs in a dedicated cog
@@ -70,13 +67,13 @@ PRI cog_timer() | time_left
 
 PUB setup()
 
-    ser.start(SER_BAUD)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
