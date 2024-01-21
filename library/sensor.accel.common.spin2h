@@ -57,9 +57,8 @@ PUB calibrate_accel() | axis, orig_scl, orig_dr, tmp[ACCEL_DOF], tmpx, tmpy, tmp
     accel_data_rate(CAL_XL_DR)
     samples := CAL_XL_DR                        ' samples = DR, for 1 sec time
 
-    longfill(@tmp, 0, 6)                        ' initialize vars to 0
-
     { accumulate and average approx. 1sec worth of samples }
+    longfill(@tmp, 0, 3+ACCEL_DOF)              ' clear tmp vars to 0
     repeat samples
         repeat until accel_data_rdy()
         accel_data(@tmpx, @tmpy, @tmpz)

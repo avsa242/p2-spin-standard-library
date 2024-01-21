@@ -34,8 +34,8 @@ PUB calibrate_gyro() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[GYRO_DOF],
 
     waitms(100)                                 ' let the gyro settle after changing the rate
 
-    longfill(@tmpx, 3+GYRO_DOF, 0)
     { accumulate and average approx. 1sec worth of samples }
+    longfill(@tmpx, 0, 3+GYRO_DOF)              ' clear tmp vars to 0
     repeat samples
         repeat until gyro_data_rdy()
         gyro_data(@tmpx, @tmpy, @tmpz)
