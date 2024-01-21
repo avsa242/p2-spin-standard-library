@@ -2,12 +2,14 @@
     --------------------------------------------
     Filename: Serial-InputNumbers.spin
     Description: Demonstrate reading decimal numbers from the serial terminal
-    Author: Brett Weir
-    Modified by: Jesse Burt
+    Author: Jesse Burt
     Started Jan 3, 2016
-    Updated Oct 23, 2022
+    Updated Jan 21, 2024
     See end of file for terms of use.
     --------------------------------------------
+
+    NOTE: This is based on InputNumbers.spin,
+        originally written by Brett Weir
 }
 
 CON
@@ -15,46 +17,44 @@ CON
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
-' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
-' --
 
 OBJ
 
-    cfg  : "boardcfg.p2eval"
-    ser  : "com.serial.terminal.ansi"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
 
 PUB main() | a, b
 
-    ser.start(SER_BAUD)
+    ser.start()
+    ser.clear()
 
-    ser.puts(string("Input a value: "))
+    ser.puts(@"Input a value: ")
+    ser.set_attrs(ser.ECHO)                     ' show what the user is typing
+
     a := ser.getdec()                           ' read a decimal number from the terminal
     ser.newline()
 
-    ser.puts(string("Input another value: "))
+    ser.puts(@"Input another value: ")
     b := ser.getdec()                           '   and a second one
     ser.newline()
 
-    ser.str(string("a + b: "))
+    ser.str(@"a + b: ")
     ser.putdec(a + b)                           ' add them
     ser.newline()
 
-    ser.str(string("a - b: "))
+    ser.str(@"a - b: ")
     ser.putdec(a - b)                           ' subtract them
     ser.newline()
 
-    ser.str(string("a * b: "))
+    ser.str(@"a * b: ")
     ser.putdec(a * b)                           ' multiply them
     ser.newline()
 
-    ser.str(string("a / b: "))
+    ser.str(@"a / b: ")
     ser.putdec(a / b)                           ' divide them
 
 DAT
 {
-Copyright 2022 Jesse Burt
-
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
 including without limitation the rights to use, copy, modify, merge, publish, distribute,
