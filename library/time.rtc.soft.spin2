@@ -1,12 +1,12 @@
 {
-    --------------------------------------------
-    Filename: time.rtc.soft.spin2
-    Author: Jesse Burt
-    Description: Soft/emulated RTC
-    Started 2009
-    Updated Oct 14, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       time.rtc.soft.spin2
+    Description:    Soft/emulated RTC
+    Author:         Jesse Burt
+    Started:        2009
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
     NOTE: This is based on PropellerRTC_Emulator.spin,
         originally written by Beau Schwabe.
 }
@@ -17,12 +17,14 @@ CON
     #1, JAN, FEB, MAR, APR, MAY, JUN, JUL, AUG, SEP, OCT, NOV, DEC
     #1, SUN, MON, TUE, WED, THU, FRI, SAT
 
+
 VAR
 
     long _time_stack[100]
     long _timer, _temp, _clkflag, _ptr_time
     byte _monthdays, _ss, _mm, _hh, _dd, _mo, _yy, _ly, _wkday
     byte _cog
+
 
 PUB start(ptr_time): status
 ' Start the soft RTC driver
@@ -32,81 +34,99 @@ PUB start(ptr_time): status
         return
     return false
 
+
 PUB stop()
 ' Stop the driver
     if _cog
         cogstop(_cog-1)
 
+
 PUB date(): d
 ' Get current date/day of month
     return _dd
+
 
 PUB hours(): h
 ' Get current hour
     return _hh
 
+
 PUB minutes(): m
 ' Get current minute
     return _mm
+
 
 PUB month(): m
 ' Get current month
     return _mo
 
+
 PUB poll_rtc()
 ' Dummy method
+
 
 PUB seconds(): s
 ' Get current second
     return _ss
+
 
 PUB set_date(d)
 ' Set current date/day of month
 '   Valid values: 1..31 (clamped to range)
     _dd := (1 #> d <# 31)
 
+
 PUB set_hours(h)
 ' Set current hour
 '   Valid values: 0..23 (clamped to range)
     _hh := (0 #> h <# 23)
+
 
 PUB set_minutes(m)
 ' Set current minute
 '   Valid values: 0..59 (clamped to range)
     _mm := (0 #> m <# 59)
 
+
 PUB set_month(m)
 ' Set current month
 '   Valid values: 1..12 (clamped to range)
     _mo := (1 #> m <# 12)
+
 
 PUB set_seconds(s)
 ' Set current second
 '   Valid values: 0..59 (clamped to range)
     _ss := (0 #> s <# 59)
 
+
 PUB set_weekday(w)
 ' Set day of week
 '   Valid values: 1..7 (clamped to range)
     _wkday := (1 #>w <# 7)
+
 
 PUB set_year(y)
 ' Set 2-digit year
 '   Valid values: 0..99 (clamped to range)
     _yy := (0 #> y <# 99)
 
-PUB weekday()
+
+PUB weekday(): w
 ' Get current week day
     return _wkday
 
-PUB year()
+
+PUB year(): y
 ' Get current year
     return _yy
+
 
 PUB unparse_time(ptr_time): t
 ' Copy a binary representation of the current date/time to ptr_time (1 long)
     t := (_ly << 31) | (_yy << 26) | (_mo << 22) | (_dd << 17) | (_hh << 12) | (_mm << 6) | _ss
     longmove(ptr_time, @t, 1)
+
 
 PUB parse_time(ptr_time)
 ' Copy a binary representation of the current date/time to the driver
@@ -125,6 +145,7 @@ PUB parse_time(ptr_time)
     _temp := (_temp >> 5)
     _ly := (_temp & %1)
 
+
 PUB parse_date_stamp(ptr_data) | date_tmp[3]
 ' Copy a string representation of the current date to ptr_data
 '   NOTE: ptr_data must point to a buffer of at least 11 bytes
@@ -141,6 +162,7 @@ PUB parse_date_stamp(ptr_data) | date_tmp[3]
     date_tmp.byte[10] := 0                      ' String terminator
     bytemove(ptr_data, @date_tmp, 11)
 
+
 PUB parse_time_stamp(ptr_data) | time_tmp[3]
 ' Copy a string representation of the current date to ptr_data
 '   NOTE: ptr_data must point to a buffer of at least 9 bytes
@@ -154,6 +176,20 @@ PUB parse_time_stamp(ptr_data) | time_tmp[3]
     time_tmp.byte[7] := "0" + (_ss // 10)       ' Second
     time_tmp.byte[8] := 0                       ' String terminator
     bytemove(ptr_data, @time_tmp, 9)
+
+
+PUB resume()
+' Resume running the RTC
+    unparse_time(_ptr_time)                     ' Pack current time variable values into 'long'
+    _clkflag := 0                               ' Resume Clock
+
+
+PUB suspend()
+' Suspend the RTC
+    _clkflag := 1                               ' Suspend Clock
+    repeat while (_clkflag == 1)                ' Clock responds with a 2 when suspend received
+    parse_time(_ptr_time)                       ' Unpack current time variable values from 'long'
+
 
 PRI cog_rtc_loop(ptr_time)
 ' ptr_time variable allocation:
@@ -216,20 +252,10 @@ PRI cog_rtc_loop(ptr_time)
 
         unparse_time(ptr_time)                  ' Pack current time variable values into 'long'
 
-PUB resume()
-' Resume running the RTC
-    unparse_time(_ptr_time)                     ' Pack current time variable values into 'long'
-    _clkflag := 0                               ' Resume Clock
-
-PUB suspend()
-' Suspend the RTC
-    _clkflag := 1                               ' Suspend Clock
-    repeat while (_clkflag == 1)                ' Clock responds with a 2 when suspend received
-    parse_time(_ptr_time)                       ' Unpack current time variable values from 'long'
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
