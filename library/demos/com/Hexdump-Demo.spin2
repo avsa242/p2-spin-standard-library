@@ -1,14 +1,14 @@
 {
-    --------------------------------------------
-    Filename: Hexdump-Demo.spin2
-    Author: Jesse Burt
-    Description: Demo of the hexdump() method
-    Copyright (c) 2024
-    Started May 15, 2021
-    Updated Jan 21, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       Hexdump-Demo.spin2
+    Description:    Demo of the hexdump() method
+    Author:         Jesse Burt
+    Started:        May 15, 2021
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
 CON
 
     _clkfreq    = cfg._clkfreq_def
