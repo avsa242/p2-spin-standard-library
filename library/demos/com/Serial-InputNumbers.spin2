@@ -1,12 +1,12 @@
 {
-    --------------------------------------------
-    Filename: Serial-InputNumbers.spin
-    Description: Demonstrate reading decimal numbers from the serial terminal
-    Author: Jesse Burt
-    Started Jan 3, 2016
-    Updated Jan 21, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       Serial-InputNumbers.spin2
+    Description:    Demonstrate reading decimal numbers from the serial terminal
+    Author:         Jesse Burt
+    Started:        Jan 3, 2016
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     NOTE: This is based on InputNumbers.spin,
         originally written by Brett Weir
