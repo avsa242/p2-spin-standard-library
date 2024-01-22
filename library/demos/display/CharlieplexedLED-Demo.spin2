@@ -1,53 +1,39 @@
 {
-    --------------------------------------------
-    Filename: CharlieplexedLED-Demo.spin2
-    Description: Charlieplexed LED-specific setup for small matrix graphics demo (P2 version)
-    Author: Jesse Burt
-    Copyright (c) 2022
-    Started: Jul 3, 2022
-    Updated: Jul 3, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       CharlieplexedLED-Demo.spin2
+    Description:    Charlieplexed LED-specific setup for small matrix graphics demo
+    Author:         Jesse Burt
+    Started:        Jul 3, 2022
+    Updated:        Jan 22, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
 CON
 
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
-' -- User-modifiable constants
-    LED         = cfg.LED1
-    SER_BAUD    = 2_000_000
-    LED_BASEPIN = 24
-' --
-
-    WIDTH       = 8                             ' not yet used by driver; used only to
-    HEIGHT      = 7                             '   calc display buffer size
-    BPP         = disp.BYTESPERPX
-    BYTESPERLN  = WIDTH * BPP
-    BUFFSZ      = ((WIDTH * HEIGHT) * BPP) / 8
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    disp    : "display.ledmatrix.charlieplexed"
+    cfg:    "boardcfg.p2eval"
+    disp:   "display.ledmatrix.charlieplexed" | BASE_PIN=0, WIDTH=8, HEIGHT=7
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    fnt:    "font.5x8"
 
-VAR
 
-    byte _framebuff[BUFFSZ]                     ' display buffer
+PUB main()
 
-PUB Main()
-
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    if disp.startx(LED_BASEPIN, @_framebuff)
-        ser.printf(@"%s driver started", @_drv_name)
-        disp.fontsize(fnt.WIDTH, fnt.HEIGHT)
-        disp.fontaddress(fnt.ptr())
+    if ( disp.start() )
+        ser.strln(@"LED matrix driver started")
+        disp.set_font(fnt.ptr(), fnt.setup())
     else
-        ser.printf(@"%s driver failed to start - halting", @_drv_name)
+        ser.strln(@"LED matrix driver failed to start - halting")
         repeat
 
     _time := 5_000                              ' time each demo runs (ms)
@@ -56,31 +42,28 @@ PUB Main()
 
     repeat
 
-{ demo routines (common to small dot-matrix type displays) included here }
-#include "SmallMatrixDemo-common.spin2h"
+
+#include "SmallMatrixDemo-common.spin2h"        ' pull in code common to all small matrix demos
+
 
 DAT
-
-    _drv_name   byte    "Charlieplexed LED", 0
-
 {
-TERMS OF USE: MIT License
+Copyright 2024 Jesse Burt
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 }
+

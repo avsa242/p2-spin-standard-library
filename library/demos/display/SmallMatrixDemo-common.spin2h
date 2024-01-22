@@ -1,14 +1,12 @@
 {
-    --------------------------------------------
-    Filename: SmallMatrixDemo-common.spinh
-    Description: Graphics demo for small-format dot-matrix displays
-        (common code)
-    Author: Jesse Burt
-    Copyright (c) 2022
-    Started: Jul 1, 2022
-    Updated: Jul 2, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       SmallMatrixDemo-common.spin2h
+    Description:    Graphics demo for small-format dot-matrix displays (common code)
+    Author:         Jesse Burt
+    Started:        Jul 1, 2022
+    Updated:        Jan 22, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     NOTE: This is not a top-level object. This file is meant to be #included
     by a display driver-specific demo
@@ -16,17 +14,12 @@
 
 OBJ
 
-    ser     : "com.serial.terminal.ansi"
-    math    : "math.int"
-    fnt     : "font.5x8"
+    math:   "math.int"
+
 
 CON
 
-    XMAX    = (WIDTH - 1)
-    YMAX    = (HEIGHT - 1)
-    CENTERX = (WIDTH / 2)
-    CENTERY = (HEIGHT / 2)
-    AR      = WIDTH / HEIGHT
+    AR      = disp.WIDTH / disp.HEIGHT
 
     Q1      = 1023
     Q2      = 2047
@@ -58,11 +51,11 @@ PUB demo_box() | c, sz
     c := disp.MAX_COLOR
     repeat while _timer_set
         disp.clear()
-        disp.box(sz, sz, abs(XMAX-sz), abs(YMAX-sz), c, false)
+        disp.box(sz, sz, abs(disp.XMAX-sz), abs(disp.YMAX-sz), c, false)
         disp.show()
         waitms(100)
         sz++
-        if (sz > (XMAX <# YMAX))                ' limit size to whichever is smaller
+        if (sz > (disp.XMAX <# disp.YMAX))                ' limit size to whichever is smaller
             sz := 0
         c++
         if (c > disp.MAX_COLOR)
@@ -80,7 +73,7 @@ PUB demo_circle() | c, r
         disp.show()
         waitms(50)
         r++
-        if (r > WIDTH)
+        if (r > disp.WIDTH)
             r := 0
         c++
         if (c > disp.MAX_COLOR)
@@ -90,8 +83,8 @@ PUB demo_circle() | c, r
 PUB demo_line() | x, y, c, i, xr, yr
 ' Draw screen edge walking lines
     c := disp.MAX_COLOR
-    xr := (200_000 / (WIDTH*2))
-    yr := (200_000 / (HEIGHT*2))
+    xr := (200_000 / (disp.WIDTH*2))
+    yr := (200_000 / (disp.HEIGHT*2))
     _timer_set := _time
     repeat while _timer_set
         repeat i from 0 to Q1 step 15
@@ -105,21 +98,21 @@ PUB demo_line() | x, y, c, i, xr, yr
             disp.clear
             x := (math.cos(i) / xr) * AR
             y := (math.sin(i) / yr)
-            disp.line(0, YMAX, x, (YMAX + y), c)
+            disp.line(0, disp.YMAX, x, (disp.YMAX + y), c)
             disp.show()
             waitms(5)
         repeat i from Q2 to Q3 step 15
             disp.clear
             x := (math.cos(i) / xr) * AR
             y := (math.sin(i) / yr)
-            disp.line(XMAX, YMAX, (XMAX + x), (YMAX + y), c)
+            disp.line(disp.XMAX, disp.YMAX, (disp.XMAX + x), (disp.YMAX + y), c)
             disp.show()
             waitms(5)
         repeat i from Q1 to Q2 step 15
             disp.clear
             x := (math.cos(i) / xr) * AR
             y := (math.sin(i) / yr)
-            disp.line(XMAX, 0, (XMAX + x), y, c)
+            disp.line(disp.XMAX, 0, (disp.XMAX + x), y, c)
             disp.show()
             waitms(5)
     waitclear()
@@ -128,7 +121,7 @@ PUB demo_plot() | x, y
 ' Draw random pixels
     _timer_set := _time
     repeat while _timer_set
-        disp.plot(math.rndi(XMAX), math.rndi(YMAX), math.rndi(disp.MAX_COLOR))
+        disp.plot(math.rndi(disp.XMAX), math.rndi(disp.YMAX), math.rndi(disp.MAX_COLOR))
         disp.show()
     waitclear()
 
@@ -167,7 +160,7 @@ PRI cog_timer() | time_left
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
