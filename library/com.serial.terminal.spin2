@@ -5,7 +5,7 @@
     Description: Parallax Serial Terminal-compatible
         serial terminal driver
     Started June 25, 2019
-    Updated Dec 23, 2022
+    Updated Jan 22, 2024 (DEPRECATED/EOL)
     See end of file for terms of use.
     --------------------------------------------
 
@@ -185,7 +185,6 @@ PUB gets_max(ptr_buff, max_len): rcnt
 
 
 #include "terminal.common.spin2h"
-#include "termwidgets.spin2h"
 
 DAT
 {
