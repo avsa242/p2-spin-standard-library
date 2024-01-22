@@ -1,14 +1,12 @@
 {
-    --------------------------------------------
-    Filename: GFXDemo-common.spin2h
-    Description: Graphics demo for all supported
-        display types (common code)
-    Author: Jesse Burt
-    Copyright (c) 2022
-    Started: Feb 20, 2022
-    Updated: Dec 24, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       GFXDemo-common.spin2h
+    Description:    Graphics demo for all supported display types (common code)
+    Author:         Jesse Burt
+    Started:        Feb 16, 2022
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     NOTE: This is not a top-level object. This file is meant to be #included
     by a display driver-specific demo
@@ -16,9 +14,7 @@
 
 OBJ
 
-    ser     : "com.serial.terminal.ansi"
-    math    : "math.int"
-    fnt     : "font.5x8"
+    math:   "math.int"
 
 CON
 
