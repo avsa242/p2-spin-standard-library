@@ -1,30 +1,24 @@
 {
-    --------------------------------------------
-    Filename: HT16K33-14SegDemo.spin2
-    Description: Demo of the HT16K33 14-segment driver (P2 version)
-    Author: Jesse Burt
-    Copyright (c) 2023
-    Created: Jun 22, 2021
-    Updated: Jul 16, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       HT16K33-14SegDemo.spin2
+    Description:    Demo of the HT16K33 14-segment driver
+    Author:         Jesse Burt
+    Started:        Jun 22, 2021
+    Updated:        Jan 22, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
-
 
 CON
 
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
-' -- User-modifiable constants:
-    SER_BAUD    = 2_000_000
-' --
-
 
 OBJ
 
     cfg:    "boardcfg.p2eval"
-    ser:    "com.serial.terminal.ansi"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
     fs:     "string.float"
     disp:   "display.led-seg.ht16k33" | SCL=28, SDA=29, I2C_FREQ=400_000, I2C_ADDR=%000, ...
                                         WIDTH=4, HEIGHT=1
@@ -105,8 +99,7 @@ PRI demo_msg(ptr_str)
 
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
     if ( disp.start() )
@@ -118,7 +111,7 @@ PUB setup()
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

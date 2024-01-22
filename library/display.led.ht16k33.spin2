@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: display.led.ht16k33.spin2
-    Description: Driver for HT16K33-based LED displays (P2 version, matrix type)
-    Author: Jesse Burt
-    Copyright (c) 2023
-    Created: Oct 11, 2018
-    Updated: Oct 6, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       display.led.ht16k33.spin2
+    Description:    Driver for HT16K33-based LED displays (matrix type)
+    Author:         Jesse Burt
+    Started:        Oct 11, 2018
+    Updated:        Jan 22, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 #define 1BPP
@@ -34,11 +33,11 @@ CON
 
 VAR
 
-    byte _framebuff[BUFFSZ]
+    byte _framebuffer[BUFFSZ]
 
 PUB start(): status
 ' Start using default I/O settings
-    return startx(SCL, SDA, I2C_FREQ, I2C_ADDR, WIDTH, HEIGHT, @_framebuff)
+    return startx(SCL, SDA, I2C_FREQ, I2C_ADDR, WIDTH, HEIGHT, @_framebuffer)
 
 PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS, DISP_W, DISP_H, ptr_dispbuff=0): status
 ' width, height: dimensions of matrix, in pixels
@@ -108,7 +107,7 @@ PUB show()
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

@@ -18,14 +18,11 @@ CON
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
-' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
-' --
 
 OBJ
 
     cfg:    "boardcfg.p2eval"
-    ser:    "com.serial.terminal.ansi"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
     matrix: "display.led.ht16k33" | SCL=0, SDA=1, I2C_FREQ=400_000, I2C_ADDR=%000, ...
                                     WIDTH=8, HEIGHT=8
     fnt:    "font.5x8"
@@ -84,8 +81,7 @@ PUB main() | i
 
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
     ser.clear()
     ser.strln(string("Serial terminal started"))
     if ( matrix.start() )
