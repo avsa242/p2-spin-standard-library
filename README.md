@@ -3,6 +3,17 @@
 The P2 Spin Standard Library is designed to be a general-purpose library with a wide scope of functionality, covering low-level I/O, text processing, device drivers and more for the Parallax Propeller 2 (P2X8C4M64P) MCU. It contains a curated collection of Spin2 objects that have been organized and formatted with a focus on consistency and code reusability.
 
 
+## Usage
+
+There are no special installation steps that need to be carried out, besides downloading this repository.
+The only salient step is that the `library/` subdirectory should be set in FlexSpin's path, using the `-I` flag on the build commandline.
+
+For example:
+```
+flexspin -I /home/myhome/p2-spin-standard-library/library demos/com/Serial-HelloWorld.spin2
+```
+
+
 ## API
 
 An ongoing effort is being made to standardize the API for the various device drivers and other objects contained in the library. Manufacturers may not all utilize the same design methodologies and the interface they expose to developers may differ, but this library aims to distill all of it to a common programming interface. Essentially, once you've learned how to operate a particular device driver, all others of the same category would require minimal or no extra effort to learn.
@@ -38,9 +49,12 @@ At the time of this writing, they are:
 I don't recommend the use of this library if you're new to programming, in general. It makes assumptions about some things that an inexperienced programmer may simply not understand, and I don't have the time to maintain the library and support that level of inexperience simultaneously. I'd also hesitate to recommend it if you're looking for code of the utmost efficiency and speed. Consistency and reusability is my primary objective.
 
 
+
 ## Compiler compatibility
 
 The library is developed using [FlexSpin](https://github.com/totalspectrum/spin2cpp). Some objects use features not implemented in other toolchains, such as preprocessor directives, function pointers, object pointers, et al, so __will not be compatible with__ the Propeller Tool, OpenSpin, Brad's Spin Tool/bstc, all of which are unmaintained and in some cases closed-source. Objects in the library may even be written in such a way that the compiler feature is fundamental to the design of the object (this is particularly true with the use of function and object pointers), making it impractical to translate to other toolchains.
+
+Currently, efforts are made towards making sure that the objects build and work when using the PASM2 backend as opposed to the NuCode (bytecode) backend, though now that more software seems to be compatible with it, this could change.
 
 Upon specific request, I may be able to translate to Propeller Tool-compatible source if absolutely necessary. If the source is particularly complex I may decline the request, however - sorry. Please save yourself and me the time and headache - just use FlexSpin. It's available for all major platforms and is actively maintained. Nearly every project in this library is also maintained as SPIN1 in the spin-standard-library for the Propeller 1, which requires twice the time and effort, so please also keep this in mind before asking for support translating to source compatible with other tools. Thanks for understanding
 !
