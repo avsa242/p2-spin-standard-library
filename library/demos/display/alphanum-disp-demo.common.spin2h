@@ -1,18 +1,13 @@
 {
-    --------------------------------------------
-    Filename: alphanum-disp-demo.common.spin2h
-    Author: Jesse Burt
-    Description: Small-format alphanumeric display demo - common code
-    Copyright (c) 2022
-    Started Dec 24, 2022
-    Updated Jan 1, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       alphanum-disp-demo.common.spin2h
+    Description:    Small-format alphanumeric display demo - common code
+    Author:         Jesse Burt
+    Started:        Dec 24, 2022
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
-
-OBJ
-
-    ser : "com.serial.terminal.ansi"
 
 PUB demo()
 
@@ -47,7 +42,7 @@ PUB demo_num() | i
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
