@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: com.serial.spin2
-    Author: Jesse Burt
-    Description: Low-level UART serial driver
-    Copyright (c) 2024
-    Started Jun 28, 2019
-    Updated Jan 20, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       com.serial.spin2
+    Description:    Low-level UART serial driver
+    Author:         Jesse Burt
+    Started:        Jun 28, 2019
+    Updated:        Jan 22, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     NOTE: This is based on SmartSerial.spin,
         originally by Eric Smith.
@@ -38,16 +37,17 @@ VAR
 
 OBJ
 
+#ifdef BUFFERED_IO
     { ring buffers }
     txbuff: "memory.ring-buffer" | RBUFF_SZ=TXBUFF_SZ
     rxbuff: "memory.ring-buffer" | RBUFF_SZ=RXBUFF_SZ
+#endif
 
 
 PUB start = init_def
-PUB init_def(): status
+PUB init_def(bps=SER_BAUD): status
 ' Start using P2 default serial pins
-    return init(RX_PIN, TX_PIN, 0, SER_BAUD)
-
+    return init(RX_PIN, TX_PIN, 0, bps)
 
 
 con WORDLEN         = 8-1                       ' serial word length, in bits-1
@@ -140,6 +140,12 @@ PUB putchar_noblock(ch): s
 
 #else
 
+
+pub available(): s
+' Flag indicating new data is available to read
+    return ( pinr(_rx_pin) )
+
+
 PUB tx = putchar
 PUB char = putchar
 PUB putchar(ch)
@@ -173,6 +179,8 @@ PUB flush_tx()
 
 #endif
 
+
+#ifdef BUFFERED_IO
 VAR long _buffer_stack[50]
 PUB cog_buffered_io(txpin, rxpin, bit_mode)
 
@@ -194,6 +202,8 @@ PUB cog_buffered_io(txpin, rxpin, bit_mode)
         if ( txbuff.available() )               ' if there's a char waiting, send it
             wypin(_tx_pin, txbuff.getchar() )
             repeat until pinr(_tx_pin)          ' wait for data to be flushed
+#endif
+
 
 PRI autobaud(pin): bitperiod | a, b, c, port, mask
 
