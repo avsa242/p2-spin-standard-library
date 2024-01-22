@@ -1,14 +1,12 @@
 {
-    --------------------------------------------
-    Filename: MAX9744-Demo.spin2
-    Author: Jesse Burt
-    Description: Simple serial terminal-based demo of the MAX9744
-        audio amp driver. (P2 version)
-    Copyright (c) 2022
-    Started Nov 22, 2020
-    Updated Nov 21, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       MAX9744-Demo.spin2
+    Description:    Simple serial terminal-based demo of the MAX9744 audio amp driver.
+    Author:         Jesse Burt
+    Started:        Jul 7, 2018
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 CON
@@ -16,21 +14,13 @@ CON
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
-' -- User-modifiable constants
-    LED         = cfg.LED1
-    SER_BAUD    = 2_000_000
-
-    SCL_PIN     = 0
-    SDA_PIN     = 1
-    I2C_HZ      = 100_000                       ' max 400_000
-    SHDN_PIN    = 2
-' --
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    ser     : "com.serial.terminal.ansi"
-    amp     : "audio.amp.max9744"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    amp:    "audio.amp.max9744" | SCL=28, SDA=29, I2C_FREQ=400_000, SHDN=24
+
 
 PUB main() | i, level
 
@@ -41,15 +31,15 @@ PUB main() | i, level
 
     repeat
         ser.pos_xy(0, 0)
-        ser.strln(string("Help:"))
-        ser.strln(string("[: Volume down"))
-        ser.strln(string("]: Volume up"))
-        ser.strln(string("f: Filterless modulation"))
-        ser.strln(string("m: Mute"))
-        ser.strln(string("p: Classic PWM modulation"))
+        ser.strln(@"Help:")
+        ser.strln(@"[: Volume down")
+        ser.strln(@"]: Volume up")
+        ser.strln(@"f: Filterless modulation")
+        ser.strln(@"m: Mute")
+        ser.strln(@"p: Classic PWM modulation")
         ser.newline()
         ser.newline()
-        ser.printf(string("Volume: %d \n"), level)
+        ser.printf(@"Volume: %d \n", level)
 
         i := ser.getchar()
             case i
@@ -60,34 +50,32 @@ PUB main() | i, level
                     level := (level + 1) <# 63
                     amp.vol_up()
                 "f":
-                    ser.strln(string("Modulation mode: Filterless "))
+                    ser.strln(@"Modulation mode: Filterless ")
                     amp.set_modulation(amp.NONE)
                     amp.set_volume(level)
                 "m":
                     amp.mute()
                     level := 0
                 "p":
-                    ser.strln(string("Modulation mode: Classic PWM"))
+                    ser.strln(@"Modulation mode: Classic PWM")
                     amp.set_modulation(amp.PWM)
                     amp.set_volume(level)
 
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
     ser.clear()
-    ser.strln(string("Serial terminal started"))
-    if amp.startx(SCL_PIN, SDA_PIN, I2C_HZ, SHDN_PIN)
-        ser.strln(string("MAX9744 driver started"))
+    ser.strln(@"Serial terminal started")
+    if ( amp.start() )
+        ser.strln(@"MAX9744 driver started")
     else
-        ser.strln(string("MAX9744 driver failed to start - halting"))
-        amp.stop()
-        waitms(500)
+        ser.strln(@"MAX9744 driver failed to start - halting")
         repeat
+
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
