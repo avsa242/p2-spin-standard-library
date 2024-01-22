@@ -1,30 +1,30 @@
 {
-    --------------------------------------------
-    Filename: ST7735-Demo.spin2
-    Description: ST7735-specific setup for graphics demo
-    Author: Jesse Burt
-    Copyright (c) 2023
-    Started: Feb 20, 2022
-    Updated: Aug 8, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       ST7735-Demo.spin2
+    Description:    ST7735-specific setup for graphics demo
+    Author:         Jesse Burt
+    Started:        Feb 17, 2022
+    Updated:        Jan 22, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     Build options available:
         -DST7789 - build for ST7789 displays; if not defined, ST7735 will be chosen)
         -DGFX_DIRECT - don't use a framebuffer; draw directly to the display
 }
+
 CON
 
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
-' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
-' --
 
 OBJ
 
     cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    fnt:    "font.5x8"
+    time:   "time"
     disp:   "display.lcd.st7735" | WIDTH=240, HEIGHT=240, CS=0, SCK=1, MOSI=2, DC=3, RST=4, ...
                                     SPI_FREQ=10_000_000
 { SPI bus speed: may work at up to about 20MHz, but speeds over 13MHz
@@ -32,8 +32,7 @@ OBJ
 
 PUB main()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
@@ -72,14 +71,10 @@ DAT
     _drv_name   byte    "ST7735 (SPI)", 0
 #endif
 
-CON
-
-    WIDTH   = disp.WIDTH
-    HEIGHT  = disp.HEIGHT
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

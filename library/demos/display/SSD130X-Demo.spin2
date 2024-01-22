@@ -1,26 +1,25 @@
 {
-    --------------------------------------------
-    Filename: SSD130X-Demo.spin2
-    Description: SSD130X-specific setup for graphics demo
-    Author: Jesse Burt
-    Copyright (c) 2023
-    Started: Feb 20, 2022
-    Updated: Jul 23, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       SSD130X-Demo.spin2
+    Description:    SSD130X-specific setup for graphics demo
+    Author:         Jesse Burt
+    Started:        Feb 16, 2022
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
 CON
 
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
-' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
-' --
 
 OBJ
 
     cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi"
+    fnt:    "font.5x8"
     disp:   "display.oled.ssd130x" | WIDTH=128, HEIGHT=64, ...
                                     {SPI}   CS=0, DC=1, RST=2, MOSI=3, SCK=4, ...
                                             SPI_FREQ=10_000_000, ...
@@ -28,7 +27,7 @@ OBJ
 
 PUB main()
 
-    ser.start(SER_BAUD)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
@@ -54,14 +53,10 @@ DAT
 
     _drv_name   byte    "SSD130X", 0
 
-CON
 
-    WIDTH   = disp.WIDTH
-    HEIGHT  = disp.HEIGHT
-
-
+DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

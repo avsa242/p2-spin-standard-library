@@ -16,12 +16,6 @@ OBJ
 
     math:   "math.int"
 
-CON
-
-    XMAX    = (WIDTH - 1)
-    YMAX    = (HEIGHT - 1)
-    CENTERX = (WIDTH / 2)
-    CENTERY = (HEIGHT / 2)
 
 VAR
 
@@ -52,8 +46,8 @@ PUB demo_bounce() | bx, by, dx, dy, radius
 ' Draw a circle bouncing off screen edges
 ' Pick a random screen location to start from, and a random direction
     radius := 5
-    bx := (math.rndi(XMAX) // (WIDTH - (radius * 4))) + (radius * 2)
-    by := (math.rndi(YMAX) // (HEIGHT - (radius * 4))) + (radius * 2)
+    bx := (math.rndi(disp.XMAX) // (disp.WIDTH - (radius * 4))) + (radius * 2)
+    by := (math.rndi(disp.YMAX) // (disp.HEIGHT - (radius * 4))) + (radius * 2)
     dx := math.rndi(4) // 2 * 2 - 1
     dy := math.rndi(4) // 2 * 2 - 1
 
@@ -63,9 +57,9 @@ PUB demo_bounce() | bx, by, dx, dy, radius
         by += dy
 
         ' if any edge of the screen is reached, change direction
-        if (by <= radius) or (by >= (HEIGHT - radius))
+        if (by <= radius) or (by >= (disp.HEIGHT - radius))
             dy *= -1                            ' top/bottom edges
-        if (bx <= radius) OR (bx >= (WIDTH - radius))
+        if (bx <= radius) OR (bx >= (disp.WIDTH - radius))
             dx *= -1                            ' left/right edges
 
         disp.circle(bx, by, radius, disp.MAX_COLOR, FALSE)
@@ -78,7 +72,7 @@ PUB demo_box() | c
     _timer_set := _time
     repeat while _timer_set
         c := math.rndi(disp.MAX_COLOR)
-        disp.box(math.rndi(XMAX), math.rndi(YMAX), math.rndi(XMAX), math.rndi(YMAX), c, FALSE)
+        disp.box(math.rndi(disp.XMAX), math.rndi(disp.YMAX), math.rndi(disp.XMAX), math.rndi(disp.YMAX), c, FALSE)
         disp.show()
     waitclear()
 
@@ -87,7 +81,7 @@ PUB demo_boxfilled() | c
     _timer_set := _time
     repeat while _timer_set
         c := math.rndi(disp.MAX_COLOR)
-        disp.box(math.rndi(XMAX), math.rndi(YMAX), math.rndi(XMAX), math.rndi(YMAX), c, TRUE)
+        disp.box(math.rndi(disp.XMAX), math.rndi(disp.YMAX), math.rndi(disp.XMAX), math.rndi(disp.YMAX), c, TRUE)
         disp.show()
     waitclear()
 
@@ -95,9 +89,9 @@ PUB demo_circle() | x, y, r
 ' Draw circles at random locations
     _timer_set := _time
     repeat while _timer_set
-        x := math.rndi(XMAX)
-        y := math.rndi(YMAX)
-        r := math.rndi(YMAX / 2)
+        x := math.rndi(disp.XMAX)
+        y := math.rndi(disp.YMAX)
+        r := math.rndi(disp.YMAX / 2)
         disp.circle(x, y, r, math.rndi(disp.MAX_COLOR), FALSE)
         disp.show()
     waitclear()
@@ -106,9 +100,9 @@ PUB demo_circlefilled() | x, y, r
 ' Draw circles at random locations
     _timer_set := _time
     repeat while _timer_set
-        x := math.rndi(XMAX)
-        y := math.rndi(YMAX)
-        r := math.rndi(YMAX / 2)
+        x := math.rndi(disp.XMAX)
+        y := math.rndi(disp.YMAX)
+        r := math.rndi(disp.YMAX / 2)
         disp.circle(x, y, r, math.rndi(disp.MAX_COLOR), TRUE)
         disp.show()
     waitclear()
@@ -120,7 +114,7 @@ PUB demo_greet()
     disp.pos_xy(0, 0)
     disp.printf(string("%s\n\r"), @_drv_name)
     disp.printf(string("P2X8C4M64P\n\r%dMHz\n\r"), clkfreq / 1_000_000)
-    disp.printf(string("%dx%d"), WIDTH, HEIGHT)
+    disp.printf(string("%dx%d"), disp.WIDTH, disp.HEIGHT)
     disp.show()
     waitclear()
 
@@ -128,7 +122,7 @@ PUB demo_line()
 ' Draw random lines
     _timer_set := _time
     repeat while _timer_set
-        disp.line(math.rndi(XMAX), math.rndi(YMAX), math.rndi(XMAX), math.rndi(YMAX), math.rndi(disp.MAX_COLOR))
+        disp.line(math.rndi(disp.XMAX), math.rndi(disp.YMAX), math.rndi(disp.XMAX), math.rndi(disp.YMAX), math.rndi(disp.MAX_COLOR))
         disp.show()
     waitclear()
 
@@ -136,13 +130,13 @@ PUB demo_plot() | x, y
 ' Draw random pixels
     _timer_set := _time
     repeat while _timer_set
-        disp.plot(math.rndi(XMAX), math.rndi(YMAX), math.rndi(disp.MAX_COLOR))
+        disp.plot(math.rndi(disp.XMAX), math.rndi(disp.YMAX), math.rndi(disp.MAX_COLOR))
         disp.show()
     waitclear()
 
 PUB demo_sinewave() | x, y, modifier, offset, div
 ' Draw a sine wave the length of the screen, influenced by the system counter
-    case HEIGHT
+    case disp.HEIGHT
         32:
             div := 4096
         64:
@@ -150,11 +144,11 @@ PUB demo_sinewave() | x, y, modifier, offset, div
         other:
             div := 4096
 
-    offset := CENTERY                           ' Offset for Y axis
+    offset := disp.CENTERY                           ' Offset for Y axis
 
     _timer_set := _time
     repeat while _timer_set
-        repeat x from 0 to XMAX
+        repeat x from 0 to disp.XMAX
             modifier := (abs(cnt) / 1_000_000)   ' system counter as modifier
             y := offset + (math.sin(x * modifier) / div)
             disp.plot(x, y, disp.MAX_COLOR)
@@ -179,28 +173,28 @@ PUB demo_text() | ch
 
 PUB demo_wander() | x, y
 ' Draw randomly wandering pixels
-    x := (XMAX / 2)                             ' start at screen center
-    y := (YMAX / 2)
+    x := (disp.XMAX / 2)                             ' start at screen center
+    y := (disp.YMAX / 2)
 
     _timer_set := _time
     repeat while _timer_set
         case math.rndi(4)                       ' which way to move?
             1:                                  ' wander right
                 x += 2
-                if (x > XMAX)                   ' wrap around at the edge
+                if (x > disp.XMAX)                   ' wrap around at the edge
                     x := 0
             2:                                  ' wander left
                 x -= 2
                 if (x < 0)
-                    x := XMAX
+                    x := disp.XMAX
             3:                                  ' wander down
                 y += 2
-                if (y > YMAX)
+                if (y > disp.YMAX)
                     y := 0
             4:                                  ' wander up
                 y -= 2
                 if (y < 0)
-                    y := YMAX
+                    y := disp.YMAX
         disp.plot(x, y, math.rndi(disp.MAX_COLOR))
         disp.show()
     waitclear()

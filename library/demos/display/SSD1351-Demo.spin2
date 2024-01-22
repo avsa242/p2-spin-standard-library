@@ -1,26 +1,25 @@
 {
-    --------------------------------------------
-    Filename: SSD1351-Demo.spin2
-    Description: SSD1351-specific setup for graphics demo
-    Author: Jesse Burt
-    Copyright (c) 2023
-    Started: Feb 20, 2022
-    Updated: Jul 31, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       SSD1351-Demo.spin2
+    Description:    SSD1351-specific setup for graphics demo
+    Author:         Jesse Burt
+    Started:        Feb 17, 2022
+    Updated:        Jan 22, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
 CON
 
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
-' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
-' --
 
 OBJ
 
     cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    fnt:    "font.5x8"
     disp:   "display.oled.ssd1351" | WIDTH=128, HEIGHT=128, CS=0, SCK=1, MOSI=2, DC=3, RST=4, ...
                                     SPI_FREQ=10_000_000
     { SPI bus speed: may work at up to about 20MHz, but speeds over 13MHz
@@ -28,8 +27,7 @@ OBJ
 
 PUB main()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
@@ -54,14 +52,10 @@ PUB main()
 DAT
     _drv_name   byte    "SSD1351 (SPI)", 0
 
-CON
-
-    WIDTH   = disp.WIDTH
-    HEIGHT  = disp.HEIGHT
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

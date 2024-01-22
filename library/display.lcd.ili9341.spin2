@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: display.lcd.ili9341.spin2
-    Author: Jesse Burt
-    Description: Driver for ILI9341 LCD controllers (P2 version)
-    Copyright (c) 2023
-    Started Jan 10, 2022
-    Updated Aug 1, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       display.lcd.ili9341.spin
+    Description:    Driver for ILI9341 LCD controllers
+    Author:         Jesse Burt
+    Started:        Oct 14, 2021
+    Updated:        Jan 22, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 #define GFX_DIRECT
@@ -15,41 +14,51 @@
 
 CON
 
-    MAX_COLOR       = 65535
-    BYTESPERPX      = 2
+    { /// default I/O settings - can be overridden in the parent object }
+    WIDTH       = 320
+    HEIGHT      = 240
+    DBASEPIN    = 0
+    RST         = 8
+    CS          = 9
+    DC          = 10
+    WRX         = 11
+    RDX         = 12
+    { /// }
+
+
+    BPP         = 16
+    MAX_COLOR   = (1 << BPP)-1
+    BYTESPERPX  = 1 #> BPP/8
+    BPPDIV      = 1 #> (8 / BPP)
+    BUFF_SZ     = (WIDTH * HEIGHT) / BPPDIV
+    XMAX        = WIDTH-1
+    YMAX        = HEIGHT-1
+    CENTERX     = WIDTH/2
+    CENTERY     = HEIGHT/2
+
 
 ' Display visibility modes
-    ALL_OFF         = 0
-    OFF             = 0
-    NORMAL          = 1
-    ON              = 1
-    INVERTED        = 2
-    ALL_ON          = 3
+    ALL_OFF     = 0
+    OFF         = 0
+    NORMAL      = 1
+    ON          = 1
+    INVERTED    = 2
+    ALL_ON      = 3
 
 ' Subpixel order
-    RGB             = 0
-    BGR             = 1
+    RGB         = 0
+    BGR         = 1
 
 ' Display refresh direction
-    NORM            = 0
-    INV             = 1
+    NORM        = 0
+    INV         = 1
 
 ' Internal use
-    VMH             = 0
-    VML             = 1
+    VMH         = 0
+    VML         = 1
 
-    FCLK_DIV        = 0                         ' FRMCTR1
-    FRM_RT          = 1
-
-    { default I/O settings - can be overridden in the parent object }
-    WIDTH           = 320
-    HEIGHT          = 240
-    DBASEPIN        = 0
-    RST             = 8
-    CS              = 9
-    DC              = 10
-    WRX             = 11
-    RDX             = 12
+    FCLK_DIV    = 0                         ' FRMCTR1
+    FRM_RT      = 1
 
 OBJ
 
@@ -544,7 +553,7 @@ DAT
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

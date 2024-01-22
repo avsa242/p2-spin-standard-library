@@ -14,11 +14,6 @@
 
 CON
 
-    XMAX        = WIDTH - 1
-    YMAX        = HEIGHT - 1
-    CENTERX     = WIDTH/2
-    CENTERY     = HEIGHT/2
-
     BITMAP      = 0
     BOX         = 1
     BOX_F       = 2
@@ -45,12 +40,12 @@ PUB benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
     disp.pos_xy(0, 0)
     disp.printf(string("%s\n\r"), @_drv_name)
     disp.printf(string("P2X8C4M64P\n\r @%dMHz\n\r"), clkfreq/1_000_000)
-    disp.printf(string("%dx%d"), WIDTH, HEIGHT)
+    disp.printf(string("%dx%d"), disp.WIDTH, disp.HEIGHT)
     disp.show()
     waitms(5_000)
     disp.clear()
 
-    maxsz := WIDTH <# HEIGHT                    ' find smallest disp. dimension
+    maxsz := disp.WIDTH <# disp.HEIGHT                    ' find smallest disp. dimension
 
     color := disp.MAX_COLOR
     time_ms := 2_000                            ' time to run each test
@@ -85,12 +80,12 @@ PUB benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
                     iteration++
             CIRCLE:
                 repeat while _timer_set
-                    disp.circle(CENTERX, CENTERY, sz-1, color, false)
+                    disp.circle(disp.CENTERX, disp.CENTERY, sz-1, color, false)
                     disp.show()
                     iteration++
             CIRCLE_F:
                 repeat while _timer_set
-                    disp.circle(CENTERX, CENTERY, sz-1, color, true)
+                    disp.circle(disp.CENTERX, disp.CENTERY, sz-1, color, true)
                     disp.show()
                     iteration++
             DLINE:

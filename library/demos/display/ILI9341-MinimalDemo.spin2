@@ -1,1 +1,88 @@
-/home/avsa242/prop/github/ili9341-spin/ILI9341-MinimalDemo.spin2
+{
+    --------------------------------------------
+    Filename: ILI9341-MinimalDemo.spin2 (P2 version)
+    Description: Graphics demo using minimal code
+    Author: Jesse Burt
+    Copyright (c) 2024
+    Started: Jan 2, 2024
+    Updated: Jan 2, 2024
+    See end of file for terms of use.
+    --------------------------------------------
+}
+CON
+
+    _clkfreq    = 180_000_000
+    _xtlfreq    = 20_000_000
+
+OBJ
+
+    fnt:    "font.5x8"
+    disp:   "display.lcd.ili9341" | WIDTH=320, HEIGHT=240, DBASEPIN=0, RST=8, CS=9, DC=10, ...
+                                    WRX=11, RDX=12
+    { NOTE: RDX isn't currently used, but must be pulled high }
+    { DBASEPIN defines the pin connected to the LCD's D0; D1..D7 _must_ be connected to the next
+        sequential pins }
+
+PUB main()
+
+    { start the driver }
+    disp.start()
+
+    { configure the display with the minimum required setup }
+    { Presets for ILI9341 }
+    disp.preset_hiletgo_2p4_320x240_land_up()
+'    disp.preset_hiletgo_2p4_320x240_land_down()
+'    disp.preset_hiletgo_2p4_240x320_port_up()
+'    disp.preset_hiletgo_2p4_240x320_port_down
+
+    disp.set_font(fnt.ptr(), fnt.setup())       ' set up the display driver with the font
+    disp.clear()                                ' clear the screen
+
+    { draw some text }
+    disp.char_attrs(disp.TERMINAL)              ' enable processing of CR, LF
+    disp.pos_xy(0, 0)                           ' set text position to home/upper-left
+    disp.fgcolor($ffff)                         ' set white color
+    disp.strln(@"Testing 12345")
+
+    { draw one pixel at the center of the screen }
+    { disp.plot(x, y, color) }
+    disp.plot(CENTERX, CENTERY, $ffff)
+    disp.show()
+
+    { draw a box at the screen edges }
+    { disp.box(x_start, y_start, x_end, y_end, color, filled) }
+    disp.box(0, 0, XMAX, YMAX, $ffff, false)
+    disp.show()
+
+    repeat
+
+CON
+
+    WIDTH       = disp.WIDTH
+    HEIGHT      = disp.HEIGHT
+    XMAX        = (WIDTH - 1)
+    YMAX        = (HEIGHT - 1)
+    CENTERX     = (WIDTH / 2)
+    CENTERY     = (HEIGHT / 2)
+
+
+DAT
+{
+Copyright 2024 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+
