@@ -1,23 +1,16 @@
 {
-    --------------------------------------------
-    Filename: GFXBench-common.spin2h
-    Description: Graphics benchmark for all supported
-        display types (common code)
-    Author: Jesse Burt
-    Copyright (c) 2023
-    Started: Feb 20, 2022
-    Updated: Aug 1, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       GFXBench-common.spinh
+    Description:    Graphics benchmark for all supported display types (common code)
+    Author:         Jesse Burt
+    Started:        Feb 20, 2022
+    Updated:        Jan 21, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     NOTE: This is not a top-level object. This file is meant to be #included
     by a display driver-specific benchmark
 }
-
-OBJ
-
-    ser:    "com.serial.terminal.ansi"
-    fnt:    "font.5x8"
 
 CON
 
@@ -184,7 +177,7 @@ DAT
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
