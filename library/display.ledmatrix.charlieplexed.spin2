@@ -35,9 +35,9 @@ CON
     MAX_COLOR   = 1
     BYTESPERPX  = 1
     BPPDIV      = 1 #> (8 / BPP)
-#define BUFF_SZ (WIDTH * HEIGHT) / BPPDIV
+    BUFF_SZ     = (WIDTH * HEIGHT) / BPPDIV
 
-#warn "buffer size is BUFF_SZ"
+
 VAR
 
     byte _framebuffer[BUFF_SZ]
