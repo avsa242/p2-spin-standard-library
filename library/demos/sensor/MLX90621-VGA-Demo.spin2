@@ -1,14 +1,12 @@
- {
-    --------------------------------------------
-    Filename: MLX90621-VGA-Demo.spin2
-    Author: Jesse Burt
-    Description: Demo of the MLX90621 driver using a
-        VGA display (P2 version)
-    Copyright (c) 2022
-    Started: Jun 26, 2020
-    Updated: Dec 27, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+{
+---------------------------------------------------------------------------------------------------
+    Filename:       MLX90621-VGA-Demo.spin2
+    Description:    Demo of the MLX90621 driver using a VGA display
+    Author:         Jesse Burt
+    Started:        Jun 26, 2020
+    Updated:        Jan 25, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 CON
@@ -17,33 +15,24 @@ CON
     _clkfreq        = 250_000_000
 
 ' -- User-modifiable constants
-    LED             = cfg.LED1
-    SER_BAUD        = 2_000_000
-
+' MLX90621
     SCL_PIN         = 0
     SDA_PIN         = 1
     I2C_FREQ        = 1_000_000
-
-    VGA_BASEPIN     = 32                        ' 0, 8, 16, 24, 32, 40, 48
 ' --
 
-    WIDTH           = 320
-    HEIGHT          = 240
-    XMAX            = WIDTH-1
-    YMAX            = HEIGHT-1
-    CENTERX         = XMAX/2
-    CENTERY         = YMAX/2
-    BUFFSZ          = WIDTH * HEIGHT
-    BPP             = 1
-    BPL             = WIDTH * BPP
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    ser     : "com.serial.terminal.ansi"
-    mlx     : "sensor.thermal-array.mlx90621"
-    vga     : "display.vga.bitmap-8bpp"
-    fnt     : "font.5x8"
+    cfg:    "boardcfg.p2eval"
+    fnt:    "font.5x8"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    mlx:    "sensor.thermal-array.mlx90621"
+    vga:    "display.vga.bitmap-8bpp" | BASEPIN=32, VF=10, VB=33, HF=16, HS=89, HB=85, HV=640, ...
+                                        INTENSITY=127
+
+    ' vga.BASEPIN can be one of: 0, 8, 16, 24, 32, 40, 48
+
 
 VAR
 
@@ -56,16 +45,16 @@ VAR
 
     word _fx, _fy, _fw, _fh
 
-    byte _disp_buff[BUFFSZ]
     byte _mlx_adc_res, _mlx_adcref
     byte _invert_x, _col_scl
     byte _hotspot_mark
+
 
 PUB main()
 
     vga.set_timings(10, 33, 16, 89, 85, 640)
     setup()
-    draw_vscale(XMAX-5, 0, YMAX)
+    draw_vscale(vga.XMAX-5, 0, vga.YMAX)
 
     repeat
         if (_settings_changed)
@@ -73,8 +62,8 @@ PUB main()
         mlx.get_frame(@_ir_frame)
         draw_frame(_fx, _fy, _fw, _fh)
 
-PUB draw_frame(fx, fy, pixw, pixh) | x, y, color_c, ir_offset, pixsx, pixsy, pixex, pixey, maxx, {
-}                                   maxy, maxp
+
+PUB draw_frame(fx, fy, pixw, pixh) | x, y, color_c, ir_offset, pixsx, pixsy, pixex, pixey, maxx, maxy, maxp
 ' Draw the thermal image
     vga.wait_vsync()                             ' wait for vertical sync
     repeat y from 0 to mlx.YMAX
@@ -104,6 +93,7 @@ PUB draw_frame(fx, fy, pixw, pixh) | x, y, color_c, ir_offset, pixsx, pixsy, pix
         vga.line(maxx, maxy+(pixh/2), maxx+pixw, maxy+(pixh/2), vga.MAX_COLOR)
         vga.line(maxx+(pixw/2), maxy, maxx+(pixw/2), maxy+pixh, vga.MAX_COLOR)
 
+
 PUB draw_vscale(x, y, ht) | idx, color, scl_width, bottom, top, range
 ' Draw the color scale setup at program start
     range := bottom := y+ht
@@ -113,6 +103,7 @@ PUB draw_vscale(x, y, ht) | idx, color, scl_width, bottom, top, range
     repeat idx from bottom to top
         color := (range-idx)
         vga.line(x, idx, x+scl_width, idx, color)
+
 
 PUB update_settings() | col, row, reftmp
 ' Settings have been changed by the user - update the sensor and the
@@ -132,11 +123,12 @@ PUB update_settings() | col, row, reftmp
     vga.printf(@"ADC: %dbits\n\r", mlx.temp_adc_res())
     vga.printf(@"ADC reference: %s\n\r", lookupz(reftmp: @"High", @"Low  "))
 
-    _fx := CENTERX - ((_fw * 16) / 2)           ' Approx center of screen
+    _fx := vga.CENTERX - ((_fw * 16) / 2)       ' Approx center of screen
     _fy := 10
-    vga.box(0, 0, XMAX-10, CENTERY, 0, TRUE)    ' Clear out last thermal image
+    vga.box(0, 0, vga.XMAX-10, vga.CENTERY, 0, TRUE)    ' Clear out last thermal image
                                                 ' (in case resizing smaller)
     _settings_changed := FALSE
+
 
 PUB cog_key_input() | cmd
 
@@ -175,23 +167,22 @@ PUB cog_key_input() | cmd
                 next
         _settings_changed := TRUE               ' trigger for main loop to call update_settings()
 
+
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
+    vga.defaults()
     setup_palette()
-    vga.start(VGA_BASEPIN, WIDTH, HEIGHT, @_disp_buff)
-        ser.strln(@"VGA 8bpp driver started")
-        vga.font_addr(fnt.ptr())
-        vga.font_scl(1)
-        vga.font_sz(6, 8)
-        vga.clear()
-        vga.char_attrs(vga.DRAWBG)
+    vga.start()
+    ser.strln(@"VGA 8bpp driver started")
+    vga.set_font(fnt.ptr(), fnt.setup())
+    vga.clear()
+    vga.char_attrs(vga.DRAWBG)
 
-    if mlx.startx(SCL_PIN, SDA_PIN, I2C_FREQ)
+    if ( mlx.startx(SCL_PIN, SDA_PIN, I2C_FREQ) )
         ser.strln(@"MLX90621 driver started")
         mlx.defaults()
         mlx.opmode(mlx.CONT)
@@ -208,6 +199,7 @@ PUB setup()
     _invert_x := 0
     cogspin(NEWCOG, cog_key_input(), @_keyinput_stack)
     _settings_changed := TRUE
+
 
 PUB setup_palette() | i, r, g, b, c, ptr_pal
 ' Set up palette
@@ -250,9 +242,10 @@ PUB setup_palette() | i, r, g, b, c, ptr_pal
         long[ptr_pal][i] := c
     long[ptr_pal][0] := $00
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
