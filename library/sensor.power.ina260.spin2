@@ -79,14 +79,14 @@ OBJ
 PUB null()
 ' This is not a top-level object
 
-PUB start()
+PUB start(): status
 ' Start using default I/O settings
     return startx(SCL, SDA, I2C_FREQ, I2C_ADDR)
 
 PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS=DEF_ADDR): status
 ' Start using custom settings
     if (    lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and ...
-            lookdown(ADDR_BITS: %0000..%1111 )
+            lookdown(ADDR_BITS: %0000..%1111) )
         if ( status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ) )
             waitus(core.T_POR)
             _addr_bits := (ADDR_BITS << 1)
