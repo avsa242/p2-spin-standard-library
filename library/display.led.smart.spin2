@@ -1,13 +1,14 @@
 {
-    --------------------------------------------
-    Filename: display.led.smart.spin2
-    Author: Jesse Burt
-    Description: Driver for various smart LED arrays
-    Copyright (c) 2023
-    Started Jun 13, 2021
-    Updated Oct 6, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       display.led.smart.spin2
+    Description:    Driver for various smart LED arrays
+    Author:         Jesse Burt
+    Started:        Jun 13, 2021
+    Updated:        Jan 25, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
+
+    NOTE: This driver requires a system clock of at least 16MHz
 }
 #define MEMMV_NATIVE longmove
 #include "graphics.common.spin2h"
@@ -131,15 +132,14 @@ PUB start(): status
 ' Start the driver using default I/O settings
     return startx(LED_PIN, WIDTH, HEIGHT, MODEL, @_framebuffer)
 
-PUB startx(SMLED_PIN, DISP_W, DISP_H, led_model, ptr_fb)
+PUB startx(SMLED_PIN, DISP_W, DISP_H, led_model, ptr_fb): status
 ' Start smart-LED engine
-'   SMLED_PIN: I/O pin connected to smart-LED strip/array (0..63)
-'   WIDTH: strip/array width, in pixels (1..1024)
-'   HEIGHT: strip/array height, in pixels (1..1024)
-'       NOTE: (WIDTH * HEIGHT) must be <= 1024
-'   led_model: Specific model of LEDs; see set_model()
-'   ptr_fb: pointer to display buffer
-'   NOTE: Minimum Fsys = 16MHz
+'   SMLED_PIN:  I/O pin connected to smart-LED strip/array (0..63)
+'   WIDTH:      strip/array width, in pixels (1..1024)
+'   HEIGHT:     strip/array height, in pixels (1..1024) (NOTE: (WIDTH * HEIGHT) must be <= 1024)
+'   led_model:  Specific model of LEDs; see set_model()
+'   ptr_fb:     pointer to display buffer
+'   Returns: cogid+1 of parent cog
     if (lookdown(SMLED_PIN: 0..63) and ((DISP_W * DISP_H) <= 1024))
         _smled_pin := SMLED_PIN
         set_model(led_model)
