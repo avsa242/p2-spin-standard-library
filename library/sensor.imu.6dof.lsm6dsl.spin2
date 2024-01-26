@@ -3,9 +3,9 @@
     Filename: sensor.imu.6dof.lsm6dsl.spin2
     Author: Jesse Burt
     Description: Driver for the ST LSM6DSL 6DoF IMU (P2 version)
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started Mar 6, 2021
-    Updated Nov 8, 2022
+    Updated Apr 14, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -36,7 +36,7 @@ CON
 
 ' Scales and data rates used during calibration/bias/offset process
     CAL_XL_SCL              = 2
-    CAL_G_SCL               = 125
+    CAL_G_SCL               = 250
     CAL_M_SCL               = 0
     CAL_XL_DR               = 104
     CAL_G_DR                = 104
@@ -120,6 +120,7 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): status
 }   I2C_HZ <= core.I2C_MAX_FREQ
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             waitus(core.T_POR)                  ' wait for device startup
+            _bank_sel := -1                     ' init bank select
             if (dev_id() == core.DEVID_RESP)    ' validate device
                 return
     ' if this point is reached, something above failed
@@ -135,6 +136,7 @@ PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=1_000_000): status
         if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, {
 }       SCK_FREQ))
             waitus(core.T_POR)                  ' wait for device startup
+            _bank_sel := -1                     ' init bank select
             if (dev_id() == core.DEVID_RESP)    ' validate device
                 return
     ' if this point is reached, something above failed
@@ -186,7 +188,7 @@ PUB preset_active()
     gyro_scale(250)
 
 PUB preset_click_det()
-' Presets for click_-detection
+' Presets for click-detection
     reset()
     accel_scale(2)
     accel_data_rate(416)
@@ -196,6 +198,16 @@ PUB preset_click_det()
     click_latency(9)
     click_int_ena(TRUE)
     int1_mask(SNGTAP)
+
+PUB preset_pedometer()
+' Presets for pedometer functionality
+    reset()
+    blk_updt_ena()
+    accel_data_rate(52)
+    accel_scale(2)
+    pedometer_ena(true)
+    pedometer_scale(2)
+    step_reset()
 
 PUB accel_bias(x, y, z) | tmp
 ' Read accelerometer calibration offset values (on-chip)
@@ -210,9 +222,9 @@ PUB accel_set_bias(x, y, z)
 ' Write accelerometer calibration offset values (on-chip)
 '   Valid values:
 '       -127..127
-    x := -127 #> x <# 127
-    y := -127 #> y <# 127
-    z := -127 #> z <# 127
+    x := -127 #> (x / _ares) <# 127
+    y := -127 #> (y / _ares) <# 127
+    z := -127 #> (z / _ares) <# 127
     writereg(core.X_OFS_USR, 1, @x)
     writereg(core.Y_OFS_USR, 1, @y)
     writereg(core.Z_OFS_USR, 1, @z)
@@ -844,10 +856,84 @@ PUB int1_mask(mask=-2): curr_mask
             readreg(core.MD1_CFG, 1, @curr_mask)
             return
 
+PUB pedometer_ena(state): curr_state
+' Enable pedometer functionality
+'   Valid values:
+'       TRUE (-1 or 1), FALSE (0)
+' Any other value returns the current setting
+    curr_state := 0
+    readreg(core.CTRL10_C, 1, @curr_state)
+    case abs(state)
+        0, 1:
+            state := ((state & core.PED_EN_MASK) | (state & 1) | (1 << core.FUNC_EN))
+            writereg(core.CTRL10_C, 1, @state)
+        other:
+            return (((curr_state >> core.PED_EN) & 1) == 1)
+
+PUB pedometer_scale(scl): curr_scl
+' Sed pedometer full-scale
+'   Valid values:
+'       2, 4
+' Any other value returns the current setting
+    curr_scl := 0
+    readreg(core.CFG_PED_THRESH, 1, @curr_scl)
+    case scl
+        2, 4:
+            scl := lookdownz(scl: 2, 4)
+            scl := ((scl & core.PED_FS_MASK) | scl)
+            writereg(core.CFG_PED_THRESH, 1, @scl)
+        other:
+            return lookupz( ((curr_scl >> core.PED_FS) & 1): 2, 4 )
+
 PUB reset() | tmp
 ' Reset the device
     tmp := core.RESET
     writereg(core.CTRL3_C, 1, @tmp)
+
+PUB step_count{}: c
+' Number of steps detected by pedometer function
+'   Returns: integer (u16)
+    c := 0
+    readreg(core.STP_CNTR_L, 2, @c)
+
+PUB step_reset{} | tmp
+' Reset the pedometer's step counter
+    tmp := 0
+    readreg(core.CTRL10_C, 1, @tmp)
+    tmp |= (1 << core.PED_RST_STP)
+    writereg(core.CTRL10_C, 1, @tmp)
+
+CON
+
+    BANK_A = core.BANK_A
+    BANK_B = core.BANK_B
+
+VAR
+
+    byte _bank_sel
+
+PRI bank_sel(bnk)
+' Select register bank
+'   Valid values:
+'       0: bank A and B disabled
+'       BANK_A ($80): bank A
+'       BANK_B ($A0): bank B
+    case bnk
+        0, BANK_A, BANK_B:
+            if ( bnk <> _bank_sel )             ' only update if the last bank_sel() was different
+#ifdef LSM6DSL_I2C
+                i2c.start{}
+                i2c.write(SLAVE_WR)
+                i2c.write(core.FUNC_CFG_ACCESS)
+                i2c.write(bnk)
+                i2c.stop{}
+#elseifdef LSM6DSL_SPI
+                outa[_CS] := 0
+                spi.wr_byte(core.FUNC_CFG_ACCESS)
+                spi.wr_byte(bnk)
+                outa[_CS] := 1
+            _bank_sel := bnk                    ' save the selection for next time
+#endif
 
 PRI blk_updt_ena() | tmp
 ' Enable block data updates
@@ -869,9 +955,13 @@ PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
         core.FUNC_CFG_ACCESS, core.SENS_SYNC_TIMEFR..core.DRDY_PULSE_CFG_G, {
 }       core.INT1_CTRL..core.STATUS, core.SENSHUB1..core.TIMESTAMP2, {
 }       core.STP_TIMESTMP_L..core.WRIST_TILT_IA, {
-}       core.TAP_CFG..core.SENS_SYNC_SPI_ERR, core.X_OFS_USR..core.Z_OFS_USR:
+}       core.TAP_CFG..core.SENS_SYNC_SPI_ERR, core.X_OFS_USR..core.Z_OFS_USR, {
+}       core.SLV0_ADD..core.CFG_PED_THRESH, core.SM_THS..core.STEP_CNT_DELTA, {
+}       core.MAG_SI_XX..core.MAG_OFFZ_H:
+            bank_sel(reg_nr.byte[1])
         other:                                  ' invalid reg_nr
             return
+
 #ifdef LSM6DSL_I2C
     cmd_pkt.byte[0] := SLAVE_WR
     cmd_pkt.byte[1] := reg_nr
@@ -896,7 +986,11 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
         core.FUNC_CFG_ACCESS, core.SENS_SYNC_TIMEFR..core.DRDY_PULSE_CFG_G, {
 }       core.INT1_CTRL, core.INT2_CTRL, core.CTRL1_XL..core.MASTER_CFG, {
 }       core.TIMESTAMP2, core.TAP_CFG..core.SENS_SYNC_SPI_ERR, {
-}       core.X_OFS_USR..core.Z_OFS_USR:
+}       core.X_OFS_USR..core.Z_OFS_USR, {
+}       core#SLV0_ADD..core#CFG_PED_THRESH, core#SM_THS..core#STEP_CNT_DELTA, {
+}       core#MAG_SI_XX..core#MAG_OFFZ_H:
+            bank_sel(reg_nr.byte[1])
+
         other:
             return
 
@@ -918,7 +1012,7 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
