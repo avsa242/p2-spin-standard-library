@@ -16,14 +16,11 @@ CON
     _clkfreq        = cfg._clkfreq_def
 
 ' -- User-modifiable constants
-    LED             = cfg.LED1
-    SER_BAUD        = 2_000_000
-
 ' Parallax A/V Board, P/N 64006H (set AVBOARD_BASE)
-    AVBOARD_BASE    = 48
+    AVBOARD_BASE    = 32                        ' 0, 8, 16, 24, 32, 40, 48
 
     VGA_BASE        = AVBOARD_BASE+0
-    MIC_PIN         = 0'AVBOARD_BASE+5
+    MIC_PIN         = AVBOARD_BASE+5
     SPKR_L          = AVBOARD_BASE+6
     SPKR_R          = AVBOARD_BASE+7
 
@@ -44,25 +41,29 @@ CON
     ADC_PERIOD      = _clkfreq / SAMPLE_RATE
     SCOPE_FACT      = ADC_PERIOD / HEIGHT
 
+
 OBJ
 
-    ser     : "com.serial.terminal.ansi"
-    cfg     : "boardcfg.p2eval"
-    vga     : "display.vga.bitmap-8bpp"
-    spkr    : "signal.dac.audio"
-    mic     : "signal.adc.audio"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    vga:    "display.vga.bitmap-8bpp" | BASEPIN=32
+    spkr:   "signal.dac.audio"
+    mic:    "signal.adc.audio"
+
 
 VAR
 
     long _audio_stack[100], _gfx_stack[100]
-    long _ser_cog, _audio_cog, _vga_cog, _adc_sample
-    byte _framebuffer[BUFFSZ], _offscreen[BUFFSZ]
+    long _audio_cog, _vga_cog, _adc_sample, _bias
+    byte _offscreen[BUFFSZ]
+
 
 PUB main() | adc_min, adc_max
 
     setup()
     ser.hide_cursor()
 
+    _bias := 2048                               ' bias/DC offset
     adc_max := 0
     repeat 500                                  ' Gather some samples to get a
         adc_min := _adc_sample                  '   "real" minimum
@@ -73,27 +74,31 @@ PUB main() | adc_min, adc_max
         ser.pos_xy(0, 4)
         ser.printf(@"ADC current: %d  \n\rmin: %d  \n\rmax: %d  ", _adc_sample, adc_min, adc_max)
 
+
 PUB draw_wave() | x, y, y_offset                 ' XXX Rolls - no triggering
 ' Draw scope of audio input
     vga.clear()
     repeat x from 0 to XMAX
-        y := YMAX-(_adc_sample / SCOPE_FACT)
-        vga.plot(x, y, 191)
+        y := vga.CENTERY+(_adc_sample / SCOPE_FACT)
+        vga.plot(x, y, 255)
         waitx(ADC_PERIOD)
+
 
 PUB cog_audio()
 ' Sample audio and output it directly to headphones/speakers
     mic.start(MIC_PIN, SAMPLE_RATE, MIC_GAIN)
     spkr.start(SPKR_L, SPKR_R, SAMPLE_RATE)
+    _audio_cog := cogid()
     repeat
-        _adc_sample := mic.adcsample16()
+        _adc_sample := mic.adcsample16()-_bias
         spkr.output16(_adc_sample)
+
 
 PUB cog_graphics()
 ' Run VGA driver and waveform/scope drawing loop
     vga.set_timings(10, 33, 16, 96, 48, 640)
-    setup_palette()
-    vga.start(VGA_BASE, WIDTH, HEIGHT, @_framebuffer)
+    vga.defaults()
+    vga.start()
     vga.draw_to(@_offscreen)
     vga.clear()
 
@@ -104,9 +109,10 @@ PUB cog_graphics()
         vga.wait_vsync()
         vga.show()
 
+
 PUB setup()
 
-    ser.start(SER_BAUD)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
@@ -118,44 +124,4 @@ PUB setup()
     repeat until _audio_cog
     ser.printf(@"Audio cog started (%dHz sample rate)\n\r", SAMPLE_RATE)
 
-PRI setup_palette() | i, r, g, b, c, ptr_pal
-' Set up palette
-    r := g := b := c := 0
-    ptr_pal := vga.palette_ptr()
-    repeat i from 0 to 255
-        case i
-            0..31:
-                r += 4
-                g := 0
-                b += 4
-            32..63:
-                r -= 4
-                g := 0
-                b := b
-            64..95:
-                r := 0
-                g += 4
-                b := b
-            96..127:
-                r := 0
-                g := g
-                b -= 4
-            128..159:
-                r += 4
-                g := g
-                b := b
-            160..191:
-                r := r
-                g -= 4
-                b := 0
-            192..254:
-                r := r
-                g += 4
-                b += 4
-            255:
-                r := g := b := 255
-
-        c := 0 | (r << 16) | (g << 8) | b
-        long[ptr_pal][i] := c
-    long[ptr_pal][0] := $00_00_00_00
 
