@@ -1,12 +1,15 @@
 {
 ---------------------------------------------------------------------------------------------------
     Filename:       Inclinometer-Serial.spin2
-    Description:    Simple inclinometer using an LSM9DS1 IMU (serial display)
+    Description:    Simple inclinometer using an IMU and the serial terminal
     Author:         Jesse Burt
     Started:        Jan 29, 2020
-    Updated:        Jan 21, 2024
+    Updated:        Jan 27, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
+
+    Hardware required:
+        * LSM9DS1 9DoF IMU (I2C or SPI)
 }
 
 CON
@@ -14,29 +17,21 @@ CON
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
-' -- User-modifiable constants
-    { SPI configuration }
-    CS_M_PIN    = 0
-    CS_AG_PIN   = 1
-    SCK_PIN     = 2                             ' SCL
-    MOSI_PIN    = 3                             ' SDA/SDIO
-    MISO_PIN    = 4                             ' SDO/SDIO
-    SPI_FREQ    = 5_000_000
-    ' NOTE: Set MOSI_PIN and MISO_PIN to the same pin to use 3-wire SPI
 
-    { I2C configuration }
-    SCL_PIN     = 0
-    SDA_PIN     = 1
-    I2C_FREQ    = 400_000                       ' 400kHz max
-    ADDR_BITS   = 0                             ' 0, 1
-' --
+' Uncomment these if the LSM9DS1 is connected using SPI
+'#define LSM9DS1_SPI
+'#pragma exportdef(LSM9DS1_SPI)
 
 
 OBJ
 
     cfg:    "boardcfg.p2eval"
     ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
-    imu:    "sensor.imu.9dof.lsm9ds1"
+    imu:    "sensor.imu.9dof.lsm9ds1" | {I2C}SCL=28, SDA=29, I2C_FREQ=100_000, I2C_ADDR=0, ...
+                                        {SPI}CS_AG=0, CS_M=1, SCK=2, MOSI=3, MISO=4, ...
+                                            SPI_FREQ=1_000_000 ' (max 10MHz)
+    ' NOTE: To use SPI, uncomment #define LSM9DS1_SPI above (I2C is used by default)
+    ' NOTE: For 3-wire SPI, specify MOSI and MISO as the same pin
 
 
 PUB main() | pitch, roll
@@ -62,7 +57,7 @@ PUB main() | pitch, roll
         { Press 'z' to reset the inclinometer's 'zero'
           Ensure the chip is lying on a flat surface and the package top
           is facing up }
-        if (ser.rxcheck() == "z")
+        if ( ser.getchar_noblock() == "z" )
             set_zero()
 
 
@@ -81,11 +76,7 @@ PUB setup()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-#ifdef LSM9DS1_SPI
-    if imu.startx(CS_AG_PIN, CS_M_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SPI_FREQ)
-#else
-    if imu.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS)
-#endif
+    if ( imu.start() )
         ser.strln(@"LSM9DS1 driver started")
     else
         ser.strln(@"LSM9DS1 driver failed to start - halting")
