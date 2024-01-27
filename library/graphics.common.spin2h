@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: graphics.common.spin2h
-    Author: Jesse Burt
-    Description: Generic bitmap-oriented graphics rendering routines (P2 version)
-    Copyright (c) 2023
-    Started May 19, 2019
-    Updated Oct 6, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       graphics.common.spin2h
+    Description:    Generic bitmap-oriented graphics rendering routines
+    Author:         Jesse Burt
+    Started:        May 19, 2019
+    Updated:        Jan 27, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 #include "terminal.common.spin2h"               ' for printf(), puts(), etc
@@ -56,6 +55,26 @@ PUB bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs
 }       ptr_bmap+offs, bm_wid)
     while bm_lns--                              ' loop if there're more lines
 #endif
+
+pub bitmap_1bpp(ptr_bmap, x, y, w, h) | bmbytes_ln, b, j, i, row, col
+' Copy a 1-bpp bitmap to the display buffer
+'   ptr_bmap: pointer to bitmap data
+'   (x, y): upper-left corner of bitmap
+'   w: width of bitmap, in pixels
+'   h: height of bitmap, in pixels
+    bmbytes_ln := (w + 7) / 8                   ' bytes per line of the bitmap
+    b := 0
+
+    repeat row from 0 to h-1
+        repeat col from 0 to w-1
+            if ( col & 7 )
+                b <<= 1
+            else
+                b := byte[ptr_bmap][(row * bmbytes_ln) + (col / 8)]
+            if ( b & $80 )
+                plot(x + col, y, 1)
+        y++
+
 
 #ifndef GFX_DIRECT
 PUB box(x0, y0, x1, y1, color, filled=FALSE) | x, y
@@ -111,6 +130,7 @@ PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char
 '       %00000000
 '   * bit order can be normal (MSBit in each glyph word is left edge)
 '       or reversed (MSBit in each glyph word is right edge; build with -DFNT_GLYPH_REV)
+'   * up to 8px wide
     if ( (ch < _fnt_cmin) or (ch > _fnt_cmax) ) ' don't waste any time if the char is invalid
         return
 
@@ -128,7 +148,9 @@ PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char
                 _charpx_y += char_ht            ' goto next text row
                 if ( _charpx_y > _charpx_ymax )
                     _charpx_y -= char_ht        ' scroll the display up a row if we try to go
+#ifndef GFX_DIRECT
                     scroll_up_fs(char_ht)       '   past the end
+#endif
                 return
             CR:
                 { carriage return }
@@ -165,7 +187,92 @@ PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char
         _charpx_y += char_ht                    '   to go past the right edge
     if ( _charpx_y > _charpx_ymax )
         _charpx_y -= char_ht                    ' scroll the display up a row if we try to go
+# ifndef GFX_DIRECT
         scroll_up_fs(char_ht)                   '   past the end
+# endif
+#endif
+
+pub putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, char_ht, rowbyte, bit, gl_row, gl_col
+' Low-level character rendering routine
+'   For font file definitions with these characteristics:
+'   * 0 degrees rotation (portrait, top-down)
+'   * each glyph word is a row of the glyph, e.g. for 5x8 'A':
+'       %00100000
+'       %01010000
+'       %10001000
+'       %10001000
+'       %11111000
+'       %10001000
+'       %10001000
+'       %00000000
+'   * bit order can be normal (MSBit in each glyph word is left edge)
+'       or reversed (MSBit in each glyph word is right edge; build with -DFNT_GLYPH_REV)
+'   * up to 32px wide
+    if ( (ch < _fnt_cmin) or (ch > _fnt_cmax) ) ' don't waste any time if the char is invalid
+        return
+
+    bpr := _fnt_width/8                         ' calc number of bytes per glyph row
+    lastbyte := bpr-1
+    p := _font_addr + ( (ch-_fnt_cmin) * (_fnt_height * bpr))
+    last_glcol := _fnt_width-1                  ' last column of pixels in font
+    last_glrow := _fnt_height-1                 '   definition
+    char_wid := _charcell_w * _fnt_xscl         ' scaled character dimensions
+    char_ht := _charcell_h * _fnt_yscl          '
+
+    if ( _char_attrs & TERMINAL )
+        { process control characters, don't draw them }
+        case ch
+            LF:
+                { line feed }
+                _charpx_y += char_ht            ' goto next text row
+                if ( _charpx_y > _charpx_ymax )
+                    _charpx_y -= char_ht        ' scroll the display up a row if we try to go
+#ifndef GFX_DIRECT
+                    scroll_up_fs(char_ht)       '   past the end
+#endif
+                return
+            CR:
+                { carriage return }
+                _charpx_x := 0                  ' goto first text column
+                return
+
+    { read a glyph in from the font table }
+    repeat gl_row from 0 to last_glrow          ' for each glyph row
+        gl_col := 0
+        repeat rowbyte from 0 to lastbyte       ' for each byte in the row
+            repeat bit from 0 to 7
+#ifdef FNT_GLYPH_REV
+                { reverse byte-order glyphs (MSBit in each byte of glyph data is right edge) }
+                if ( (byte[p][rowbyte] rev 7) & (1 << bit) )
+#else
+                { normal byte-order glyphs (MSBit in each byte of glyph data is left edge) }
+                if ( byte[p][rowbyte] & (1 << bit) )
+#endif
+                    plot(   _charpx_x + gl_col, ...
+                            _charpx_y + gl_row, ...
+                            _fgcolor )
+                else
+                    { draw the background color for unset pixels if the DRAWBG attribute is set
+                        ( see char_attr() )
+                    otherwise, unset pixels will be ignored (effectively transparent) }
+                    if ( _char_attrs & DRAWBG )
+                        plot(   _charpx_x + gl_col, ...
+                                _charpx_y + gl_row, ...
+                                _bgcolor )
+                gl_col++
+        p += bpr                                ' point to next row of glyph data
+
+    _charpx_x += char_wid                       ' goto next column
+
+#ifndef FNT_POS_NOGRID
+    if ( _charpx_x > _charpx_xmax )
+        _charpx_x := 0                          ' goto the first column of the next row if we try
+        _charpx_y += char_ht                    '   to go past the right edge
+    if ( _charpx_y > _charpx_ymax )
+        _charpx_y -= char_ht                    ' scroll the display up a row if we try to go
+# ifndef GFX_DIRECT
+        scroll_up_fs(char_ht)                   '   past the end
+# endif
 #endif
 
 PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_row, glyph, char_ht, char_wid
@@ -196,7 +303,9 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
                 _charpx_y += char_ht            ' goto next text row
                 if ( _charpx_y > _charpx_ymax )
                     _charpx_y -= char_ht        ' scroll the display up a row if we try to go
+#ifndef GFX_DIRECT
                     scroll_up_fs(char_ht)       '   past the end
+#endif
                 return
             CR:
                 { carriage return }
@@ -257,7 +366,9 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
         _charpx_y += char_ht                    '   to go past the right edge
     if ( _charpx_y > _charpx_ymax )
         _charpx_y -= char_ht                    ' scroll the display up a row if we try to go
+# ifndef GFX_DIRECT
         scroll_up_fs(char_ht)                   '   past the end
+# endif
 #endif
 
 CON
@@ -599,12 +710,15 @@ PUB address = set_address
 PUB set_address(addr=0)
 ' Set display buffer address
 '   addr: address of display buffer to use (or 0 to use the driver's internal buffer)
+#ifndef GFX_DIRECT
+    { only build this if targetting a buffered display; the framebuffer won't exist otherwise }
     if ( addr == 0 )
         { use the buffer built-in to the display driver }
         _ptr_drawbuffer := @_framebuffer
     else
         { use an external buffer }
         _ptr_drawbuffer := addr
+#endif
 
 PUB set_dims(w, h)
 ' Set display dimensions
@@ -677,7 +791,7 @@ PUB text_rows(): rows
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
