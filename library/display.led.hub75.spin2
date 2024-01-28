@@ -1,17 +1,19 @@
 {
-    --------------------------------------------
-    Filename: display.led.hub75.spin2
-    Author: Jesse Burt
-    Description: Driver for HUB75 RGB LED matrix displays (P2 version)
-    Copyright (c) 2023
-    Started: Oct 31, 2021
-    Updated: Oct 6, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       display.led.hub75.spin2
+    Description:    Driver for HUB75 RGB LED matrix displays
+    Author:         Jesse Burt
+    Started:        Oct 31, 2021
+    Updated:        Jan 28, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 #define MEMMV_NATIVE bytemove
 #include "graphics.common.spin2h"
+#ifdef GFX_DIRECT
+#   error "GFX_DIRECT not supported by this driver"
+#endif
 
 CON
 
