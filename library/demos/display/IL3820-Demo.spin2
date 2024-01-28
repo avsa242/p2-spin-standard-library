@@ -1,42 +1,41 @@
 {
-    --------------------------------------------
-    Filename: Il3820-Demo.spin2
-    Description: IL3820-specific setup for E-Ink/E-Paper graphics demo (P2 version)
-    Author: Jesse Burt
-    Copyright (c) 2023
-    Started: Jul 4, 2022
-    Updated: Aug 8, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       Il3820-Demo.spin2
+    Description:    IL3820-specific setup for E-Ink/E-Paper graphics demo
+    Author:         Jesse Burt
+    Started:        Jul 4, 2022
+    Updated:        Jan 28, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
 CON
 
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
-' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
-' --
 
 OBJ
 
     cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    fnt:    "font.5x8"
     epaper: "display.epaper.il3820" | WIDTH=128, HEIGHT=296, ...
                                         CS=21, SCK=20, MOSI=19, DC=18, RST=17, BUSY=16, ...
                                         SPI_FREQ=4_000_000
 
+
 PUB main()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
     if ( epaper.start() )
-        ser.printf(@"%s driver started", @_drv_name)
+        ser.strln(@"E-ink driver started")
         epaper.set_font(fnt.ptr(), fnt.setup())
     else
-        ser.printf(@"%s driver failed to start - halting", @_drv_name)
+        ser.strln(@"E-ink driver failed to start - halting")
         repeat
 
     epaper.preset_2p9_bw()
@@ -46,11 +45,10 @@ PUB main()
 { demo routines (common to all display types) included here }
 #include "EInkDemo-common.spin2h"
 
-DAT
-    _drv_name   byte    "IL3820 (SPI)", 0
 
+DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
