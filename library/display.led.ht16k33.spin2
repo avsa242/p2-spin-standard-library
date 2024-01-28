@@ -4,7 +4,7 @@
     Description:    Driver for HT16K33-based LED displays (matrix type)
     Author:         Jesse Burt
     Started:        Oct 11, 2018
-    Updated:        Jan 22, 2024
+    Updated:        Jan 28, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 }
@@ -13,6 +13,9 @@
 #define MEMMV_NATIVE bytemove
 #include "ht16k33.common.spin2h"
 #include "graphics.common.spin2h"
+#ifdef GFX_DIRECT
+#   error "GFX_DIRECT not supported by this driver"
+#endif
 
 CON
 

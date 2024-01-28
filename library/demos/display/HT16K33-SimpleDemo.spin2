@@ -1,17 +1,20 @@
 {
-    --------------------------------------------
-    Filename: HT16K33-SimpleDemo.spin2
-    Description: Simplified Demo of the HT16K33 driver
-    Author: Jesse Burt
-    Copyright (c) 2023
-    Created: Nov 21, 2020
-    Updated: Aug 2, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       HT16K33-SimpleDemo.spin2
+    Description:    Simplified Demo of the HT16K33 driver
+    Author:         Jesse Burt
+    Started:        Nov 21, 2020
+    Updated:        Jan 28, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     NOTE: -DFNT_POS_NOGRID must be defined when building for the text portion of this demo
         to function correctly.
+
 }
+
+#define FNT_POS_NOGRID
+#pragma exportdef(FNT_POS_NOGRID)
 
 CON
 
@@ -83,16 +86,16 @@ PUB setup()
 
     ser.start()
     ser.clear()
-    ser.strln(string("Serial terminal started"))
+    ser.strln(@"Serial terminal started")
     if ( matrix.start() )
-        ser.strln(string("HT16K33 driver started"))
+        ser.strln(@"HT16K33 driver started")
     else
-        ser.strln(string("HT16K33 driver failed to start - halting"))
+        ser.strln(@"HT16K33 driver failed to start - halting")
         repeat
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
