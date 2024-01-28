@@ -1,19 +1,44 @@
 {
-    --------------------------------------------
-    Filename: display.epaper.il3897.spin2
-    Author: Jesse Burt
-    Description: Driver for IL3897/SSD1675 AM E-Paper display controller (P2 version)
-    Copyright (c) 2024
-    Started Apr 4, 2021
-    Updated Jan 2, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       display.epaper.il3897.spin2
+    Description:    Driver for IL3897/SSD1675 active-matrix E-Paper display controller
+    Author:         Jesse Burt
+    Started:        Feb 21, 2021
+    Updated:        Jan 28, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
 #define 1BPP
 #define MEMMV_NATIVE bytemove
 #include "graphics.common.spin2h"
+#ifdef GFX_DIRECT
+#   error "GFX_DIRECT not supported by this driver"
+#endif
 
 CON
+
+    { -- default I/O settings; these can be overridden in the parent object }
+    { display dimensions }
+    WIDTH           = 128
+    HEIGHT          = 296
+
+    { SPI }
+    CS              = 0
+    SCK             = 1
+    MOSI            = 2
+    DC              = 3
+    RST             = 4
+    BUSY            = 5
+    SPI_FREQ        = 10_000_000
+    ' --
+
+    XMAX            = WIDTH-1
+    YMAX            = HEIGHT-1
+    CENTERX         = WIDTH/2
+    CENTERY         = HEIGHT/2
+    BYTESPERLN      = WIDTH * BYTESPERPX
+    BUFF_SZ         = ((WIDTH + 6) * HEIGHT) / 8
 
 ' Colors
     BLACK           = 0
@@ -76,27 +101,6 @@ CON
     DL              = 74
     GT              = 75
 
-    { -- default I/O settings; these can be overridden in the parent object }
-    { display dimensions }
-    WIDTH           = 128
-    HEIGHT          = 296
-    XMAX            = WIDTH-1
-    YMAX            = HEIGHT-1
-    CENTERX         = WIDTH/2
-    CENTERY         = HEIGHT/2
-
-    { SPI }
-    CS              = 0
-    SCK             = 1
-    MOSI            = 2
-    DC              = 3
-    RST             = 4
-    BUSY            = 5
-    SPI_FREQ        = 10_000_000
-    ' --
-
-    BYTESPERLN  = WIDTH * BYTESPERPX
-    BUFF_SZ     = ((WIDTH + 6) * HEIGHT) / 8
 
 VAR
 
@@ -694,7 +698,7 @@ DAT
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

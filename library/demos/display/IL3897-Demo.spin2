@@ -1,14 +1,14 @@
 {
-    --------------------------------------------
-    Filename: IL3897-Demo.spin
-    Author: Jesse Burt
-    Description: IL3897-specific setup for E-Ink/E-Paper graphics demo
-    Copyright (c) 2024
-    Started: Feb 21, 2021
-    Updated: Jan 2, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       Il3897-Demo.spin2
+    Description:    IL3897-specific setup for E-Ink/E-Paper graphics demo
+    Author:         Jesse Burt
+    Started:        Feb 21, 2021
+    Updated:        Jan 28, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
 #include "core.con.click.spin2"
 
 CON
@@ -24,6 +24,8 @@ CON
 OBJ
 
     cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    fnt:    "font.5x8"
     epaper: "display.epaper.il3897" | WIDTH=122, HEIGHT=250, ...
                                         CS=21, SCK=20, MOSI=19, DC=18, RST=17, BUSY=16, ...
                                         SPI_FREQ=10_000_000
@@ -41,13 +43,13 @@ PUB main()
 
     ser.start()
     ser.clear()
-    ser.strln(string("Serial terminal started"))
+    ser.strln(@"Serial terminal started")
 
     if ( epaper.start() )
-        ser.printf(string("%s driver started"), @_drv_name)
+        ser.strln(@"E-ink driver started")
         epaper.set_font(fnt.ptr(), fnt.setup())
     else
-        ser.printf(string("%s driver failed to start - halting"), @_drv_name)
+        ser.strln(@"E-ink driver failed to start - halting")
         repeat
 
     epaper.preset_2p13_bw()
@@ -58,9 +60,8 @@ PUB main()
 { demo routines (common to all display types) included here }
 #include "EInkDemo-common.spin2h"
 
-DAT
-    _drv_name   byte    "IL3897 (SPI)", 0
 
+DAT
 {
 Copyright 2023 Jesse Burt
 
