@@ -4,7 +4,7 @@
     Description:    Driver for various smart LED arrays
     Author:         Jesse Burt
     Started:        Jun 13, 2021
-    Updated:        Jan 25, 2024
+    Updated:        Jan 31, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 
@@ -26,6 +26,7 @@ CON
     { -- }
 
     BUFF_SZ         = (WIDTH*HEIGHT)*BYTESPERPX
+    NR_PIXELS       = WIDTH*HEIGHT
 
     BLACK           = $00_00_00_00
     RED             = $FF_00_00_00
