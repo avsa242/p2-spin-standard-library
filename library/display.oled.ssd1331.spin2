@@ -1,21 +1,42 @@
 {
-    --------------------------------------------
-    Filename: display.oled.ssd1331.spin2
-    Author: Jesse Burt
-    Description: Driver for Solomon Systech SSD1331 RGB OLED displays (P2 version)
-    Copyright (c) 2024
-    Started: Apr 28, 2019
-    Updated: Jan 3, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       display.oled.ssd1331.spin2
+    Description:    Driver for Solomon Systech SSD1331 RGB OLED displays
+    Author:         Jesse Burt
+    Started:        Apr 28, 2019
+    Updated:        Feb 2, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 #define MEMMV_NATIVE wordmove
 #include "graphics.common.spin2h"
 
 CON
 
-    BYTESPERPX  = 2
-    MAX_COLOR   = 65535
+    { /// default I/O settings; these can be overridden in the parent object }
+    { display dimensions }
+    WIDTH       = 96
+    HEIGHT      = 64
+    { SPI }
+    CS          = 0
+    SCK         = 1
+    MOSI        = 2
+    DC          = 3
+    RST         = 4
+    SPI_FREQ    = 6_666_666
+    BPP         = 16                            ' bits per pixel/color depth of the display
+    { /// }
+
+
+    BYTESPERPX  = 1 #> (BPP/8)                  ' limit to minimum of 1
+    BPPDIV      = 1 #> (8 / BPP)                ' limit to range 1 .. (8/BPP)
+    XMAX        = WIDTH-1
+    YMAX        = HEIGHT-1
+    CENTERX     = WIDTH/2
+    CENTERY     = HEIGHT/2
+    BUFF_SZ     = (WIDTH * HEIGHT) / BPPDIV
+    MAX_COLOR   = (1 << BPP)-1
+
 
 ' Transaction type selection
     CMD         = 0
@@ -45,22 +66,6 @@ CON
     RGB         = 0
     BGR         = 1
 
-    { default I/O settings; these can be overridden in the parent object }
-    { display dimensions }
-    WIDTH       = 96
-    HEIGHT      = 64
-    XMAX        = WIDTH-1
-    YMAX        = HEIGHT-1
-    CENTERX     = WIDTH/2
-    CENTERY     = HEIGHT/2
-
-    { SPI }
-    CS          = 0
-    SCK         = 1
-    MOSI        = 2
-    DC          = 3
-    RST         = 4
-    SPI_FREQ    = 10_000_000
 
 OBJ
 
@@ -72,7 +77,9 @@ VAR
     { I/O pins }
     long _CS, _DC, _RES
 
-    word _framebuffer[ (WIDTH * HEIGHT) ]
+#ifndef GFX_DIRECT
+    word _framebuffer[BUFF_SZ]
+#endif
 
     { shadow registers }
     byte _sh_SETCOLUMN, _sh_SETROW, _sh_SETCONTRAST_A, _sh_SETCONTRAST_B, _sh_SETCONTRAST_C
@@ -86,7 +93,12 @@ PUB null()
 
 PUB start(): status
 ' Start the driver using default I/O settings
+#ifdef GFX_DIRECT
+    return startx(CS, SCK, MOSI, DC, RST, SPI_FREQ, WIDTH, HEIGHT, 0)
+#else
     return startx(CS, SCK, MOSI, DC, RST, SPI_FREQ, WIDTH, HEIGHT, @_framebuffer)
+#endif
+
 
 PUB startx(CS_PIN, CLK_PIN, DIN_PIN, DC_PIN, RES_PIN, CLK_FREQ, DISP_W, DISP_H, ptr_drawbuff): status
 ' Start using custom I/O settings
@@ -100,12 +112,7 @@ PUB startx(CS_PIN, CLK_PIN, DIN_PIN, DC_PIN, RES_PIN, CLK_FREQ, DISP_W, DISP_H, 
             pinh(_DC)
             pinh(_CS)
             reset()
-            _disp_width := DISP_W
-            _disp_height := DISP_H
-            _disp_xmax := _disp_width-1
-            _disp_ymax := _disp_height-1
-            _buff_sz := (_disp_width * _disp_height) * BYTESPERPX
-            _bytesperln := (_disp_width * BYTESPERPX)
+            set_dims(DISP_W, DISP_H)
             set_address(ptr_drawbuff)
             return
     ' if this point is reached, something above failed
@@ -598,43 +605,6 @@ PUB precharge_speed(seg_a, seg_b, seg_c) | tmp[2]
     tmp.byte[4] := seg_c
     writereg(core.PRECHGA, 5, @tmp)
 
-#ifdef GFX_DIRECT
-PUB tx = putchar
-PUB char = putchar
-PUB putchar(ch) | gl_c, gl_r, lastgl_c, lastgl_r
-' Draw character from currently loaded font
-    lastgl_c := _font_width-1
-    lastgl_r := _font_height-1
-    case ch
-        CR:
-            _charpx_x := 0
-        LF:
-            _charpx_y += _charcell_h
-            if _charpx_y > _charpx_xmax
-                _charpx_y := 0
-        0..127:                                 ' validate ASCII code
-            ' walk through font glyph data
-            repeat gl_c from 0 to lastgl_c      ' column
-                repeat gl_r from 0 to lastgl_r  ' row
-                    ' if the current offset in the glyph is a set bit, draw it
-                    if byte[_font_addr][(ch << 3) + gl_c] & (decod(gl_r))
-                        plot((_charpx_x + gl_c), (_charpx_y + gl_r), _fgcolor)
-                    else
-                    ' otherwise, draw the background color, if enabled
-                        if _char_attrs & DRAWBG
-                            plot((_charpx_x + gl_c), (_charpx_y + gl_r), _bgcolor)
-            ' move the cursor to the next column, wrapping around to the left,
-            ' and wrap around to the top of the display if the bottom is reached
-            _charpx_x += _charcell_w
-            if _charpx_x > _charpx_xmax
-                _charpx_x := 0
-                _charpx_y += _charcell_h
-            if _charpx_y > _charpx_ymax
-                _charpx_y := 0
-        other:
-            return
-#endif
-
 PUB reset()
 ' Reset the display controller
     if lookdown(_RES: 0..63)
@@ -734,11 +704,11 @@ PUB visibility(mode): curr_mode
             curr_mode := _sh_DISPMODE
             return (_sh_DISPMODE - core.NORMALDISPLAY)
 
-PUB wr_buffer(ptr_buff, buff_sz)
+PUB wr_buffer(ptr_buff, len)
 ' Write alternate buffer to display
     pinw(_DC, DATA)
     pinl(_CS)
-    spi.wrblock_lsbf(ptr_buff, buff_sz)
+    spi.wrblock_lsbf(ptr_buff, len)
     pinh(_CS)
 
 PRI command(c)
@@ -776,7 +746,7 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff)
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

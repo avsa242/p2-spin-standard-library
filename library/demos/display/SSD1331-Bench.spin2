@@ -4,10 +4,13 @@
     Description:    SSD1331-specific setup for graphics benchmark
     Author:         Jesse Burt
     Started:        Feb 19, 2022
-    Updated:        Jan 22, 2024
+    Updated:        Feb 2, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 }
+#define GFX_DIRECT
+#pragma exportdef(GFX_DIRECT)
+
 CON
 
     _clkfreq    = cfg._clkfreq_def
@@ -26,14 +29,14 @@ PUB main()
 
     ser.start()
     ser.clear()
-    ser.strln(string("Serial terminal started"))
+    ser.strln(@"Serial terminal started")
 
     if ( disp.start() )
-        ser.printf(string("%s driver started"), @_drv_name)
+        ser.strln(@"SSD1331 driver started")
         disp.set_font(fnt.ptr(), fnt.setup())
         disp.char_attrs(disp.TERMINAL)
     else
-        ser.printf(string("%s driver failed to start - halting"), @_drv_name)
+        ser.strln(@"SSD1331 driver failed to start - halting")
         repeat
 
 
