@@ -4,7 +4,7 @@
     Description:    Driver for charlieplexed LED matrix displays
     Author:         Jesse Burt
     Started:        Jun 16, 2019
-    Updated:        Jan 22, 2024
+    Updated:        Feb 4, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #define MEMMV_NATIVE bytemove
 #define LEDMATRIX_CHARLIEPLEXED
 #include "graphics.common.spin2h"
+
+#ifdef GFX_DIRECT
+#   error "GFX_DIRECT/direct-to-display drawing not supported by this driver"
+#endif
+
 
 CON
 
