@@ -4,7 +4,7 @@
     Description:    Driver for various smart LED arrays
     Author:         Jesse Burt
     Started:        Jun 13, 2021
-    Updated:        Jan 31, 2024
+    Updated:        Feb 4, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 
@@ -12,6 +12,10 @@
 }
 #define MEMMV_NATIVE longmove
 #include "graphics.common.spin2h"
+
+#ifdef GFX_DIRECT
+#   error "GFX_DIRECT/direct-to-display drawing not supported by this driver"
+#endif
 
 CON
 
@@ -168,22 +172,14 @@ PUB plot(x, y, color)
 ' Plot pixel at (x, y) in color
     if (x < 0 or x > _disp_xmax) or (y < 0 or y > _disp_ymax)
         return                                  ' coords out of bounds, ignore
-#ifdef GFX_DIRECT
-' direct to display
-'   (not implemented)
-#else
-' buffered display
     long[_ptr_drawbuffer][x + (y * _disp_width)] := color
-#endif
 
-#ifndef GFX_DIRECT
 PUB point(x, y): pix_clr
 ' Get color of pixel at x, y
     x := 0 #> x <# _disp_xmax
     y := 0 #> y <# _disp_ymax
 
     return long[_ptr_drawbuffer][x + (y * _disp_width)]
-#endif
 
 PUB set_clock(freq) | bitper
 ' Set clock frequency used to calculate timings
@@ -350,19 +346,19 @@ PUB show_rgb24() | t0h, t0l, t1h, t1l, smled_pin, tres, pix_nr, color, bit
     pinl(smled_pin)                             ' reset code (end of array)
     waitus(tres)
 
-#ifndef GFX_DIRECT
 PRI memfill(xs, ys, val, count)
 ' Fill region of display buffer memory
 '   xs, ys: Start of region
 '   val: Color
 '   count: Number of consecutive memory locations to write
-    longfill(_ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), ((val >> 8) & $FF) | {
-}   ((val << 8) & $FF00), count)
-#endif
+    longfill(   _ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), ...
+                ((val >> 8) & $FF) | ((val << 8) & $FF00), ...
+                count )
+
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
