@@ -1,15 +1,14 @@
 {
-    --------------------------------------------
-    Filename: com.mdio.sme.spin2
-    Author: Jesse Burt
-    Description: Management Data Input/Output engine (
-        (bit-banged, classic I/O)
-    Copyright (c) 2022
-    Started May 3, 2022
-    Updated Oct 18, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       com.mdio.sme.spin2
+    Description:    Management Data Input/Output engine (bit-banged, classic I/O)
+    Author:         Jesse Burt
+    Started:        May 3, 2022
+    Updated:        Feb 5, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
 CON
 
     { control bits }
@@ -20,9 +19,11 @@ CON
     ST_WR   = (ST | OP_WR)                      ' start, write op
     ST_RD   = (ST | OP_RD)                      ' start, read op
 
+
 VAR
 
-    long _period, _MDC, _MDIO
+    long _bit_time, _MDC, _MDIO
+
 
 PUB init(MDC, MDIO, MDIO_HZ=2_500_000): status
 ' Initialize MDIO engine
@@ -31,90 +32,93 @@ PUB init(MDC, MDIO, MDIO_HZ=2_500_000): status
 '   MDIO_HZ: MDIO clock speed
 
     { set MDC clock period based on chosen speed }
-    _period := ((clkfreq / MDIO_HZ) / 2)-14     ' XXX fix overhead calc
+    _bit_time := ((clkfreq / MDIO_HZ) / 2)-14     ' XXX fix overhead calc
     longmove(@_MDC, @MDC, 2)
 
     { initialize I/O pins to known state: clock low, float MDIO }
     pinl(MDC)
-    wrpin(MDIO, P_HIGH_1K5)
+    wrpin(MDIO, P_HIGH_1K5)                     ' MDIO: use internal 1k5R pull-up
     return cogid
+
 
 PUB deinit()
 ' Deinitialize
-    longfill(@_period, 0, 3)
+    longfill(@_bit_time, 0, 3)
 
-PUB rdword_msbf(phy_addr, reg_addr): mwd | cmd_pkt, bit, per, MDC, MDIO
+
+PUB rdword_msbf(phy_addr, reg_addr): mwd | cmd_pkt, bit, btm, MDC, MDIO
 ' Read word from PHY
 '   phy_addr: PHY address
 '   reg_addr: register address
 '   reg_data: word to write
-    longmove(@per, @_period, 3)
+    longmove(@btm, @_bit_time, 3)               ' local copy of global vars
     cmd_pkt := ST_RD | (phy_addr << 23) | (reg_addr << 18)
 
     { preamble: 32 '1' bits }
     pinh(MDIO)                                  ' leave data line floating
     repeat 32
-        waitx(_period)                          ' clock out bits
+        waitx(btm)                              ' clock out bits
         pint(MDC)
-        waitx(_period)
+        waitx(btm)
         pint(MDC)
 
     { register access: [31..18] send ST, RD opcode, phy_addr, reg_addr }
     repeat bit from 31 to 18
-        { current bit is set? raise MDIO; else, lower it }
+        { current bit is set? float MDIO; else, lower it }
         (cmd_pkt.[bit]) ? pinh(MDIO) : pinl(MDIO)
-        waitx(_period)
+        waitx(btm)
         pint(MDC)
-        waitx(_period)
+        waitx(btm)
         pint(MDC)
 
     { TA / Turn-around: 2 bit times }
     pinh(MDIO)                                  ' release MDIO line to PHY
     repeat 2
-        waitx(_period)
+        waitx(btm)
         pint(MDC)
-        waitx(_period)
+        waitx(btm)
         pint(MDC)
 
     { clock in 16 bits from the PHY }
     repeat bit from 15 to 0
-        waitx(_period)
+        waitx(btm)
         pint(MDC)
         mwd.[bit] := pinr(MDIO)
-        waitx(_period)
+        waitx(btm)
         pint(MDC)
 
     return (mwd & $ffff)
 
-PUB wrword_msbf(phy_addr, reg_addr, reg_data) | cmd_pkt, bit, per, MDC, MDIO
+
+PUB wrword_msbf(phy_addr, reg_addr, reg_data) | cmd_pkt, bit, btm, MDC, MDIO
 ' Write word to PHY
 '   phy_addr: PHY address
 '   reg_addr: register address
 '   reg_data: word to write
-    longmove(@per, @_period, 3)
-    cmd_pkt := ST_WR | (phy_addr << 23) | (reg_addr << 18) | (%10 << 16) | {
-}   (reg_data)
+    longmove(@btm, @_bit_time, 3)               ' local copy of global vars
+    cmd_pkt := ST_WR | (phy_addr << 23) | (reg_addr << 18) | (%10 << 16) | (reg_data)
 
     { preamble: 32 '1' bits }
     pinh(MDIO)                                  ' leave data line floating
     repeat 32
-        waitx(_period)                          ' clock out bits
+        waitx(btm)                              ' clock out bits
         pint(MDC)
-        waitx(_period)
+        waitx(btm)
         pint(MDC)
 
     { register access }
     repeat bit from 31 to 0
         (cmd_pkt.[bit]) ? pinh(MDIO) : pinl(MDIO)
-        waitx(_period)
+        waitx(btm)
         pint(MDC)
-        waitx(_period)
+        waitx(btm)
         pint(MDC)
     pinh(MDIO)                                  ' release MDIO
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
