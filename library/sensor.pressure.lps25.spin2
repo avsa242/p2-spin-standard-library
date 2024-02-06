@@ -1,23 +1,45 @@
 {
-    --------------------------------------------
-    Filename: sensor.pressure.lps25.spin2
-    Author: Jesse Burt
-    Description: Driver for the ST LPS25 Barometric Pressure sensor (P2 version)
-    Copyright (c) 2022
-    Started Sep 28, 2021
-    Updated Oct 16, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       sensor.pressure.lps25.spin
+    Description:    Driver for the ST LPS25 Barometric Pressure sensor
+    Author:         Jesse Burt
+    Started:        Sep 28, 2021
+    Updated:        Feb 6, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
-#include "sensor.pressure.common.spin2h"
-#include "sensor.temp.common.spin2h"
+
+#include "sensor.pressure.common.spin2h"            ' pull in code common to all pressure sensors
+#include "sensor.temp.common.spin2h"                '   and temperature sensors
 
 CON
+
+    { default I/O settings; these can be overridden in the parent object }
+    { /// default I/O settings; these can be overridden in the parent object }
+
+    { I2C }
+    SCL             = DEF_SCL
+    SDA             = DEF_SDA
+    I2C_FREQ        = DEF_HZ
+    I2C_ADDR        = DEF_ADDR
+
+    { SPI }
+    CS              = 0
+    SCK             = 1
+    MOSI            = 2
+    MISO            = 3
+    SPI_FREQ        = 1_000_000
+
+    { /// }
+
 
     SLAVE_WR        = core.SLAVE_ADDR
     SLAVE_RD        = core.SLAVE_ADDR|1
 
+    DEF_SCL         = 0
+    DEF_SDA         = 1
     DEF_HZ          = 100_000
+    DEF_ADDR        = 0
     I2C_MAX_FREQ    = core.I2C_MAX_FREQ
 
 ' Operating modes
@@ -45,26 +67,31 @@ OBJ
 
 { SPI? }
 #ifdef LPS25_SPI
-    spi : "com.spi.10mhz"                     ' bitbanged SPI engine
+    spi:    "com.spi.10mhz"                     ' bitbanged SPI engine
 #else
 { no, not SPI - default to I2C }
-#define LPS25_I2C
-    i2c : "com.i2c"                             ' PASM I2C engine
+#   define LPS25_I2C
+    i2c:    "com.i2c"                           ' PASM I2C engine
 #endif
-    core: "core.con.lps25"                      ' hw-specific low-level const's
+    core:   "core.con.lps25"                    ' hw-specific low-level const's
+
 
 PUB null()
 ' This is not a top-level object
 
 #ifdef LPS25_I2C
-PUB startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
+PUB start(): status
+' Start using "standard" Propeller I2C pins and 100kHz
+    return startx(SCL, SDA, I2C_FREQ)
+
+
+PUB startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 ' Start using custom IO pins and I2C bus frequency
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and I2C_HZ <= core.I2C_MAX_FREQ
-        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+    if ( lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) )
+        if ( status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ) )
             waitus(core.T_POR)                  ' wait for device startup
-            if i2c.present(SLAVE_WR)            ' test device bus presence
-                if (dev_id() == core.DEVID_RESP)' validate device 
-                    return
+            if ( dev_id() == core.DEVID_RESP )  ' verify the device responds
+                return
     ' if this point is reached, something above failed
     ' Re-check I/O pin assignments, bus speed, connections, power
     ' Lastly - make sure you have at least one free core/cog 
@@ -72,21 +99,24 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ=DEF_HZ): status
 
 #elseifdef LPS25_SPI
 
+PUB start(): status
+' Start the driver using default I/O settings
+    return startx(CS, SCK, MOSI, MISO, SPI_FREQ)
+
+
 PUB startx(CS_PIN, SPC_PIN, SDI_PIN, SDO_PIN, SPI_HZ=1_000_000): status
 ' Start using custom IO pins and I2C bus frequency
-    if lookdown(CS_PIN: 0..63) and lookdown(SPC_PIN: 0..63) and {
-}   lookdown(SDI_PIN: 0..63) and lookdown(SDO_PIN: 0..63) and {
-}   SPI_HZ <= core.SPI_MAX_FREQ
+    if (    lookdown(CS_PIN: 0..63) and lookdown(SPC_PIN: 0..63) and ...
+            lookdown(SDI_PIN: 0..63) and lookdown(SDO_PIN: 0..63 ) )
         _CS := CS_PIN
         pinh(_CS)
-        if (status := spi.init(SPC_PIN, SDI_PIN, SDO_PIN, core.SPI_MODE, {
-}       SPI_HZ))
+        if ( status := spi.init(SPC_PIN, SDI_PIN, SDO_PIN, core.SPI_MODE, SPI_HZ) )
             waitus(core.T_POR)                  ' wait for device startup
-            if (SDI_PIN == SDO_PIN)
+            if ( SDI_PIN == SDO_PIN )           ' use 3-wire SPI mode if MOSI/MISO are the same
                 spi_mode(3)
             else
                 spi_mode(4)
-            if (dev_id() == core.DEVID_RESP)    ' validate device
+            if ( dev_id() == core.DEVID_RESP )  ' validate device
                 return
     ' if this point is reached, something above failed
     ' Re-check I/O pin assignments, bus speed, connections, power
@@ -442,7 +472,7 @@ PUB press_int_set_thresh(thresh)
     thresh := (0 #> thresh <# 1260) * 16
     writereg(core.THS_P_L, 2, @thresh)
  
-PUB press_int_thresh(thresh): curr_thr
+PUB press_int_thresh(): curr_thr
 ' Get threshold for pressure interrupt source, in hPa
     curr_thr := 0
     readreg(core.THS_P_L, 2, @curr_thr)
@@ -464,17 +494,17 @@ PUB press_osr(ratio): curr_ratio
     ratio := ((curr_ratio & core.AVGP_MASK) | ratio)
     writereg(core.RES_CONF, 1, @ratio)
 
-PUB press_ref_lvl{}: press
+PUB press_ref_lvl(): press
 ' Get reference pressure level
     press := 0
     readreg(core.REF_P_XL, 3, @press)
     return press
 
 PUB press_set_ref_lvl(press)
-' Set reference pressure level
-'   Valid values: 0..16777215 (0 to disable; clamped to range)
-    press := 0 #> press <# 16777215
-    writereg(core#REF_P_XL, 3, @press)
+' Set reference pressure level, in Pascals
+'   Valid values: 0..409_599 (0 to disable; clamped to range)
+    press := ((0 #> press <# 409_599) / 100) * 4096
+    writereg(core.REF_P_XL, 3, @press)
 
 PUB press_word2pa(p_word): p_pa
 ' Convert pressure ADC word to pressure in Pascals
@@ -548,8 +578,7 @@ PRI blk_data_upd(state): curr_state
 PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from the device into ptr_buff
     case reg_nr                                 ' validate reg #
-        core.REF_P_XL, core.PRESS_OUT_XL, core.TEMP_OUT_L, core.THS_P_L, {
-}       core.RPDS_L:
+        core.REF_P_XL, core.PRESS_OUT_XL, core.TEMP_OUT_L, core.THS_P_L, core.RPDS_L:
 #ifdef LPS25_I2C
             reg_nr |= core.MB_I2C               ' set multi-byte r/w bit
 #elseifdef LPS25_SPI
@@ -625,7 +654,7 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

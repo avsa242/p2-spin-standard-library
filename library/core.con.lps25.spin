@@ -112,6 +112,7 @@ CON
         PL_E_MASK       = (1 << PL_E) ^ INTERRUPT_CFG_MASK
         PH_E_MASK       = 1 ^ INTERRUPT_CFG_MASK
         PE_MASK         = PE_BITS ^ INTERRUPT_CFG_MASK
+
     INT_SOURCE          = $25
 
 ' RESERVED $26
