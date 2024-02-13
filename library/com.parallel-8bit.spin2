@@ -1,14 +1,14 @@
 {
-    --------------------------------------------
-    Filename: com.parallel-8bit.spin2
-    Author: Jesse Burt
-    Description: 8-bit parallel I/O engine for LCDs (P2 version)
-    Copyright (c) 2022
-    Started Jan 10, 2022
-    Updated Oct 11, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       com.parallel-8bit.spin2
+    Description:    8-bit parallel I/O engine for LCDs
+    Author:         Jesse Burt
+    Started:        Jan 10, 2022
+    Updated:        Feb 13, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
 CON
 
 ' 8-bit Parallel engine commands
@@ -29,16 +29,16 @@ VAR
 PUB null()
 ' This is not a top-level object
 
-PUB init(D_BASEPIN, CS_PIN, DC_PIN, WR_PIN, RD_PIN): status
+PUB init(D_BASEPIN, CS_PIN, DC_PIN, WR_PIN, RD_PIN=-1): status
 ' Initialize engine
 '   D_BASEPIN: first of 8 I/O pin block
 '   CS_PIN: CS / CSX (chip select)
 '   DC_PIN: DC / DCX / RS (data/command or register select)
 '   WR_PIN: WR / WRX (write clock)
-'   RD_PIN: RD / RDX (read clock) - currently unused
+'   RD_PIN: RD / RDX (read clock; not currently used - keep this pin high)
     deinit()                                    ' stop engine, if started
     D_BASEPIN := (D_BASEPIN addpins 8)          ' set up data pinmask
-    longmove(@_DATA, @D_BASEPIN, 5)             ' copy pin params to globals
+    longmove(@_DATA, @D_BASEPIN, 4)             ' copy pin params to globals
     status := _cog := cogspin(NEWCOG, parallel_eng(), @_eng_stack)+1
 
     return status
@@ -102,7 +102,6 @@ PRI parallel_eng() | ptr_data, i, ptr_buff, D7_0, CS, DC, WRX, RDX, xcnt
     pinh(CS)
     pinh(WRX)                                   ' write clock idles high
     pinl(D7_0)                                  ' init data pins to 0
-    pinh(RDX)                                   ' read clock idles high
     pinl(CS)
     repeat
         case_fast _io_cmd                       ' check for valid command
@@ -179,7 +178,7 @@ PRI parallel_eng() | ptr_data, i, ptr_buff, D7_0, CS, DC, WRX, RDX, xcnt
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
