@@ -1,14 +1,14 @@
 {
-    --------------------------------------------
-    Filename: ILI9341-MinimalDemo.spin2 (P2 version)
-    Description: Graphics demo using minimal code
-    Author: Jesse Burt
-    Copyright (c) 2024
-    Started: Jan 2, 2024
-    Updated: Jan 2, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       ILI9341-MinimalDemo.spin2
+    Description:    Demo of the ILI9341 driver using minimal code
+    Author:         Jesse Burt
+    Started:        Jan 2, 2024
+    Updated:        Feb 13, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
 CON
 
     _clkfreq    = 180_000_000
@@ -17,9 +17,8 @@ CON
 OBJ
 
     fnt:    "font.5x8"
-    disp:   "display.lcd.ili9341" | WIDTH=320, HEIGHT=240, DBASEPIN=0, RST=8, CS=9, DC=10, ...
-                                    WRX=11, RDX=12
-    { NOTE: RDX isn't currently used, but must be pulled high }
+    disp:   "display.lcd.ili9341" | WIDTH=320, HEIGHT=240, DBASEPIN=0, RST=8, CS=9, DC=10, WRX=11
+    { NOTE: RDX isn't currently used. Ensure it is pulled high }
     { DBASEPIN defines the pin connected to the LCD's D0; D1..D7 _must_ be connected to the next
         sequential pins }
 
@@ -46,24 +45,15 @@ PUB main()
 
     { draw one pixel at the center of the screen }
     { disp.plot(x, y, color) }
-    disp.plot(CENTERX, CENTERY, $ffff)
+    disp.plot(disp._disp_width/2, disp._disp_height/2, $ffff)
     disp.show()
 
     { draw a box at the screen edges }
     { disp.box(x_start, y_start, x_end, y_end, color, filled) }
-    disp.box(0, 0, XMAX, YMAX, $ffff, false)
+    disp.box(0, 0, disp._disp_xmax, disp._disp_ymax, $ffff, false)
     disp.show()
 
     repeat
-
-CON
-
-    WIDTH       = disp.WIDTH
-    HEIGHT      = disp.HEIGHT
-    XMAX        = (WIDTH - 1)
-    YMAX        = (HEIGHT - 1)
-    CENTERX     = (WIDTH / 2)
-    CENTERY     = (HEIGHT / 2)
 
 
 DAT

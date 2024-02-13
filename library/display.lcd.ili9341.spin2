@@ -4,7 +4,7 @@
     Description:    Driver for ILI9341 LCD controllers
     Author:         Jesse Burt
     Started:        Oct 14, 2021
-    Updated:        Jan 22, 2024
+    Updated:        Feb 13, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 }
@@ -76,20 +76,19 @@ VAR
 
 PUB start(): status
 ' Start the driver using default I/O settings
-    return startx(DBASEPIN, RST, CS, DC, WRX, RDX, WIDTH, HEIGHT)
+    return startx(DBASEPIN, RST, CS, DC, WRX, WIDTH, HEIGHT)
 
-PUB startx(DATA_BASEPIN, RES_PIN, CS_PIN, DC_PIN, WR_PIN, RD_PIN, DISP_W, DISP_H): status
+PUB startx(DATA_BASEPIN, RES_PIN, CS_PIN, DC_PIN, WR_PIN, DISP_W, DISP_H): status
 ' Start driver using custom I/O settings
 '   DATA_BASEPIN: first (lowest) pin of 8 data pin block (must be contiguous)
 '   RES_PIN: display's hardware reset pin (optional, -1 to ignore)
 '   CS_PIN: Chip Select
 '   DC_PIN: Data/Command (sometimes labeled RS, or Register Select)
 '   WR_PIN: Write clock
-'   RD_PIN: Read clock (not currently used, but needs to be pulled high)
 '   WIDTH, HEIGHT: display dimensions, in pixels
     if (    lookdown(DATA_BASEPIN: 0..56) and lookdown(CS_PIN: 0..63) and ...
             lookdown(DC_PIN: 0..63) and lookdown(WR_PIN: 0..63) )
-        if ( status := com.init(DATA_BASEPIN, CS_PIN, DC_PIN, WR_PIN, RD_PIN) )
+        if ( status := com.init(DATA_BASEPIN, CS_PIN, DC_PIN, WR_PIN) )
             _RESET := RES_PIN
             set_dims(DISP_W, DISP_H)
             return
@@ -509,7 +508,7 @@ PUB vgh_step_factor(fact)
 '   Valid values: 6, 7 (clamped to range)
     fact := (lookdownz( (6 #> fact <# 7): 7, 6) << 1)
 
-    _pwr_ctrl2 := ((_pwr_ctrl2 & core#VGH_MASK) | fact)
+    _pwr_ctrl2 := ((_pwr_ctrl2 & core.VGH_MASK) | fact)
     com.wrbyte_cmd(core.PWCTR2)
     com.wrbyte_dat(_pwr_ctrl2)
 
@@ -518,7 +517,7 @@ PUB vgl_step_factor(fact)
 '   Valid values: 3, 4 (clamped to range)
     fact := lookdownz( (3 #> fact <# 4): 4, 3)
 
-    _pwr_ctrl2 := ((_pwr_ctrl2 & core#VGH_MASK) | fact)
+    _pwr_ctrl2 := ((_pwr_ctrl2 & core.VGH_MASK) | fact)
     com.wrbyte_cmd(core.PWCTR2)
     com.wrbyte_dat(_pwr_ctrl2)
 
