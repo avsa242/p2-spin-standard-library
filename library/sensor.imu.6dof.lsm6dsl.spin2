@@ -1,97 +1,117 @@
 {
-    --------------------------------------------
-    Filename: sensor.imu.6dof.lsm6dsl.spin2
-    Author: Jesse Burt
-    Description: Driver for the ST LSM6DSL 6DoF IMU (P2 version)
-    Copyright (c) 2023
-    Started Mar 6, 2021
-    Updated Apr 14, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       sensor.imu.6dof.lsm6dsl.spin2
+    Description:    Driver for the ST LSM6DSL 6DoF IMU
+    Author:         Jesse Burt
+    Started:        Mar 6, 2021
+    Updated:        Feb 16, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
-#include "sensor.accel.common.spin2h"
-#include "sensor.gyroscope.common.spin2h"
+
+#include "sensor.accel.common.spin2h"           ' pull in code common to all accelerometer
+#include "sensor.gyroscope.common.spin2h"       '   and gyroscope drivers
 
 CON
 
-' Constants used for I2C mode only
-    SLAVE_WR                = core.SLAVE_ADDR
-    SLAVE_RD                = core.SLAVE_ADDR|1
+    { /// default I/O settings; these can be overridden in the parent object }
+    { I2C }
+    SCL                 = DEF_SCL
+    SDA                 = DEF_SDA
+    I2C_FREQ            = DEF_HZ
+    I2C_ADDR            = DEF_ADDR
 
-    DEF_HZ                  = 100_000
-    I2C_MAX_FREQ            = core.I2C_MAX_FREQ
+    { SPI }
+    CS                  = 0
+    SCK                 = 1
+    MOSI                = 2
+    MISO                = 3
+    SPI_FREQ            = 1_000_000             ' max is 10MHz
+
+    INT_PIN             = 4
+    { /// }
+
+' Constants used for I2C mode only
+    SLAVE_WR            = core.SLAVE_ADDR
+    SLAVE_RD            = core.SLAVE_ADDR|1
+
+    DEF_SCL             = 0
+    DEF_SDA             = 1
+    DEF_HZ              = 100_000
+    DEF_ADDR            = 0
+    I2C_MAX_FREQ        = core.I2C_MAX_FREQ
 
 ' FIFO specifications
-    FIFO_SIZE               = 4096              ' bytes
-    FIFO_UNIT               = 2                 ' 1: bytes, 2: words, 4: longs
-    FIFO_SAMPLES_MAX        = (FIFO_SIZE / FIFO_UNIT)-1
+    FIFO_SIZE           = 4096              ' bytes
+    FIFO_UNIT           = 2                 ' 1: bytes, 2: words, 4: longs
+    FIFO_SAMPLES_MAX    = (FIFO_SIZE / FIFO_UNIT)-1
 
 ' Indicate to user apps how many Degrees of Freedom each sub-sensor has
 '   (also imply whether or not it has a particular sensor)
-    ACCEL_DOF               = 3
-    GYRO_DOF                = 3
-    MAG_DOF                 = 0
-    BARO_DOF                = 0
-    DOF                     = ACCEL_DOF + GYRO_DOF + MAG_DOF + BARO_DOF
+    ACCEL_DOF           = 3
+    GYRO_DOF            = 3
+    MAG_DOF             = 0
+    BARO_DOF            = 0
+    DOF                 = ACCEL_DOF + GYRO_DOF + MAG_DOF + BARO_DOF
 
 ' Scales and data rates used during calibration/bias/offset process
-    CAL_XL_SCL              = 2
-    CAL_G_SCL               = 250
-    CAL_M_SCL               = 0
-    CAL_XL_DR               = 104
-    CAL_G_DR                = 104
-    CAL_M_DR                = 0
+    CAL_XL_SCL          = 2
+    CAL_G_SCL           = 250
+    CAL_M_SCL           = 0
+    CAL_XL_DR           = 104
+    CAL_G_DR            = 104
+    CAL_M_DR            = 0
 
 ' Constants used in low-level SPI read/write
-    READ                    = 1 << 7
-    WRITE                   = 0
+    READ                = 1 << 7
+    WRITE               = 0
 
 ' Axis-specific constants
-    X_AXIS                  = 0
-    Y_AXIS                  = 1
-    Z_AXIS                  = 2
-    ALL_AXIS                = 3
+    X_AXIS              = 0
+    Y_AXIS              = 1
+    Z_AXIS              = 2
+    ALL_AXIS            = 3
 
 ' Temperature scale constants
-    C                       = 0
-    F                       = 1
+    C                   = 0
+    F                   = 1
 
 ' Gyroscope operating modes
-    NORM                    = 0
-    SLEEP                   = 1
+    NORM                = 0
+    SLEEP               = 1
 
 ' Accel/Gyro sleep power modes
-    NORMAL                  = 0
-    LOPWR                   = 1
-    LOPWR_GSLEEP            = 2
-    LOPWR_GPWROFF           = 3
+    NORMAL              = 0
+    LOPWR               = 1
+    LOPWR_GSLEEP        = 2
+    LOPWR_GPWROFF       = 3
 
 ' Accelerometer operating modes
-    XL_HIPERF               = 0
-    XL_NORM                 = 1
+    XL_HIPERF           = 0
+    XL_NORM             = 1
 
 ' INT1 interrupts
-    INACTIVE                = 1 << 7
-    SNGTAP                  = 1 << 6
-    WAKEUP                  = 1 << 5
-    FREEFALL                = 1 << 4
-    DBLTAP                  = 1 << 3
-    SIXD                    = 1 << 2
-    TILT                    = 1 << 1
-    TMR_END                 = 1
+    INACTIVE            = 1 << 7
+    SNGTAP              = 1 << 6
+    WAKEUP              = 1 << 5
+    FREEFALL            = 1 << 4
+    DBLTAP              = 1 << 3
+    SIXD                = 1 << 2
+    TILT                = 1 << 1
+    TMR_END             = 1
 
 ' FIFO operating modes
-    OFF                     = %000
-    FIFO                    = %001
-    CONT_TRIG               = %011
-    OFF_TRIG                = %100
-    CONT                    = %110
+    OFF                 = %000
+    FIFO                = %001
+    CONT_TRIG           = %011
+    OFF_TRIG            = %100
+    CONT                = %110
 
 ' Output data source
-    GYRO_LIVE               = 0
-    GYRO_FIFO               = 1
-    ACCEL_LIVE              = 0
-    ACCEL_FIFO              = 1
+    GYRO_LIVE           = 0
+    GYRO_FIFO           = 1
+    ACCEL_LIVE          = 0
+    ACCEL_FIFO          = 1
 
 VAR
 
@@ -102,39 +122,49 @@ OBJ
 
 { SPI? }
 #ifdef LSM6DSL_SPI
-    spi : "com.spi.25mhz"                             ' PASM SPI engine
+    spi:    "com.spi.25mhz"                     ' SPI engine
 #else
 { no, not SPI - default to I2C }
-#define LSM6DSL_I2C
-    i2c : "com.i2c"                             ' I2C engine
+#   define LSM6DSL_I2C
+    i2c:    "com.i2c"                           ' I2C engine
 #endif
-    core: "core.con.lsm6dsl"                    ' hw-specific low-level const's
+    core:   "core.con.lsm6dsl"                  ' hw-specific low-level const's
 
 PUB null()
 ' This is not a top-level object
 
 #ifdef LSM6DSL_I2C
+PUB start(): s
+' Start the driver using default I/O settings
+    return startx(SCL, SDA, I2C_FREQ, I2C_ADDR)
+
+
 PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): status
 ' Start using custom IO pins
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
-}   I2C_HZ <= core.I2C_MAX_FREQ
-        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+    if ( lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) )
+        if ( status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ) )
             waitus(core.T_POR)                  ' wait for device startup
             _bank_sel := -1                     ' init bank select
-            if (dev_id() == core.DEVID_RESP)    ' validate device
+            if ( dev_id() == core.DEVID_RESP )  ' validate device
                 return
     ' if this point is reached, something above failed
     ' Re-check I/O pin assignments, bus speed, connections, power
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
+
 #elseifdef LSM6DSL_SPI
+
+PUB start(): s
+' Start the driver using default I/O settings
+    return startx(CS, SCK, MOSI, MISO)
+
+
 PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=1_000_000): status
 ' Start using custom IO pins
-    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
-}   lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63)
+    if (lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and ...
+        lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) )
         _CS := CS_PIN
-        if (status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, {
-}       SCK_FREQ))
+        if ( status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, SCK_FREQ) )
             waitus(core.T_POR)                  ' wait for device startup
             _bank_sel := -1                     ' init bank select
             if (dev_id() == core.DEVID_RESP)    ' validate device
@@ -265,12 +295,11 @@ PUB accel_data_rate(rate=-2): curr_rate
     readreg(core.CTRL1_XL, 1, @curr_rate)
     case rate
         0, 1, 12, 26, 52, 104, 208, 416, 833, 1660, 3330, 6660:
-            rate := lookdownz(rate: 0, 12, 26, 52, 104, 208, 416, 833, 1660, {
-}           3330, 6660, 1) << core.ODR_XL
+            rate := lookdownz(rate: 0, 12, 26, 52, 104, 208, 416, 833, 1660, 3330, 6660, 1) ...
+                    << core.ODR_XL
         other:
             curr_rate >>= core.ODR_XL
-            return lookupz(curr_rate: 0, 12, 26, 52, 104, 208, 416, 833, 1660,{
-}           3330, 6660, 1)
+            return lookupz(curr_rate: 0, 12, 26, 52, 104, 208, 416, 833, 1660, 3330, 6660, 1)
 
     rate := ((curr_rate & core.ODR_XL_MASK) | rate)
     writereg(core.CTRL1_XL, 1, @rate)
@@ -478,8 +507,7 @@ PUB fifo_accel_dec(factor=-2): curr_factor
     readreg(core.FIFO_CTRL3, 1, @curr_factor)
     case factor
         0, 1, 2, 3, 4, 8, 16, 32:
-            factor := lookdownz(factor: 0, 1, 2, 3, 4, 8, 16, 32) {
-}           << core.DEC_FIFO_XL
+            factor := lookdownz(factor: 0, 1, 2, 3, 4, 8, 16, 32) << core.DEC_FIFO_XL
         other:
             curr_factor := (curr_factor >> core.DEC_FIFO_XL)
             return lookupz(curr_factor: 0, 1, 2, 3, 4, 8, 16, 32)
@@ -504,12 +532,11 @@ PUB fifo_data_rate(rate=-2): curr_rate
     readreg(core.FIFO_CTRL5, 1, @curr_rate)
     case rate
         0, 12, 26, 52, 104, 208, 416, 833, 1660, 3330, 6660:
-            rate := lookdownz(rate: 0, 12, 26, 52, 104, 208, 416, 833, 1660, {
-}           3330, 6660) << core.ODR_FIFO
+            rate := lookdownz(rate: 0, 12, 26, 52, 104, 208, 416, 833, 1660, 3330, 6660) ...
+                    << core.ODR_FIFO
         other:
             curr_rate := ((curr_rate >> core.ODR_FIFO) & core.ODR_FIFO_BITS)
-            return lookupz(curr_rate: 0, 12, 26, 52, 104, 208, 416, 833, 1660,{
-}           3330, 6660)
+            return lookupz(curr_rate: 0, 12, 26, 52, 104, 208, 416, 833, 1660, 3330, 6660)
 
     rate := ((curr_rate & core.ODR_FIFO_MASK) | rate)
     writereg(core.FIFO_CTRL5, 1, @rate)
@@ -539,8 +566,7 @@ PUB fifo_gyro_dec(factor=-2): curr_factor
     readreg(core.FIFO_CTRL3, 1, @curr_factor)
     case factor
         0, 1, 2, 3, 4, 8, 16, 32:
-            factor := lookdownz(factor: 0, 1, 2, 3, 4, 8, 16, 32) {
-}           << core.DEC_FIFO_G
+            factor := lookdownz(factor: 0, 1, 2, 3, 4, 8, 16, 32) << core.DEC_FIFO_G
         other:
             curr_factor := (curr_factor >> core.DEC_FIFO_G)
             return lookupz(curr_factor: 0, 1, 2, 3, 4, 8, 16, 32)
@@ -676,12 +702,11 @@ PUB gyro_data_rate(rate=-2): curr_rate
     readreg(core.CTRL2_G, 1, @curr_rate)
     case rate
         0, 12, 26, 52, 104, 208, 416, 833, 1660, 3330, 6660:
-            rate := lookdownz(rate: 0, 12, 26, 52, 104, 208, 416, 833, 1660, {
-}           3330, 6660) << core.ODR_G
+            rate := lookdownz(rate: 0, 12, 26, 52, 104, 208, 416, 833, 1660,3330, 6660) ...
+                    << core.ODR_G
         other:
             curr_rate := (curr_rate >> core.ODR_G) & core.ODR_G_BITS
-            return lookupz(curr_rate: 0, 12, 26, 52, 104, 208, 416, 833, {
-}           1660, 3330, 6660)
+            return lookupz(curr_rate: 0, 12, 26, 52, 104, 208, 416, 833, 1660, 3330, 6660)
 
     rate := ((curr_rate & core.ODR_G_MASK) | rate)
     writereg(core.CTRL2_G, 1, @rate)
@@ -870,18 +895,18 @@ PUB pedometer_ena(state): curr_state
         other:
             return (((curr_state >> core.PED_EN) & 1) == 1)
 
-PUB pedometer_scale(scl): curr_scl
-' Sed pedometer full-scale
+PUB pedometer_scale(scale): curr_scl
+' Set pedometer full-scale
 '   Valid values:
 '       2, 4
 ' Any other value returns the current setting
     curr_scl := 0
     readreg(core.CFG_PED_THRESH, 1, @curr_scl)
-    case scl
+    case scale
         2, 4:
-            scl := lookdownz(scl: 2, 4)
-            scl := ((scl & core.PED_FS_MASK) | scl)
-            writereg(core.CFG_PED_THRESH, 1, @scl)
+            scale := lookdownz(scale: 2, 4)
+            scale := ((scl & core.PED_FS_MASK) | scale)
+            writereg(core.CFG_PED_THRESH, 1, @scale)
         other:
             return lookupz( ((curr_scl >> core.PED_FS) & 1): 2, 4 )
 
@@ -890,13 +915,13 @@ PUB reset() | tmp
     tmp := core.RESET
     writereg(core.CTRL3_C, 1, @tmp)
 
-PUB step_count{}: c
+PUB step_count(): c
 ' Number of steps detected by pedometer function
 '   Returns: integer (u16)
     c := 0
     readreg(core.STP_CNTR_L, 2, @c)
 
-PUB step_reset{} | tmp
+PUB step_reset() | tmp
 ' Reset the pedometer's step counter
     tmp := 0
     readreg(core.CTRL10_C, 1, @tmp)
@@ -922,11 +947,11 @@ PRI bank_sel(bnk)
         0, BANK_A, BANK_B:
             if ( bnk <> _bank_sel )             ' only update if the last bank_sel() was different
 #ifdef LSM6DSL_I2C
-                i2c.start{}
+                i2c.start()
                 i2c.write(SLAVE_WR)
                 i2c.write(core.FUNC_CFG_ACCESS)
                 i2c.write(bnk)
-                i2c.stop{}
+                i2c.stop()
 #elseifdef LSM6DSL_SPI
                 outa[_CS] := 0
                 spi.wr_byte(core.FUNC_CFG_ACCESS)
@@ -952,12 +977,12 @@ PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
     case reg_nr                                 ' validate register num
         core.OUT_TEMP_L..core.OUTZ_H_XL, core.OUT_MAG_RAW_X_L:
 
-        core.FUNC_CFG_ACCESS, core.SENS_SYNC_TIMEFR..core.DRDY_PULSE_CFG_G, {
-}       core.INT1_CTRL..core.STATUS, core.SENSHUB1..core.TIMESTAMP2, {
-}       core.STP_TIMESTMP_L..core.WRIST_TILT_IA, {
-}       core.TAP_CFG..core.SENS_SYNC_SPI_ERR, core.X_OFS_USR..core.Z_OFS_USR, {
-}       core.SLV0_ADD..core.CFG_PED_THRESH, core.SM_THS..core.STEP_CNT_DELTA, {
-}       core.MAG_SI_XX..core.MAG_OFFZ_H:
+        core.FUNC_CFG_ACCESS, core.SENS_SYNC_TIMEFR..core.DRDY_PULSE_CFG_G, ...
+        core.INT1_CTRL..core.STATUS, core.SENSHUB1..core.TIMESTAMP2, ...
+        core.STP_TIMESTMP_L..core.WRIST_TILT_IA, ...
+        core.TAP_CFG..core.SENS_SYNC_SPI_ERR, core.X_OFS_USR..core.Z_OFS_USR, ...
+        core.SLV0_ADD..core.CFG_PED_THRESH, core.SM_THS..core.STEP_CNT_DELTA, ...
+        core.MAG_SI_XX..core.MAG_OFFZ_H:
             bank_sel(reg_nr.byte[1])
         other:                                  ' invalid reg_nr
             return
@@ -983,14 +1008,12 @@ PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Write nr_bytes to the device from ptr_buff
     case reg_nr
-        core.FUNC_CFG_ACCESS, core.SENS_SYNC_TIMEFR..core.DRDY_PULSE_CFG_G, {
-}       core.INT1_CTRL, core.INT2_CTRL, core.CTRL1_XL..core.MASTER_CFG, {
-}       core.TIMESTAMP2, core.TAP_CFG..core.SENS_SYNC_SPI_ERR, {
-}       core.X_OFS_USR..core.Z_OFS_USR, {
-}       core#SLV0_ADD..core#CFG_PED_THRESH, core#SM_THS..core#STEP_CNT_DELTA, {
-}       core#MAG_SI_XX..core#MAG_OFFZ_H:
+        core.FUNC_CFG_ACCESS, core.SENS_SYNC_TIMEFR..core.DRDY_PULSE_CFG_G, core.INT1_CTRL, ...
+        core.INT2_CTRL, core.CTRL1_XL..core.MASTER_CFG, core.TIMESTAMP2, ...
+        core.TAP_CFG..core.SENS_SYNC_SPI_ERR, core.X_OFS_USR..core.Z_OFS_USR, ...
+        core.SLV0_ADD..core.CFG_PED_THRESH, core.SM_THS..core.STEP_CNT_DELTA, ...
+        core.MAG_SI_XX..core.MAG_OFFZ_H:
             bank_sel(reg_nr.byte[1])
-
         other:
             return
 
@@ -1012,7 +1035,7 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

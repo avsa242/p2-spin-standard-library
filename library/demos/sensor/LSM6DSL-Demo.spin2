@@ -1,19 +1,18 @@
 {
-    --------------------------------------------
-    Filename: LSM6DSL-Demo.spin2
-    Author: Jesse Burt
-    Description: LSM6DSL driver demo (P2 version)
-        * 6DoF data output
-    Copyright (c) 2022
-    Started Aug 12, 2017
-    Updated Nov 21, 2022
-    See end of file for terms of use.
-    --------------------------------------------
-
-    Build-time symbols supported by driver:
-        -DLSM6DSL_SPI
-        -DLSM6DSL_I2C (default if none specified)
+---------------------------------------------------------------------------------------------------
+    Filename:       LSM6DSL-Demo.spin2
+    Description:    Demo of the LSM6DSL driver: 6DoF data output
+    Author:         Jesse Burt
+    Started:        Feb 19, 2021
+    Updated:        Feb 17, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
+' Uncomment these lines to use an SPI-connected sensor (default is I2C)
+'#define LSM6DSL_SPI
+'#pragma exportdef(LSM6DSL_SPI)
+
 #include "core.con.click.spin2"
 
 CON
@@ -21,47 +20,35 @@ CON
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
+
 ' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
-
-    CLICK_BASE  = 0
-
-    { I2C configuration }
-    { custom I/O pin definitions - uncomment the below, and comment out the #include
-        line above to use }
-'    SCL_PIN     = 0
-'    SDA_PIN     = 1
-    I2C_FREQ    = 400_000                       ' max is 400_000
-    ADDR_BITS   = 0                             ' 0, 1
-
-    { SPI configuration }
-    { custom I/O pin definitions - uncomment the below, and comment out the #include
-        line above to use }
-'    CS_PIN      = 0
-'    SCK_PIN     = 1
-'    MOSI_PIN    = 2
-'    MISO_PIN    = 3
-    SPI_FREQ    = 10_000_000
+    CLICK_BASE  = 0                             ' MikroE Click module base pin
 ' --
+
 
 OBJ
 
-    cfg: "boardcfg.p2eval"
-    sensor: "sensor.imu.6dof.lsm6dsl"
-    ser: "com.serial.terminal.ansi"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+
+' Uncomment these lines to use a MikroE Click module, and set the Click base pin above
+    sensor: "sensor.imu.6dof.lsm6dsl" | {I2C} SCL=SCL_PIN, SDA=SDA_PIN, I2C_FREQ=400_000, ...
+                                                I2C_ADDR=0, ...
+                                        {SPI} CS=CS_PIN, SCK=SCK_PIN, MOSI=MOSI_PIN, ...
+                                            MISO=MISO_PIN, SPI_FREQ=1_000_000
+
+' Uncomment these lines instead to use all custom I/O settings
+'    sensor: "sensor.imu.6dof.lsm6dsl" | {I2C} SCL=0, SDA=1, I2C_FREQ=400_000, I2C_ADDR=0, ...
+'                                        {SPI} CS=0, SCK=1, MOSI=2, MISO=3, SPI_FREQ=1_000_000
+
 
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(10)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-#ifdef LSM6DSL_SPI
-    if (sensor.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SPI_FREQ))
-#else
-    if (sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS))
-#endif
+    if ( sensor.start() )
         ser.strln(@"LSM6DSL driver started")
     else
         ser.strln(@"LSM6DSL driver failed to start - halting")
@@ -73,16 +60,16 @@ PUB setup()
         ser.pos_xy(0, 3)
         show_accel_data()
         show_gyro_data()
-        if (ser.rx_check() == "c")
+        if ( ser.getchar_noblock() == "c" )
             cal_accel()
             cal_gyro()
 
-#include "acceldemo.common.spin2h"
-#include "gyrodemo.common.spin2h"
+#include "acceldemo.common.spin2h"              ' Pull in code common to all accelerometer
+#include "gyrodemo.common.spin2h"               '   and gyroscope driver demos
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

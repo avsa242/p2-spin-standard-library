@@ -1,15 +1,17 @@
-{
-    --------------------------------------------
-    Filename: LSM6DSL-ClickDemo.spin2
-    Author: Jesse Burt
-    Description: Demo of the LSM6DSL driver (P2 version)
-        * click-detection functionality
-    Copyright (c) 2022
-    Started Mar 7, 2021
-    Updated Nov 21, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       LSM6DSL-ClickDemo.spin2
+    Description:    Demo of the LSM6DSL driver: click-detection functionality
+    Author:         Jesse Burt
+    Started:        Mar 7, 2021
+    Updated:        Feb 17, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
+' Uncomment these lines to use an SPI-connected sensor (default is I2C)
+'#define LSM6DSL_SPI
+'#pragma exportdef(LSM6DSL_SPI)
+
 #include "core.con.click.spin2"
 
 CON
@@ -17,50 +19,37 @@ CON
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
+
 ' -- User-modifiable constants
-    LED         = cfg.LED1
-    SER_BAUD    = 2_000_000
+    CLICK_BASE  = 0                             ' MikroE Click module base pin
 
-    CLICK_BASE  = 0
-#ifdef LSM6DSL_SPI
-
-    { SPI configuration }
-    { custom I/O pin definitions - uncomment the below, and comment out the #include
-        line above to use }
-'    CS_PIN      = 0
-'    SCK_PIN     = 1
-'    MOSI_PIN    = 2
-'    MISO_PIN    = 3
-
-    SCK_FREQ    = 10_000_000                    ' max is 10_000_000
-#else
-    { I2C configuration }
-    { custom I/O pin definitions - uncomment the below, and comment out the #include
-        line above to use }
-'    SCL_PIN     = 28
-'    SDA_PIN     = 29
-
-    I2C_FREQ    = 400_000                       ' max is 400_000
-    ADDR_BITS   = 0                             ' 0, 1
-#endif
-' --
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    ser     : "com.serial.terminal.ansi"
-    imu     : "sensor.imu.6dof.lsm6dsl"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+
+' Uncomment these lines to use a MikroE Click module, and set the Click base pin above
+    sensor: "sensor.imu.6dof.lsm6dsl" | {I2C} SCL=SCL_PIN, SDA=SDA_PIN, I2C_FREQ=400_000, ...
+
+                                                I2C_ADDR=0, ...
+                                        {SPI} CS=CS_PIN, SCK=SCK_PIN, MOSI=MOSI_PIN, ...
+                                            MISO=M
+
+' Uncomment these lines instead to use all custom I/O settings
+'    sensor: "sensor.sensor.6dof.lsm6dsl" | {I2C} SCL=0, SDA=1, I2C_FREQ=400_000, I2C_ADDR=0, ...
+'                                        {SPI} CS=0, SCK=1, MOSI=2, MISO=3, SPI_FREQ=1_000_000
+
 
 PUB main() | click_src, int_act, dclicked, sclicked, z_clicked, y_clicked, x_clicked
 
     setup()
-    imu.preset_click_det()                     'preset settings for
-                                                ' click-detection
+    sensor.preset_click_det()                   ' preset settings for click-detection
 
     ser.hide_cursor()                           ' hide terminal cursor
 
     repeat until (ser.rx_check() == "q")        ' press q to quit
-        click_src := imu.clicked_int()
+        click_src := sensor.clicked_int()
         int_act := ((click_src >> 6) & 1)
         dclicked := ((click_src >> 4) & 1)
         sclicked := ((click_src >> 5) & 1)
@@ -75,10 +64,11 @@ PUB main() | click_src, int_act, dclicked, sclicked, z_clicked, y_clicked, x_cli
         ser.printf(@"Y-axis clicked:  %s\n\r", yesno(y_clicked))
         ser.printf(@"X-axis clicked:  %s\n\r", yesno(x_clicked))
 
-    ser.show_cursor()                            ' restore terminal cursor
+    ser.show_cursor()                           ' restore terminal cursor
     repeat
 
-PRI yesno(val): resp
+
+PUB yesno(val): resp
 ' Return pointer to string "Yes" or "No" depending on value called with
     case val
         0:
@@ -86,26 +76,23 @@ PRI yesno(val): resp
         1:
             return @"Yes"
 
+
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
-#ifdef LSM6DSL_SPI
-    if imu.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
-        ser.strln(@"LSM6DSL driver started (SPI)")
-#else
-    if imu.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS)
-        ser.strln(@"LSM6DSL driver started (I2C)")
-#endif
+
+    if ( sensor.start() )
+        ser.strln(@"LSM6DSL driver started")
     else
         ser.strln(@"LSM6DSL driver failed to start - halting")
         repeat
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

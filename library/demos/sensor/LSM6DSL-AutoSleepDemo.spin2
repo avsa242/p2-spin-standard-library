@@ -1,15 +1,18 @@
 {
-    --------------------------------------------
-    Filename: LSM6DSL-AutoSleepDemo.spin
-    Author: Jesse Burt
-    Description: Demo of the LSM6DSL driver
-        Auto-sleep functionality
-    Copyright (c) 2022
-    Started Dec 27, 2021
-    Updated Oct 16, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       LSM6DSL-AutoSleepDemo.spin2
+    Description:    Demo of the LSM6DSL driver: Auto-sleep functionality
+    Author:         Jesse Burt
+    Started:        Dec 27, 2021
+    Updated:        Feb 17, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
+' Uncomment these lines to use an SPI-connected sensor (default is I2C)
+'#define LSM6DSL_SPI
+'#pragma exportdef(LSM6DSL_SPI)
+
 #include "core.con.click.spin2"
 
 CON
@@ -17,49 +20,36 @@ CON
     _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
+
 ' -- User-modifiable constants
-    LED1        = cfg.LED1
-    SER_BAUD    = 2_000_000
-
-    CLICK_BASE  = 0
-#ifdef LSM6DSL_SPI
-
-    { SPI configuration }
-    { custom I/O pin definitions - uncomment the below, and comment out the #include
-        line above to use }
-'    CS_PIN      = 0
-'    SCK_PIN     = 1
-'    MOSI_PIN    = 2
-'    MISO_PIN    = 3
-
-    SCK_FREQ    = 10_000_000                    ' max is 10_000_000
-#else
-    { I2C configuration }
-    { custom I/O pin definitions - uncomment the below, and comment out the #include
-        line above to use }
-'    SCL_PIN     = 28
-'    SDA_PIN     = 29
-
-    I2C_FREQ    = 400_000                       ' max is 400_000
-    ADDR_BITS   = 0                             ' 0, 1
-#endif
+    LED1        = cfg.LED1                      ' LED used to indicate awake/sleep
+    CLICK_BASE  = 0                             ' MikroE Click module base pin
+    'INT_PIN    = 0                             ' uncomment to define custom interrupt pin
+                                                '   (comment out the #include line above)
 ' --
 
-    DAT_X_COL   = 20
-    DAT_Y_COL   = DAT_X_COL + 15
-    DAT_Z_COL   = DAT_Y_COL + 15
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    ser     : "com.serial.terminal.ansi"
-    sensor  : "sensor.imu.6dof.lsm6dsl"
-    core    : "core.con.lsm6dsl"
+    cfg:    "boardcfg.p2eval"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+
+' Uncomment these lines to use a MikroE Click module, and set the Click base pin above
+    sensor: "sensor.imu.6dof.lsm6dsl" | {I2C} SCL=SCL_PIN, SDA=SDA_PIN, I2C_FREQ=400_000, ...
+                                                I2C_ADDR=0, ...
+                                        {SPI} CS=CS_PIN, SCK=SCK_PIN, MOSI=MOSI_PIN, ...
+                                            MISO=MISO_PIN, SPI_FREQ=1_000_000
+
+' Uncomment these lines instead to use all custom I/O settings
+'    sensor: "sensor.imu.6dof.lsm6dsl" | {I2C} SCL=0, SDA=1, I2C_FREQ=400_000, I2C_ADDR=0, ...
+'                                        {SPI} CS=0, SCK=1, MOSI=2, MISO=3, SPI_FREQ=1_000_000
+
 
 VAR
 
     long _isr_stack[50]                         ' stack for ISR core
     long _intflag                               ' interrupt flag
+
 
 PUB main() | intsource, temp, sysmod
 
@@ -91,17 +81,17 @@ PUB main() | intsource, temp, sysmod
         ser.pos_xy(0, 3)
         show_accel_data()                       ' show accel data
         intsource := sensor.int_inactivity()
-        if (_intflag)                           ' interrupt triggered
+        if ( _intflag )                         ' interrupt triggered
             intsource := sensor.int_inactivity()
-            if (intsource)                      ' (in)activity event
+            if ( intsource )                    ' (in)activity event
                 pinl(LED1)
             else
                 pinh(LED1)
-        else
-        if (ser.rx_check() == "c")              ' press the 'c' key in the demo
+        if (ser.getchar_noblock() == "c")       ' press the 'c' key in the demo
             cal_accel()                         ' to calibrate sensor offsets
 
-PRI cog_isr()
+
+PUB cog_isr()
 ' Interrupt service routine
     pinf(INT_PIN)                               ' INT_PIN as input
     repeat
@@ -112,28 +102,24 @@ PRI cog_isr()
 
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
-#ifdef LSM6DSL_SPI
-    if sensor.startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ)
-        ser.strln(@"LSM6DSL driver started (SPI)")
-#else
-    if sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS)
-        ser.strln(@"LSM6DSL driver started (I2C)")
-#endif
+
+    if ( sensor.start() )
+        ser.strln(@"LSM6DSL driver started")
     else
         ser.strln(@"LSM6DSL driver failed to start - halting")
         repeat
 
-    cogspin(NEWCOG, cog_isr(), @_isr_stack)           ' start ISR in another core
+    cogspin(NEWCOG, cog_isr(), @_isr_stack)     ' start ISR in another core
 
-#include "acceldemo.common.spin2h"
+
+#include "acceldemo.common.spin2h"              ' pull in code common to all accelerometer demos
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
