@@ -4,7 +4,7 @@
     Description:    Low-level UART serial driver
     Author:         Jesse Burt
     Started:        Jun 28, 2019
-    Updated:        Jan 22, 2024
+    Updated:        Feb 19, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 
@@ -33,7 +33,7 @@ VAR
 
     long _rx_pin, _tx_pin
     long _buff_cog
-
+    long _bit_time
 
 OBJ
 
@@ -65,33 +65,42 @@ PUB init(rxpin, txpin, mode, bps=-1): status | bitperiod, bit_mode
 
     _rx_pin := rxpin
     _tx_pin := txpin
-
+    _bit_time := bitperiod / (clkfreq / 1_000_000)
     bit_mode := ((bitperiod << 16) + WORDLEN)
 
     { start a buffer I/O manager in a new cog if buffered I/O is requested at build time,
         otherwise just return the parent cog ID+1 }
 #ifdef BUFFERED_IO
-    return _buff_cog := ( cogspin(  NEWCOG, ...
-                                    cog_buffered_io(txpin, rxpin, bit_mode), ...
-                                    @_buffer_stack) + 1 )
+    _buff_cog :=    ( cogspin(  NEWCOG, ...
+                                cog_buffered_io(txpin, rxpin, bit_mode), ...
+                                @_buffer_stack) + 1 )
+    waitms(1)
+    return _buff_cog
 #else
+
+
     if ( lookdown(txpin: 0..63) )
-        pinf(txpin)
-        wrpin(txpin, (P_ASYNC_TX | P_OE) )      ' async serial TX mode, enable output
-        wxpin(txpin, bit_mode)
-        pinl(txpin)
+        pinstart(txpin, (P_ASYNC_TX | P_OE), bit_mode, 0)
 
     if ( lookdown(rxpin: 0..63) )
-        pinf(rxpin)
-        wrpin(rxpin, P_ASYNC_RX)                ' async serial RX mode
-        wxpin(rxpin, bit_mode)
-        pinl(rxpin)
+        pinstart(rxpin, P_ASYNC_RX, bit_mode, 0)
 
     return (cogid() + 1)
 #endif
 
-
+pub stop()
 #ifdef BUFFERED_IO
+    if ( _buff_cog )
+        cogstop(_buff_cog)
+        txbuff.flush()
+        rxbuff.flush()
+
+
+pub fifo_rx_bytes(): b
+' Get the number of bytes waiting in the receive buffer
+'   Returns: count of bytes
+    return rxbuff.available()
+
 
 PUB flush_rx()
 ' Flush receive buffer
@@ -130,6 +139,7 @@ PUB putchar(ch): s
     repeat
         s := txbuff.putchar(ch)
     while ( s == -1 )                           ' keep trying until there's space in the TX buffer
+    waitus( _bit_time * (8+1+1) )               ' wait for the char to be sent to avoid corruption
 
 
 PUB putchar_noblock(ch): s
@@ -185,23 +195,18 @@ VAR long _buffer_stack[50]
 PUB cog_buffered_io(txpin, rxpin, bit_mode)
 
     if ( lookdown(txpin: 0..63) )
-        pinf(txpin)
-        wrpin(txpin, (P_ASYNC_TX | P_OE) )      ' async serial TX mode, enable output
-        wxpin(txpin, bit_mode)
-        pinl(txpin)
+        pinstart(txpin, (P_ASYNC_TX | P_OE), bit_mode, 0)
 
     if ( lookdown(rxpin: 0..63) )
-        pinf(rxpin)
-        wrpin(rxpin, P_ASYNC_RX)                ' async serial RX mode
-        wxpin(rxpin, bit_mode)
-        pinl(rxpin)
+        pinstart(rxpin, P_ASYNC_RX, bit_mode, 0)
 
     repeat
-        if ( pinr(_rx_pin) )                    ' if there's a char waiting, buffer it
-            rxbuff.putchar( rdpin(_rx_pin) >> 24 )
-        if ( txbuff.available() )               ' if there's a char waiting, send it
-            wypin(_tx_pin, txbuff.getchar() )
-            repeat until pinr(_tx_pin)          ' wait for data to be flushed
+        if ( pinr(rxpin) )                      ' if there's a char waiting, buffer it
+            rxbuff.putchar( rdpin(rxpin) >> 24 )
+        if ( txbuff.available() )               ' if there's a buffered char waiting, send it
+            wypin(txpin, txbuff.getchar())
+            repeat until not (rdpin(txpin) & 1) ' wait for char to finish sending (xxx really needed?)
+
 #endif
 
 
@@ -250,7 +255,7 @@ PRI autobaud(pin): bitperiod | a, b, c, port, mask
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
