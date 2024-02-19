@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: memory.ring-buffer.spin2
-    Author: Jesse Burt
-    Description: Generic ring buffer
-    Started Sep 30, 2023
-    Updated Dec 22, 2023
-    Copyright 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       memory.ring-buffer.spin2
+    Description:    Generic ring buffer
+    Author:         Jesse Burt
+    Started:        Sep 30, 2023
+    Updated:        Feb 19, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     NOTE: This is based partly on qring.spin,
         originally by Harrison Pham
@@ -98,8 +97,9 @@ pub get(ptr_buff, len): l
 pub getchar(): ch
 ' Get a character from the buffer
 '   Returns: character, or -1 if none available
-    ch := -1
-    get(@ch, 1)
+    ch := 0
+    ifnot ( get(@ch, 1) )
+        return -1
 
 
 pub head(): p
@@ -225,7 +225,7 @@ pub xput(len): n    'xxx API not finalized
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
