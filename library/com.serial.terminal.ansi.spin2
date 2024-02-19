@@ -1,16 +1,17 @@
 {
-    --------------------------------------------
-    Filename: com.serial.terminal.ansi.spin2
-    Description: ANSI-compatible serial terminal
-    Author: Jesse Burt
-    Created: Jun 15, 2019
-    Updated: Jan 20, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       com.serial.terminal.ansi.spin2
+    Description:    ANSI-compatible serial terminal
+    Author:         Jesse Burt
+    Started:        Jun 15, 2019
+    Updated:        Feb 19, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 
     NOTE: This is based on excerpts of SmartSerial.spin2,
     originally by Eric Smith
 }
+
 #ifndef TERMCODES_H
 #include "termcodes.spin2h"
 #endif
@@ -59,10 +60,10 @@ PUB getdec(): d
 PUB hexin = gethex
 PUB rx_hex = gethex
 PUB get_hex = gethex
-PUB gethex(): h
+PUB gethex(digits=SER_STR_BUFF_SZ): h
 ' Receive CR-terminated string representing a hexadecimal value
 '   Returns: the corresponding hexadecimal value
-    gets_max(@_str_buff, SER_STR_BUFF_SZ)
+    gets_max(@_str_buff, digits)
     return stl.atoib(@_str_buff, stl.IHEX)
 
 PUB strin = gets
