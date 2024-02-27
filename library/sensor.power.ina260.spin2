@@ -1,17 +1,24 @@
 {
-    --------------------------------------------
-    Filename: sensor.power.ina260.spin2
-    Author: Jesse Burt
-    Description: Driver for the TI INA260 Precision Current and Power Monitor IC (P2 version)
-    Copyright (c) 2023
-    Started Nov 13, 2019
-    Updated Dec 17, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       sensor.power.ina260.spin2
+    Description:    Driver for the TI INA260 Precision Current and Power Monitor IC
+    Author:         Jesse Burt
+    Started:        Nov 13, 2019
+    Updated:        Feb 27, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
 #include "sensor.power.common.spin2h"
 
 CON
+
+    { default I/O settings; these can be overridden in the parent object }
+    SCL             = 0
+    SDA             = 1
+    I2C_FREQ        = DEF_HZ
+    I2C_ADDR        = DEF_ADDR
+
 
     SLAVE_WR        = core.SLAVE_ADDR
     SLAVE_RD        = core.SLAVE_ADDR|1
@@ -61,20 +68,14 @@ CON
     INTLVL_LO       = 0
     INTLVL_HI       = 1
 
-    { default I/O settings; these can be overridden in the parent object }
-    SCL             = 0
-    SDA             = 1
-    I2C_FREQ        = DEF_HZ
-    I2C_ADDR        = DEF_ADDR
-
 VAR
 
     long _addr_bits
 
 OBJ
 
-    i2c : "com.i2c"
-    core: "core.con.ina260"
+    i2c:    "com.i2c"
+    core:   "core.con.ina260"
 
 PUB null()
 ' This is not a top-level object
@@ -154,6 +155,11 @@ PUB die_id(): id
     id := 0
     readreg(core.DIE_ID, 2, @id)
 
+PUB int_clear() | tmp
+' Clear active interrupt
+'   NOTE: This method is only effective when interrupts are latched (int_latch_ena() == true)
+    readreg(core.ENABLE, 1, @tmp)               ' simply reading this reg clears a latched int
+
 PUB int_polarity(state=-2): curr_state
 ' Set interrupt active level/polarity
 '   Valid values:
@@ -183,8 +189,8 @@ PUB int_mask(mask=-2): curr_mask
 '       1: Power over-limit
 '       0: Conversion ready
 '   Any other value polls the chip and returns the current setting
-'   NOTE: If multiple sources are enabled, the highest significant bit function
-'    takes priority
+'   NOTE: Only one source may be enabled at a time. If more than one source is enabled,
+'       only the function in the higher significant bit position will be used.
 '   NOTE: INT_ symbols can optionally be used to define sources
 '    (defined near top of this file)
     curr_mask := 0
@@ -216,14 +222,37 @@ PUB int_latch_ena(state=-2): curr_state
 
 PUB int_set_thresh(thresh)
 ' Set interrupt/alert threshold
-'   Valid values: 0..65535 (clamped to range)
-    thresh := 0 #> thresh <# 65535
-    writereg(core#ALERT_LIMIT, 2, @thresh)
+'   Valid values:
+'       Current: 0..15_000_000 (microamps; clamped to range)
+'       Voltage: 0..36_000_000 (microvolts; clamped to range)
+'       Power: 540_000_000 (microwatts; clamped to range)
+    case int_mask()                             ' determine scaling based on interrupt type set
+        INT_CURRENT_HI, INT_CURRENT_LO:
+            { current low or high threshold }
+            thresh := (0 #> thresh <# 15_000000) / 1_250
+        INT_BUSVOLT_HI, INT_BUSVOLT_LO:
+            { voltage low or high threshold }
+            thresh := (0 #> thresh <# 36_000000) / 1_250
+        INT_POWER_HI:
+            { power high threshold }
+            thresh := (0 #> thresh <# 540_000000) / 10_000
 
-PUB int_thresh{}: thresh
+    writereg(core.ALERT_LIMIT, 2, @thresh)
+
+PUB int_thresh(): thresh
 ' Get interrupt/alert threshold
     thresh := 0
     readreg(core.ALERT_LIMIT, 2, @thresh)
+    case int_mask()                             ' determine scaling based on interrupt type set
+        INT_CURRENT_HI, INT_CURRENT_LO, INT_BUSVOLT_HI, INT_BUSVOLT_LO:
+            { current or voltage, low or high threshold }
+            return (thresh * 1_250)
+        INT_POWER_HI:
+            { power high threshold }
+            return (thresh * 10_000)
+        other:
+            { no interrupt mask set; just return the reg value unscaled }
+            return thresh
 
 PUB mfr_id(): id
 ' Read the Manufacturer ID from the chip
@@ -356,7 +385,7 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 
 DAT
 {
-Copyright (c) 2023 Jesse Burt
+Copyright (c) 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
