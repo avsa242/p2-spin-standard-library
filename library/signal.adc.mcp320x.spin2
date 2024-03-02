@@ -1,46 +1,56 @@
 {
-    --------------------------------------------
-    Filename: signal.adc.mcp320x.spin2
-    Author: Jesse Burt
-    Description: Driver for Microchip MCP300x and 320x Analog to Digital Converters (P2 version)
-    Copyright (c) 2023
-    Started Nov 26, 2019
-    Updated Jul 23, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       signal.adc.mcp320x.spin2
+    Description:    Driver for Microchip MCP320x and 300x Analog to Digital Converters
+    Author:         Jesse Burt
+    Started:        Nov 26, 2019
+    Updated:        Mar 2, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
+
+CON
+
     { default I/O settings; these can be overridden in the parent object }
     CS          = 0
     SCK         = 1
     MOSI        = 2
     MISO        = 3
     SPI_FREQ    = 1_000_000
+    MODEL       = 3002
 
-#include "signal.adc.common.spin2h"
+#include "signal.adc.common.spin2h"             ' pull in code common to all ADC drivers
 
 VAR
 
     long _CS
     long _adc_ref
     long _adc_rdbits, _adc_range, _adc_max
+    long _adc_model
+    word _adc_mask
     byte _max_channels, _ch
 
 OBJ
 
-    spi : "com.spi.10mhz"
-    core: "core.con.mcp320x"
+    spi:    "com.spi.10mhz"
+    core:   "core.con.mcp320x"
 
 PUB null()
 ' This is not a top-level object
 
 PUB start(): status
 ' Start the driver using default I/O settings
-    return startx(CS, SCK, MOSI, MISO, SPI_FREQ)
+    status := startx(CS, SCK, MOSI, MISO, SPI_FREQ)
+    set_model(MODEL)
 
 PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, MISO_PIN, SCK_FREQ=1_000_000): status
 ' Start the driver, using custom I/O settings
-    if ( lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and ...
-         lookdown(MOSI_PIN: 0..63) and lookdown(MISO_PIN: 0..63) )
+'   CS_PIN:     Chip Select
+'   SCK_PIN:    Serial Clock
+'   MOSI_PIN:   Master-Out Slave-In (ignored on single-channel ADC models)
+'   MISO_PIN:   Master-In Slave-Out
+'   Returns: cog ID+1 of SPI engine on success, or 0 on failure
+    if ( lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(MISO_PIN: 0..63) )
         if ( status := spi.init(SCK_PIN, MOSI_PIN, MISO_PIN, core.SPI_MODE, SCK_FREQ) )
             waitms(1)
             _CS := CS_PIN
@@ -70,18 +80,22 @@ PUB adc_channel(): ch
 ' Get currently set ADC channel (cached)
     return _ch
 
-PUB adc_data(): adc_word | cfg
+PUB adc_data(): adc_word | cfg, len
 ' ADC data word
-'   Returns: 12-bit ADC word
-    case _ch
-        0, 1:
-            cfg := core.SINGLE_ENDED | core.MSBFIRST | (_ch << core.ODD_SIGN)
-        other:
-            return
+'   Returns: ADC word (10 or 12 bits, depending on model - see set_model() )
+    case _max_channels
+        2:
+            cfg :=  core.START_MEAS_2CH | core.SINGLE_ENDED_2CH | (_ch << core.ODD_SIGN) | ...
+                    core.MSBFIRST
+            len := 4
+        4, 8:
+            cfg := core.START_MEAS_4_8CH | core.SINGLE_ENDED_4_8CH | _ch
+            len := 5
 
     pinl(_CS)
-    spi.wrbits_msbf((core.START_MEAS | cfg), 4)
-    adc_word := (spi.rdbits_msbf(_adc_rdbits) & $fff)    ' 1 null bit + 12 data bits
+        if ( _max_channels > 1 )                ' only multi-channel models are configurable
+            spi.wrbits_msbf(cfg, len)           ' configure and initiate a conversion
+        adc_word := (spi.rdbits_msbf(_adc_rdbits) & _adc_mask)
     pinh(_CS)
 
 PUB adc2volts(adc_word): volts
@@ -98,36 +112,53 @@ PUB ref_voltage(): v
 
 PUB set_adc_channel(ch)
 ' Set ADC channel for subsequent reads
-'   Valid values: 0, 1
-    _ch := 0 #> ch <# 1
+'   Valid values: 0..7 (model-dependent)
+    _ch := 0 #> ch <# (_max_channels-1)
 
 PUB set_adc_res(bits)
 ' Set ADC resolution
 '   Valid values: 10, 12 (other values ignored)
     if ( lookdown(bits: 10, 12) )
-        _adc_rdbits := bits+1
-        _adc_range := (1 << bits)
-        _adc_max := _adc_range-1
+        _adc_rdbits := bits
+        _adc_range := (1 << bits)               ' ADC max number of codes
+        _adc_max := _adc_range-1                ' ADC max word
+        _adc_mask := _adc_range-1               ' ADC word mask
 
-pub set_model(m) | tmp
+pub set_model(m): e | tmp
 ' Set ADC model
 '   Valid values:
 '       10-bit models: 3001, 3002, 3004, 3008
 '       12-bit models: 3201, 3202, 3204, 3208
+'   Returns: 0 on success, -1 on invalid model
+    e := 0
     case m
         3001, 3002, 3004, 3008:
             set_adc_res(10)
+            _max_channels := m-3000
         3201, 3202, 3204, 3208:
             set_adc_res(12)
+            _max_channels := m-3200
+        other:
+            return -1                           ' error: invalid
+
+    if ( _max_channels == 1 )
+        _adc_rdbits += 3                        ' data bits + null bit + 2 extra sample clocks
+    elseif ( _max_channels == 2 )
+        _adc_rdbits += 1                        ' data bits + null bit
+    elseif ( _max_channels => 4 )
+        _adc_rdbits += 2                        ' data bits + null bit + 1 extra sample clock
+
+    _adc_model := m
 
 PUB set_ref_voltage(v): curr_v
 ' Set ADC reference/supply voltage (Vdd), in microvolts
 '   Valid values: 2_700_000..5_500_000 (2.7 .. 5.5V)
     _adc_ref := (2_700000 #> v <# 5_500000)
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: core.con.mcp320x.spin
-    Author: Jesse Burt
-    Description: MCP320x-specific constants
-    Copyright (c) 2022
-    Started Nov 26, 2019
-    Updated Aug 6, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       core.con.mcp320x.spin
+    Description:    MCP320x-specific constants
+    Author:         Jesse Burt
+    Started:        Nov 26, 2019
+    Updated:        Mar 1, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 CON
@@ -19,32 +18,34 @@ CON
 
 ' Register definitions
     CONFIG                      = $00
-        START                   = 3
-        SGL_DIFF                = 2
+        { 2-channel models only }
+        START_2CH               = 3
+        SGL_DIFF_2CH            = 2
         ODD_SIGN                = 1
         MSBF                    = 0
 
-        START_MEAS              = 1 << START
-
-        SINGLE_ENDED            = 1 << SGL_DIFF
-        PSEUDO_DIFF             = 0 << SGL_DIFF
-
-        CH1                     = 1 << ODD_SIGN
-        CH0                     = 0 << ODD_SIGN
-
-        IN0POS_IN1NEG           = 1 << ODD_SIGN
-        IN0NEG_IN1POS           = 0 << ODD_SIGN
-
+        START_MEAS_2CH          = 1 << START_2CH
+        SINGLE_ENDED_2CH        = 1 << SGL_DIFF_2CH
+        PSEUDO_DIFF_2CH         = 0 << SGL_DIFF_2CH
         MSBFIRST                = 1 << MSBF
         LSBFIRST                = 0 << MSBF
 
+        { 4 and 8-channel models only }
+        START_4_8CH             = 4
+        SGL_DIFF_4_8CH          = 3
+        CHANNEL                 = 0
+        CHANNEL_BITS            = %111
+        START_MEAS_4_8CH        = 1 << START_4_8CH
+        SINGLE_ENDED_4_8CH      = 1 << SGL_DIFF_4_8CH
+        PSEUDO_DIFF_4_8CH       = 0 << SGL_DIFF_4_8CH
 
-PUB null{}
+
+PUB null()
 ' This is not a top-level object
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
