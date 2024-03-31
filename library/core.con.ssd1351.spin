@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: core.con.ssd1351.spin
-    Author: Jesse Burt
-    Description: SSD1351-specific constants
-    Copyright (c) 2021
-    Started: Mar 11, 2020
-    Updated: Oct 17, 2021
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       core.con.ssd1351.spin
+    Description:    SSD1351-specific constants
+    Author:         Jesse Burt
+    Started:        Mar 11, 2020
+    Updated:        Mar 31, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
 
 CON
@@ -122,7 +121,7 @@ PUB null{}
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

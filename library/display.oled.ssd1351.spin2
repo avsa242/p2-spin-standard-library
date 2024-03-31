@@ -1,14 +1,14 @@
 {
-    --------------------------------------------
-    Filename: display.oled.ssd1351.spin2
-    Author: Jesse Burt
-    Description: Driver for Solomon Systech SSD1351 RGB OLED displays (P2 version)
-    Copyright (c) 2024
-    Started: Mar 11, 2020
-    Updated: Jan 3, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       display.oled.ssd1351.spin2
+    Description:    Driver for Solomon Systech SSD1351 RGB OLED displays
+    Author:         Jesse Burt
+    Started:        Mar 11, 2020
+    Updated:        Mar 31, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
+
 #define MEMMV_NATIVE wordmove
 #include "graphics.common.spin2h"
 
@@ -591,7 +591,7 @@ PUB powered(state)
 '   Valid values:
 '       OFF/FALSE (0): Turn off display power
 '       ON/TRUE (non-zero): Turn on display power
-    state := (((state <> 0) & 1) + core#DISPOFF)
+    state := (((state <> 0) & 1) + core.DISPOFF)
     writereg(state, 0, 0)
 
 PUB prechg_level(level)
@@ -615,8 +615,14 @@ PUB scroll_up_fs(px)
 ' dummy method
 #endif
 
+PUB set_seg_current_scale_factor(s)
+' Set segment current scaling factor, in 16ths
+'   s: 1..16 (clamped to range; default is 16)
+    s := (1 #> s <# 16)-1
+    writereg(core.MASTCNTRST_CURR_CTRL, 1, @s)
+
 PUB show()
-' Seud the draw buffer to the display
+' Send the draw buffer to the display
 #ifndef GFX_DIRECT
     draw_area(0, 0, _disp_xmax, _disp_ymax)
     pinw(_DC, core.CMD)
@@ -662,22 +668,20 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff) | tmp
     case reg_nr
         $9E, $9F, $A4..$A7, $AD..$AF, $B0, $B9, $D1, $E3:
         ' Single-byte command
-            pinl(_DC)
+            pinw(_DC, core.CMD)
             pinl(_CS)
             spi.wr_byte(reg_nr)
             pinh(_CS)
             return
-
         $15, $5C, $75, $96, $A0..$A2, $AB, $B1..$B6, $B8, $BB, $BE, $C1, $C7, $CA, $FD:
         ' Multi-byte command
-            pinl(_DC)
+            pinw(_DC, core.CMD)
             pinl(_CS)
             spi.wr_byte(reg_nr)
-            pinh(_DC)
+            pinw(_DC, core.DATA)
             spi.wrblock_lsbf(ptr_buff, nr_bytes)
             pinh(_CS)
             return
-
         other:
             return
 
