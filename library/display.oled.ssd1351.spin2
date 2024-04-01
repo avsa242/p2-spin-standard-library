@@ -4,7 +4,7 @@
     Description:    Driver for Solomon Systech SSD1351 RGB OLED displays
     Author:         Jesse Burt
     Started:        Mar 11, 2020
-    Updated:        Mar 31, 2024
+    Updated:        Apr 1, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -134,6 +134,59 @@ PUB defaults()
     draw_area(0, 0, 127, 127)
     clear()
     visibility(NORMAL)
+
+PUB preset_newhaven_nhd_1p5 = preset_adafruit_1431
+PUB preset_adafruit_1431()
+' Preset: Adafruit #1431 (128x128)
+    draw_area(0, 0, 127, 127)
+    subpix_order(RGB)
+    interlace_ena(FALSE)
+    color_depth(COLOR_65K)
+    disp_start_line(0)
+    disp_offset(0, 0)
+    clk_freq(3020)
+    clk_div(1)
+    contrast(127)
+    disp_lines(128)
+
+    powered(TRUE)
+    visibility(NORMAL)
+
+PUB preset_newhaven_nhd_1p5_port_up = preset_adafruit_1431_port_up
+PUB preset_adafruit_1431_port_up()
+' Preset: Adafruit #1431 (128x128)
+'   Oriented portrait-up (soldered pins are at the top, display ribbon at the bottom)
+    preset_adafruit_1431()
+    rotation(false)
+    mirror_h(false)
+    mirror_v(true)
+
+PUB preset_newhaven_nhd_1p5_port_down = preset_adafruit_1431_port_down
+PUB preset_adafruit_1431_port_down()
+' Preset: Adafruit #1431 (128x128)
+'   Oriented portrait-down (soldered pins are at the top, display ribbon at the bottom)
+    preset_adafruit_1431()
+    rotation(false)
+    mirror_h(true)
+    mirror_v(false)
+
+PUB preset_newhaven_nhd_1p5_land_left = preset_adafruit_1431_land_left
+PUB preset_adafruit_1431_land_left()
+' Preset: Adafruit #1431 (128x128)
+'   Oriented landscape-left (soldered pins are at the left, display ribbon at the right)
+    preset_adafruit_1431()
+    rotation(true)
+    mirror_h(true)
+    mirror_v(true)
+
+PUB preset_newhaven_nhd_1p5_land_right = preset_adafruit_1431_land_right
+PUB preset_adafruit_1431_land_right()
+' Preset: Adafruit #1431 (128x128)
+'   Oriented landscape-right (soldered pins are at the right, display ribbon at the left)
+    preset_adafruit_1431()
+    rotation(true)
+    mirror_h(false)
+    mirror_v(false)
 
 PUB preset_clickc_away()
 ' Preset: MikroE OLED C Click (96x96)
@@ -609,6 +662,13 @@ PUB reset()
         pinl(_RES)
         waitus(2)
         pinh(_RES)
+
+PUB rotation(state)
+' Rotate display
+'   Valid values: TRUE (non-zero values), FALSE (0)
+'   Any other value returns the current setting
+    _rmapcolor := ( (_rmapcolor & core.ADDRINC_MASK) | ((state <> 0) & 1) )
+    writereg(core.SETREMAP, 1, @_rmapcolor)
 
 #ifdef GFX_DIRECT
 PUB scroll_up_fs(px)
