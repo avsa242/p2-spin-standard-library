@@ -1,14 +1,12 @@
 {
-    --------------------------------------------
-    Filename: termwidgets.spin2
-    Description: Library of terminal widgets (P2 version)
-    Author: Jesse Burt
-    Copyright (c) 2024
-    Started Dec 14, 2019
-    Updated Jan 20, 2024
-    See end of file for terms of use.
-    --------------------------------------------
-}
+----------------------------------------------------------------------------------------------------
+    Filename:       termwidgets.spin2h
+    Description:    Text widgets usable in a terminal device
+    Author:         Jesse Burt
+    Started:        Dec 14, 2019
+    Updated:        Mar 17, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 
 '   Must be included using the preprocessor #include directive
 '   Requires:
@@ -16,42 +14,77 @@
 '           putchar(param)
 '           puts(param)
 '           puthexs(param, digits)
+}
 
-PUB hexdump(ptr_buff, baddr, adigits, len, cols) | hoffs, aoffs, aaddr, col
+PUB hexdump(pbuff, baddr, adigs, nr_b, cols, gsz=1) | hxo, asc_offs, asc_addr, col
 ' Display a hexdump of a region of memory
-'   ptr_buff: pointer to location in memory to hexdump
-'   baddr: address used to display as base address in hex dump (affects display only)
-'   adigits: number of digits used to display address
-'   len: total number of bytes to display
-'   cols: number of bytes to display on each line
-    hoffs := aoffs := 0                         ' initialize offsets to base address
-    repeat while (hoffs < len)
-        col := 0
-        puthexs(baddr+hoffs, adigits)           ' show memory offset of line
-        puts(@": ")
+'   pbuff:  pointer to location in memory to hexdump
+'   baddr:  address used to display as base address in hex dump
+'               (affects display only - useful for dumps of an EE, flash chip, etc)
+'   adigs:  number of digits used to display address
+'   nr_b:   total number of bytes to display
+'   cols:   number of bytes to display on each line
+'   gsz:    group this many bytes together before drawing a space
+'   NOTE: if cols isn't evenly divisible by gsz, an incomplete group may be drawn
+    col := 0
+    hxo := asc_offs := 0                        ' initialize offsets to base
+                                                '   address
+    repeat while (hxo < nr_b)
+        puthexs(baddr+hxo, adigs)               ' show memory offset of line
+        puts(string(": "))
 
         { display data in hex }
         repeat while (col < cols)
-            puthexs(byte[ptr_buff+hoffs], 2)    ' show the byte in hex
-            putchar(" ")                        ' draw a space between each byte
+            puthexs(byte[pbuff+hxo], 2)
             col++
-            hoffs++
+            hxo++
+            ifnot ( col // gsz )                ' end of a group of bytes? draw a space
+                putchar(" ")
 
         putchar("|")                            ' separate hex from ASCII
         col := 0
 
         { display data in ASCII }
         repeat while (col < cols)
-            aaddr := ptr_buff+aoffs
-            if (lookdown(byte[aaddr]: 32..126))
-                putchar(byte[aaddr])            ' display printable chars as-is
+            asc_addr := pbuff+asc_offs
+            if (lookdown(byte[asc_addr]: 32..126))
+                putchar(byte[asc_addr])         ' display printable chars as-is
             else
                 putchar(".")                    ' and unprintable chars as "."
             col++
-            aoffs++
+            asc_offs++
 
         putchar("|")
-        newline()                               ' ready for next line
+        col := 0                                ' ready for next line
+        newline()
+
+
+PUB hexdump_noascii(pbuff, baddr, adigs, nr_b, cols, gsz=1) | hxo, col
+' Display a hexdump of a region of memory (hex display only)
+'   pbuff:  pointer to location in memory to hexdump
+'   baddr:  address used to display as base address in hex dump
+'               (affects display only - useful for dumps of an EE, flash chip, etc)
+'   adigs:  number of digits used to display address
+'   nr_b:   total number of bytes to display
+'   cols:   number of bytes to display on each line
+'   gsz:    group this many bytes together before drawing a space
+'   NOTE: if cols isn't evenly divisible by gsz, an incomplete group may be drawn
+    col := 0
+    hxo := 0                                    ' initialize offsets to base address
+
+    repeat while (hxo < nr_b)
+        puthexs(baddr+hxo, adigs)               ' show memory offset of line
+        puts(string(": "))
+
+        { display data in hex }
+        repeat while (col < cols)
+            puthexs(byte[pbuff+hxo], 2)
+            hxo++
+            col++
+            ifnot ( col // gsz )                ' end of a group of bytes? draw a space
+                putchar(" ")
+        col := 0                                ' ready for next line
+        newline()
 
 
 PUB hexdumphl(ptr_buff, baddr, adigits, len, cols, hl_st, hl_len) | hoffs, aoffs, aaddr, col
