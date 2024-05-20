@@ -1,17 +1,17 @@
 {
-    --------------------------------------------
-    Filename: com.spi.spin2
-    Description: SPI engine (smart-pin driven) for the Propeller 2
-    Author: Jesse Burt
-    Copyright (c) 2022
-    Created: Apr 15, 2020
-    Updated: Oct 12, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       com.spi.25mhz.spin
+    Description:    SPI engine (smart-pin driven) for the Propeller 2
+    Author:         Jesse Burt
+    Started:        Apr 15, 2020
+    Updated:        May 20, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 
-    NOTE: This is based on XPT2046.spin2,
-        by Cheezus Slice
+    NOTE: This is based on excerpts of XPT2046.spin2,
+    originally by Cheezus Slice
 }
+
 
 CON
 
@@ -79,8 +79,9 @@ PUB init(SCK, MOSI, MISO, SPI_MODE=0, SCK_FREQ=1_000_000): status | MISO_rel, MO
         other:
             return                              ' invalid choice for MOSI
 
-    pinstart(MOSI, sp.SYNCSERIAL_TX | sp.SMART_OUT_DRIVE | sp.OUTPUT_ENABLED |{
-    } MOSI_rel | sp.BINP_INVERTED, sp.START_STOP + (NUMBITS - 1), $FF)
+    if ( lookdown(MOSI: 0..63) )
+        pinstart(   MOSI, sp.SYNCSERIAL_TX | sp.SMART_OUT_DRIVE | sp.OUTPUT_ENABLED | ...
+                    MOSI_rel | sp.BINP_INVERTED, sp.START_STOP + (NUMBITS - 1), $FF)
 '    wypin(MOSI, $FF)                           ' XXX Copy from original code - verify function
 
     rdpin(MISO)
