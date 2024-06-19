@@ -4,7 +4,7 @@
     Description:    Routines common to all sensor.magnetometer device drivers
     Author:         Jesse Burt
     Started:        Aug 31, 2022
-    Updated:        Jan 21, 2024
+    Updated:        Jun 19, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 
@@ -101,9 +101,35 @@ PUB magz_word2tesla(mag_word): mag_tesla
     return (mag_word * _mres[Z_AXIS]) / 10_000
 
 
-PUB yaw()
+#ifndef HAVE_MATH_INT
+#   define HAVE_MATH_INT
+OBJ
+
+    math:    "math.int"
+#endif
+
+
+PUB heading = yaw
+PUB yaw(): a | x, y, z
 ' Get yaw/heading angle of magnetometer, in degrees
-'   XXX TBD
+'   Returns: angle in 1/1_000's degrees (e.g,, 359_123 = 359.123deg)
+    longfill(@x, 0, 5)
+    mag_data(@x, @y, @z)
+
+    if ( x == 0 )
+        if ( y < 0 )
+            a := 90_000
+        elseif ( y >= 0 )
+            a := 0
+    else
+        a := math.atan2(y, x)
+
+        if ( a > 360_000 )
+            a := a - 360_000
+        if ( a < 0 )
+            a := a + 360_000
+
+    return a
 
 
 DAT

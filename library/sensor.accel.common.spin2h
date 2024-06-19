@@ -1,20 +1,22 @@
 {
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
     Filename:       sensor.accel.common.spin2h
     Description:    Routines common to all sensor.accel device drivers
     Author:         Jesse Burt
     Started:        Aug 31, 2022
-    Updated:        Jan 21, 2024
+    Updated:        Jun 19, 2024
     Copyright (c) 2024 - See end of file for terms of use.
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 
     NOTE: This file must be included by the compiler using the
         #include preprocessor directive, _outside_ of any existing
         block designators (CON, VAR, OBJ, PUB, PRI, DAT)
 }
 
+#ifndef HAVE_MATH_INT
+#   define HAVE_MATH_INT
 OBJ math: "math.int"
-
+#endif
 
 VAR
 
