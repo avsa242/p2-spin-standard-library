@@ -4,7 +4,7 @@
     Description:    Routines common to all sensor.accel device drivers
     Author:         Jesse Burt
     Started:        Aug 31, 2022
-    Updated:        Jun 19, 2024
+    Updated:        Jun 22, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 
@@ -20,7 +20,7 @@ OBJ math: "math.int"
 
 VAR
 
-    long _ares
+    long _ares, _ares_mss
     long _abias[ACCEL_DOF]
     long _ax, _ay, _az
 
@@ -39,9 +39,23 @@ PUB accel_g(ax, ay, az) | tmp[ACCEL_DOF]
     long[az] := accel_word2g(tmp[Z_AXIS])
 
 
+PUB accel_mss(ax, ay, az) | tmp[ACCEL_DOF]
+' Read the Accelerometer data and scale the outputs to
+'   micrometers per second squared (9_800_000 = 9.8 m/s/s = 1.000000g)
+    accel_data(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
+    long[ax] := accel_word2mss(tmp[X_AXIS])
+    long[ay] := accel_word2mss(tmp[Y_AXIS])
+    long[az] := accel_word2mss(tmp[Z_AXIS])
+
+
 PUB accel_word2g(accel_word): g
 ' Convert accelerometer ADC word to g's
     return (accel_word * _ares)
+
+
+PUB accel_word2mss(accel_word): accel_g
+' Convert accelerometer ADC word to micrometers per second squared
+    return (accel_word * _ares_mss)
 
 
 PUB calibrate_accel() | axis, orig_scl, orig_dr, tmp[ACCEL_DOF], tmpx, tmpy, tmpz, samples
