@@ -1,0 +1,737 @@
+{
+----------------------------------------------------------------------------------------------------
+    Filename:       com.canbus.txrx.spin2
+    Description:    CANbus engine (bi-directional, 1Mbps)
+    Author:         Jesse Burt
+    Started:        2021
+    Updated:        Aug 23, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
+
+    NOTE: This is based on CANbus controller.spin2 (Copyright 2021),
+    originally written by Chris Gadd
+}
+CON
+
+    { default configuration; these can be overridden by the parent object }
+    RX_BUFFERS      = 1                         ' num receive buffers (each is 2 longs + 16 bytes)
+    RETRIES         = 255                       ' num resend attempts before initiating bus-recovery
+
+
+    ' operating modes
+    NORMAL          = 0
+    LISTEN          = 1
+    LOOPBACK        = 2
+
+    ' message filter types
+    STANDARD        = 0
+    EXTENDED        = 1
+    ALL             = 2
+    REMOTE          = 1
+
+    ' status
+    READY           = -1
+    ERROR           = -2
+
+    ' ident bits                                ' ident is 11bits (STANDARD frame),
+                                                '   or 28bits (EXTENDED frame)
+    RTR_BIT         = 29                        ' bit 29 of ident - set for remote transmission request
+    IDE_BIT         = 30                        ' bit 30 of ident - set for extended frame message
+
+    ' flags
+    TX_FLAG         = 0                         ' Set when sending a message (_tx_ident => 0),
+                                                '   cleared if lost arbitration/receiving a message
+    STUFFED_FLAG    = 1                         ' Set by next_bit if the next bit should be stuffed,
+                                                '   cleared when stuffed bit is received
+    RTR_FLAG        = 2                         ' Set by parse_RTR, used during write_buffer to
+                                                '   encode RTR bit into long[@rx_ident]
+    EXIDE_FLAG      = 3                         ' Set parse_IDE, used during write_buffer to
+                                                '   encode IDE bit into long[@rx_ident]
+    PHASE_FLAG      = 4                         ' Used when writing: clear during arbitration phase,
+                                                '    set during data phase
+
+
+VAR
+    long  _rx_mask[2 * RX_BUFFERS]              ' each rx buffer has a mask and a filter
+    byte  _rx_buffer[13 * RX_BUFFERS]           ' each rx buffer is sized for 4 bytes of ident,
+                                                '   1 dlc, and 8 data
+    byte  _rx_ident[4], _rx_dlc, _rx_data[8]    ' rx_buffers are copied into _rx_ident through
+                                                '   _rx_data by calling checkBuffer(num)
+    byte  _tx_ident[4], _tx_dlc, _tx_data[8]
+    byte  _flags, _recv_errs, _ack_errs, _arb_errs, _mode
+    byte  _cog
+
+
+PUB null()
+' This is not a top-level object
+
+
+PUB startx(CAN_RX, CAN_TX, CAN_BPS, mode): s | divisor
+' Start the CANbus engine using custom I/O settings
+'   CAN_RX:     CANbus receive data
+'   CAN_TX:     CANbus transmit data
+'   CAN_BPS:    CANbus speed
+'   mode:       operating mode (NORMAL, LISTEN, LOOPBACK)
+'   Returns:
+'      pointer to receive buffers 
+    rx_pin := CAN_RX
+    tx_pin := CAN_TX
+    full_bit := clkfreq / CAN_BPS
+    half_bit := full_bit / 2
+
+    longfill(@_rx_mask, 0, RX_BUFFERS * 2)      ' Preset all rx masks and filters to accept
+                                                '   all messages
+    bytefill(@_rx_buffer, -1, RX_BUFFERS * 13)
+    bytefill(@_tx_ident, -1, 4)
+
+    case CAN_BPS                                ' The reader re-synchronizes on
+                                                '   recessive-to-dominant transitions
+        10_000..125_000:
+            fudge_bit := full_bit / 2           ' When it senses a transition, it reads getct and
+                                                '   adds a 'fudge_bit' in order to sample in the
+        250_000:                                '   middle of the bit
+            case clkfreq
+                80_000_000..159_999_999:
+                    fudge_bit := full_bit / 3   ' Higher bitrates and slower clock frequencies both
+                                                '   affect the delay required in order to sample in
+                160_000_000..posx:              '   the middle
+                    fudge_bit := full_bit / 2
+        500_000:
+            case clkfreq
+                80_000_000..179_999_999:
+                    fudge_bit := full_bit / 3   ' Tested 20K, 50K, 125K, 250K, 500K and 1Mbps
+                180_000_000..posx:              '  at even multiples of 10MHz clkfreq
+                    fudge_bit := full_bit / 2   '   (80MHz, 100MHz .. 300MHz, 320MHz)
+        1_000_000:
+            case clkfreq
+                80_000_000..99_999_999:
+                    fudge_bit := full_bit / 8
+                100_000_000..119_999_999:
+                    fudge_bit := full_bit / 5
+                120_000_000..159_999_999:
+                    fudge_bit := full_bit / 4
+                160_000_000..319_999_999:
+                    fudge_bit := full_bit / 3
+                320_000_000..posx:
+                    fudge_bit := full_bit / 2
+
+    set_mode(mode)
+    _p_tx_array :=  @_tx_ident
+    _p_mask :=      @_rx_mask
+    _p_rxbuff :=    @_rx_buffer
+    _p_flags :=     @_flags
+    _p_recverr :=   @_recv_errs
+    _p_ackerr :=    @_ack_errs
+    _p_arberr :=    @_arb_errs
+    _p_modeerr :=   @_mode
+
+    stop()
+    if ( _cog := coginit(COGEXEC_NEW, @entry, 0) + 1 )
+        return @_rx_ident
+
+
+PUB stop()
+' Stop the CANbus engine
+    if ( _cog )
+        cogstop(_cog~ - 1)                      ' stop the cog and clear the cog ID var
+
+
+PUB ack_errs(): e
+' Returns the number of acknowledge errors
+'   (transmitted messages that weren't acknowledged by other nodes)
+    return _ack_errs
+
+
+PUB arb_errs(): e
+' Returns the number of arbitration errors
+'   (transmitted messages that were interrupted by a received message with a higher priority)
+    return _arb_errs
+
+
+PUB can_ready = can_rdy
+PUB can_rdy(): s
+' Check engine for readiness
+' Returns:
+'   READY (-1)
+'   ERROR (-2)
+'   or values > -1 for queued messages
+    return long[@_tx_ident]
+
+
+PUB check_rtr(): t
+' Get the message type of most-recently read message
+'   Returns:
+'       NORMAL (0)
+'       REMOTE (1)
+    return ( (long[@_rx_ident] & decod(RTR_BIT) ) and TRUE) & REMOTE
+
+
+PUB id(): i
+' Return ident of most-recently read message
+'   NOTE: returns the ident stripped of the RTR and IDE bits
+    return ( long[@_rx_ident] & !decod(RTR_BIT) & !decod(IDE_BIT) )
+
+
+PUB id_in_buffer(buf_idx): i
+' Get ident in specific buffer index
+'   Returns:
+'       ident in the specified rx buffer
+'       -1 if invalid or empty buffer
+    i := -1
+    if ( buf_idx < RX_BUFFERS )                 ' check for a valid Rx buffer
+        ' copy rx buffer into _rx_ident through _rx_data
+        bytemove(@_rx_ident, @_rx_buffer[buf_idx * 13], 13)
+        if ( long[@_rx_ident] > -1 )            ' check for a valid ID
+            ' clear the rx buffer for next message
+            bytefill(@_rx_buffer[buf_idx * 13], -1, 13)
+            return id()                         ' return the ident stripped of the RTR and IDE bits
+        else
+            return long[@_rx_ident]
+
+
+PUB id_type(): t
+' Get the message type of most-recently read message
+'   Returns:
+'       STANDARD (0)
+'       EXTENDED (1)
+    return ( (long[@_rx_ident] & decod(IDE_BIT) ) and TRUE) & EXTENDED
+
+
+PUB ptr_rx(): p
+' Get address of _rx_dlc, to be used as a length-prefaced string
+    return @_rx_dlc
+
+
+PUB rd_byte(idx): b
+' Read a data byte from most-recently read message
+    return _rx_data[idx]
+
+
+PUB recv_errs(): e
+' Returns the number of receiver errors
+'   (received messages with improper stuffed bits or CRC mismatch)
+    return _recv_errs
+
+
+PUB rx_buffer_status(): s | buf_idx
+' Returns:
+'   0 if no message in any buffer
+'   %1 if in 1st
+'   %10 if in 2nd
+'   %100 if in 3rd
+'   ... (and so on)
+    repeat buf_idx from 0 to RX_BUFFERS - 1
+        if ( long[@_rx_buffer[buf_idx * 16]] > -1 )
+            result |= decod(buf_idx)
+
+
+PUB rx_len(): l
+' Get the number of bytes in most-recently read message
+'   Returns:
+'       0..8
+    return _rx_dlc
+
+
+PUB send(ident, rtr, ide, dlc=0, d0=0, d1=0, d2=0, d3=0, d4=0, d5=0, d6=0, d7=0): result
+' Sends a standard or extended normal or remote frame (discrete values)
+'   ident:  CANbus ID
+'   rtr:    xxx
+'   ide:    xxx
+'   dlc:    length of data to send (optional)
+'   d0..d7: data bytes to send (optional; only d0 through dX, where X = dlc will be sent)
+'   Returns:
+'       TRUE (-1) if CANbus is ready
+    if ( can_rdy() == READY )
+        _tx_dlc := dlc
+        _tx_data[0] := d0
+        _tx_data[1] := d1
+        _tx_data[2] := d2
+        _tx_data[3] := d3
+        _tx_data[4] := d4
+        _tx_data[5] := d5
+        _tx_data[6] := d6
+        _tx_data[7] := d7
+        long[@_tx_ident] :=  ident | ...
+                            (decod(RTR_BIT) & (rtr and true)) | ...
+                            (decod(IDE_BIT) & (ide and true))
+        return true
+
+
+PUB send_rtr(ident, ide): result
+' Sends a standard or extended remote-transmission request
+'   ident:  CANbus ID
+'   ide:    xxx
+'   Returns:
+'       TRUE (-1) if CANbus is ready
+    if ( can_rdy() == READY )
+        _tx_dlc := 0
+        long[@_tx_ident] :=  ident | ...
+                            (decod RTR_BIT) | ...
+                            (decod IDE_BIT & (ide and true))
+        return true
+
+
+PUB send_str(ident, ide, p_str): result
+' Sends a standard or extended frame with up to 8 data bytes, passed as a length-prefaced string
+'   ident:  CANbus ID
+'   ide:    xxx
+'   p_str:  pointer to a length-prefaced string (e.g.: string(4, $12, $34, $56, $78) )
+'   Returns:
+'       TRUE (-1) if CANbus is ready
+    if ( can_rdy() == READY )
+        bytemove(@_tx_dlc, p_str, byte[p_str] + 1)
+        long[@_tx_ident] :=  ident | ...
+                            (decod IDE_BIT & (ide and true))    ' Setting _tx_ident to other than -1
+                                                                '   signals PASM routine that a new
+                                                                '   message is ready for sending
+        return true
+
+
+PUB set_filters(buf_idx, type, mask, filter)
+' Configure a buffer to receive messages - at least one buffer must be configured to receive messages
+    case type
+        STANDARD:
+            mask |= decod(IDE_BIT)
+            filter &= !decod(IDE_BIT)
+        EXTENDED:
+            mask |= decod(IDE_BIT)
+            filter |= decod(IDE_BIT)
+        ALL:
+            mask &= !decod(IDE_BIT)
+    if ( buf_idx < RX_BUFFERS )
+        longmove(@_rx_mask[buf_idx * 2], @mask, 2)
+
+{
+    to receive every message in buffer 0: set_filters(0, ALL, 0, 0)
+    to receive even messages in buffer 1: set_filters(1, ALL, 1, 0) <-  set bit in mask,
+                                                                        clr bit in filter
+    * lower buffers are prioritized over higher buffers
+    * if a lower buffer has unread data, the next higher buffer will be checked for mask and
+        filter match
+    * with the above configurations, if id $122 is received, followed by id $123
+        buffer 0 will contain the $122 message, and the $123 message will be discarded
+
+    ┌──────────┬────────────┬─────────────┬──────────────────────┐
+    │ Mask Bit │ Filter Bit │ Message bit │ Accept or Reject bit │
+    ├──────────┼────────────┼─────────────┼──────────────────────┤
+    │    0     │     -      │      -      │        Accept        │
+    │    1     │     0      │      0      │        Accept        │
+    │    1     │     0      │      1      │        Reject        │
+    │    1     │     1      │      0      │        Reject        │
+    │    1     │     1      │      1      │        Accept        │
+    └──────────┴────────────┴─────────────┴──────────────────────┘
+}
+
+PUB set_mode(mode)
+' Set operating mode
+'   mode:   NORMAL, LISTEN, or LOOPBACK
+'   NOTE: switching to or from LOOPBACK requires the CANbus engine to be restarted
+    _mode := decod(mode)
+
+
+DAT               org
+entry
+                  drvh      tx_pin
+                  rdbyte    mode,_p_modeerr
+                  testb     mode,#LOOPBACK              wc
+    if_c          mov       rx_pin,tx_pin
+                  mov       rec_counter,#0
+                  mov       arb_counter,#0
+                  mov       ack_counter,#0
+                  mov       t1,#%110_000000                                     ' %11x_PPPPPP = INA/INB bit of pin %PPPPPP is high
+                  or        t1,rx_pin
+                  setse1    t1                                                  ' Configure selectable event to detect a recessive(1) on the rx_pin
+'...............................................................................................................................
+reset
+                  mov       flags,#0
+                  mov       crc,#0                                              ' Contains the received bits xor'd with CRC_15
+                  neg       rx_history,#1                                       ' Fill history with 1s
+                  sets      parse_bit,#parse_SOF                                ' Reset parse routine
+                  cmp       ack_counter,#RETRIES        wz                      ' Initiate bus recovery if ack errors or arb errors == #RETRIES
+    if_ne         cmp       arb_counter,#RETRIES        wz                      '  the writer is disabled until bus recovery
+    if_e          jmp       #bus_recovery                                       '  ack and arb counters only increment while writing
+'interframe
+                  mov       timeout,full_bit                                    ' interframe break is 10 bits
+                  mul       timeout,#10
+.interframe_reset
+                  getct     t1
+                  addct1    t1,timeout
+.loop
+                  jnse1     #.interframe_reset                                  ' reset if rx_pin transitions to dominant(0) during interframe - se1 is true while rx_pin is recessive(1)
+                  jnct1     #.loop
+                  jmp       #reset_end
+bus_recovery
+                  neg       t1,#2
+                  wrlong    t1,_p_tx_array                                 ' Set _tx_ident to -2 to indicate tx error
+                  mov       timeout,full_bit
+                  mul       timeout,##128 * 11                                  ' ISO11898-1:2015 Bus Off Management
+                  getct     t1
+                  addct1    t1,timeout
+.loop
+                  jnse1     #transition_detected                                ' detect a dominant(0) on rx_pin | se1 is true while rx_pin is recessive(1)
+                  jnct1     #.loop
+'recovered
+                  neg       t1,#1
+                  wrlong    t1,_p_tx_array                                 ' set _tx_ident to -1 to indicate readiness
+                  mov       rec_counter,#0
+                  mov       arb_counter,#0
+                  mov       ack_counter,#0
+reset_end
+                  wrbyte    rec_counter,_p_recverr
+                  wrbyte    ack_counter,_p_ackerr
+                  wrbyte    arb_counter,_p_arberr
+                  mov       ptra,#0
+                  mov       data,#0                                             ' Place SOF into data
+                  mov       tx_bit_counter,#1
+                  sets      load_next,#load_IdentA
+                  mov       temp_ident,#0
+'.............................................................................................................................................
+check_for_SOF
+                  jnse1     #transition_detected                                ' jump if rx_pin not recessive(1)
+                  rdlong    t1,_p_tx_array
+                  tjf       t1,#check_for_SOF                                   ' loop if _tx_ident == -1 (tx_array empty)
+
+                  bith      flags,#TX_FLAG
+                  rdfast    #0,_p_tx_array
+                  rflong    temp_ident
+                  testb     temp_ident,#RTR_BIT         wc
+                  bitc      flags,#RTR_BIT
+                  testb     temp_ident,#IDE_BIT         wc                      ' Determine if standard (11-bit) or extended (29-bit) frame
+                  bitc      flags,#IDE_BIT
+    if_nc         shl       temp_ident,#32-11                                   ' Standard
+    if_c          shl       temp_ident,#32-29                                   ' Extended
+
+                  mov       data,#0
+                  mov       tx_bit_counter,#1
+                  getct     timeout
+                  addct1    timeout,#0
+'.............................................................................................................................................
+write_bit
+                  waitct1
+                  testb     flags,#STUFFED_FLAG         wc
+    if_c          testbn    rx_history,#0               wz                      ' test the previous bit, and set Z to the opposite
+    if_nc         testb     data,#31                    wz                      ' Z = recessive(1), NZ = dominant(0)
+                  drvz      tx_pin
+    if_c          jmp       #wait_half_bit
+                  shl       data,#1
+                  djnz      tx_bit_counter,#wait_half_bit
+load_next         call      #\0-0                                               ' Initially calls load_IdentA
+wait_half_bit
+                  addct1    timeout,half_bit                                    ' set timeout to middle of bit
+                  waitct1
+                  addct1    timeout,half_bit                                    ' set timeout to beginning of next bit
+                  testp     rx_pin                      wc                      ' C = recessive(1), NC = dominant(0)
+    if_c_ne_z     bitl      flags,#TX_FLAG                                      ' Clear the TX_FLAG if a recessive output (Z) is read as a dominant input (NC)
+'   if_c_ne_z     add       arb_counter,#1                                      '  also tests for a dominant output being read as a recessive input - shouldn't ever happen
+    if_c_ne_z     addct1    timeout,half_bit                                    '  if no longer writing, set timeout to middle of next bit
+                  jmp       #process_bit                                        ' The arbitration check also serves as the RxD sample when transmitting
+
+read_bit
+                  testb     rx_history,#0               wc                      ' C = recessive(1), NC = dominant(0)
+    if_nc         jmp       #wait_bit                                           ' Only resync on recessive(1)-to-dominant(0) transitions
+detect_transition_loop                                                          ' Loop until either a transition is detected or ct1 expires
+                  jct1      #test_bit                                           '  ct1 expires at middle of bit
+                  jse1      #detect_transition_loop                             '  se1 is true while rx_pin is recessive(1)
+transition_detected
+                  getct     timeout                                             ' Rsync ct1 to expire in middle of bit
+                  addct1    timeout,fudge_bit
+wait_bit
+                  waitct1                                                       ' Wait for middle of bit
+test_bit
+                  testp     rx_pin                      wc                      ' C = recessive(1), NC = dominant(0)
+                  addct1    timeout,full_bit                                    ' Reset ct1 to expire in middle of next bit  - only applied to reader
+
+process_bit
+                  rcl       rx_history,#1                                       ' Rotate current bit into history
+                  testb     flags,#STUFFED_FLAG         wz                      ' Determine if current bit should be stuffed
+    if_nz         crcbit    crc,CRC_15_REV
+parse_bit
+    if_nz         jmp       #\0-0                                               ' Initially jumps to Parse_SOF, Parse_bit routines return to Next_bit
+'stuffed_bit
+                  test      rx_history,#%11             wc                      ' Check for a transition (C is set if %01 or %10)
+    if_nc         jmp       #receive_error                                      '  Reset if no transition
+next_bit
+                  and       rx_history,#%11111          wz                      ' Limit history to five bits, set Z if all 0's
+    if_nz         cmp       rx_history,#%11111          wz                      '  if not all 0's, check for all 1's
+                  bitz      flags,#STUFFED_FLAG                                 '  set STUFFED_FLAG if five consecutive 0's or 1's in history
+                  testb     flags,#TX_FLAG              wc
+    if_c          jmp       #write_bit
+                  jmp       #read_bit
+'...............................................................................................................................
+receive_error
+                  add       rec_counter,#1                                      ' Receive_error increments for bit-stuffing violations and incorrect CRC
+                  fle       rec_counter,#255                                    '  won't set the ERROR_FLAG, will send error frame
+                  cmp       rec_counter,#128            wc
+                  testb     mode,#LISTEN                wz
+    if_nc_or_z    jmp       #Reset                                              ' if > 128 rec errors (error-passive) or listen-only, just reset
+'send_error_frame                                                               ' passive-error flag is 6 recessive bits, passive-error frame is 14 recessive bits
+                  drvl      tx_pin                                              ' active-error flag consists of 6 dominant(0) bits, delimiter consists of 8 recessive bits
+                  rep       #1,#6                                               '  which is handled during the interframe
+                   waitx    full_bit
+                  drvh      tx_pin
+                  jmp       #Reset
+DAT '===========================================================================================================================
+load_IdentA
+                  testb     flags,#IDE_BIT              wc                      ' Determine if standard (11-bit) or extended (29-bit) frame
+                  mov       data,temp_ident
+                  mov       tx_bit_counter,#11
+    if_nc         sets      load_next,#load_RTR                                 ' Standard
+    if_c          sets      load_next,#load_SRR_IDE                             ' Extended
+                  ret
+'...............................................................................................................................
+load_SRR_IDE
+                  neg       data,#1                                             ' fill data with 1s
+                  mov       tx_bit_counter,#2                                   ' insert two 1s for SRR and IDE
+    _ret_         sets      load_next,#load_IdentB
+'...............................................................................................................................
+load_IdentB
+                  mov       data,temp_ident
+                  mov       tx_bit_counter,#18
+    _ret_         sets      load_next,#load_RTR
+'...............................................................................................................................
+load_RTR
+                  testb     flags,#RTR_BIT              wc
+                  bitc      data,#31
+                  mov       tx_bit_counter,#1
+    _ret_         sets      load_next,#load_IDE_R0
+'...............................................................................................................................
+load_IDE_R0
+                  mov       data,#0                                             ' Insert two 0s for IDE, and R0
+                  mov       tx_bit_counter,#2                                   ' In the extended frame these are R1, and R0
+    _ret_         sets      load_next,#load_DLC
+'...............................................................................................................................
+load_DLC
+                  rfbyte    data                                                ' Read the data length
+                  mov       tx_byte_counter,data                                ' Make a copy for use in the next section
+                  shl       data,#32-4                                          ' Shift data length to the high bits
+                  mov       tx_bit_counter,#4                                   ' Data length is 4 bits
+    _ret_         sets      load_next,#load_data
+'...............................................................................................................................
+load_Data
+                  djf       tx_byte_counter,#load_CRC
+                  rfbyte    data                                                ' Read a data byte
+                  shl       data,#32-8                                          ' Shift to the msb
+    _ret_         mov       tx_bit_counter,#8
+'...............................................................................................................................
+load_CRC
+                  mov       data,crc
+                  testp     tx_pin                      wc
+
+                  crcbit    data,CRC_15_REV
+                  rev       data
+                  mov       tx_bit_counter,#15                                  ' The reader moves the completed crc into data for the writer to send
+    _ret_         sets      load_next,#load_CRC_delimiter
+load_CRC_delimiter
+                  neg       data,#1
+                  mov       tx_bit_counter,#1
+    _ret_         sets      load_next,#parse_ack
+
+DAT '===============================================================================================================================
+parse_SOF
+                  sets      parse_bit,#parse_Ident
+                  jmp       #next_bit
+'...............................................................................................................................
+parse_Ident
+                  sets      parse_bit,#parse_Ident_loop
+                  mov       rx_bit_counter,#11                                  ' Ident-A is 11 bits long
+parse_Ident_loop
+                  rcl       temp_ident,#1                                       ' C contains received bit
+                  djnz      rx_bit_counter,#next_bit
+                  sets      parse_bit,#parse_RTR
+                  jmp       #next_bit
+'...............................................................................................................................
+parse_RTR                                                                       ' SRR in extended frame
+                  bitc      flags,#RTR_FLAG                                     ' C is set for a remote frame
+                  sets      parse_bit,#parse_IDE                                ' Extended remote frame overwrites this flag
+                  jmp       #next_bit
+'...............................................................................................................................
+parse_IDE
+                  bitc      flags,#EXIDE_FLAG
+    if_c          sets      parse_bit,#parse_Ident_B                            ' C is set if extended-frame message
+    if_nc         sets      parse_bit,#parse_R0                                 '  clear if standard-frame
+                  jmp       #next_bit
+'...............................................................................................................................
+parse_Ident_B
+                  sets      Parse_bit,#Parse_Ident_B_loop
+                  mov       rx_bit_counter,#18                                  ' Ident-B is 18 bits long
+parse_Ident_B_loop
+                  rcl       temp_ident,#1                                       ' C contains received bit
+                  djnz      rx_bit_counter,#next_bit
+                  sets      parse_bit,#parse_Extended_RTR
+                  jmp       #next_bit
+'...............................................................................................................................
+parse_Extended_RTR
+                  bitc      flags,#RTR_FLAG                                     ' C is set for an extended remote frame
+                  sets      parse_bit,#parse_R1
+                  jmp       #next_bit
+'...............................................................................................................................
+parse_R1
+                  sets      parse_bit,#parse_R0
+                  jmp       #next_bit
+'...............................................................................................................................
+parse_R0                                                                        ' Standard and extended frames rejoin here
+                  sets      parse_bit,#parse_DLC
+                  jmp       #next_bit
+'...............................................................................................................................
+parse_DLC
+                  sets      parse_bit,#parse_DLC_loop
+                  mov       temp_DLC,#0                                         ' Store DLC in a temporary register
+                  mov       rx_bit_counter,#4                                   ' DLC is 4 bits long
+parse_DLC_loop
+                  rcl       temp_DLC,#1
+                  djnz      rx_bit_counter,#next_bit
+                  tjz       temp_DLC,#finished_data
+                  sets      parse_bit,#parse_Data
+                  jmp       #next_bit
+'...............................................................................................................................
+parse_Data
+                  sets      parse_bit,#parse_Data_loop
+                  mov       rx_byte_counter,temp_DLC
+                  mov       rx_bit_counter,#8
+parse_Data_loop
+                  rcl       t1,#1
+                  djnz      rx_bit_counter,#next_bit                            ' Loop until all 8 bits received
+                  mov       rx_bit_counter,#8                                   ' Reset for another 8 bits
+                  wrlut     t1,ptra++
+                  djnz      rx_byte_counter,#next_bit                           ' Loop until all bytes received
+finished_Data
+                  sets      parse_bit,#parse_CRC
+'                 mov       data,crc                                            ' crc is completed here, give it to the writer
+'                 rev       data
+                  jmp       #next_bit
+'...............................................................................................................................
+parse_CRC
+                  sets      parse_bit,#parse_CRC_loop
+                  mov       rx_bit_counter,#15                                  ' CRC is 15 bits long
+parse_CRC_loop
+                  djnz      rx_bit_counter,#next_bit                            ' Loop until all CRC bits have been xor'd with CRC_15
+                  tjnz      crc,#Receive_error                                  ' Reset if CRC is not 0
+                  sets      parse_bit,#parse_CRC_delimiter
+                  jmp       #next_bit
+'...............................................................................................................................
+parse_CRC_delimiter                                                             ' Enters here in middle of CRC_delimiter when reading, beginning if writing
+parse_ACK                                                                       '  Need to wait 1/2 bit to send an ACK if reading
+                  testb     flags,#TX_FLAG              wc                      '  Or wait a full bit to read the ACK/NAK if writing
+    if_nc         jmp       #send_Acknowledge                                   ' Send an acknowledge if receiving
+get_Acknowledge
+                  bitl      flags,#TX_FLAG                                      ' Wait until middle of ack bit
+                  waitx     full_bit
+                  waitx     half_bit
+
+                  drvnot    #5
+
+                  testp     rx_pin                      wc                      ' Check for an acknowledgement
+                  testb     mode,#LOOPBACK              wz                      ' Set Z if LOOPBACK
+    if_c_and_nz   jmp       #.nak                                               ' NAK if rx_pin high and not LOOPBACK
+.ack
+                  wrlong    ##-1,_p_tx_array                               ' Set _tx_ident to -1 to free tx_array for next message
+    if_z          jmp       #check_filters                                      ' Check filters if in LOOPBACK mode
+                  cmpsub    arb_counter,#1                                      ' Decrement transmit error counters on successful transmission
+                  cmpsub    ack_counter,#1
+                  jmp       #reset
+.nak
+                  add       ack_counter,#1
+                  wrbyte    ack_counter,_p_ackerr
+                  jmp       #reset
+send_Acknowledge
+                  rdbyte    mode,_p_modeerr
+                  testb     mode,#LISTEN                wc
+                  waitx     fudge_bit                                           ' Wait until beginning of ack bit
+    if_nc         drvl      tx_pin                                              ' Output an acknowledge pulse
+                  waitx     full_bit
+                  drvh      tx_pin
+                  cmpsub    rec_counter,#1                                      ' Decrement receive error counter on successful reception
+'...............................................................................................................................
+check_filters
+                  mov       loop_counter,#RX_BUFFERS
+                  mov       ptra,_p_mask
+                  mov       ptrb,_p_rxbuff
+                  testb     flags,#RTR_FLAG             wc
+                  bitc      temp_ident,#RTR_BIT
+                  testb     flags,#EXIDE_FLAG           wc
+                  bitc      temp_ident,#IDE_BIT
+.loop
+                  mov       t1,temp_ident
+                  rdlong    t2,ptra++                                           ' read the mask
+                  and       t1,t2                                               ' apply the mask
+                  rdlong    t2,ptra++                                           ' read the filter
+                  cmp       t1,t2                       wz                      ' compare masked ID against the filter
+    if_e          rdlong    t1,ptrb                                             ' if match, read ID from rx_buffer
+    if_e          tjf       t1,#write_buffer                                    ' if available, write temp_data to buffer
+                  add       ptrb,#13
+                  djnz      loop_counter,#.loop
+                  jmp       #reset
+write_buffer
+                  add       ptrb,#4                                             ' advance ptrb past rx_ident
+                  wrfast    #0,ptrb                                             ' set fifo to _rx_dlc field
+                  wfbyte    temp_dlc
+                  mov       ptra,#0
+                  mov       loop_counter,#8
+.loop
+                  rdlut     t1,ptra++
+                  wfbyte    t1
+                  djnz      loop_counter,#.loop
+                  sub       ptrb,#4
+                  wrlong    temp_ident,ptrb
+                  jmp       #reset
+
+DAT '===============================================================================================================================
+CRC_15_REV        long      $4CD1
+
+rx_pin            long      0-0
+tx_pin            long      0-0
+_p_tx_array  long      0-0                                                 ' base address of tx_array (_tx_ident, _tx_dlc, _tx_data[8]
+
+_p_mask      long      0-0                                                 ' base address of masks and filters
+_p_rxbuff long      0-0                                                 ' base address of rx_buffer
+
+_p_flags     long      0-0
+_p_recverr       long      0-0
+_p_ackerr       long      0-0
+_p_arberr       long      0-0
+_p_modeerr      long      0-0
+
+full_bit          long      0-0
+half_bit          long      0-0
+fudge_bit         long      0-0
+
+timeout           res       1
+data              res       1
+loop_counter      res       1
+
+rx_history        res       1                                                   ' Preserves that last five bits, used mainly for stuffed bit checking
+rx_byte_counter   res       1                                                   ' Counts the number of data bytes to read from the message (initialize by DLC)
+rx_bit_counter    res       1                                                   ' Used in Parse_data to count number of bits received in current byte
+
+tx_byte_counter   res       1                                                   ' Counts the number of data bytes to write to the message
+tx_bit_counter    res       1                                                   ' Counts the number of bits to send for each element (IDA,RTR,IDE,IDB,DLC,data)
+
+temp_ident        res       1
+temp_dlc          res       1
+crc               res       1
+t1                res       1
+t2                res       1
+flags             res       1
+mode              res       1
+ack_counter       res       1
+arb_counter       res       1
+rec_counter       res       1
+
+DAT
+{{
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                   TERMS OF USE: MIT License                                                  │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation    │
+│files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,    │
+│modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software│
+│is furnished to do so, subject to the following conditions:                                                                   │
+│                                                                                                                              │
+│The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.│
+│                                                                                                                              │
+│THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE          │
+│WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR         │
+│COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,   │
+│ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                         │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+}}
