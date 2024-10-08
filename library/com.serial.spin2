@@ -1,12 +1,12 @@
 {
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
     Filename:       com.serial.spin2
     Description:    Low-level UART serial driver
     Author:         Jesse Burt
     Started:        Jun 28, 2019
-    Updated:        Feb 19, 2024
+    Updated:        Oct 8, 2024
     Copyright (c) 2024 - See end of file for terms of use.
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 
     NOTE: This is based on SmartSerial.spin,
         originally by Eric Smith.
@@ -131,6 +131,20 @@ PUB getchar_noblock(): ch
     return rxbuff.getchar()
 
 
+PUB getchar_timeout(tmout=10): ch | t
+' Receive a single byte (blocking, with timeout)
+'   tmout:  maximum time to wait for a valid character, in milliseconds (default: 10)
+'   Returns:
+'       0..255 on success
+'       -1 on timeout
+    t := getct()                                ' snapshot of current system counter
+    repeat
+        ch := getchar_noblock()                 ' check for a valid character
+        if ( ch >= 0 )                          ' got one
+            return ch
+    until ( (getct()-t) > ( (clkfreq/1000) * tmout) )
+
+
 PUB tx = putchar
 PUB char = putchar
 PUB putchar(ch): s
@@ -164,6 +178,7 @@ PUB putchar(ch)
     wypin(_tx_pin, ch)
     flush_tx()
 
+
 PUB rx = getchar
 PUB charin = getchar
 PUB getchar(): ch
@@ -172,6 +187,7 @@ PUB getchar(): ch
     repeat
         ch := rx_check()
     while (ch == -1)
+
 
 PUB rxcheck = getchar_noblock
 PUB rx_check = getchar_noblock
@@ -183,9 +199,25 @@ PUB getchar_noblock(): ch
     if ( pinr(_rx_pin) )
         return (rdpin(_rx_pin) >> 24)
 
+
+PUB getchar_timeout(tmout=10): ch | t
+' Receive a single byte (blocking, with timeout)
+'   tmout:  maximum time to wait for a valid character, in milliseconds (default: 10)
+'   Returns:
+'       0..255 on success
+'       -1 on timeout
+    t := getct()                                ' snapshot of current system counter
+    repeat
+        ch := getchar_noblock()                 ' check for a valid character
+        if ( ch >= 0 )                          ' got one
+            return ch
+    until ( (getct()-t) > ( (clkfreq/1000) * tmout) )
+
+
 PUB flush_tx()
 ' Flush transmit buffer
     repeat until pinr(_tx_pin)
+
 
 #endif
 
