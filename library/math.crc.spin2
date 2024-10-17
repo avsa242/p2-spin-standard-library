@@ -1,17 +1,17 @@
 {
-    --------------------------------------------
-    Filename: math.crc.spin2
-    Author: Jesse Burt
-    Description: A collection of CRC routines
-    Copyright (c) 2022
-    Started Nov 19, 2017
-    Updated Oct 12, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       math.crc.spin2
+    Description:    A collection of CRC and checksum routines
+    Author:         Jesse Burt
+    Started:        Nov 19, 2017
+    Updated:        Oct 17, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
 
 CON
 
+    ' predefined polynomials usable with CRC routines
     POLY8_ASAIR     = $131
     POLY8_DSMAX     = $8C
     POLY8_MEAS      = $31
@@ -22,9 +22,11 @@ CON
     POLY16_XYZMODEM = $1021
     POLY32_ZMODEM   = $EDB88320
 
+
 PUB asaircrc8(ptr_data, len): crc
 ' CRC8 for ASAIR temp/RH sensors
     return crc8(ptr_data, len, $ff, 0, POLY8_ASAIR, false, false)
+
 
 PUB inet_chksum(ptr_buff, len, pshdr_chk): cksum | i
 ' Checksum used in various internet datagrams
@@ -48,6 +50,7 @@ PUB inet_chksum(ptr_buff, len, pshdr_chk): cksum | i
     cksum += pshdr_chk
     cksum.word[0] += cksum.word[1]
 
+
 PUB meas_crc8(data, len): crc | currbyte, i, j
 ' Measurement specialties CRC8
     crc := $00
@@ -63,6 +66,7 @@ PUB meas_crc8(data, len): crc | currbyte, i, j
     crc ^= $00
     return crc & $FF
 
+
 PUB sd_crc7(ptr_data, len): crc | byte_nr, bit_nr, curr_byte
 ' MMC/SD CRC7
     crc := $00
@@ -75,6 +79,7 @@ PUB sd_crc7(ptr_data, len): crc | byte_nr, bit_nr, curr_byte
             curr_byte <<= 1
 
     return ((crc << 1) | 1) & $FF
+
 
 PUB sensirion_crc8(data, len): crc | currbyte, i, j
 
@@ -91,6 +96,7 @@ PUB sensirion_crc8(data, len): crc | currbyte, i, j
     crc ^= $00
     return crc & $ff
 
+
 PUB silabs_crc8(data, len): crc | currbyte, i, j
 
     crc := $00
@@ -106,6 +112,7 @@ PUB silabs_crc8(data, len): crc | currbyte, i, j
     crc ^= $00
     return crc & $FF
 
+
 PUB dallas_maxim_crc8(data, len): crc | currbyte, i, j, mix
 
     crc := $00
@@ -119,6 +126,7 @@ PUB dallas_maxim_crc8(data, len): crc | currbyte, i, j, mix
             currbyte >>= 1
 
     return
+
 
 PUB dallas_maxim_crc16(data, len): crc | currbyte, i, j, mix
 
@@ -134,17 +142,32 @@ PUB dallas_maxim_crc16(data, len): crc | currbyte, i, j, mix
 
     return
 
+
+PUB xor_checksum(p_data, len, init=0): c
+' XOR checksum
+'   p_data: pointer to data to checksum
+'   len:    length of data to checksum
+'   init:   value to initialize checksum to (default is 0 if unspecified)
+'   Returns:
+'       checksum
+    c := init
+    repeat len
+        c := (c ^ byte[p_data++])
+
+
 PUB xyzm_crc16(ptr_data, len): crc
 ' X/Y/ZModem 16bit CRC
 '   ptr_data: pointer to data
 '   data_len: length of data, in bytes
     return crc16(ptr_data, len, $0000, 0, POLY16_XYZMODEM, false, false)
 
+
 PUB zm_crc32(ptr_data, len): crc
 ' ZModem 32bit CRC
 '   ptr_data: pointer to data
 '   data_len: length of data, in bytes
     return crc32(ptr_data, len, $FFFFFFFF, true, POLY32_ZMODEM, false, false)
+
 
 PUB crc8(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr_byte, bit
 ' Calculate CRC8
@@ -172,6 +195,7 @@ PUB crc8(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr
 
     return (crc ^ xorout) & $ff
 
+
 PUB crc16(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr_byte, bit
 ' Calculate CRC16
 '   ptr_data: pointer to data
@@ -192,9 +216,10 @@ PUB crc16(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | cur
                 crc := (crc << 1)
 
     if (oreflect)                               ' reflect final value?
-        crc ><= 16
+        crc rev= 15
 
     return ((crc ^ xorout) & $ffff)
+
 
 PUB crc32(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | curr_byte, bit
 ' Calculate CRC32
@@ -218,13 +243,14 @@ PUB crc32(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | cur
                 crc := (crc >> 1)
 
     if (oreflect)                               ' reflect final value?
-        crc ><= 32
+        crc rev= 31
 
     return crc ^ xorout
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
