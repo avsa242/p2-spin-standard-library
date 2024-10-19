@@ -1,14 +1,12 @@
 {
-    --------------------------------------------
-    Filename: terminal.common.spin2h
-    Author: Jesse Burt
-    Description: Library to extend a terminal driver with
-        standard terminal routines (P2 version)
-    Copyright (c) 2023
-    Started Dec 14, 2019
-    Updated Apr 9, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       terminal.common.spin2h
+    Description:    Library to extend a terminal driver with standard terminal routines
+    Author:         Jesse Burt
+    Started:        Dec 14, 2019
+    Updated:        Oct 19, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
     NOTE: This is based on std_text_routines.spinh,
         originally by Eric Smith.
 
@@ -18,71 +16,43 @@
         An object with a putchar(param) method
     Optionally:
         newline() (Note: _HAS_NEWLINE_ must be #defined in the including file)
+
+    NO_LEGACY_TERMINAL_API_COMPAT can be #defined at build time to disable compatibility with
+        older APIs (these are enabled by default to avoid build problems with existing code)
 }
 
-{ if a maximum buffer size isn't defined at build-time, go with the default of 100 bytes.
-    increase if program behavior is odd (e.g., visible string corruption) }
+' if a maximum buffer size isn't defined at build-time, go with the default of 100 bytes.
+'    increase if program behavior is odd (e.g., visible string corruption)
 #ifndef TMPBUFF_SZ
-#define TMPBUFF_SZ 100
+#   define TMPBUFF_SZ 100
 #endif
 
+' if the file that included this file doesn't already have a copy of termcodes.h, put it here
 #ifndef TERMCODES_H
-#include "termcodes.spin2h"
+#   include "termcodes.spin2h"
 #endif
 
 CON
 
-    { terminal I/O settings/attributes }
-    ECHO        = 1 << 0
+    ' terminal I/O settings/attributes for use with set_attrs()
+    ECHO        = 1 << 0                        ' local echo
+
 
 OBJ
 
-    stl : "string"
+    stl:    "string"
+
 
 VAR
 
     long _termio_attrs
     byte _tmp[TMPBUFF_SZ]
 
+
 PUB get_attrs(): attrs
 ' Get terminal attributes
     return _termio_attrs
 
-PUB bin = putbin
-PUB putbin(val, digits)
-' Output a binary number (zero-padded)
-    stl.itoab(val, @_tmp, stl.IBIN)
-    puts(@_tmp)
-
-PUB dec = putdec
-PUB putdec(val)
-' Output a signed decimal number
-    stl.itoa(val, @_tmp)
-    puts(@_tmp)
-
-PUB decuns = putudec
-PUB udec = putudec
-PUB putudec(val, digits)
-' Output an unsigned decimal number (zero-padded)
-'   val: value to print
-'   digits: number of digits to display
-    stl.itoab(val, @_tmp, stl.IDEC)
-    puts(@_tmp)
-
-PUB hex = puthex
-PUB puthex(val, digits)
-' Output a hexadecimal number (zero-padded)
-'   val: value to print
-'   digits: number of digits to display
-    stl.itoab(val, @_tmp, stl.IHEX)
-    puts(@_tmp)
-
-PUB hexs = puthexs
-PUB puthexs(val, digits)
-' Output a hexadecimal number (zero-padded; small implementation)
-'   val: value to print
-'   digits: number of digits to display
-    puts(stl.hexs(val, digits))
 
 #ifndef _HAS_NEWLINE_
 PUB newline()
@@ -90,6 +60,7 @@ PUB newline()
     putchar(CR)
     putchar(LF)
 #endif
+
 
 PUB printf(fmt=@"", arg1=0, arg2=0, arg3=0, arg4=0, arg5=0, arg6=0, arg7=0, arg8=0, arg9=0, arg10=0)
 ' Output a C-like formatted print
@@ -125,21 +96,61 @@ PUB printf(fmt=@"", arg1=0, arg2=0, arg3=0, arg4=0, arg5=0, arg6=0, arg7=0, arg8
     stl.sprintf(@_tmp, fmt, @arg1)
     puts(@_tmp)
 
-PUB set_attrs(attrs)
-' Set terminal attributes
-    _termio_attrs := attrs
 
-PUB str = puts
+PUB putbin(val, digits)
+' Output a binary number (zero-padded)
+    stl.itoab(val, @_tmp, stl.IBIN)
+    puts(@_tmp)
+
+
+PUB putdec(val)
+' Output a signed decimal number
+    stl.itoa(val, @_tmp)
+    puts(@_tmp)
+
+
+PUB puthex(val, digits)
+' Output a hexadecimal number (zero-padded)
+'   val: value to print
+'   digits: number of digits to display
+    stl.itoab(val, @_tmp, stl.IHEX)
+    puts(@_tmp)
+
+
+PUB puthexs(val, digits)
+' Output a hexadecimal number (zero-padded; small implementation)
+'   val: value to print
+'   digits: number of digits to display
+    puts(stl.hexs(val, digits))
+
+
 PUB puts(s) | c
 ' Output a string
 '   NOTE: a newline is _not_ appended to the string automatically (use strln() instead)
     repeat while ((c := byte[s++]) <> NUL)
         putchar(c)
 
+
+PUB putudec(val, digits)
+' Output an unsigned decimal number (zero-padded)
+'   val: value to print
+'   digits: number of digits to display
+    stl.itoab(val, @_tmp, stl.IDEC)
+    puts(@_tmp)
+
+
+PUB set_attrs(attrs)
+' Set terminal attributes (32-bit mask)
+'   bit     function
+'   0       0: no echo, 1: local echo
+    _termio_attrs := attrs
+
+
 PUB strln(s)
 ' Output a string, with a newline appended
     puts(s)
     newline()
+
 
 PUB wr_bytex(b, bcnt)
 ' Repeatedly output byte
@@ -148,9 +159,15 @@ PUB wr_bytex(b, bcnt)
     repeat bcnt
         putchar(b)
 
+
+#ifndef NO_LEGACY_TERMINAL_API_COMPAT
+#   include "terminal.common-legacy-compat.spin2"   ' keep compatibility with older APIs
+#endif
+
+
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
