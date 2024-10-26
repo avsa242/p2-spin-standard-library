@@ -4,7 +4,7 @@
     Description:    A collection of CRC and checksum routines
     Author:         Jesse Burt
     Started:        Nov 19, 2017
-    Updated:        Oct 17, 2024
+    Updated:        Oct 26, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -26,6 +26,18 @@ CON
 PUB asaircrc8(ptr_data, len): crc
 ' CRC8 for ASAIR temp/RH sensors
     return crc8(ptr_data, len, $ff, 0, POLY8_ASAIR, false, false)
+
+
+PUB checksum8_twos_comp(p_buff, len): c
+' 8-bit checksum, two's-complement
+'   p_buff:     pointer to buffer of data to checksum
+'   len:        length of data in bytes
+'   Returns:    8-bit checksum
+    repeat while len                            ' continue as long as there's still data left
+        c := (c + byte[p_buff++]) & $ff         ' sum each byte of data (discard bits >7)
+        len--
+
+    return ( ( $ff - c ) + 1 )                  ' return two's complement of the sum
 
 
 PUB inet_chksum(ptr_buff, len, pshdr_chk): cksum | i
