@@ -1,0 +1,86 @@
+{
+----------------------------------------------------------------------------------------------------
+    Filename:       signal.synth.spin2
+    Description:    Signal synthesis
+        * sine, square waves
+    Author:         Jesse Burt
+    Started:        Jan 2, 2023
+    Updated:        Oct 27, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
+}
+
+VAR
+
+    byte _pin                                   ' stored I/O pin for signal generator methods
+
+
+PUB set_freq(freq)
+' Set frequency for running sine-wave generator
+'   freq:   frequency in Hz
+    _freq := freq
+
+
+PUB set_io_pin(pin)
+' Set I/O pin for subsequent operations
+    _pin := 0 #> pin <# 63
+
+
+PUB sine_wave(freq, s_rate): c | pin, smp, phs
+' Synthesize a sine wave on the currently set pin (* requires cog)
+'   freq:       initial frequency in Hz (modify during operation with set_freq() )
+'   Returns:    cog ID of sinewave generator
+    pin := _pin
+    set_freq(freq)
+    return cogspin(NEWCOG, cog_sine(s_rate), @_sine_stk)
+
+
+VAR long _sine_stk[50], _freq
+PRI cog_sine(s_rate) | pin, smp, phs
+' Sine-wave generator
+'   freq:   frequency
+'   s_rate: sample rate
+    pin := _pin
+    pinstart(pin, (P_DAC_DITHER_RND | P_DAC_600R_2V | P_OE), (clkfreq/s_rate), 0)
+
+    repeat
+        _, smp := polxy($7FFF, phs)             ' cordic sine function
+        wypin(pin, smp+$8000)                   ' write sine sample to DAC
+        phs += (_freq frac s_rate)               ' step angle for sine freq
+        repeat
+        until pinr(pin)                         ' wait for DAC sample period
+
+
+PUB square_wave(freq)
+' Synthesize a square wave on the currently set pin
+'   freq:   frequency in Hz
+    pinstart(_pin, (P_NCO_FREQ | P_OE), 1, (freq frac clkfreq))
+
+
+PUB square_wave_pin(pin, freq)
+' Synthesize a square wave
+'   pin:    I/O pin to output to
+'   freq:   frequency in Hz
+    pinstart(pin, (P_NCO_FREQ | P_OE), 1, (freq frac clkfreq))
+
+
+DAT
+{
+Copyright 2024 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+
