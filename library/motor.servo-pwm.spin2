@@ -1,0 +1,96 @@
+{
+----------------------------------------------------------------------------------------------------
+    Filename:       motor.servo-pwm.spin2
+    Description:    Driver for PWM-controlled servos
+    Author:         Jesse Burt
+    Started:        Oct 27, 2024
+    Updated:        Oct 27, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
+}
+
+VAR
+
+    word _pulse_width[64]
+    word _lo_lim[64], _hi_lim[64]
+
+
+PUB startx(pin, rate, pw, lo_lim, hi_lim)
+' Start a servo
+'   pin:    I/O pin of connected servo (0..63)
+'   rate:   refresh rate in Hz (40..300, 50 is typical)
+'   pw:     initial pulse width (microseconds)
+'   lo_lim: lower pulse width limit (microseconds)
+'   hi_lim: upper pulse width limit (microseconds)
+    pinstart(   pin, ...
+                (P_PWM_SAWTOOTH | P_OE), ...    ' PWM smart-pin mode, enable output
+                ( (1_000_000/rate) << 16) | ... ' pulse period
+                (clkfreq/1_000_000), ...        ' timing granularity (1uS)
+                pw )                            ' initial pulse width
+
+    _lo_lim[pin] := 1 #> lo_lim                 ' ignore nonsense values
+    _hi_lim[pin] := (_lo_lim[pin]+1) #> hi_lim
+    _pulse_width[pin] := _lo_lim[pin] #> pw <# _hi_lim[pin]
+
+
+PUB stop() | p
+' Stop all servos
+    repeat p from 0 to 63
+        stopx(p)
+
+
+PUB stopx(pin)
+' Stop one servo
+'   pin:    I/O pin to stop servo smart-pin mode
+    if ( _pulse_width[pin] )                    ' only take action if the pin is in use
+        pinclear(pin)                           ' stop the smart-pin, float I/O and clear its data
+        _pulse_width[pin] := _lo_lim[pin] := _hi_lim[pin] := 0
+
+    
+PUB dec_pulse_width(pin, us=10)
+' Decrease servo signal pulse width
+'   pin:    servo I/O pin
+'   us:     microseconds to decrease pulse width by (default is 10 if unspecified)
+    if ( _pulse_width[pin] )
+        _pulse_width[pin] := (_lo_lim[pin] #> _pulse_width[pin] - us <# _hi_lim[pin])
+        wypin(pin, _pulse_width[pin])
+
+
+PUB inc_pulse_width(pin, us=10)
+' Increase servo signal pulse width
+'   pin:    servo I/O pin
+'   us:     microseconds to increase pulse width by (default is 10 if unspecified)
+    if ( _pulse_width[pin] )
+        _pulse_width[pin] := (_lo_lim[pin] #> _pulse_width[pin] + us <# _hi_lim[pin])
+        wypin(pin, _pulse_width[pin])
+
+
+PUB set_pulse_width(pin, pw)
+' Set servo signal to specific pulse width
+'   pin:    servo I/O pin
+'   us:     pulse width in microseconds
+    if ( _pulse_width[pin] )
+        _pulse_width[pin] := (_lo_lim[pin] #> pw <# _hi_lim[pin])
+        wypin(pin, _pulse_width[pin])
+
+
+DAT
+{
+Copyright 2024 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+

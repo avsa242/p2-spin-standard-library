@@ -1,0 +1,81 @@
+{
+----------------------------------------------------------------------------------------------------
+    Filename:       Servo-PWM-Demo.spin2
+    Description:    Demo of the servo (PWM-type) driver
+    Author:         Jesse Burt
+    Started:        Oct 27, 2024
+    Updated:        Oct 27, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
+}
+
+OBJ
+
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    servo:  "motor.servo-pwm"
+
+
+PUB main()
+
+    ser.start()
+    ser.clear()
+
+    ' start two servos on I/O pins 0 and 1 with 50Hz refresh (40..300; 50 for most common servos)
+    ' limit their minimum and maximum pulse widths to 1_000uS and 2_000uS, respectively,
+    '   and set their initial pulse width to 1_500uS
+    servo.startx(0, 50, 1_500, 1_000, 2_000)
+    servo.startx(1, 50, 1_500, 1_000, 2_000)
+
+    repeat
+        ser.pos_xy(0, 0)
+        ser.printf(@"servo 0=%4.4dus\n\r", servo._pulse_width[0])
+        ser.printf(@"servo 1=%4.4dus\n\r", servo._pulse_width[1])
+        ser.strln(@"Help:")
+        ser.strln(@"w, W:       increase servo 0 pulse width")
+        ser.strln(@"q, q:       decrease servo 0 pulse width")
+        ser.strln(@"s, S:       increase servo 1 pulse width")
+        ser.strln(@"a, A:       decrease servo 1 pulse width")
+        ser.strln(@"<spacebar>: set all servos to center (1_500uS)")
+
+        case ser.getchar()
+            "w":
+                servo.inc_pulse_width(0, 1)
+            "q":
+                servo.dec_pulse_width(0, 1)
+            "W":
+                servo.inc_pulse_width(0, 10)
+            "Q":
+                servo.dec_pulse_width(0, 10)
+            "s":
+                servo.inc_pulse_width(1, 1)
+            "a":
+                servo.dec_pulse_width(1, 1)
+            "S":
+                servo.inc_pulse_width(1, 10)
+            "A":
+                servo.dec_pulse_width(1, 10)
+            " ":
+                servo.set_pulse_width(0, 1_500)
+                servo.set_pulse_width(1, 1_500)
+
+
+DAT
+{
+Copyright 2024 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+
