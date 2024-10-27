@@ -1,27 +1,31 @@
 {
-    --------------------------------------------
-    Filename: signal.dac.audio.spin2
-    Description: Audio output using smart pin-based DAC (2-channel)
-    Author: Jesse Burt
-    Copyright (c) 2023
-    Started: Mar 16, 2020
-    Updated: Jan 2, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       signal.dac.audio.spin2
+    Description:    DAC: Audio output
+        * mono, stereo, 8-bit, 16-bit
+    Author:         Jesse Burt
+    Started:        Mar 16, 2020
+    Updated:        Oct 27, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
+
 CON
 
     DAC_INIT_VAL        = 128
     SP_DAC_MODE         = P_DAC_990R_3V | (DAC_INIT_VAL << sp.DACLEVEL) | P_OE | P_DAC_DITHER_PWM
 
+
 VAR
 
     long _L_PIN, _R_PIN
 
+
 OBJ
 
-    sp  : "core.con.smartpins"                  ' smart-pin modes/constants
-    evt : "core.con.events"                     ' background events/constants
+    sp:     "core.con.smartpins"                  ' smart-pin modes/constants
+    evt:    "core.con.events"                     ' background events/constants
+
 
 PUB start(L_PIN, R_PIN, SAMPRATE_HZ): status | period, se1setup
 ' Start DAC smart-pin on L_PIN, R_PIN at SAMPRATE_HZ
@@ -43,12 +47,12 @@ PUB start(L_PIN, R_PIN, SAMPRATE_HZ): status | period, se1setup
         return cogid() + 1
     return FALSE
 
+
 PUB stop()
 ' Stop the DACs
-    pinf(_L_PIN)
-    pinf(_R_PIN)
-    wrpin(0, _L_PIN)
-    wrpin(0, _R_PIN)
+    pinclear(_L_PIN)
+    pinclear(_R_PIN)
+
 
 PUB samplerate = sample_rate
 PUB sample_rate(rate)
@@ -57,8 +61,10 @@ PUB sample_rate(rate)
     stop()
     start(_L_PIN, _R_PIN, rate)
 
+
 PUB output16(sample) | L_PIN, R_PIN
-' Output an 16-bit audio sample
+' Output a 16-bit signed audio sample (mono)
+'   sample: sample to output to both left and right channels
     longmove(@L_PIN, @_L_PIN, 2)
     org
         xor     sample, ##$8000
@@ -67,8 +73,52 @@ PUB output16(sample) | L_PIN, R_PIN
         waitse1
     end
 
+
+PUB output16_pin(sample, lpin, rpin)
+' Output a 16-bit signed audio sample (mono)
+'   sample: sample to output to both left and right channels
+'   lpin:   left audio pin
+'   rpin:   right audio pin
+    org
+        xor     sample, ##$8000
+        wypin   sample, lpin                    ' Output sample on left channel
+        wypin   sample, rpin                    ' Output sample on right channel
+        waitse1
+    end
+
+
+PUB output16_stereo(smp_l, smp_r) | L_PIN, R_PIN
+' Output a 16-bit signed audio sample
+'   smp_l:  left-channel sample
+'   smp_r:  right-channel sample
+    longmove(@L_PIN, @_L_PIN, 2)
+    org
+        xor     smp_l, ##$8000
+        xor     smp_r, ##$8000
+        wypin   smp_l, L_PIN                    ' Output sample on left channel
+        wypin   smp_r, R_PIN                    ' Output sample on right channel
+        waitse1
+    end
+
+
+PUB output16_stereo_pin(smp_l, smp_r, lpin, rpin)
+' Output a 16-bit signed audio sample
+'   smp_l:  left-channel sample
+'   smp_r:  right-channel sample
+'   lpin:   left audio pin
+'   rpin:   right audio pin
+    org
+        xor     smp_l, ##$8000
+        xor     smp_r, ##$8000
+        wypin   smp_l, lpin                     ' Output sample on left channel
+        wypin   smp_r, rpin                     ' Output sample on right channel
+        waitse1
+    end
+
+
 PUB output8(sample) | L_PIN, R_PIN
-' Output an 8-bit audio sample
+' Output an 8-bit unsigned audio sample (mono)
+'   sample: sample to output to both left and right channels
     longmove(@L_PIN, @_L_PIN, 2)
 
     org
@@ -79,9 +129,57 @@ PUB output8(sample) | L_PIN, R_PIN
         waitse1
     end
 
+
+PUB output8_pin(sample, lpin, rpin)
+' Output an 8-bit unsigned audio sample (mono)
+'   sample: sample to output to both left and right channels
+'   lpin:   left audio pin
+'   rpin:   right audio pin
+    org
+        xor     sample, ##$8000
+        and     sample, #$FF
+        wypin   sample, lpin                    ' Output sample on left channel
+        wypin   sample, rpin                    ' Output sample on right channel
+        waitse1
+    end
+
+
+PUB output8_stereo(smp_l, smp_r) | L_PIN, R_PIN
+' Output an 8-bit unsigned audio sample (stereo)
+'   smp_l:  left-channel sample
+'   smp_r:  right-channel sample
+    longmove(@L_PIN, @_L_PIN, 2)
+    org
+        xor     smp_l, ##$8000
+        xor     smp_r, ##$8000
+        and     smp_l, #$ff
+        and     smp_r, #$ff
+        wypin   smp_l, L_PIN                    ' Output sample on left channel
+        wypin   smp_r, R_PIN                    ' Output sample on right channel
+        waitse1
+    end
+
+
+PUB output8_stereo_pin(smp_l, smp_r, lpin, rpin)
+' Output an 8-bit unsigned audio sample (stereo)
+'   smp_l:  left-channel sample
+'   smp_r:  right-channel sample
+'   lpin:   left audio pin
+'   rpin:   right audio pin
+    org
+        xor     smp_l, ##$8000
+        xor     smp_r, ##$8000
+        and     smp_l, #$ff
+        and     smp_r, #$ff
+        wypin   smp_l, lpin                     ' Output sample on left channel
+        wypin   smp_r, rpin                     ' Output sample on right channel
+        waitse1
+    end
+
+
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
