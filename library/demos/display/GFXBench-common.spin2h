@@ -1,10 +1,10 @@
 {
 ---------------------------------------------------------------------------------------------------
-    Filename:       GFXBench-common.spinh
+    Filename:       GFXBench-common.spin2h
     Description:    Graphics benchmark for all supported display types (common code)
     Author:         Jesse Burt
     Started:        Feb 20, 2022
-    Updated:        Feb 12, 2024
+    Updated:        Nov 3, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 
@@ -14,21 +14,14 @@
 
 CON
 
-    BITMAP      = 0
-    BOX         = 1
-    BOX_F       = 2
-    CIRCLE      = 3
-    CIRCLE_F    = 4
-    DLINE       = 5
-    HLINE       = 6
-    PLOT        = 7
-    TEXT        = 8
-    VLINE       = 9
+    #0, BITMAP, BOX, BOX_F, CIRCLE, CIRCLE_F, CLEAR, DLINE, HLINE, PLOT, TEXT, VLINE
+
 
 VAR
 
     long _stack_timer[50]
     long _timer_set
+
 
 PUB benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
 
@@ -88,6 +81,11 @@ PUB benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
                     disp.circle(disp._disp_width/2, disp._disp_height/2, sz-1, color, true)
                     disp.show()
                     iteration++
+            CLEAR:
+                repeat while _timer_set
+                    disp.clear()
+                    disp.show()
+                    iteration++
             DLINE:
                 repeat while _timer_set
                     disp.line(0, 0, sz-1, sz-1, color)
@@ -105,8 +103,7 @@ PUB benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
                     iteration++
             TEXT:
                 { convert powers of 2 to 1..7 }
-                disp.font_scl(  lookdown(sz: 2, 4, 8, 16, 32, 64, 128), ...
-                                lookdown(sz: 2, 4, 8, 16, 32, 64, 128) )
+                disp.font_scl( encod(sz), encod(sz) )
                 disp.pos_xy(0, 0)
                 repeat while _timer_set
                     disp.char(ch)
@@ -127,9 +124,11 @@ PUB benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
 
         sz *= 2
 
-        if ( (sz > maxsz) or (bench == PLOT) )  ' if max size reached,
-            sz := 1                             ' reset it and move on to
-            bench++                             ' the next test
+        if (    (sz > maxsz) ...                ' test only up to the maximum size
+                or (bench == PLOT) ...          '   and also ignore sizes more than 1px for tests
+                or (bench == CLEAR) )           '   where it doesn't make sense
+            sz := 1
+            bench++                             ' go to the next test
 
         if ( bench > VLINE )
             quit
@@ -138,7 +137,7 @@ PUB benchmark() | time_ms, sz, maxsz, iteration, bench, ch, color
     disp.stop()
     repeat
 
-PRI Report(testtime, iterations) | rate_iterations, frame_time
+PRI report(testtime, iterations) | rate_iterations, frame_time
 ' Display benchmark test results
     rate_iterations := iterations / (testtime/1000)         ' # frames/sec
     frame_time := (testtime * 1_000) / iterations           ' frame time (usec)
@@ -164,6 +163,7 @@ DAT
                 byte "BoxFilled    ", 0
                 byte "Circle       ", 0
                 byte "CircleFilled ", 0
+                byte "Clear        ", 0
                 byte "DLine        ", 0
                 byte "HLine        ", 0
                 byte "Plot         ", 0
