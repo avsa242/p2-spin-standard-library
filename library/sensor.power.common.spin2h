@@ -1,14 +1,20 @@
-
 {
-    --------------------------------------------
-    Filename: sensor.power.common.spin2h
-    Author: Jesse Burt
-    Description: Routines common to all power sensing device drivers
-    Copyright (c) 2022
-    Started Jul 31, 2022
-    Updated Jul 31, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       sensor.power.common.spin2h
+    Description:    Routines common to all power sensing device drivers
+    Author:         Jesse Burt
+    Started:        Jul 31, 2022
+    Updated:        Nov 7, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
+
+    Interface requirements:
+        adc2amps():     returns current in microamperes, given ADC word
+        adc2watts():    returns power in microwatts, given ADC word
+        adc2volts():    returns voltage in microvolts, given ADC word
+        current_data(): returns ADC word representing current
+        power_data():   returns ADC word representing power
+        voltage_data(): returns ADC word representing voltage
 
     NOTE: This file must be included by the compiler using the
         #include preprocessor directive, _outside_ of any existing
@@ -25,24 +31,28 @@ CON
 
 }
 
-PUB current(): a
+
+PUB current(ch=0): a
 ' Current measurement
 '   Returns: current measured in microamperes
-    return adc2amps(current_data())
+    return adc2amps( current_data(ch) )
 
-PUB power(): p
+
+PUB power(ch=0): p
 ' Power measurement
 '   Returns: power measured in microwatts
-    return adc2watts(power_data())
+    return adc2watts( power_data(ch) )
 
-PUB voltage(): v
+
+PUB voltage(ch=0): v
 ' Bus voltage measurement
 '   Returns: voltage measured in microvolts
-    return adc2volts(voltage_data())
+    return adc2volts( voltage_data(ch) )
+
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
