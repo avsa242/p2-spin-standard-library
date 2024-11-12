@@ -1,14 +1,12 @@
-
 {
-    --------------------------------------------
-    Filename: sensor.temp-common.spin2h
-    Author: Jesse Burt
-    Description: Routines common to all temperature device drivers
-    Copyright (c) 2022
-    Started May 13, 2022
-    Updated Dec 24, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       sensor.temp-common.spin2h
+    Description:    Routines common to all temperature device drivers
+    Author:         Jesse Burt
+    Started:        May 13, 2022
+    Updated:        Nov 12, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 
     NOTE: This file must be included by the compiler using the
         #include preprocessor directive, _outside_ of any existing
@@ -32,54 +30,102 @@ CON
     F               = 1
     K               = 2
 
+
 VAR
 
     long _last_temp
     byte _temp_scale
 
+
 #ifdef HAS_COLDJUNC
-PUB cj_temp(): cjtemp
+PUB cj_temp(): t
 ' Current cold-junction temperature
 '   Returns: temperature, in hundredths of a degree
-    return cj_word2temp(cj_data())
+    return cj_word2temp( cj_data() )
 #endif
 
-PUB last_temp(): temp
+
+PUB c_to_f(dc): df
+' Convert temperature in Celsius to Fahrenheit
+'   c:          temperature in hundredths of a degree Celsius
+'   Returns:    temperature in hundredths of a degree Fahrenheit
+    return (dc * 9 / 5) + 32_00
+
+
+PUB c_to_k(dc): dk
+' Convert temperature in Celsius to Kelvin
+'   c:          temperature in hundredths of a degree Celsius
+'   Returns:    temperature in hundredths of a degree Kelvin
+    return (dc + 273_15)
+
+
+PUB f_to_c(df): dc
+' Convert temperature in Fahrenheit to Celsius
+'   f:          temperature in hundredths of a degree Fahrenheit
+'   Returns:    temperature in hundredths of a degree Celsius
+    return (df-32_00) * 5 / 9
+
+
+PUB f_to_k(df): dk
+' Convert temperature in Fahrenheit to Kelvin
+'   c:          temperature in hundredths of a degree Fahrenheit
+'   Returns:    temperature in hundredths of a degree Kelvin
+    return c_to_k( f_to_c(df) )
+
+
+PUB k_to_c(dk): dc
+' Convert temperature in Kelvin to Celsius
+'   c:          temperature in hundredths of a degree Kelvin
+'   Returns:    temperature in hundredths of a degree Celsius
+    return (dk - 273_15)
+
+
+PUB k_to_f(dk): df
+' Convert temperature in Kelvin to Fahrenheit
+'   k:          temperature in hundredths of a degree Kelvin
+'   Returns:    temperature in hundredths of a degree Fahrenheit
+    return c_to_f( k_to_c(dk) )
+
+
+PUB last_temp(): t
 ' Previous Temperature measurement, in hundredths of a degree
 '   Returns: Integer
 '   (e.g., 2105 is equivalent to 21.05 deg C)
     return temp_word2deg(_last_temp)
 
+
 #ifdef HAS_THERMCPL                             { thermocouple drivers }
-PUB tc_temp(): temp
+PUB tc_temp(): t
 ' Current thermocouple temperature, in hundredths of a degree
 '   Returns: Integer
 '   (e.g., 2105 is equivalent to 21.05 deg C)
-    return tc_word2temp(tc_data())
+    return tc_word2temp( tc_data() )
 #else                                           { other temp sensor drivers }
-PUB temperature(): temp
+PUB temperature(): t
 ' Current Temperature, in hundredths of a degree
 '   Returns: Integer
 '   (e.g., 2105 is equivalent to 21.05 deg C)
-    return temp_word2deg(temp_data())
+    return temp_word2deg( temp_data() )
 #endif
 
-PUB temp_scale(scale=-2): curr_scale
+
+PUB temp_scale(s=-2): cs
 ' Set temperature scale used by temperature() or tc_temp()
 '   Valid values:
 '       C (0): Celsius
 '       F (1): Fahrenheit
 '       K (2): Kelvin
 '   Any other value returns the current setting
-    case scale
+    case s
         C, F, K:
-            _temp_scale := scale
+            _temp_scale := s
         other:
             return _temp_scale
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
