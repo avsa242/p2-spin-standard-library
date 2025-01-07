@@ -8,9 +8,9 @@
         getchar()   - Read one character from terminal
         dec(num)    - Output a decimal number to terminal
     Author: Jesse Burt
-    Copyright (c) 2023
+    Copyright (c) 2025
     Created: Jun 18, 2019
-    Updated: Jan 26, 2023
+    Updated: Jan 7, 2025
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -110,9 +110,16 @@ CON
     THLVSTEM            = $77                   ' Top H-line w/V-stem
     VLINE               = $78                   ' V-line
 
+
+VAR
+
+    long _bgcolor, _fgcolor
+
+
 PUB bgcolor_24bpp(bcolor)
 ' Set background color
 '   Valid values: $00_00_00_00..$ff_ff_ff_00 (RR_GG_BB 24bpp, left-justified)
+    _bgcolor := bcolor
     csi()
     puts(@"48;2;")                              ' BG color
     dec(bcolor.byte[3])                         ' R
@@ -133,6 +140,7 @@ PUB bgcolor(bcolor)
 '   MAGENTA (5)
 '   CYAN (6)
 '   (add BRIGHT (60) to color value for brighter/lighter shade)
+    _bgcolor := bcolor
     csi()
     putchar(";")
     dec(BG + bcolor)
@@ -323,20 +331,22 @@ PUB fgcolor(fcolor)
 '   MAGENTA (5)
 '   CYAN (6)
 '   (add BRIGHT (60) to color value for brighter/lighter shade)
+    _fgcolor := fcolor
     csi()
     dec(FG + fcolor)
     putchar("m")
 
-PUB fgcolor_24bpp(bcolor)
+PUB fgcolor_24bpp(fcolor)
 ' Set foreground color (24-bpp)
 '   Valid values: $00_00_00_00..$ff_ff_ff_00 (RR_GG_BB 24bpp, left-justified)
+    _fgcolor := fcolor
     csi()
     puts(@"38;2;")                              ' FG color
-    dec(bcolor.byte[3])                         ' R
+    dec(fcolor.byte[3])                         ' R
     putchar(";")
-    dec(bcolor.byte[2])                         ' G
+    dec(fcolor.byte[2])                         ' G
     putchar(";")
-    dec(bcolor.byte[1])                         ' B
+    dec(fcolor.byte[1])                         ' B
     putchar("m")
 
 PUB framed()
