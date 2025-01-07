@@ -4,8 +4,8 @@
     Description:    Text widgets usable in a terminal device
     Author:         Jesse Burt
     Started:        Dec 14, 2019
-    Updated:        Mar 17, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Jan 7, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 
 '   Must be included using the preprocessor #include directive
@@ -16,7 +16,7 @@
 '           puthexs(param, digits)
 }
 
-PUB hexdump(pbuff, baddr, adigs, nr_b, cols, gsz=1) | hxo, asc_offs, asc_addr, col
+PUB hexdump(pbuff, baddr, adigs, nr_b, cols, gsz=1) | hxo, aoffs, aaddr, col
 ' Display a hexdump of a region of memory
 '   pbuff:  pointer to location in memory to hexdump
 '   baddr:  address used to display as base address in hex dump
@@ -27,7 +27,7 @@ PUB hexdump(pbuff, baddr, adigs, nr_b, cols, gsz=1) | hxo, asc_offs, asc_addr, c
 '   gsz:    group this many bytes together before drawing a space
 '   NOTE: if cols isn't evenly divisible by gsz, an incomplete group may be drawn
     col := 0
-    hxo := asc_offs := 0                        ' initialize offsets to base
+    hxo := aoffs := 0                           ' initialize offsets to base
                                                 '   address
     repeat while (hxo < nr_b)
         puthexs(baddr+hxo, adigs)               ' show memory offset of line
@@ -46,13 +46,13 @@ PUB hexdump(pbuff, baddr, adigs, nr_b, cols, gsz=1) | hxo, asc_offs, asc_addr, c
 
         { display data in ASCII }
         repeat while (col < cols)
-            asc_addr := pbuff+asc_offs
-            if (lookdown(byte[asc_addr]: 32..126))
-                putchar(byte[asc_addr])         ' display printable chars as-is
+            aaddr := pbuff+aoffs
+            if (lookdown(byte[aaddr]: 32..126))
+                putchar(byte[aaddr])            ' display printable chars as-is
             else
                 putchar(".")                    ' and unprintable chars as "."
             col++
-            asc_offs++
+            aoffs++
 
         putchar("|")
         col := 0                                ' ready for next line
@@ -87,67 +87,69 @@ PUB hexdump_noascii(pbuff, baddr, adigs, nr_b, cols, gsz=1) | hxo, col
         newline()
 
 
-PUB hexdumphl(ptr_buff, baddr, adigits, len, cols, hl_st, hl_len) | hoffs, aoffs, aaddr, col
-' Display a hexdump of a region of memory, with region highlighting
-'   ptr_buff: pointer to location in memory to hexdump
-'   baddr: address used to display as base address in hex dump (affects display only)
-'   adigits: number of digits used to display address
-'   len: total number of bytes to display
-'   cols: number of bytes to display on each line
-'   hl_st: byte position/number within hexdump to start highlighting
-'       (relative to 0, not the base address)
-'   hl_len: number of bytes within hexdump to highlight
-    hoffs := aoffs := 0                         ' initialize offsets to base address
+PUB hexdump_hl(p_buff, baddr, adigs, len, cols, hst, hend, hfg, hbg) | hoffs, aoffs, aaddr, col, bt, ft
+' Display a hexdump of a region of memory, highlighting a selected region
+'   p_buff: pointer to location in memory to hexdump
+'   baddr:  address used to display as base address in hex dump
+'       (affects display only - useful for dumps of an EE, flash chip, etc)
+'   adigs:  number of digits used to display address
+'   len:    total number of bytes to display
+'   cols:   number of bytes to display on each line
+'   hst:    start position to highlight (relative to baddr, i.e., 0..n)
+'   hend:   end position to highlight (relative to baddr)
+'   hfg:    highlight foreground (text) color
+'   hbg:    highlight background color
+    bt := _bgcolor                              ' remember the user's current terminal
+    ft := _fgcolor                              '   colors
+    col := 0
+    hoffs := aoffs := 0                         ' initialize offsets to base
+                                                '   address
     repeat while (hoffs < len)
-        col := 0
-        puthexs(baddr+hoffs, adigits)           ' show memory offset of line
+        puthexs(baddr+hoffs, adigs)             ' show memory offset of line
         puts(@": ")
 
-        { display data in hex }
+        ' display data in hex
         repeat while (col < cols)
-            if ( (hoffs >= hl_st) and (hoffs <= (hl_st+hl_len)) )
-                bgcolor(_hl_bg)                 ' set highlight colors if we're within
-                fgcolor(_hl_fg)                 '   the highlight range
-            puthexs(byte[ptr_buff+hoffs], 2)    ' show the byte in hex
+            if ( hoffs == hst )                 ' highlight region start: set the colors
+                bgcolor(hbg)
+                fgcolor(hfg)
+            puthexs(byte[p_buff+hoffs], 2)
+            if ( hoffs == hend )
+                bgcolor(bt)
+                fgcolor(ft)
+            putchar(" ")                        ' space between each byte
             col++
             hoffs++
-            if ( (hoffs > (hl_st+hl_len)) )     ' stop setting the highlight color at the end
-                bgcolor(_bgcolor)               '   of the line of hex display
-            putchar(" ")                        ' draw a space between each byte
-        bgcolor(_bgcolor)                       ' go back to the previously set background color
-
+        bgcolor(bt)                             ' reset to user's colors
+        fgcolor(ft)
         putchar("|")                            ' separate hex from ASCII
-
-        { display data in ASCII }
         col := 0
+
+        ' display data in ASCII
         repeat while (col < cols)
-            aaddr := ptr_buff+aoffs
-            if (lookdown(byte[aaddr]: 32..126))
+            if ( aoffs == hst )
+                bgcolor(hbg)
+                fgcolor(hfg)
+            aaddr := p_buff+aoffs
+            if ( lookdown(byte[aaddr]: 32..126) )
                 putchar(byte[aaddr])            ' display printable chars as-is
             else
                 putchar(".")                    ' and unprintable chars as "."
+            if ( aoffs == hend )
+                bgcolor(bt)
+                fgcolor(ft)
             col++
             aoffs++
-
+        bgcolor(bt)
+        fgcolor(ft)
         putchar("|")
-        newline()                               ' ready for next line
-
-
-VAR long _hl_bg
-PUB set_hl_bgcolor(c)
-' Set hexdump highlight background color
-    _hl_bg := c
-
-
-VAR long _hl_fg
-PUB set_hl_fgcolor(c)
-' Set hexdump highlight foreground color
-    _hl_fg := c
+        col := 0                                ' ready for next line
+        newline()
 
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
