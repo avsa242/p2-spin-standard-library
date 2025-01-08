@@ -4,7 +4,7 @@
     Description:    Text widgets usable in a terminal device
     Author:         Jesse Burt
     Started:        Dec 14, 2019
-    Updated:        Jan 7, 2025
+    Updated:        Jan 8, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 
@@ -87,7 +87,7 @@ PUB hexdump_noascii(pbuff, baddr, adigs, nr_b, cols, gsz=1) | hxo, col
         newline()
 
 
-PUB hexdump_hl(p_buff, baddr, adigs, len, cols, hst, hend, hfg, hbg) | hoffs, aoffs, aaddr, col, bt, ft
+PUB hexdump_hl(p_buff, baddr, adigs, len, cols, hst, hend, hfg, hbg) | hoffs, aoffs, aaddr, col, bt, ft, hs
 ' Display a hexdump of a region of memory, highlighting a selected region
 '   p_buff: pointer to location in memory to hexdump
 '   baddr:  address used to display as base address in hex dump
@@ -99,6 +99,8 @@ PUB hexdump_hl(p_buff, baddr, adigs, len, cols, hst, hend, hfg, hbg) | hoffs, ao
 '   hend:   end position to highlight (relative to baddr)
 '   hfg:    highlight foreground (text) color
 '   hbg:    highlight background color
+'   NOTE: Call the display/terminal driver's bgcolor() and fgcolor() methods with your normal
+'       colors before calling this method
     bt := _bgcolor                              ' remember the user's current terminal
     ft := _fgcolor                              '   colors
     col := 0
@@ -107,29 +109,33 @@ PUB hexdump_hl(p_buff, baddr, adigs, len, cols, hst, hend, hfg, hbg) | hoffs, ao
     repeat while (hoffs < len)
         puthexs(baddr+hoffs, adigs)             ' show memory offset of line
         puts(@": ")
-
         ' display data in hex
         repeat while (col < cols)
-            if ( hoffs == hst )                 ' highlight region start: set the colors
+            if ( (hoffs => hst) and (hoffs <= hend) and (not hs) )
+            ' highlight region start: set the colors (only once per row)
                 bgcolor(hbg)
                 fgcolor(hfg)
+                hs := true                      ' set flag: highlight region started
             puthexs(byte[p_buff+hoffs], 2)
-            if ( hoffs == hend )
+            if ( hoffs == hend )                ' end of highlight region; reset colors
                 bgcolor(bt)
                 fgcolor(ft)
             putchar(" ")                        ' space between each byte
             col++
             hoffs++
+
         bgcolor(bt)                             ' reset to user's colors
         fgcolor(ft)
         putchar("|")                            ' separate hex from ASCII
         col := 0
+        hs := false
 
         ' display data in ASCII
         repeat while (col < cols)
-            if ( aoffs == hst )
+            if ( (aoffs >= hst) and (aoffs <= hend) and (not hs) )
                 bgcolor(hbg)
                 fgcolor(hfg)
+                hs := true
             aaddr := p_buff+aoffs
             if ( lookdown(byte[aaddr]: 32..126) )
                 putchar(byte[aaddr])            ' display printable chars as-is
@@ -145,6 +151,8 @@ PUB hexdump_hl(p_buff, baddr, adigs, len, cols, hst, hend, hfg, hbg) | hoffs, ao
         putchar("|")
         col := 0                                ' ready for next line
         newline()
+        hs := false
+
 
 
 DAT
