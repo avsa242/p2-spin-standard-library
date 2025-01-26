@@ -1,12 +1,12 @@
 {
-    --------------------------------------------
-    Filename: com.spi.10mhz.spin2
-    Description: SPI engine (bit-banged) for the Propeller 2
-    Author: Jesse Burt
-    Created: Nov 9, 2019
-    Updated: Dec 29, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       com.spi.10mhz.spin2
+    Description:    SPI engine (bit-banged) for the Propeller 2
+    Author:         Jesse Burt
+    Started:        Nov 9, 2019
+    Updated:        Jan 26, 2025
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 
     NOTE: This is based on SPI_Spin.spin, by Beau Schwabe.
 }
@@ -16,13 +16,17 @@ VAR
     long _SCK, _MOSI, _MISO, _clk_delay
     long _cog
 
+
 PUB null()
 ' This is not a top-level object
 
+
 PUB init(SCK, MOSI, MISO, SPI_MODE=0, SCK_HZ=1_000_000): status
 ' Initialize SPI engine using custom pins
-'   SCK, MOSI, MISO: 0..63 (each unique)
-'   SCK_HZ: 1..*TBD*
+'   SCK:        SPI serial clock pin, 0..63
+'   MOSI:       SPI master-out slave-in pin, 0..63 (optional; specify invalid # to ignore)
+'   MISO:       SPI master-in slave-out pin, 0..63 (optional; sepcify invalid # to ignore)
+'   SCK_HZ:     SPI serial clock speed, 1..*TBD* (system clock speed-dependent)
 '   SPI_MODE: 0..3
 '       0: CPOL 0, CPHA 0
 '           SCK idles low
@@ -44,10 +48,15 @@ PUB init(SCK, MOSI, MISO, SPI_MODE=0, SCK_HZ=1_000_000): status
     longmove(@_SCK, @SCK, 3)                    ' copy pins to hub vars
     mode(SPI_MODE)                              ' set SPI mode
 
-    pinl(MOSI)                                  ' ensure MOSI is an output
-    pinf(MISO)                                  ' and MISO is an input
+    if ( lookdown(MOSI: 0..63) )
+        pinl(MOSI)                              ' ensure MOSI is an output
+
+    if ( lookdown(MISO: 0..63) )
+        pinf(MISO)                              ' and MISO is an input
+
     _clk_delay := ((clkfreq / SCK_HZ) / 2) #> 2 ' calculate SPI clock period
     status := _cog := cogid() + 1               ' return current cogid + 1
+
 
 PUB deinit()
 ' Deinitialize
@@ -56,6 +65,7 @@ PUB deinit()
     pinf(_MOSI)
     pinf(_MISO)
     longfill(@_SCK, 0, 7)
+
 
 PUB rdbits_lsbf(nr_bits): val | SCK, MOSI, MISO, clk_delay, b
 ' Read arbitrary number of bits from SPI bus, least-significant byte first
@@ -81,6 +91,7 @@ PUB rdbits_lsbf(nr_bits): val | SCK, MOSI, MISO, clk_delay, b
                 waitx(clk_delay)
                 pint(SCK)
 
+
 PUB rdbits_msbf(nr_bits): val | SCK, MOSI, MISO, clk_delay, b
 ' Read arbitrary number of bits from SPI bus, most-significant byte first
 '   nr_bits: 1 to 32
@@ -104,6 +115,7 @@ PUB rdbits_msbf(nr_bits): val | SCK, MOSI, MISO, clk_delay, b
                 val.[b] := pinr(MISO)
                 waitx(clk_delay)
                 pint(SCK)
+
 
 PUB rdblock_lsbf(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
 ' Read block of data from SPI bus, least-significant byte first
@@ -129,6 +141,7 @@ PUB rdblock_lsbf(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
                     waitx(clk_delay)
                     pint(SCK)
 
+
 PUB rdblock_msbf(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
 ' Read block of data from SPI bus, most-significant byte first
     longmove(@SCK, @_SCK, 4)                    ' copy hub vars
@@ -153,6 +166,7 @@ PUB rdblock_msbf(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
                     waitx(clk_delay)
                     pint(SCK)
 
+
 PUB wrbits_lsbf(val, nr_bits) | SCK, MOSI, MISO, clk_delay, b
 ' Write arbitrary number of bits to SPI bus, least-significant byte first
 '   nr_bits: 1 to 32
@@ -166,6 +180,7 @@ PUB wrbits_lsbf(val, nr_bits) | SCK, MOSI, MISO, clk_delay, b
         waitx(clk_delay)
         pint(SCK)
         waitx(clk_delay)
+
 
 PUB wrbits_msbf(val, nr_bits) | SCK, MOSI, MISO, clk_delay, b
 ' Write arbitrary number of bits to SPI bus, most-significant byte first
@@ -181,6 +196,7 @@ PUB wrbits_msbf(val, nr_bits) | SCK, MOSI, MISO, clk_delay, b
         pint(SCK)
         waitx(clk_delay)
 
+
 PUB wrblock_lsbf(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
 ' Write block of data to SPI bus from ptr_buff, least-significant byte first
     longmove(@SCK, @_SCK, 4)                    ' copy pins from hub
@@ -190,7 +206,7 @@ PUB wrblock_lsbf(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
             repeat b_num from 0 to nr_bytes-1       ' byte loop
                 tmp := (byte[ptr_buff][b_num] << 24)' align byte with MSBit of long
                 repeat 8                            ' bit loop
-                    pinw(MOSI, (tmp rol= 1) & 1)     ' next bit into pos and isolate it
+                    pinw(MOSI, (tmp rol= 1) & 1)    ' next bit into pos and isolate it
                     pint(SCK)                       ' clock
                     waitx(clk_delay)
                     pint(SCK)
@@ -199,11 +215,12 @@ PUB wrblock_lsbf(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
             repeat b_num from 0 to nr_bytes-1       ' byte loop
                 tmp := (byte[ptr_buff][b_num] << 24)' align byte with MSBit of long
                 repeat 8                            ' bit loop
-                    pinw(MOSI, (tmp rol= 1) & 1)     ' next bit into pos and isolate it
+                    pinw(MOSI, (tmp rol= 1) & 1)    ' next bit into pos and isolate it
                     pint(SCK)                       ' clock
                     waitx(clk_delay)
                     pint(SCK)
                     waitx(clk_delay)
+
 
 PUB wrblock_msbf(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
 ' Write block of data to SPI bus from ptr_buff, most-significant byte first
@@ -214,7 +231,7 @@ PUB wrblock_msbf(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
             repeat b_num from nr_bytes-1 to 0       ' byte loop
                 tmp := (byte[ptr_buff][b_num] << 24)' align byte with MSBit of long
                 repeat 8                            ' bit loop
-                    pinw(MOSI, (tmp rol= 1) & 1)     ' next bit into pos and isolate it
+                    pinw(MOSI, (tmp rol= 1) & 1)    ' next bit into pos and isolate it
                     pint(SCK)                       ' clock
                     waitx(clk_delay)
                     pint(SCK)
@@ -223,17 +240,19 @@ PUB wrblock_msbf(ptr_buff, nr_bytes) | SCK, MOSI, MISO, clk_delay, b_num, tmp
             repeat b_num from nr_bytes-1 to 0       ' byte loop
                 tmp := (byte[ptr_buff][b_num] << 24)' align byte with MSBit of long
                 repeat 8                            ' bit loop
-                    pinw(MOSI, (tmp rol= 1) & 1)     ' next bit into pos and isolate it
+                    pinw(MOSI, (tmp rol= 1) & 1)    ' next bit into pos and isolate it
                     pint(SCK)                       ' clock
                     waitx(clk_delay)
                     pint(SCK)
                     waitx(clk_delay)
 
+
 #include "com.spi.common.spin2h"                    ' R/W methods common to all SPI engines
+
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
