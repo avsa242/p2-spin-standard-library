@@ -4,8 +4,8 @@
     Description:    A collection of CRC and checksum routines
     Author:         Jesse Burt
     Started:        Nov 19, 2017
-    Updated:        Oct 26, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Jan 31, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
@@ -15,6 +15,7 @@ CON
     POLY8_ASAIR     = $131
     POLY8_DSMAX     = $8C
     POLY8_MEAS      = $31
+    POLY8_MELEXIS   = $107
     POLY8_SD        = $09
     POLY8_SENSIRION = $31
     POLY8_SILABS    = $131
@@ -262,7 +263,7 @@ PUB crc32(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | cur
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
