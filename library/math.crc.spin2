@@ -4,7 +4,7 @@
     Description:    A collection of CRC and checksum routines
     Author:         Jesse Burt
     Started:        Nov 19, 2017
-    Updated:        Jan 31, 2025
+    Updated:        Feb 23, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -41,27 +41,40 @@ PUB checksum8_twos_comp(p_buff, len): c
     return ( ( $ff - c ) + 1 )                  ' return two's complement of the sum
 
 
-PUB inet_chksum(ptr_buff, len, pshdr_chk): cksum | i
+PUB inet_chksum(p_buff, len, iv=0): ck | i
 ' Checksum used in various internet datagrams
-'   ptr_buff: pointer to buffer of data to calculate checksum
-'   len: length of data
-'   pshdr_chk: optional checksum to add to this checksum, e.g., the checksum of a
-'       UDP or TCP pseudo-header. Specify 0, if unused.
-    { checksum is word-oriented, so _always_ process two bytes at a time
-      An even number required for len is thus implied; if the length of data
-      is odd, pad the source data with a zero. }
-    cksum := 0
+'   p_buff:     pointer to buffer of data to calculate checksum
+'   len:        length of data
+'   iv:         optional initial value to add to this checksum, e.g., the checksum of a
+'                   UDP or TCP pseudo-header.
 
+    ' handle edge cases; these shouldn't generally happen, but should offer basic protection
+    if ( len == 0 )
+        return 0
+
+    if ( len == 1 )
+        return !( (byte[p_buff][0] << 8) & $ffff)
+    '
+
+    ck := 0
+
+    ' Process two bytes at a time
     repeat i from 0 to (len-2) step 2
-        cksum += (byte[ptr_buff][i] << 8) | byte[ptr_buff][i+1]
+        ck += (byte[p_buff][i] << 8) | byte[p_buff][i+1]
 
-    { isolate the total carried, add it to the checksum and return
-      the complement as the final result }
-    cksum := ( !(cksum + cksum.word[1]) ) & $ffff
+    ' Handle an odd-length buffer by padding with zero
+    if ( len & 1 )
+        ck += byte[p_buff][len-1] << 8
 
-    { add the optional pseudo-header checksum to the result }
-    cksum += pshdr_chk
-    cksum.word[0] += cksum.word[1]
+    ' Add the optional pseudo-header check
+    ck += iv
+
+    ' Fold carry into lower 16 bits (repeated if needed)
+    repeat while (ck > $ffff)
+        ck := (ck & $ffff) + (ck >> 16)
+
+    ' Return one's complement of the result
+    return !ck & $ffff
 
 
 PUB meas_crc8(data, len): crc | currbyte, i, j
