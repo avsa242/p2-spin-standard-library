@@ -1,14 +1,24 @@
 {
-    --------------------------------------------
-    Filename: input.pointer.common.spin2h
-    Description: Code common to pointing input devices (P2 version)
-    Author: Jesse Burt
-    Copyright (c) 2024
-    Started: Jan 2, 2024
-    Updated: Jan 2, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       input.pointer.common.spin2h
+    Description:    Code common to pointing input devices
+    Author:         Jesse Burt
+    Started:        Jan 2, 2024
+    Updated:        Mar 6, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
+
+CON
+
+    ' touch event structure
+    touch_s(...
+        byte    event, ...                      ' event flag (pressed, lifted, contact, none, etc)
+        word    x, y, ...                       ' coordinates
+        byte    id, ...                         ' touch ID
+        byte    weight, ...                     ' weight of touch point
+        byte    area)                           ' pixel area of touch point
+
 
 VAR
 
@@ -77,7 +87,7 @@ PUB set_sensitivity_y(sy)
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
