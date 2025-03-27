@@ -4,7 +4,7 @@
     Description:    String processing and formatting
     Author:         Jesse Burt
     Started:        May 29, 2022
-    Updated:        Feb 17, 2025
+    Updated:        Mar 27, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 
@@ -29,11 +29,29 @@ CON
     IDEC    = 10
     IHEX    = 16
 
+    ' floating point representation data structure
+    float_rep_s(...
+        long str_ptr, ...
+        long exponent, ...
+        long integer, ...
+        long tens, ...
+        long zeroes, ...
+        long digits, ...
+        long positive_char, ...
+        long decimal_char, ...
+        long thousands_char, ...
+        long thousandths_char)
+
+
 OBJ
 
     ctype:  "char.type"
 
+
 VAR
+
+    float_rep_s floatstr
+    byte _tmp_float_str[20]
 
     long _ptr                                   ' scratch buffer current pointer
 
@@ -44,6 +62,7 @@ VAR
 
     byte _caps
 
+
 PUB append(ptr_dest, ptr_src): ptr_new
 ' Append ptr_src string to the end of ptr_dest string
 '   Returns: pointer to the new string
@@ -51,6 +70,7 @@ PUB append(ptr_dest, ptr_src): ptr_new
 '       string to prevent memory corruption.
     bytemove((ptr_dest + strsize(ptr_dest)), ptr_src, (strsize(ptr_src) + 1))
     return ptr_dest
+
 
 PUB atoi(ptr_str): val | sign, n
 ' Convert string representation of decimal number to signed integer
@@ -68,6 +88,7 @@ PUB atoi(ptr_str): val | sign, n
     repeat while ctype.isdigit(byte[ptr_str])
         n := (10*n) + (byte[ptr_str++] - "0")   ' calculate value
     val := sign * n                             ' adjust for sign
+
 
 PUB atoib(ptr_str, base): val | n, digit
 ' Convert string representation of unsigned integer to unsigned integer using specific base
@@ -94,10 +115,12 @@ PUB atoib(ptr_str, base): val | n, digit
         digit := (byte[ptr_str++] & 127)
     return n
 
+
 PUB bin(val, digits): bin_str
 ' Convert binary value to string representation
     itoabp(val, @_tmp_buff, IBIN, digits, "0")
     return @_tmp_buff
+
 
 PUB clear(ptr_str)
 ' Clear string (fill with 0/NUL)
@@ -129,6 +152,7 @@ PUB compare(ptr_str1, ptr_str2, case_s=0): cmpres
             cmpres := (ctype.tolower(byte[ptr_str1]) - ctype.tolower(byte[ptr_str2++]))
         while ( byte[ptr_str1++] and (not(cmpres)) )
 
+
 PUB copy(ptr_dest, ptr_src): ptr_new
 ' Copy a string from ptr_src to ptr_dest
 '   ptr_dest: destination to copy to
@@ -138,12 +162,14 @@ PUB copy(ptr_dest, ptr_src): ptr_new
     bytemove(ptr_dest, ptr_src, (strsize(ptr_src) + 1))
     return ptr_dest
 
+
 PUB dec(val): dec_str
 ' Convert decimal value to string representation
 '   val: value to convert
 '   Returns: pointer to string representation of value
     itoa(val, @_tmp_buff)
     return @_tmp_buff
+
 
 PUB decpadded = decpads
 PUB decpads(val, digits): dec_str
@@ -153,6 +179,7 @@ PUB decpads(val, digits): dec_str
     itoap(val, @_tmp_buff, digits, " ")
     return @_tmp_buff
 
+
 PUB deczeroed = decpadz
 PUB decpadz(val, digits): dec_str
 ' Convert decimal value to string representation, with zero padding
@@ -160,6 +187,7 @@ PUB decpadz(val, digits): dec_str
 '   Returns: pointer to string representation of value
     itoap(val, @_tmp_buff, digits, "0")
     return @_tmp_buff
+
 
 PUB endswith(ptr_str, ptr_substr): ends
 ' Check if the string ptr_str ends with string ptr_substr
@@ -171,6 +199,7 @@ PUB endswith(ptr_str, ptr_substr): ends
     ends := (ptr_str + strsize(ptr_str) - strsize(ptr_substr))
     return (ends == find(ends, ptr_substr))
 
+
 PUB fill(ptr_str, char): ptr
 ' Fill string with char
 '   ptr_str: string to fill
@@ -178,6 +207,7 @@ PUB fill(ptr_str, char): ptr
     bytefill(ptr_str, char, strsize(ptr_str))
     byte[ptr_str + strsize(ptr_str)] := NUL     ' null-terminate
     return ptr_str
+
 
 PUB find(ptr_str, ptr_srchstr): ptr_match | i, srch_sz, mismatch
 ' Find string
@@ -200,6 +230,7 @@ PUB find(ptr_str, ptr_srchstr): ptr_match | i, srch_sz, mismatch
                 ifnot (mismatch~)               ' flag is clear
                     return ptr_str              ' return updated pointer
 
+
 PUB findchar(ptr_str, char): ptr
 ' Find first occurrence of character in string
 '   Returns: pointer to character within ptr_str if found, or 0 if not found
@@ -207,62 +238,50 @@ PUB findchar(ptr_str, char): ptr
         if (byte[++ptr_str] == char)
             return ptr_str
 
-PUB ftostr(Single) : StringPtr
-''Convert floating-point number to string
-''
-''  entry:
-''      Single = floating-point number
-''
-''  exit:
-''      StringPtr = pointer to resultant z-string
-''
-''  Magnitudes below 1e+12 and within 1e-12 will be expressed directly;
-''  otherwise, scientific notation will be used.
-''
-''  examples                 results
-''  -----------------------------------------
-''  FloatToString(0.0)       "0"
-''  FloatToString(1.0)       "1"
-''  FloatToString(-1.0)      "-1"
-''  FloatToString(^^2.0)     "1.414214"
-''  FloatToString(2.34e-3)   "0.00234"
-''  FloatToString(-1.5e-5)   "-0.000015"
-''  FloatToString(2.7e+6)    "2700000"
-''  FloatToString(1e11)      "100000000000"
-''  FloatToString(1e12)      "1.000000e+12"
-''  FloatToString(1e-12)     "0.000000000001"
-''  FloatToString(1e-13)     "1.000000e-13"
 
-  'perform initial setup
+PUB ftostr(f): p
+' Convert floating-point number to string
+'   f:          floating-point number
+'   Returns:    pointer to string representation
+'
+'   Magnitudes below 1e+12 and within 1e-12 will be expressed directly;
+'   otherwise, scientific notation will be used.
+'
+'   examples        results
+'   --------------------------------
+'   ftostr(0.0)     "0"
+'   ftostr(1.0)     "1"
+'   ftostr(-1.0)    "-1"
+'   ftostr(^^2.0)   "1.414214"
+'   ftostr(2.34e-3) "0.00234"
+'   ftostr(-1.5e-5) "-0.000015"
+'   ftostr(2.7e+6)  "2700000"
+'   ftostr(1e11)    "100000000000"
+'   ftostr(1e12)    "1.000000e+12"
+'   ftostr(1e-12)   "0.000000000001"
+'   ftostr(1e-13)   "1.000000e-13"
 
+    p := flt_setup(f)                           ' initial setup
 
-  StringPtr := Setup(Single)
+    if ( floatstr.integer )                     ' eliminate trailing zeroes
+        repeat until (floatstr.integer // 10)
+            floatstr.integer /= 10
+            floatstr.tens /= 10
+            floatstr.digits--
+    else
+        floatstr.digits := 0
 
+    case floatstr.exponent                      ' express number according to exponent
+        11..0:                                  ' in range, left of decimal
+            flt_add_digits(floatstr.exponent + 1)
+        -1..(floatstr.digits - 13):             ' in range, right of decimal
+            floatstr.zeroes := -floatstr.exponent
+            flt_add_digits(1)
+        other:                                  ' out of range: output scientific notation
+            flt_scientific_rep()
 
-  'eliminate trailing zeros
-  if integer
-    repeat until integer // 10
-      integer /= 10
-      tens /= 10
-      digits--
-  else
-    digits~
+    byte[floatstr.str_ptr] := 0                 ' terminate string
 
-  'express number according to exponent
-  case exponent
-    'in range left of decimal
-    11..0:
-      AddDigits(exponent + 1)
-    'in range right of decimal
-    -1..digits - 13:
-      zeros := -exponent
-      AddDigits(1)
-    'out of range, do scientific notation
-    other:
-      DoScientific()
-
-  'terminate z-string
-  byte[p]~
 
 PUB getfield(ptr_str, field_nr, delim): ptr_flddata | char, i_idx, o_idx, cur_field
 ' Get field from string containing multiple data separated by delimiter
@@ -291,6 +310,7 @@ PUB getfield(ptr_str, field_nr, delim): ptr_flddata | char, i_idx, o_idx, cur_fi
                 _tmp_buff[o_idx++] := char      ' field text
     return @_tmp_buff
 
+
 PUB getfieldcount(ptr_str, delim): nr_flds | char, idx
 ' Get number of delimiter-separated fields in ptr_str
 '   ptr_str: pointer to string in which to count number of fields
@@ -318,10 +338,12 @@ PUB getfieldcount(ptr_str, delim): nr_flds | char, idx
 
     return nr_flds
 
+
 PUB hex(val, digits): hex_str
 ' Convert hexadecimal value to string representation
     itoabp(val, @_tmp_buff, IHEX, digits, "0")
     return @_tmp_buff
+
 
 PUB hexcase(hcase)
 ' Set case for hexadecimal number string generation
@@ -329,6 +351,7 @@ PUB hexcase(hcase)
 '       non-zero: upper-case
 '       zero: lower-case
     _caps := hcase
+
 
 PUB hexs(val, digits): ptr | idx
 ' Convert hexadecimal value to string representation (small/standalone implementation)
@@ -340,6 +363,7 @@ PUB hexs(val, digits): ptr | idx
     repeat digits
         _tmp_buff[idx++] := lookupz((val rol= 4) & $F : "0".."9", "a".."f")
     return @_tmp_buff
+
 
 VAR byte ipstr[16]
 PUB iptostr(ip): ptr | tmp, i
@@ -354,6 +378,7 @@ PUB iptostr(ip): ptr | tmp, i
             append(@ipstr, @".")
     return @ipstr
 
+
 PUB isalpha(ptr_str): flag
 ' Flag indicating entire string is alphabetic
 '   Returns:
@@ -363,6 +388,7 @@ PUB isalpha(ptr_str): flag
             return false
 
     return true
+
 
 PUB isalphanum(ptr_str): flag
 ' Flag indicating entire string is alphanumeric
@@ -374,6 +400,7 @@ PUB isalphanum(ptr_str): flag
 
     return true
 
+
 PUB isdigit(ptr_str): flag
 ' Flag indicating entire string is decimal
 '   Returns:
@@ -384,11 +411,13 @@ PUB isdigit(ptr_str): flag
 
     return true
 
+
 PUB isempty(ptr_str): flag
 ' Flag indicating string contains no characters
 '   Returns:
 '       TRUE (-1) if string is empty, FALSE (0) otherwise
     return (strsize(ptr_str) == 0)
+
 
 PUB islower(ptr_str): flag
 ' Flag indicating entire string is lowercase
@@ -400,6 +429,7 @@ PUB islower(ptr_str): flag
 
     return true
 
+
 PUB isspace(ptr_str): flag
 ' Flag indicating entire string is whitespace
 '   Returns:
@@ -410,6 +440,7 @@ PUB isspace(ptr_str): flag
 
     return true
 
+
 PUB isupper(ptr_str): flag
 ' Flag indicating entire string is uppercase
 '   Returns:
@@ -419,6 +450,7 @@ PUB isupper(ptr_str): flag
             return false
 
     return true
+
 
 PUB itoa(num, ptr_dest): ptr | str0, dvsr, temp
 ' Convert number (signed) to string representation
@@ -447,6 +479,7 @@ PUB itoa(num, ptr_dest): ptr | str0, dvsr, temp
     byte[ptr_dest++] := NUL
     return ptr_dest - str0 - 1
 
+
 PUB itoab(num, ptr_dest, base) | lowbit, sorg
 ' Convert number (unsigned) in base to string representation
 '   num: integer value to convert
@@ -473,6 +506,7 @@ PUB itoab(num, ptr_dest, base) | lowbit, sorg
     byte[ptr_dest] := NUL                        ' trailing null
     reverse(sorg)
 
+
 PUB itoabp(num, ptr_dest, base, digits, pad_ch): ptr | numlen, byte tmp[33]
 ' Convert number (unsigned) in base to string representation, with padding
 '   num: integer value to convert
@@ -494,6 +528,7 @@ PUB itoabp(num, ptr_dest, base, digits, pad_ch): ptr | numlen, byte tmp[33]
         bytemove(ptr_dest, @tmp, numlen)
     return @tmp
 
+
 PUB itoap(num, ptr_dest, digits, pad_ch): ptr | numlen, byte tmp[33]
 ' Convert number (signed) to string representation, with padding
 '   num: integer value to convert
@@ -514,6 +549,7 @@ PUB itoap(num, ptr_dest, digits, pad_ch): ptr | numlen, byte tmp[33]
             bytemove(ptr_dest, @tmp, numlen)
     return @tmp
 
+
 PUB left(ptr_str, count, clr_a=true): ptr_new
 ' Copy left-most characters
 '   ptr_str: source string
@@ -522,6 +558,7 @@ PUB left(ptr_str, count, clr_a=true): ptr_new
 '       (default is true if unspecified)
 '   Returns: pointer to substring
     return mid(ptr_str, 0, count, clr_a)
+
 
 VAR byte macstr[18]
 PUB mactostr(ptr_mac): ptr | tmp, i
@@ -538,6 +575,7 @@ PUB mactostr(ptr_mac): ptr | tmp, i
         if ( i < 5 )
             append(@macstr, @":")
     return @macstr
+
 
 PUB match(ptr_str1, ptr_str2): ismatch
 ' Flag indicating strings match
@@ -582,6 +620,7 @@ PUB replace(ptr_str, ptr_substr, ptr_newsubstr): ptr_next | size
         bytemove(ptr_next, ptr_newsubstr, size)
         ptr_next += size
 
+
 PUB replaceall(ptr_str, ptr_substr, ptr_newsubstr)
 ' Replace all occurrences of a string
 '   ptr_str: string to find substrings to replace
@@ -591,6 +630,7 @@ PUB replaceall(ptr_str, ptr_substr, ptr_newsubstr)
     repeat while(ptr_str)
         ptr_str := replace(ptr_str, ptr_substr, ptr_newsubstr)
 
+
 PUB replaceallchars(ptr_str, char, newchar)
 ' Replace all occurences of character
 '   ptr_str: string to find chars to replace
@@ -598,6 +638,7 @@ PUB replaceallchars(ptr_str, char, newchar)
 '   newchar: character to replace existing char with
     repeat while(ptr_str)
         ptr_str := replacechar(ptr_str, char, newchar)
+
 
 PUB replacechar(ptr_str, char, newchar): ptr_next
 ' Replace the first occurence of character
@@ -611,6 +652,7 @@ PUB replacechar(ptr_str, char, newchar): ptr_next
     if (ptr_next)
         byte[ptr_next++] := newchar
 
+
 PUB reverse(ptr_str) | c, k
 ' Reverse string in place
 '   ptr_str: string to reverse
@@ -620,6 +662,7 @@ PUB reverse(ptr_str) | c, k
         byte[ptr_str++] := byte[k]
         byte[k--] := c
 
+
 PUB right(ptr_str, count, clr_a=true): ptr_new
 ' Copy rightmost characters
 '   ptr_str: source string
@@ -628,6 +671,13 @@ PUB right(ptr_str, count, clr_a=true): ptr_new
 '       (default is true if unspecified)
 '   Returns: pointer to substring
     return mid(ptr_str, strsize(ptr_str) - count, count, clr_a)
+
+
+PUB set_float_precision(d=7)
+' Set floating point string precision
+'   d:  number of digits (optional; default: 7)
+    floatstr.digits := 1 #> d <# 7
+
 
 PUB sprintf(ptr_str, fmt, ptr_args): index | pad, len, maxlen, minlen, bi, leftj, strtype, sorg, arg
 ' Print string to buffer, with specified formatting
@@ -651,7 +701,7 @@ PUB sprintf(ptr_str, fmt, ptr_args): index | pad, len, maxlen, minlen, bi, leftj
 '       %o: octal
 '       %u: decimal (unsigned)
 '       %x, %X: hexadecimal (lower-case, upper-case)
-'       %f: IEEE-754 float (not yet implemented)
+'       %f: IEEE-754 float
 '       %s: string
 '
 '   Optionally precede formatting spec letter with the following:
@@ -790,45 +840,56 @@ PUB sprintf(ptr_str, fmt, ptr_args): index | pad, len, maxlen, minlen, bi, leftj
         ptr_args += 4
     return ptr_str-sorg
 
+
 PUB sprintf1(str, fmt, arg1): idx
 ' 1-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
+
 
 PUB sprintf2(str, fmt, arg1, arg2): idx
 ' 2-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
+
 PUB sprintf3(str, fmt, arg1, arg2, arg3): idx
 ' 3-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
+
 
 PUB sprintf4(str, fmt, arg1, arg2, arg3, arg4): idx
 ' 4-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
+
 PUB sprintf5(str, fmt, arg1, arg2, arg3, arg4, arg5): idx
 ' 5-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
+
 
 PUB sprintf6(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6): idx
 ' 6-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
+
 PUB sprintf7(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6, arg7): idx
 ' 7-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
+
 
 PUB sprintf8(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8): idx
 ' 8-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
+
 PUB sprintf9(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9): idx
 ' 9-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
 
+
 PUB sprintf10(str, fmt, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10): idx
 ' 10-argument variant of sprintf()
     return sprintf(str, fmt, @arg1)
+
 
 PUB startswith(ptr_str, ptr_substr): flag
 ' Flag indicating string at ptr_str starts with the string at ptr_substr
@@ -836,6 +897,7 @@ PUB startswith(ptr_str, ptr_substr): flag
 '       TRUE (-1): ptr_substr starts with ptr_substr
 '       FALSE (0): ptr_substr doesn't start with ptr_substr
     return (ptr_str == find(ptr_str, ptr_substr))
+
 
 PUB strip(ptr_str): ptr_new
 ' Remove white space and new lines around the outside of a string
@@ -851,6 +913,7 @@ PUB strip(ptr_str): ptr_new
                 byte[ptr_str--] := NUL
             other:
                 quit
+
 
 PUB stripchar(ptr_str, stripchr): newstr | chr, idx, sz, nextchr, lastchr, movecnt, mcnt
 ' Strip all occurrences of stripchr from string
@@ -877,12 +940,14 @@ PUB stripchar(ptr_str, stripchr): newstr | chr, idx, sz, nextchr, lastchr, movec
     bytefill(ptr_str+sz-mcnt, 0, mcnt)
     return ptr_str
 
+
 PUB strtoip(ptr): ip | o
 ' Convert string "dotted-quad" representation to a 32-bit IP address
 '   ptr: pointer to string representation of IP address
 '   Returns: 32-bit IP address (LSB-first)
     repeat o from 0 to 3
         ip.byte[o] := atoi( getfield(ptr, o, ".") )
+
 
 PUB strtomac(pstr, dest): ptr_mac | o
 ' Convert string representation of a MAC address to the equivalent array of integers
@@ -893,6 +958,7 @@ PUB strtomac(pstr, dest): ptr_mac | o
         byte[dest][o] := atoib( getfield(pstr, o, ":"), ...
                                 IHEX )          ' convert each hex number
     return dest
+
 
 PUB tokenize(ptr_str): ptr_strtok
 ' Remove white space and new lines around the inside of string at ptr_str
@@ -914,6 +980,7 @@ PUB tokenize(ptr_str): ptr_strtok
                 byte[_tokenstr - 1] := NUL
                 quit
 
+
 PUB tolower(ptr_str): ptr_new
 ' Convert all uppercase characters in string at ptr_str to lowercase
 '   NOTE: This function operates on the original string and does not
@@ -922,6 +989,7 @@ PUB tolower(ptr_str): ptr_new
     repeat strsize(ptr_str)
         byte[ptr_str++] := ctype.tolower(byte[ptr_str])
 
+
 PUB toupper(ptr_str): ptr_new
 ' Convert all lowercase characters in string at ptr_str to uppercase
     ptr_new := ptr_str
@@ -929,69 +997,55 @@ PUB toupper(ptr_str): ptr_new
         byte[ptr_str++] := ctype.toupper(byte[ptr_str])
 
 
-PRI AddDecimal()
+PRI flt_add_digit()
+' Add digit to float string output
+    if ( floatstr.zeroes )                      ' if leading zeroes, ...
+        byte[floatstr.str_ptr++] := "0"         '   add '0' character
+        floatstr.zeroes--
+    elseif ( floatstr.digits )                  ' more digits? add current digit and prep next
+        byte[floatstr.str_ptr++] := (floatstr.integer / floatstr.tens + "0")
+        floatstr.integer //= floatstr.tens
+        floatstr.tens /= 10
+        floatstr.digits--
+    else                                        ' no more digits? add '0'
+        byte[floatstr.str_ptr++] := "0"
 
-  if decimal_chr
-    byte[p++] := decimal_chr
-  else
-    byte[p++] := "."
+
+PRI flt_add_digits(d)
+' Add digits to floating point string representation
+    repeat d                                    ' add leading digits
+        flt_add_digit()
+        if ( floatstr.thousands_char )          ' add thousands separator
+            d--
+            if ( d and not (d // 3) )
+                byte[floatstr.str_ptr++] := floatstr.thousands_char
+    if ( floatstr.digits )                      ' if trailing digits, ...
+        if ( floatstr.decimal_char )            ' add decimal character
+            byte[floatstr.str_ptr++] := floatstr.decimal_char
+        else
+            byte[floatstr.str_ptr++] := "."
+        repeat while floatstr.digits            ' add trailing digits
+            if ( floatstr.thousandths_char )    ' add thousandths separator
+                if ( d and not (d // 3) )
+                    byte[floatstr.str_ptr++] := floatstr.thousandths_char
+            d++
+            flt_add_digit()
 
 
-PRI AddDigit()
+PRI flt_scientific_rep()
+' Produce scientific notation string
+    flt_add_digits(1)                           ' add digits with possible decimal
+    byte[floatstr.str_ptr++] := "e"             ' add exponent indicator
+    if ( floatstr.exponent >= 0 )               ' add exponent sign
+        byte[floatstr.str_ptr++] := "+"
+    else
+        byte[floatstr.str_ptr++] := "-"
 
-  'if leading zeros, add "0"
-  if zeros
-    byte[p++] := "0"
-    zeros--
-  'if more digits, add current digit and prepare next
-  elseif digits
-    byte[p++] := integer / tens + "0"
-    integer //= tens
-    tens /= 10
-    digits--
-  'if no more digits, add "0"
-  else
-    byte[p++] := "0"
-
-PRI AddDigits(leading) | i
-
-  'add leading digits
-  repeat i := leading
-    AddDigit()
-    'add any thousands separator between thousands
-    if thousands_chr
-      i--
-      if i and not i // 3
-        byte[p++] := thousands_chr
-  'if trailing digits, add decimal character
-  if digits
-    AddDecimal()
-    'then add trailing digits
-    repeat while digits
-      'add any thousandths separator between thousandths
-      if thousandths_chr
-        if i and not i // 3
-          byte[p++] := thousandths_chr
-      i++
-      AddDigit()
-
-PRI DoScientific()
-
-  'add digits with possible decimal
-  AddDigits(1)
-  'add exponent indicator
-  byte[p++] := "e"
-  'add exponent sign
-  if exponent >= 0
-    byte[p++] := "+"
-  else
-    byte[p++] := "-"
-    'exponent:=abs(exponent)
-  'add exponent digits
-  if exponent >= 10
-    byte[p++] := exponent / 10 + "0"
-    exponent //= 10
-  byte[p++] := exponent + "0"
+    ' add exponent digits
+    if ( floatstr.exponent >= 10 )
+        byte[floatstr.str_ptr++] := (floatstr.exponent / 10 + "0")
+        floatstr.exponent //= 10
+    byte[floatstr.str_ptr++] := (floatstr.exponent + "0")
 
 
 PRI ignorespace(ptr_str): ptr_new
@@ -1004,62 +1058,48 @@ PRI ignorespace(ptr_str): ptr_new
                 return ptr_str
 
 
-PRI Setup(single) : stringptr  | result
+PRI flt_setup(single): p  | result
+' Initial float to string setup
+    ifnot ( floatstr.digits )                   ' precision set? if not,
+        floatstr.digits := 7                    '   default to 7 digits
 
- 'limit digits to 1..7
-  if precision
-    digits := precision #> 1 <# 7
-  else
-    digits := 7
+    floatstr.str_ptr := @_tmp_float_str         ' init string pointer
 
-  'initialize string pointer
-  p := @float_string
+    if ( single & $80000000 )                   ' add "-" if negative
+        byte[floatstr.str_ptr++] := "-"
+    elseif ( floatstr.positive_char )           ' otherwise, add any positive lead character
+        byte[floatstr.str_ptr++] := floatstr.positive_char
 
-  'add "-" if negative
-  if single & $80000000
-    byte[p++] := "-"
-  'otherwise, add any positive lead character
-  elseif positive_chr
-    byte[p++] := positive_chr
+    if ( single &= $7FFFFFFF )                  ' clear sign and check for 0
+        ' not 0: estimate exponent
+        floatstr.exponent := ( (single.[30..23] - 127) * 77) / 256
+        if ( floatstr.exponent < -32 )          ' if very small, bias up
+            single := single *. 1e13
+            result := 13
+            floatstr.exponent += result
+        repeat
+            ' determine exact exponent and integer
+            floatstr.integer := round(single *. tenf[floatstr.exponent - floatstr.digits + 1])
+            if ( floatstr.integer < teni[floatstr.digits - 1] )
+                floatstr.exponent--
+            elseif ( floatstr.integer >= teni[floatstr.digits] )
+                floatstr.exponent++
+            else
+                floatstr.exponent -= result
+                quit
+    else                                        ' if 0, reset exponent and integer
+        floatstr.exponent := 0
+        floatstr.integer := 0
 
-  'clear sign and check for 0
-  if single &= $7FFFFFFF
+    floatstr.tens := teni[floatstr.digits - 1]  ' set initial tens and clear zeroes
+    floatstr.zeroes := 0
 
-    'not 0, estimate exponent
-    exponent := ((single.[30..23] - 127) * 77) / 256
+    return @_tmp_float_str
 
-    'if very small, bias up
-    if exponent < -32
-      'single := F_Mul(single, 1e13)
-      single := single *. 1e13
-      exponent += result := 13
-
-    'determine exact exponent and integer
-    repeat
-
-      integer := ROUND(single *. tenf[exponent - digits + 1])
-
-      if integer < teni[digits - 1]
-        exponent--
-      elseif integer >= teni[digits]
-        exponent++
-      else
-        exponent -= result
-        quit
-
-  'if 0, reset exponent and integer
-  else
-    exponent~
-    integer~
-
-  'set initial tens and clear zeros
-  tens := teni[digits - 1]
-  zeros~
-
-  'return pointer to string
-  return stringptr := @float_string
 
 DAT
+
+    ' float to string
         long                1e+38, 1e+37, 1e+36, 1e+35, 1e+34, 1e+33, 1e+32, 1e+31
         long  1e+30, 1e+29, 1e+28, 1e+27, 1e+26, 1e+25, 1e+24, 1e+23, 1e+22, 1e+21
         long  1e+20, 1e+19, 1e+18, 1e+17, 1e+16, 1e+15, 1e+14, 1e+13, 1e+12, 1e+11
@@ -1074,12 +1114,6 @@ teni    long  1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000, 100_000
         byte "yzafpnum"
 metric  byte 0
         byte "kMGTPEZY"
-
-VAR
-
-long  p, digits, exponent, integer, tens, zeros,  precision
-long  positive_chr, decimal_chr, thousands_chr, thousandths_chr
-byte  float_string[20]
 
 
 DAT
