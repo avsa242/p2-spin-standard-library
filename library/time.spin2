@@ -4,8 +4,8 @@
     Description:    Time-related functions
     Author:         Jesse Burt
     Started:        2006
-    Updated:        Aug 31, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Apr 1, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 
     NOTE: A portion of this object is based on Clock.spin,
@@ -123,6 +123,13 @@ PUB msleep(msecs)
     waitms(msecs)
 
 
+PUB ms_to_sys_ticks(m): s
+' Get the number of system ticks in milliseconds (at current system frequency)
+'   m:          milliseconds
+'   Returns:    system ticks
+    return (m * (clkfreq / 1_000) )
+
+
 PUB setsync = set_sync
 PUB set_sync()
 ' Set starting point for synchronized time delays
@@ -133,6 +140,13 @@ PUB set_sync()
 PUB sleep(secs)
 ' Sleep for secs seconds.
     waitms(secs*1_000)
+
+
+PUB us_to_sys_ticks(u): s
+' Get the number of system ticks in microseconds (at current system frequency)
+'   u:          microseconds
+'   Returns:    system ticks
+    return (u * (clkfreq / 1_000_000) )
 
 
 PUB usleep(usecs)
@@ -233,7 +247,7 @@ PRI days_since_year_start(y, mo): d | m
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
