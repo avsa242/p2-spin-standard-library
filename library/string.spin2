@@ -4,7 +4,7 @@
     Description:    String processing and formatting
     Author:         Jesse Burt
     Started:        May 29, 2022
-    Updated:        Mar 27, 2025
+    Updated:        Apr 13, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 
@@ -161,6 +161,34 @@ PUB copy(ptr_dest, ptr_src): ptr_new
 '   NOTE: Destination string must be larger or equal to size of ptr_src string
     bytemove(ptr_dest, ptr_src, (strsize(ptr_src) + 1))
     return ptr_dest
+
+
+pub cut_part(p_buff, p_dest, end_ch, maxlen=posx): o | ch, i, isz, tsz
+' Get part of a string, stopping at a custom character
+' Cut part from the original string, shrinking it
+'   p_buff:     pointer to input string
+'   p_dest:     pointer to destination/output string
+'   end_ch:     stop/cut string when reaching this character
+'   maxlen:     maximum length of output string (optional; default: no limit)
+'   Returns:    length of output string
+    o := 0
+    i := p_buff
+    isz := strsize(p_buff)
+    repeat
+        ch := byte[i++]                         ' read input
+        if ( ch == end_ch )                     ' stop at the end character
+            o++
+            quit
+        if ( ch == NUL )                        ' stop at null
+            quit
+        byte[p_dest][o++] := ch                 ' copy input to destination
+    while ( o < maxlen )
+
+    tsz := isz-o
+    bytemove(p_buff, p_buff+o, tsz)             ' move the rest of the string to the beginning
+    bytefill(p_buff+tsz, NUL, o)                ' clear out the leftovers at the end
+
+    return o
 
 
 PUB dec(val): dec_str
