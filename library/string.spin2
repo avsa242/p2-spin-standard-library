@@ -4,7 +4,7 @@
     Description:    String processing and formatting
     Author:         Jesse Burt
     Started:        May 29, 2022
-    Updated:        Apr 13, 2025
+    Updated:        Apr 18, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 
@@ -405,6 +405,36 @@ PUB iptostr(ip): ptr | tmp, i
         if ( i < 3 )                            ' place a dot between each octet
             append(@ipstr, @".")
     return @ipstr
+
+
+VAR byte ipv6str[40]
+pub ipv6tostr(p_addr): p | w, wd, b, o
+' Convert 16-byte array to IPv6 address string
+'   p_addr:     pointer to 16-byte array
+'   Returns:    pointer to string representation of the IPv6 address (e.g. xxxx:xxxx:xxxx ...)
+'   NOTE: This formatter doesn't follow _all_ of the conventions established for formatting
+'       IPv6 addresses, for simplicity.
+    bytefill(@ipv6str, NUL, 40)
+    wd := 0
+    repeat w from 0 to 7                        ' determine if there are _any_ non-zero segments
+        wd += word[p_addr][w]
+        if ( wd )
+            quit
+
+    if ( wd )                                   ' if there are, build a formatted string
+        o := @ipv6str
+        repeat w from 0 to 7                    ' add each word/segment to the string
+            wd := word[p_addr][w]
+            if ( wd )                           ' only add the word if it's non-zero
+                repeat b from 0 to 1
+                    bytemove(o, hexs(wd.byte[b], 2), 2)
+                    o += 2                      ' point to next word
+            if ( (w < 7) )                      ' add colon separator between words
+                byte[o++] := ":"
+    else                                        ' if there aren't
+        bytemove(@ipv6str, @"::", 2)             '   the address is all zeroes; return '::'
+
+    return @ipv6str
 
 
 PUB isalpha(ptr_str): flag
