@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: time.rtc.common.spin2h
-    Author: Jesse Burt
-    Description: Routines common to all RTC device drivers
-    Copyright (c) 2022
-    Started Aug 2, 2022
-    Updated Aug 2, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       time.rtc.common.spin2h
+    Description:    Routines common to all RTC device drivers
+    Author:         Jesse Burt
+    Started:        Aug 2, 2022
+    Updated:        Apr 29, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 
     NOTE: This file must be included by the compiler using the
         #include preprocessor directive, _outside_ of any existing
@@ -24,45 +23,46 @@ CON
 
 }
 
-PUB date(): curr_day
+PUB date(): d
 ' Get current date/day of month
     return bcd2int(_days)
 
-PUB hours(): curr_hr
+PUB hours(): h
 ' Get current hour
     return bcd2int(_hours)
 
-PUB month(): curr_month
+PUB month(): m
 ' Get current month
     return bcd2int(_months)
 
-PUB minutes(): curr_min
+PUB minutes(): m
 ' Get current minute
     return bcd2int(_mins)
 
-PUB seconds(): curr_sec
+PUB seconds(): s
 ' Get current second
     return bcd2int(_secs)
 
-PUB weekday(): curr_wkday
+PUB weekday(): d
 ' Get current weekday
     return bcd2int(_wkdays) + 1
 
-PUB year(): curr_yr
+PUB year(): y
 ' Get current year
     return bcd2int(_years)
 
-PRI bcd2int(bcd): int
+PRI bcd2int(b): i
 ' Convert BCD (Binary Coded Decimal) to integer
-    return ((bcd >> 4) * 10) + (bcd // 16)
+    return ((b >> 4) * 10) + (b // 16)
 
-PRI int2bcd(int): bcd
+PRI int2bcd(i): b
 ' Convert integer to BCD (Binary Coded Decimal)
-    return ((int / 10) << 4) + (int // 10)
+    return ((i / 10) << 4) + (i // 10)
+
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
