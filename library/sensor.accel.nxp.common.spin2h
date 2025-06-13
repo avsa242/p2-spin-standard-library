@@ -7,7 +7,7 @@
             FXOS8700
     Author:         Jesse Burt
     Started:        Oct 2, 2022
-    Updated:        Jun 10, 2025
+    Updated:        Jun 13, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -37,15 +37,14 @@ PUB accel_set_bias(x, y, z)
 PUB accel_data(ptr_x, ptr_y, ptr_z) | tmp[2]
 ' Read the Accelerometer output registers
     readreg(core.OUT_X_MSB, 6, @tmp)
-    long[ptr_x] := (tmp.word[2] sar 4) signx 15 ' output data is 12bit signed,
-    long[ptr_y] := (tmp.word[1] sar 4) signx 15 '   left-justified; shift it
-    long[ptr_z] := (tmp.word[0] sar 4) signx 15 '   down to the LSBit
+    long[ptr_x] := (tmp.word[2] sar 4) signx 11 ' output data is 12bit signed,
+    long[ptr_y] := (tmp.word[1] sar 4) signx 11 '   left-justified; shift it
+    long[ptr_z] := (tmp.word[0] sar 4) signx 11 '   down to the LSBit
 
 
-PUB accel_data_overrun(): flag
+PUB accel_data_overrun(): f
 ' Flag indicating previously acquired data has been overwritten
-    flag := readreg(core.STATUS)
-    return ((flag & core.ZYX_OW) <> 0)
+    return ( (readreg(core.STATUS) & core.ZYX_OW) <> 0)
 
 
 PUB accel_data_rate(rate=-2): curr_rate
@@ -61,20 +60,17 @@ PUB accel_data_rate(rate=-2): curr_rate
             else
                 _accel_time_res := 1_250 #> ((1_000000 / rate) / 2) <# 10_000
             rate := lookdownz(rate: 800, 400, 200, 100, 50, 12, 6, 1) << core.DR
+            cache_opmode()                               ' switch to stdby to mod regs
+            writereg(core.CTRL_REG1, ( (curr_rate & core.DR_MASK) | rate) )
+            restore_opmode()                             ' restore original opmode
         other:
             curr_rate := (curr_rate >> core.DR) & core.DR_BITS
             return lookupz(curr_rate: 800, 400, 200, 100, 50, 12, 6, 1)
 
-    rate := ((curr_rate & core.DR_MASK) | rate)
-    cache_opmode()                               ' switch to stdby to mod regs
-    writereg(core.CTRL_REG1, rate)
-    restore_opmode()                             ' restore original opmode
 
-
-PUB accel_data_rdy(): flag
+PUB accel_data_rdy(): f
 ' Flag indicating new accelerometer data available
-    flag := readreg(core.STATUS)
-    return ((flag & core.ZYX_DR) <> 0)
+    return ( ( readreg(core.STATUS) & core.ZYX_DR) <> 0)
 
 
 PUB accel_hpf_ena(state=-2): curr_state
@@ -85,36 +81,34 @@ PUB accel_hpf_ena(state=-2): curr_state
     case abs(state)
         0, 1:
             state := abs(state) << core.HPF_OUT
+            writereg(core.XYZ_DATA_CFG, ( (curr_state & core.HPF_OUT_MASK) | state) )
         other:
             return (((curr_state >> core.HPF_OUT) & 1) == 1)
-
-    state := ((curr_state & core.HPF_OUT_MASK) | state)
-    writereg(core.XYZ_DATA_CFG, state)
 
 
 PUB accel_hpf_freq(freq=-2): curr_freq
 ' Set accelerometer data high-pass cutoff frequency, in milli-Hz
 '   Valid values:
-'   accel_pwr_mode(): NORMAL
-'   accel_data_rate():    800, 400    200     100     50, 12, 6, 1
+'   accel_pwr_mode():   NORMAL
+'   accel_data_rate():  800, 400    200     100     50, 12, 6, 1
 '                       16_000      8_000   4_000   2_000
 '                       8_000       4_000   2_000   1_000
 '                       4_000       2_000   1_000   500
 '                       2_000       1_000   500     250
-'   accel_pwr_mode(): LONOISE_LOPWR
-'   accel_data_rate():    800, 400    200     100     50      12, 6, 1
+'   accel_pwr_mode():   LONOISE_LOPWR
+'   accel_data_rate():  800, 400    200     100     50      12, 6, 1
 '                       16_000      8_000   4_000   2_000   500
 '                       8_000       4_000   2_000   1_000   250
 '                       4_000       2_000   1_000   500     125
 '                       2_000       1_000   500     250     63
-'   accel_pwr_mode(): HIGHRES
-'   accel_data_rate():    All
+'   accel_pwr_mode():   HIGHRES
+'   accel_data_rate():  All
 '                       16_000
 '                       8_000
 '                       4_000
 '                       2_000
-'   accel_pwr_mode(): LOPWR
-'   accel_data_rate():    800     400     200     100     50      12, 6, 1
+'   accel_pwr_mode():   LOPWR
+'   accel_data_rate():  800     400     200     100     50      12, 6, 1
 '                       16_000  8_000   4_000   2_000   1_000   250
 '                       8_000   4_000   2_000   1_000   500     125
 '                       4_000   2_000   1_000   500     250     63
@@ -237,8 +231,7 @@ PUB accel_hpf_freq(freq=-2): curr_freq
                         other:
                             curr_freq &= core.SEL_BITS
                             return lookupz(curr_freq: 250, 125, 63, 31)
-    freq := ((curr_freq & core.SEL_MASK) | freq)
-    writereg(core.HP_FILT_CUTOFF, freq)
+    writereg(core.HP_FILT_CUTOFF, ( (curr_freq & core.SEL_MASK) | freq) )
 
 
 con #0, INTMD_PP, INTMD_OD
@@ -251,8 +244,7 @@ PUB accel_int_output_mode(m=-2): c
     c := readreg(core.CTRL_REG3)
     case m
         INTMD_PP, INTMD_OD:
-            m := (c & core.PP_OD_MASK) | m
-            writereg(core.CTRL_REG3, m)
+            writereg(core.CTRL_REG3, (c & core.PP_OD_MASK) | m)
         other:
             return (c & 1)
 
@@ -264,14 +256,11 @@ PUB accel_int_polarity(state=-2): curr_state
     curr_state := readreg(core.CTRL_REG3)
     case state
         LOW, HIGH:
-            state <<= core.IPOL
+            cache_opmode()
+            writereg(core.CTRL_REG3, ( (curr_state & core.IPOL_MASK) | (state << core.IPOL) ) )
+            restore_opmode()
         other:
             return ((curr_state >> core.IPOL) & 1)
-
-    cache_opmode()
-    state := ((curr_state & core.IPOL_MASK) | state)
-    writereg(core.CTRL_REG3, state)
-    restore_opmode()
 
 
 PUB accel_int(): src
@@ -304,9 +293,8 @@ PUB accel_int_mask(mask=-2): curr_mask
 '   Any other value polls the chip and returns the current setting
     case mask
         %00000000..%11111111:
-            mask &= core.CTRL_REG4_MASK
             cache_opmode()                       ' switch to stdby to mod regs
-            writereg(core.CTRL_REG4, mask)
+            writereg(core.CTRL_REG4, (mask & core.CTRL_REG4_MASK) )
             restore_opmode()                     ' restore original opmode
         other:
             return readreg(core.CTRL_REG4)
@@ -347,20 +335,12 @@ PUB accel_lpf_ena(state=-2): curr_state
 '       scale is currently set to 8g, enabling this filter will be ignored
     curr_state := readreg(core.CTRL_REG1)
     case abs(state)
-        0:
-            state := (curr_state & core.LNOISE_MASK)
-        1:
-            case accel_scale()
-                2, 4:
-                    state := (curr_state | (1 << core.LNOISE))
-                8:
-                    return FALSE
+        0, 1:
+            cache_opmode()                               ' switch to stdby to mod regs
+            writereg(core.CTRL_REG1, (curr_state & core.LNOISE_MASK) | (state << core.LNOISE) )
+            restore_opmode()                             ' restore original opmode
         other:
             return ((curr_state >> core.LNOISE) & 1) == 1
-
-    cache_opmode()                               ' switch to stdby to mod regs
-    writereg(core.CTRL_REG1, state)
-    restore_opmode()                             ' restore original opmode
 
 
 PUB accel_opmode(mode=-2): curr_mode
@@ -372,11 +352,9 @@ PUB accel_opmode(mode=-2): curr_mode
     curr_mode := readreg(core.CTRL_REG1)
     case mode
         STDBY, ACTIVE:
+            writereg(core.CTRL_REG1, ( (curr_mode & core.ACTIVE_MASK) | mode) )
         other:
-            return curr_mode & 1
-
-    mode := ((curr_mode & core.ACTIVE_MASK) | mode)
-    writereg(core.CTRL_REG1, mode)
+            return (curr_mode & 1)
 
 
 PUB accel_pwr_mode(mode=-2): curr_mode ' XXX tentatively named
@@ -390,14 +368,11 @@ PUB accel_pwr_mode(mode=-2): curr_mode ' XXX tentatively named
     curr_mode := readreg(core.CTRL_REG2)
     case mode
         NORMAL, LONOISE_LOPWR, HIGHRES, LOPWR:
+            cache_opmode()                               ' switch to stdby to mod regs
+            writereg(core.CTRL_REG2, ( (curr_mode & core.MODS_MASK) | mode) )
+            restore_opmode()                             ' restore original opmode
         other:
-            return curr_mode & core.MODS_BITS
-
-    mode := ((curr_mode & core.MODS_MASK) | mode)
-
-    cache_opmode()                               ' switch to stdby to mod regs
-    writereg(core.CTRL_REG2, mode)
-    restore_opmode()                             ' restore original opmode
+            return (curr_mode & core.MODS_BITS)
 
 
 PUB accel_scale(scale=-2): curr_scl
@@ -409,14 +384,11 @@ PUB accel_scale(scale=-2): curr_scl
             ' _ares = 1 / 1024 counts/g (2g), 512 (4g), or 256 (8g)
             ' micro-gs per LSB
             _ares := lookupz(scale: 0_000976, 0_001953, 0_003906)
+            cache_opmode()                               ' switch to stdby to mod regs
+            writereg(core.XYZ_DATA_CFG, ( (curr_scl & core.FS_MASK) | scale) )
+            restore_opmode()                             ' restore original opmode
         other:
-            curr_scl &= core.FS_BITS
-            return lookupz(curr_scl: 2, 4, 8)
-
-    scale := ((curr_scl & core.FS_MASK) | scale)
-    cache_opmode()                               ' switch to stdby to mod regs
-    writereg(core.XYZ_DATA_CFG, scale)
-    restore_opmode()                             ' restore original opmode
+            return lookupz(curr_scl & core.FS_BITS: 2, 4, 8)
 
 
 PUB accel_self_test(state=-2): curr_state
@@ -431,14 +403,11 @@ PUB accel_self_test(state=-2): curr_state
     curr_state := readreg(core.CTRL_REG2)
     case abs(state)
         0, 1:
-            state := abs(state) << core.ST
+            cache_opmode()
+            writereg(core.CTRL_REG2, ( (curr_state & core.ST_MASK) | (state & 1) << core.ST) )
+            restore_opmode()
         other:
-            return (((curr_state >> core.ST) & 1) == 1)
-
-    cache_opmode()
-    state := ((curr_state & core.ST_MASK) | state)
-    writereg(core.CTRL_REG2, state)
-    restore_opmode()
+            return ( ( (curr_state >> core.ST) & 1) == 1)
 
 
 PUB accel_sleep_pwr_mode(mode=-2): curr_mode
@@ -452,14 +421,11 @@ PUB accel_sleep_pwr_mode(mode=-2): curr_mode
     curr_mode := readreg(core.CTRL_REG2)
     case mode
         NORMAL, LONOISE_LOPWR, HIGHRES, LOPWR:
-            mode <<= core.SMODS
+            cache_opmode()
+            writereg(core.CTRL_REG2, ((curr_mode & core.SMODS_MASK) | (mode << core.SMODS) ) )
+            restore_opmode()
         other:
             return ((curr_mode >> core.SMODS) & core.SMODS_BITS)
-
-    cache_opmode()
-    mode := ((curr_mode & core.SMODS_MASK) | mode)
-    writereg(core.CTRL_REG2, mode)
-    restore_opmode()
 
 
 PUB auto_sleep_data_rate(rate=-2): curr_rate
@@ -470,14 +436,12 @@ PUB auto_sleep_data_rate(rate=-2): curr_rate
     case rate
         1, 6, 12, 50:
             rate := lookdownz(rate: 50, 12, 6, 1) << core.ASLP_RATE
+            cache_opmode()
+            writereg(core.CTRL_REG1, ( (curr_rate & core.ASLP_RATE_MASK) | rate) )
+            restore_opmode()
         other:
-            curr_rate := ((curr_rate >> core.ASLP_RATE) & core.ASLP_RATE_BITS)
+            curr_rate := ( (curr_rate >> core.ASLP_RATE) & core.ASLP_RATE_BITS)
             return lookupz(curr_rate: 50, 12, 6, 1)
-
-    cache_opmode()
-    rate := ((curr_rate & core.ASLP_RATE_MASK) | rate)
-    writereg(core.CTRL_REG1, rate)
-    restore_opmode()
 
 
 PUB auto_sleep_ena(state=-2): curr_state
@@ -488,13 +452,11 @@ PUB auto_sleep_ena(state=-2): curr_state
     case abs(state)
         0, 1:
             state := abs(state) << core.SLPE
+            cache_opmode()
+            writereg(core.CTRL_REG2, ( (curr_state & core.SLPE_MASK) | state) )
+            restore_opmode()
         other:
-            return (((curr_state >> core.SLPE) & 1) == 1)
-
-    cache_opmode()
-    state := ((curr_state & core.SLPE_MASK) | state)
-    writereg(core.CTRL_REG2, state)
-    restore_opmode()
+            return ( ( (curr_state >> core.SLPE) & 1) == 1)
 
 
 PUB click_axis_ena(mask=-2): curr_mask
@@ -508,11 +470,9 @@ PUB click_axis_ena(mask=-2): curr_mask
     curr_mask := readreg(core.PULSE_CFG)
     case mask
         %000000..%111111:
+            writereg(core.PULSE_CFG, ( (curr_mask & core.PEFE_MASK) | mask) )
         other:
             return curr_mask & core.PEFE_BITS
-
-    mask := ((curr_mask & core.PEFE_MASK) | mask)
-    writereg(core.PULSE_CFG, mask)
 
 
 PUB clicked(): flag
@@ -544,19 +504,16 @@ PUB click_int_ena(state=-2): curr_state
     case abs(state)
         0, 1:
             state := abs(state) << core.INT_EN_PULSE
+            writereg(core.CTRL_REG4, ( (curr_state & core.IE_PULSE_MASK) | state) )
         other:
             return ( ( (curr_state >> core.INT_EN_PULSE) & 1) == 1)
-
-    state := ((curr_state & core.IE_PULSE_MASK) | state)
-    writereg(core.CTRL_REG4, state)
 
 
 PUB click_latency(): curr_ltime
 ' Get minimum elapsed time from detection of first click to recognition of any subsequent clicks
 '   (single or double). All clicks *during* this time will be ignored.
 '   Returns: microseconds
-    curr_ltime := readreg(core.PULSE_LTCY)
-    return (curr_ltime * _accel_time_res)
+    return ( readreg(core.PULSE_LTCY) * _accel_time_res)
 
 
 PUB click_set_latency(ltime)
@@ -578,8 +535,7 @@ PUB click_set_latency(ltime)
 '   Any other value polls the chip and returns the current setting
     ' check that the parameter is between 0 and the max time range for
     '   the current accel_data_rate() setting
-    ltime := (0 #> ltime <# (_accel_time_res * 255)) / _accel_time_res
-    writereg(core.PULSE_LTCY, ltime)
+    writereg(core.PULSE_LTCY, (0 #> ltime <# (_accel_time_res * 255) ) / _accel_time_res )
 
 
 PUB click_lpf_ena(state=-2): curr_state
@@ -590,11 +546,9 @@ PUB click_lpf_ena(state=-2): curr_state
     case abs(state)
         0, 1:
             state := abs(state) << core.PLS_LPF_EN
+            writereg(core.HP_FILT_CUTOFF, ( (curr_state & core.PLS_LPF_EN_MASK) | state) )
         other:
-            return (((curr_state >> core.PLS_LPF_EN) & 1) == 1)
-
-    state := ((curr_state & core.PLS_LPF_EN_MASK) | state)
-    writereg(core.HP_FILT_CUTOFF, state)
+            return ( ( (curr_state >> core.PLS_LPF_EN) & 1) == 1)
 
 
 PUB click_thresh(): thresh
@@ -618,8 +572,7 @@ PUB click_set_thresh(thresh)
 PUB click_thresh_x(): thresh
 ' Get threshold for recognizing a click (X-axis)
 '   Returns: micro-g's
-    thresh := readreg(core.PULSE_THSX)
-    return (thresh * 0_063000)             ' scale to 1..8_000000 (8g's)
+    return (readreg(core.PULSE_THSX) * 0_063000)             ' scale to 1..8_000000 (8g's)
 
 
 PUB click_set_thresh_x(thresh)
@@ -631,15 +584,13 @@ PUB click_set_thresh_x(thresh)
 '       setting of accel_scale()
 '   NOTE: If accel_low_noise_mode() is set to LOWNOISE, the maximum threshold
 '       recognized using this method will be 4_000000 (4g's)
-    thresh /= 0_063000
-    writereg(core.PULSE_THSX, thresh)
+    writereg(core.PULSE_THSX, thresh / 0_063000)
 
 
 PUB click_thresh_y(): thresh
 ' Get threshold for recognizing a click (Y-axis)
 '   Returns: micro-g's
-    thresh := readreg(core.PULSE_THSY)
-    return (thresh * 0_063000)             ' scale to 1..8_000000 (8g's)
+    return ( readreg(core.PULSE_THSY) * 0_063000)             ' scale to 1..8_000000 (8g's)
 
 
 PUB click_set_thresh_y(thresh)
@@ -651,15 +602,13 @@ PUB click_set_thresh_y(thresh)
 '       setting of accel_scale()
 '   NOTE: If accel_low_noise_mode() is set to LOWNOISE, the maximum threshold
 '       recognized using this method will be 4_000000 (4g's)
-    thresh /= 0_063000
-    writereg(core.PULSE_THSY, thresh)
+    writereg(core.PULSE_THSY, thresh / 0_063000)
 
 
 PUB click_thresh_z(): thresh
 ' Get threshold for recognizing a click (Z-axis)
 '   Returns: micro-g's
-    thresh := readreg(core.PULSE_THSZ)
-    return (thresh * 0_063000)             ' scale to 1..8_000000 (8g's)
+    return (readreg(core.PULSE_THSZ) * 0_063000)             ' scale to 1..8_000000 (8g's)
 
 
 PUB click_set_thresh_z(thresh)
@@ -671,15 +620,13 @@ PUB click_set_thresh_z(thresh)
 '       setting of accel_scale()
 '   NOTE: If accel_low_noise_mode() is set to LOWNOISE, the maximum threshold
 '       recognized using this method will be 4_000000 (4g's)
-    thresh /= 0_063000
-    writereg(core.PULSE_THSZ, thresh)
+    writereg(core.PULSE_THSZ, (thresh / 0_063000) )
 
 
 PUB click_time(): curr_ctime
 ' Get maximum elapsed interval between start of click and end of click
 '   Returns: microseconds
-    curr_ctime := readreg(core.PULSE_TMLT)
-    return (curr_ctime * _accel_time_res)
+    return (readreg(core.PULSE_TMLT) * _accel_time_res)
 
 
 PUB click_set_time(ctime)
@@ -697,15 +644,13 @@ PUB click_set_time(ctime)
 '       12                  1_280_000   5_100_000
 '       6                   1_280_000   5_100_000
 '       1                   1_280_000   5_100_000
-    ctime := ((0 #> ctime <# (_accel_time_res * 255)) / _accel_time_res)
-    writereg(core.PULSE_TMLT, ctime)
+    writereg(core.PULSE_TMLT, ((0  #> ctime <# (_accel_time_res * 255) ) / _accel_time_res) )
 
 
 PUB dbl_click_win(): dctime
 ' Set maximum elapsed interval between two consecutive clicks
 '   Returns: microseconds
-    dctime := readreg(core.PULSE_WIND)
-    return (dctime * _accel_time_res)
+    return (readreg(core.PULSE_WIND) * _accel_time_res)
 
 
 PUB dbl_click_set_win(dctime)
@@ -722,8 +667,7 @@ PUB dbl_click_set_win(dctime)
 '       12                  2_560_000   10_200_000
 '       6                   2_560_000   10_200_000
 '       1                   2_560_000   10_200_000
-    dctime := ((0 #> dctime <# (_accel_time_res * 255)) / _accel_time_res)
-    writereg(core.PULSE_WIND, dctime)
+    writereg(core.PULSE_WIND, ( (0 #> dctime <# (_accel_time_res * 255) ) / _accel_time_res) )
 
 
 PUB freefall_axis_ena(mask=-2): curr_mask
@@ -734,11 +678,9 @@ PUB freefall_axis_ena(mask=-2): curr_mask
     case mask
         %000..%111:
             mask <<= core.FEFE
+            writereg(core.FF_MT_CFG, ( (curr_mask & core.FEFE_MASK) | mask) )
         other:
             return ((curr_mask >> core.FEFE) & core.FEFE_BITS)
-
-    mask := ((curr_mask & core.FEFE_MASK) | mask)
-    writereg(core.FF_MT_CFG, mask)
 
 
 PUB freefall_thresh(thresh=-2): curr_thr
@@ -749,11 +691,9 @@ PUB freefall_thresh(thresh=-2): curr_thr
     case thresh
         0..8_001000:
             thresh /= 0_063000
+            writereg(core.FF_MT_THS, ( (curr_thr & core.FF_THS_MASK) | thresh) )
         other:
             return ((curr_thr & core.FF_THS_BITS) * 0_063000)
-
-    thresh := ((curr_thr & core.FF_THS_MASK) | thresh)
-    writereg(core.FF_MT_THS, thresh)
 
 
 PUB freefall_time(): curr_time | time_res
@@ -769,8 +709,7 @@ PUB freefall_time(): curr_time | time_res
         LOPWR:
             time_res := 1_250 #> _accel_time_res <# 160_000
 
-    curr_time := readreg(core.FF_MT_CNT)
-    return (curr_time * time_res)
+    return (readreg(core.FF_MT_CNT) * time_res)
 
 
 PUB freefall_set_time(fftime) | time_res
@@ -797,8 +736,7 @@ PUB freefall_set_time(fftime) | time_res
         LOPWR:
             time_res := 1_250 #> _accel_time_res <# 160_000
 
-    fftime := ((0 #> fftime <# (time_res * 255)) / time_res)
-    writereg(core.FF_MT_CNT, fftime)
+    writereg(core.FF_MT_CNT, (( 0 #> fftime <# (time_res * 255) ) / time_res) )
 
 
 PUB inact_int(mask=-2): curr_mask
@@ -813,14 +751,11 @@ PUB inact_int(mask=-2): curr_mask
     curr_mask := readreg(core.CTRL_REG3)
     case mask
         %0000..%1111:
-            mask <<= core.WAKE
+            cache_opmode()
+            writereg(core.CTRL_REG3, ( (curr_mask & core.WAKE_MASK) | (mask << core.WAKE) ) )
+            restore_opmode()
         other:
-            return ((curr_mask >> core.WAKE) & core.WAKE_BITS)
-
-    cache_opmode()
-    mask := ((curr_mask & core.WAKE_MASK) | mask)
-    writereg(core.CTRL_REG3, mask)
-    restore_opmode()
+            return ( (curr_mask >> core.WAKE) & core.WAKE_BITS)
 
 
 PUB inact_thresh(): thresh
@@ -832,14 +767,13 @@ PUB inact_set_thresh(thresh)
 ' Set inactivity threshold
 '   Valid values: 0..127
 '   Any other value polls the chip and returns the current setting
-    thresh := 0 #> thresh <# 127
-    writereg(core.TRANSIENT_THS, thresh)
+    writereg(core.TRANSIENT_THS, (0 #> thresh <# 127) )
 
 
 PUB inact_time(): curr_itime | time_res
 ' Get inactivity time
 '   Returns: milliseconds
-    if (accel_data_rate() == 1)
+    if ( accel_data_rate() == 1 )
         time_res := 640                         ' 640ms time step for 1Hz ODR
     else
         time_res := 320                         ' 320ms time step for others
@@ -859,16 +793,17 @@ PUB inact_set_time(itime) | time_res
 '       0..81_600 (accel_data_rate() == all other settings)
 '   NOTE: Setting this to 0 will generate an interrupt when the acceleration
 '       measures less than that set with inact_set_thresh()
+#ifdef FXOS8700
     if ( opmode == BOTH )                       ' cut the set time in half if both sensors
         itime /= 2                              '   are being used
+#endif
     if ( accel_data_rate() == 1 )
         time_res := 640                         ' 640ms time step for 1Hz ODR
     else
         time_res := 320                         ' 320ms time step for others
 
     cache_opmode()
-    itime := ((0 #> itime <# (time_res * 255)) / time_res)
-    writereg(core.ASLP_CNT, itime)
+    writereg(core.ASLP_CNT, ((0  #> itime <# (time_res * 255) ) / time_res) )
     restore_opmode()
 
 
@@ -877,8 +812,7 @@ PUB in_freefall(): flag
 '   Returns:
 '       TRUE (-1): device is in free-fall
 '       FALSE (0): device isn't in free-fall
-    flag := readreg(core.FF_MT_SRC)
-    return (((flag >> core.FEA) & 1) == 1)
+    return ( ( (readreg(core.FF_MT_SRC) >> core.FEA) & 1) == 1)
 
 
 PUB motion_int_enabled(m=-2): c
@@ -889,8 +823,7 @@ PUB motion_int_enabled(m=-2): c
 '       other values:   return the current setting
     c := readreg(core.FF_MT_CFG)
     if ( m == 0 or abs(m) == 1 )
-        m := (c & core.FOAE_MASK) | (abs(m) << core.FOAE)
-        writereg(core.FF_MT_CFG, m)
+        writereg(core.FF_MT_CFG, (c & core.FOAE_MASK) | (abs(m) << core.FOAE) )
     else
         return (c >> core.FOAE) & 1
 
@@ -906,8 +839,7 @@ PUB orientation(): curr_or
 '       %101: landscape-right, back-facing
 '       %110: landscape-left, front-facing
 '       %111: landscape-left, back-facing
-    curr_or := readreg(core.PL_STATUS)
-    return (curr_or & core.LAPOBAFRO_BITS)
+    return (readreg(core.PL_STATUS) & core.LAPOBAFRO_BITS)
 
 
 PUB orient_detect_ena(state=-2): curr_state
@@ -918,13 +850,11 @@ PUB orient_detect_ena(state=-2): curr_state
     case abs(state)
         0, 1:
             state := abs(state) << core.PL_EN
+            cache_opmode()                               ' switch to stdby to mod regs
+            writereg(core.PL_CFG, ( (curr_state & core.PL_EN_MASK) | state) )
+            restore_opmode()                             ' restore original opmode
         other:
             return ((curr_state >> core.PL_EN) & 1) == 1
-
-    state := ((curr_state & core.PL_EN_MASK) | state)
-    cache_opmode()                               ' switch to stdby to mod regs
-    writereg(core.PL_CFG, state)
-    restore_opmode()                             ' restore original opmode
 
 
 PUB trans_cnt(): tcnt
@@ -938,8 +868,7 @@ PUB trans_set_cnt(tcnt)
 '   threshold set by trans_set_thresh() to generate an interrupt
 '   Valid values: 0..255
 '   Any other value polls the chip and returns the current setting
-    tcnt := 0 #> tcnt <# 255
-    writereg(core.TRANSIENT_CNT, tcnt)
+    writereg(core.TRANSIENT_CNT, (0 #> tcnt <# 255) )
 
 
 PUB trans_axis_ena(axis_mask=-2): curr_mask
@@ -953,15 +882,14 @@ PUB trans_axis_ena(axis_mask=-2): curr_mask
     curr_mask := readreg(core.TRANSIENT_CFG)
     case axis_mask
         %000..%111:
-            axis_mask <<= core.TEFE
+            cache_opmode()
+            ' set the new enable mask, and also latch transient interrupts
+            writereg(   core.TRANSIENT_CFG, ...
+                        ( (curr_mask & core.TEFE_MASK) | (axis_mask << core.TEFE) ) ...
+                        | 1 << core.TELE )
+            restore_opmode()
         other:
-            return ((curr_mask >> core.TEFE) & core.TEFE_BITS)
-
-    cache_opmode()
-    ' set the new enable mask, and also latch transient interrupts
-    axis_mask := ((curr_mask & core.TEFE_MASK) | axis_mask) | 1 << core.TELE
-    writereg(core.TRANSIENT_CFG, axis_mask)
-    restore_opmode()
+            return ( (curr_mask >> core.TEFE) & core.TEFE_BITS)
 
 
 PUB trans_interrupt(): int_src
@@ -986,12 +914,10 @@ PUB trans_thresh(thr=-2): curr_thr
     curr_thr := readreg(core.TRANSIENT_THS)
     case thr
         0..8_001000:
-            thr /= 0_063000
+            writereg(core.TRANSIENT_THS, ( (curr_thr & core.THS_MASK) | (thr / 0_063000) ) )
         other:
-            return ((curr_thr & core.THS_BITS) * 0_063000)
+            return ( (curr_thr & core.THS_BITS) * 0_063000)
 
-    thr := ((curr_thr & core.THS_MASK) | thr)
-    writereg(core.TRANSIENT_THS, thr)
 
 
 DAT
