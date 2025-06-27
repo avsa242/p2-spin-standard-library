@@ -1,25 +1,25 @@
 {
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
     Filename:       Mic-to-VGA-Demo.spin2
-    Description:    Demo that captures audio from a mic and outputs it directly to attached
-        headphones while showing a scope output of the audio on an attached VGA display.
+    Description:    Microphone demo
+        * Captures audio from a mic and output it directly to attached headphones or speakers
+        * Show an oscilloscope output of the audio on an attached VGA display.
     Author:         Jesse Burt
     Started:        May 16, 2020
-    Updated:        Jan 26, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
----------------------------------------------------------------------------------------------------
+    Updated:        Jun 27, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
 
 CON
 
-    _xtlfreq        = cfg._xtlfreq
-    _clkfreq        = cfg._clkfreq_def
+    _clkfreq        = 180_000_000
+    _xtlfreq        = 20_000_000
 
 ' -- User-modifiable constants
 ' Parallax A/V Board, P/N 64006H (set AVBOARD_BASE)
-    AVBOARD_BASE    = 32                        ' 0, 8, 16, 24, 32, 40, 48
+    AVBOARD_BASE    = 16                        ' 0, 8, 16, 24, 32, 40, 48
 
-    VGA_BASE        = AVBOARD_BASE+0
     MIC_PIN         = AVBOARD_BASE+5
     SPKR_L          = AVBOARD_BASE+6
     SPKR_R          = AVBOARD_BASE+7
@@ -44,16 +44,15 @@ CON
 
 OBJ
 
-    cfg:    "boardcfg.p2eval"
     ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
-    vga:    "display.vga.bitmap-8bpp" | BASEPIN=32
-    spkr:   "signal.dac.audio"
+    vga:    "display.vga.bitmap-8bpp" | BASEPIN=AVBOARD_BASE+0
+    speaker:"signal.dac.audio"
     mic:    "signal.adc.audio"
 
 
 VAR
 
-    long _audio_stack[100], _gfx_stack[100]
+    long _audio_stack[14], _gfx_stack[11]
     long _audio_cog, _vga_cog, _adc_sample, _bias
     byte _offscreen[BUFFSZ]
 
@@ -75,7 +74,7 @@ PUB main() | adc_min, adc_max
         ser.printf(@"ADC current: %d  \n\rmin: %d  \n\rmax: %d  ", _adc_sample, adc_min, adc_max)
 
 
-PUB draw_wave() | x, y, y_offset                 ' XXX Rolls - no triggering
+PUB draw_wave() | x, y, y_offset
 ' Draw scope of audio input
     vga.clear()
     repeat x from 0 to XMAX
@@ -87,11 +86,11 @@ PUB draw_wave() | x, y, y_offset                 ' XXX Rolls - no triggering
 PUB cog_audio()
 ' Sample audio and output it directly to headphones/speakers
     mic.start(MIC_PIN, SAMPLE_RATE, MIC_GAIN)
-    spkr.start(SPKR_L, SPKR_R, SAMPLE_RATE)
+    speaker.start_linelevel_2ch(SPKR_L, SPKR_R, SAMPLE_RATE)
     _audio_cog := cogid()
     repeat
         _adc_sample := mic.adcsample16()-_bias
-        spkr.output16(_adc_sample)
+        speaker.output16_2ch_mono(_adc_sample)
 
 
 PUB cog_graphics()
@@ -127,7 +126,7 @@ PUB setup()
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

@@ -1,25 +1,23 @@
 {
-    --------------------------------------------
-    Filename: Mic-to-Headphones-Demo.spin2
-    Description: Demo that captures audio from a mic and
-        outputs it directly to attached headphones or speakers
-    Author: Jesse Burt
-    Started: May 16, 2020
-    Updated: Jul 10, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       Mic-to-Headphones-Demo.spin2
+    Description:    Microphone demo
+        * Capture audio from a mic and output it directly to attached headphones or speakers
+    Author:         Jesse Burt
+    Started:        May 16, 2020
+    Updated:        Jun 27, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
+
 CON
 
-    _xtlfreq        = cfg._xtlfreq
-    _clkfreq        = cfg._clkfreq_def
+    _clkfreq        = 180_000_000
+    _xtlfreq        = 20_000_000
 
 ' -- User-modifiable constants
-    LED             = cfg.LED1
-    SER_BAUD        = 2_000_000
-
 ' Parallax A/V Board, P/N 64006H (set AVBOARD_BASE)
-    AVBOARD_BASE    = 48                        ' 0, 8, 16, 24, 32, 40, 48, 56
+    AVBOARD_BASE    = 16                        ' 0, 8, 16, 24, 32, 40, 48, 56
 
     MIC_PIN         = AVBOARD_BASE+5
     SPKR_LPIN       = AVBOARD_BASE+6
@@ -34,20 +32,20 @@ CON
 
 OBJ
 
-    ser     : "com.serial.terminal.ansi"
-    cfg     : "boardcfg.p2eval"
-    spkr    : "signal.dac.audio"
-    mic     : "signal.adc.audio"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    headph: "signal.dac.audio"
+    mic:    "signal.adc.audio"
+
 
 VAR
 
-    long _spkr_stack[50]
-    long _spkr_cog, _adc_sample
+    long _headph_stack[13]
+    long _headph_cog, _adc_sample
 
-PUB Main() | adc_min, adc_max
+
+PUB main() | adc_min, adc_max
 
     setup()
-    ser.hidecursor()
 
     adc_max := 0
     repeat 500                                  ' Gather some samples to get a
@@ -56,28 +54,53 @@ PUB Main() | adc_min, adc_max
     repeat
         adc_min := _adc_sample <# adc_min
         adc_max := adc_max #> _adc_sample
-        ser.position(0, 4)
+        ser.pos_xy(0, 4)
         ser.printf(@"ADC sample: %d  \n\rmin: %d  \n\rmax: %d", _adc_sample, adc_min, adc_max)
 
-PUB cog_Audio()
+
+PUB cog_audio()
 ' Secondary cog:
 '   Read samples from mic, and send them straight out to the headphones
     mic.start(MIC_PIN, SAMPLE_RATE, MIC_GAIN)
-    spkr.start(SPKR_LPIN, SPKR_RPIN, SAMPLE_RATE)
-    _spkr_cog := cogid()+1                      ' signal 'started' to main cog
+    headph.start_linelevel_2ch(SPKR_LPIN, SPKR_RPIN, SAMPLE_RATE)
+    _headph_cog := cogid()+1                    ' signal 'started' to main cog
 
     repeat
         _adc_sample := mic.adcsample16()
-        spkr.output16(_adc_sample)
+        headph.output16_2ch_mono(_adc_sample)
 
-PUB Setup()
 
-    ser.start(SER_BAUD)
+PUB setup()
+
+    ser.start()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    cogspin(NEWCOG, cog_audio(), @_spkr_stack)
-    repeat until _spkr_cog                      ' wait for audio cog to start
+    cogspin(NEWCOG, cog_audio(), @_headph_stack)
+
+    repeat
+    until _headph_cog                      ' wait for audio cog to start
 
     ser.printf(@"Audio cog started (%dHz sample rate, %dx gain)\n\r", SAMPLE_RATE, MIC_GAIN)
+
+
+DAT
+{
+Copyright 2025 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
 
