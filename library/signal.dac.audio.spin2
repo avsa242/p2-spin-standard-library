@@ -2,47 +2,83 @@
 ----------------------------------------------------------------------------------------------------
     Filename:       signal.dac.audio.spin2
     Description:    DAC: Audio output
-        * mono, stereo, 8-bit, 16-bit
+        * 1 or 2 channels (start 1 or 2 DACs initially, and output to 1 or both channels after)
+        * 8-bit or 16-bit output
+        * mono (single sample output to both channels)
+        * stereo (independent sample output to each channel)
     Author:         Jesse Burt
     Started:        Mar 16, 2020
-    Updated:        Oct 27, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Jun 27, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
 CON
 
     DAC_INIT_VAL        = 128
-    SP_DAC_MODE         = P_DAC_990R_3V | (DAC_INIT_VAL << sp.DACLEVEL) | P_OE | P_DAC_DITHER_PWM
+
+    ' 990ohm, 3Vp-p
+    SP_DAC_MODE         = P_DAC_DITHER_PWM | P_DAC_990R_3V | P_OE | (DAC_INIT_VAL << sp.DACLEVEL)
+
+    ' 600ohm, 2Vp-p
+    LINELEVEL_MODE      = P_DAC_DITHER_RND | P_DAC_600R_2V | P_OE | (DAC_INIT_VAL << sp.DACLEVEL)
 
 
 VAR
 
-    long _L_PIN, _R_PIN
+    long _CH1_PIN, _CH2_PIN
 
 
 OBJ
 
-    sp:     "core.con.smartpins"                  ' smart-pin modes/constants
-    evt:    "core.con.events"                     ' background events/constants
+    sp:     "core.con.smartpins"                ' smart-pin modes/constants
+    evt:    "core.con.events"                   ' background events/constants
 
 
-PUB start(L_PIN, R_PIN, SAMPRATE_HZ): status | period, se1setup
-' Start DAC smart-pin on L_PIN, R_PIN at SAMPRATE_HZ
-    if lookdown(L_PIN: 0..63) and lookdown(R_PIN: 0..63)
-        longmove(@_L_PIN, @L_PIN, 2)
-        period := (clkfreq / SAMPRATE_HZ)
+PUB start_linelevel_1ch(CH1_PIN, SRATE): s | per, se1setup
+' Start single-channel 600Ohm, 2Vp-p line-level DAC
+'   CH1_PIN:    output pin
+'   SRATE:      output sample rate
+'   Returns:    calling/parent cog ID+1 on success
+'               false on failure (check I/O pin parameters)
 
-        se1setup := evt.INP_RISES | L_PIN
+    _CH1_PIN := -1
+    if ( lookdown(CH1_PIN: 0..63) )
+        _CH1_PIN := CH1_PIN
+        per := (clkfreq / SRATE)
+        se1setup := evt.INP_RISES | CH1_PIN     ' SE1 event: trigger on CH1 input rises
         org
-            wrpin   ##SP_DAC_MODE, L_PIN        ' Config left and right pins
-            wrpin   ##SP_DAC_MODE, R_PIN        '   for smart-pin DAC mode
-            wxpin   period, L_PIN               ' Set sample period for left
-            wxpin   period, R_PIN               '   and right channels
-            dirh    L_PIN                       ' Enable smart-pins
-            dirh    R_PIN                       '
+            wrpin   ##LINELEVEL_MODE, CH1_PIN   ' Config pin for line-level output
+            wxpin   per, CH1_PIN                ' Set sample period
+            dirh    CH1_PIN                     ' Enable smart-pin
+            setse1  se1setup                    ' trigger on every new sample period
+        end
+        return cogid() + 1
+    return FALSE
+
+
+PUB start_linelevel_2ch(CH1_PIN, CH2_PIN, SRATE): s | per, se1setup
+' Start two-channel 600Ohm, 2Vp-p line-level DAC
+'   CH1_PIN:    channel 1 pin
+'   CH2_PIN:    channel 2 pin
+'   SRATE:      sample rate (Hz)
+'   Returns:    calling/parent cog ID+1 on success
+'               false on failure (check I/O pin parameters)
+
+    _CH1_PIN := _CH2_PIN := -1
+    if ( lookdown(CH1_PIN: 0..63) and lookdown(CH2_PIN: 0..63) )
+        longmove(@_CH1_PIN, @CH1_PIN, 2)
+        per := (clkfreq / SRATE)
+        se1setup := evt.INP_RISES | CH1_PIN     ' SE1 event: trigger on CH1 input rises
+        org
+            wrpin   ##LINELEVEL_MODE, CH1_PIN   ' Config pins for line-level output
+            wrpin   ##LINELEVEL_MODE, CH2_PIN
+            wxpin   per, CH1_PIN                ' Set sample period
+            wxpin   per, CH2_PIN
+            dirh    CH1_PIN                     ' Enable smart-pins
+            dirh    CH2_PIN                     '
             setse1  se1setup                    ' trigger on every new sample
-                                                '   period - on L_PIN rise
+                                                '   period - on CH1_PIN rise
         end
         return cogid() + 1
     return FALSE
@@ -50,136 +86,155 @@ PUB start(L_PIN, R_PIN, SAMPRATE_HZ): status | period, se1setup
 
 PUB stop()
 ' Stop the DACs
-    pinclear(_L_PIN)
-    pinclear(_R_PIN)
+
+    if ( _CH1_PIN <> -1 )
+        pinclear(_CH1_PIN)                      ' stop the smart-pin(s)
+        _CH1_PIN := -1
+    if ( _CH2_PIN <> -1 )
+        pinclear(_CH2_PIN)
+        _CH2_PIN := -1
 
 
-PUB samplerate = sample_rate
-PUB sample_rate(rate)
-' Restart with new sample rate, in Hz
-'   NOTE: This re-starts the DAC smart pins
+PUB restart_1ch_sample_rate(r) | ch1
+' Restart single-channel DAC with new sample rate, in Hz
+'   r:  new sample rate
+'   NOTE: This stops and re-starts the DAC smart pin
+
+    ch1 := _CH1_PIN
     stop()
-    start(_L_PIN, _R_PIN, rate)
+    start_linelevel_1ch(ch1, r)
 
 
-PUB output16(sample) | L_PIN, R_PIN
-' Output a 16-bit signed audio sample (mono)
-'   sample: sample to output to both left and right channels
-    longmove(@L_PIN, @_L_PIN, 2)
+PUB restart_2ch_sample_rate(r) | ch1, ch2
+' Restart with new sample rate, in Hz
+'   r:  new sample rate
+'   NOTE: This stops and re-starts the DAC smart pins
+
+    longmove(@ch1, @_CH1_PIN, 2)
+    stop()
+    start_linelevel_2ch(ch1, ch2, r)
+
+
+PUB output16_ch1(smp) | CH1_PIN
+' Output a 16-bit signed audio sample to channel 1 only
+'   smp:    sample to output
+
+    CH1_PIN := _CH1_PIN
+
     org
-        xor     sample, ##$8000
-        wypin   sample, L_PIN                   ' Output sample on left channel
-        wypin   sample, R_PIN                   ' Output sample on right channel
+        xor     smp, ##$8000
+        wypin   smp, CH1_PIN                    ' Output sample on first channel
         waitse1
     end
 
 
-PUB output16_pin(sample, lpin, rpin)
-' Output a 16-bit signed audio sample (mono)
-'   sample: sample to output to both left and right channels
-'   lpin:   left audio pin
-'   rpin:   right audio pin
+PUB output16_ch2(smp) | CH2_PIN
+' Output a 16-bit signed audio sample to channel 2 only
+'   smp:    sample to output
+
+    CH2_PIN := _CH2_PIN
+
     org
-        xor     sample, ##$8000
-        wypin   sample, lpin                    ' Output sample on left channel
-        wypin   sample, rpin                    ' Output sample on right channel
+        xor     smp, ##$8000
+        wypin   smp, CH2_PIN                    ' Output sample on second channel
         waitse1
     end
 
 
-PUB output16_stereo(smp_l, smp_r) | L_PIN, R_PIN
-' Output a 16-bit signed audio sample
-'   smp_l:  left-channel sample
-'   smp_r:  right-channel sample
-    longmove(@L_PIN, @_L_PIN, 2)
+PUB output16_2ch_mono(smp) | CH1_PIN, CH2_PIN
+' Output a 16-bit signed audio sample (mono) to both channels
+'   smp:    sample to output to both channels
+
+    longmove(@CH1_PIN, @_CH1_PIN, 2)
+
     org
-        xor     smp_l, ##$8000
-        xor     smp_r, ##$8000
-        wypin   smp_l, L_PIN                    ' Output sample on left channel
-        wypin   smp_r, R_PIN                    ' Output sample on right channel
+        xor     smp, ##$8000
+        wypin   smp, CH1_PIN                    ' Output sample on first channel
+        wypin   smp, CH2_PIN                    ' Output sample on second channel
         waitse1
     end
 
 
-PUB output16_stereo_pin(smp_l, smp_r, lpin, rpin)
-' Output a 16-bit signed audio sample
-'   smp_l:  left-channel sample
-'   smp_r:  right-channel sample
-'   lpin:   left audio pin
-'   rpin:   right audio pin
+PUB output16_2ch_stereo(smp1, smp2) | CH1_PIN, CH2_PIN
+' Output independent 16-bit signed audio samples (stereo)
+'   smp1:  first channel sample
+'   smp2:  second channel sample
+
+    longmove(@CH1_PIN, @_CH1_PIN, 2)
+
     org
-        xor     smp_l, ##$8000
-        xor     smp_r, ##$8000
-        wypin   smp_l, lpin                     ' Output sample on left channel
-        wypin   smp_r, rpin                     ' Output sample on right channel
+        xor     smp1, ##$8000
+        xor     smp2, ##$8000
+        wypin   smp1, CH1_PIN                   ' Output first channel sample
+        wypin   smp2, CH2_PIN                   ' Output second channel sample
         waitse1
     end
 
 
-PUB output8(sample) | L_PIN, R_PIN
-' Output an 8-bit unsigned audio sample (mono)
-'   sample: sample to output to both left and right channels
-    longmove(@L_PIN, @_L_PIN, 2)
+PUB output8_ch1(smp) | CH1_PIN
+' Output an 8-bit unsigned audio sample to channel 1 only
+'   smp:    sample to output
+
+    CH1_PIN := _CH1_PIN
 
     org
-        xor     sample, ##$8000
-        and     sample, #$FF
-        wypin   sample, L_PIN                   ' Output sample on left channel
-        wypin   sample, R_PIN                   ' Output sample on right channel
+        xor     smp, ##$8000
+        and     smp, #$FF
+        wypin   smp, CH1_PIN                    ' Output sample on first channel
         waitse1
     end
 
 
-PUB output8_pin(sample, lpin, rpin)
-' Output an 8-bit unsigned audio sample (mono)
-'   sample: sample to output to both left and right channels
-'   lpin:   left audio pin
-'   rpin:   right audio pin
+PUB output8_ch2(smp) | CH2_PIN
+' Output an 8-bit unsigned audio sample to channel 2 only
+'   smp:    sample to output
+
+    CH2_PIN := _CH2_PIN
+
     org
-        xor     sample, ##$8000
-        and     sample, #$FF
-        wypin   sample, lpin                    ' Output sample on left channel
-        wypin   sample, rpin                    ' Output sample on right channel
+        xor     smp, ##$8000
+        and     smp, #$FF
+        wypin   smp, CH2_PIN                    ' Output sample on second channel
         waitse1
     end
 
 
-PUB output8_stereo(smp_l, smp_r) | L_PIN, R_PIN
-' Output an 8-bit unsigned audio sample (stereo)
-'   smp_l:  left-channel sample
-'   smp_r:  right-channel sample
-    longmove(@L_PIN, @_L_PIN, 2)
+PUB output8_2ch_mono(smp) | CH1_PIN, CH2_PIN
+' Output an 8-bit unsigned audio sample (mono) to both channels
+'   sample: sample to output to both channels
+
+    longmove(@CH1_PIN, @_CH1_PIN, 2)
+
     org
-        xor     smp_l, ##$8000
-        xor     smp_r, ##$8000
-        and     smp_l, #$ff
-        and     smp_r, #$ff
-        wypin   smp_l, L_PIN                    ' Output sample on left channel
-        wypin   smp_r, R_PIN                    ' Output sample on right channel
+        xor     smp, ##$8000
+        and     smp, #$FF
+        wypin   smp, CH1_PIN                    ' Output sample on first channel
+        wypin   smp, CH2_PIN                    ' Output sample on second channel
         waitse1
     end
 
 
-PUB output8_stereo_pin(smp_l, smp_r, lpin, rpin)
-' Output an 8-bit unsigned audio sample (stereo)
-'   smp_l:  left-channel sample
-'   smp_r:  right-channel sample
-'   lpin:   left audio pin
-'   rpin:   right audio pin
+PUB output8_2ch_stereo(smp1, smp2) | CH1_PIN, CH2_PIN
+' Output independent 8-bit unsigned audio samples (stereo)
+'   smp1:  first channel sample
+'   smp2:  second channel sample
+
+    longmove(@CH1_PIN, @_CH1_PIN, 2)
+
     org
-        xor     smp_l, ##$8000
-        xor     smp_r, ##$8000
-        and     smp_l, #$ff
-        and     smp_r, #$ff
-        wypin   smp_l, lpin                     ' Output sample on left channel
-        wypin   smp_r, rpin                     ' Output sample on right channel
+        xor     smp1, ##$8000
+        xor     smp2, ##$8000
+        and     smp1, #$ff
+        and     smp2, #$ff
+        wypin   smp1, CH1_PIN                   ' Output sample on first channel
+        wypin   smp2, CH2_PIN                   ' Output sample on second channel
         waitse1
     end
 
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
