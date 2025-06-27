@@ -5,14 +5,20 @@
         * sine, square waves
     Author:         Jesse Burt
     Started:        Jan 2, 2023
-    Updated:        Oct 27, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Jun 27, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
 VAR
 
     byte _pin                                   ' stored I/O pin for signal generator methods
+
+
+PUB set_amplitude(a)
+' Set amplitude for running sine-wave generator
+'   a:  amplitude (0..32767)
+    _amp := a
 
 
 PUB set_freq(freq)
@@ -26,29 +32,39 @@ PUB set_io_pin(pin)
     _pin := 0 #> pin <# 63
 
 
-PUB sine_wave(freq, s_rate): c | pin, smp, phs
+PUB sine_wave(freq, s_rate): c
 ' Synthesize a sine wave on the currently set pin (* requires cog)
 '   freq:       initial frequency in Hz (modify during operation with set_freq() )
 '   Returns:    cog ID of sinewave generator
-    pin := _pin
     set_freq(freq)
-    return cogspin(NEWCOG, cog_sine(s_rate), @_sine_stk)
+    return cogspin(NEWCOG, cog_carrier_sine(_pin, s_rate), @_sine_stk)
 
 
-VAR long _sine_stk[50], _freq
-PRI cog_sine(s_rate) | pin, smp, phs
-' Sine-wave generator
-'   freq:   frequency
-'   s_rate: sample rate
-    pin := _pin
-    pinstart(pin, (P_DAC_DITHER_RND | P_DAC_600R_2V | P_OE), (clkfreq/s_rate), 0)
+VAR long _sine_stk[50], _freq, _amp, _phs1, _sine_cog
+PRI cog_carrier_sine(ch1_pin, s_rate) | pin, smp
+' Generate a continuous carrier wave (sine function)
+'   ch1_pin:    channel 1 pin (0..63)
+'   srate:      sample rate in Hz
+
+' Runtime-modifiable parameters:
+'   _phs1:      phase accumulator
+'   _amp:       amplitude (0..32767)
+'   _freq:      frequency
+
+' Outputs:
+'   _cog:       cog ID+1 this method is running in
+
+' NOTE: This method calculates the period based on the system clock frequency at the time
+'   it was started. It will need to be restarted if the system clock changes during operation.
+    _sine_cog := cogid()+1
+    pinstart(ch1_pin, (P_DAC_DITHER_RND | P_DAC_600R_2V | P_OE), (clkfreq/s_rate), 0)
 
     repeat
-        _, smp := polxy($7FFF, phs)             ' cordic sine function
-        wypin(pin, smp+$8000)                   ' write sine sample to DAC
-        phs += (_freq frac s_rate)               ' step angle for sine freq
+        _phs1 += _freq frac s_rate              ' step angle for sine freq
+        _, smp := polxy(_amp, _phs1)            ' CORDIC sine
+        wypin(ch1_pin, smp+$8000)               ' write sample to DAC
         repeat
-        until pinr(pin)                         ' wait for DAC sample period
+        until pinr(ch1_pin)                     ' wait sample period
 
 
 PUB square_wave(freq)
@@ -66,7 +82,7 @@ PUB square_wave_pin(pin, freq)
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
