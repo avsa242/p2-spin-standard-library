@@ -4,7 +4,7 @@
     Description:    A collection of CRC and checksum routines
     Author:         Jesse Burt
     Started:        Nov 19, 2017
-    Updated:        Feb 23, 2025
+    Updated:        Jun 28, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -41,20 +41,21 @@ PUB checksum8_twos_comp(p_buff, len): c
     return ( ( $ff - c ) + 1 )                  ' return two's complement of the sum
 
 
-PUB inet_chksum(p_buff, len, iv=0): ck | i
+PUB inet_chksum(p_buff, len, iv=0, co=true): ck | i
 ' Checksum used in various internet datagrams
 '   p_buff:     pointer to buffer of data to calculate checksum
 '   len:        length of data
 '   iv:         optional initial value to add to this checksum, e.g., the checksum of a
 '                   UDP or TCP pseudo-header.
-
+'   co:         complement output (one's complement); optional - defaults to true
+'               if false, the checksum is returned as-is (can be used e.g., for intermediate
+'               checksums to be incorporated into subsequent checksums)
     ' handle edge cases; these shouldn't generally happen, but should offer basic protection
     if ( len == 0 )
         return 0
 
     if ( len == 1 )
         return !( (byte[p_buff][0] << 8) & $ffff)
-    '
 
     ck := 0
 
@@ -66,15 +67,17 @@ PUB inet_chksum(p_buff, len, iv=0): ck | i
     if ( len & 1 )
         ck += byte[p_buff][len-1] << 8
 
-    ' Add the optional pseudo-header check
+    ' Add the optional initial value
     ck += iv
 
     ' Fold carry into lower 16 bits (repeated if needed)
     repeat while (ck > $ffff)
         ck := (ck & $ffff) + (ck >> 16)
 
-    ' Return one's complement of the result
-    return !ck & $ffff
+    if ( co )
+        return !ck & $ffff                      ' one's complement the output
+    else
+        return ck                               ' intermediate checksum, not complemented
 
 
 PUB meas_crc8(data, len): crc | currbyte, i, j
