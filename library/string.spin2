@@ -4,7 +4,7 @@
     Description:    String processing and formatting
     Author:         Jesse Burt
     Started:        May 29, 2022
-    Updated:        Apr 18, 2025
+    Updated:        Jul 2, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 
@@ -1003,8 +1003,10 @@ PUB strtoip(ptr): ip | o
 ' Convert string "dotted-quad" representation to a 32-bit IP address
 '   ptr: pointer to string representation of IP address
 '   Returns: 32-bit IP address (LSB-first)
+'   NOTE: The byte order of the value produced by this function must be swapped before writing it
+'       to a network frame
     repeat o from 0 to 3
-        ip.byte[o] := atoi( getfield(ptr, o, ".") )
+        ip.byte[3-o] := atoi( getfield(ptr, o, ".") )
 
 
 PUB strtomac(pstr, dest): ptr_mac | o
