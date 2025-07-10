@@ -4,7 +4,7 @@
     Description:    String processing and formatting
     Author:         Jesse Burt
     Started:        May 29, 2022
-    Updated:        Jul 2, 2025
+    Updated:        Jul 10, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 
@@ -400,7 +400,7 @@ PUB iptostr(ip): ptr | tmp, i
 '   Returns: pointer to string
     bytefill(@ipstr, 0, 16)
     repeat i from 0 to 3
-        tmp := itoa(ip.byte[i], ...             ' copy each byte to the end of the string
+        tmp := itoa(ip.byte[3-i], ...           ' copy each byte to the end of the string
                     @ipstr+strsize(@ipstr) )
         if ( i < 3 )                            ' place a dot between each octet
             append(@ipstr, @".")
