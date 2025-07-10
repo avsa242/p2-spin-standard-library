@@ -4,8 +4,8 @@
     Description:    Low-level UART serial driver
     Author:         Jesse Burt
     Started:        Jun 28, 2019
-    Updated:        Oct 8, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Jul 10, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 
     NOTE: This is based on SmartSerial.spin,
@@ -28,12 +28,17 @@ CON
     RXBUFF_SZ   = 64
 #endif
 
+    ' parity settings
+    #0, NONE, ODD, EVEN
+
 
 VAR
 
     long _rx_pin, _tx_pin
     long _buff_cog
     long _bit_time
+    byte _parity, _word_len
+
 
 OBJ
 
@@ -50,23 +55,29 @@ PUB init_def(bps=SER_BAUD): status
     return init(RX_PIN, TX_PIN, 0, bps)
 
 
-con WORDLEN         = 8-1                       ' serial word length, in bits-1
 PUB startrxtx = init
-PUB init(rxpin, txpin, mode, bps=-1): status | bitperiod, bit_mode
+PUB init(rxpin, txpin, mode, bps=-1, dbits=8, p=NONE): status | bitperiod, bit_mode
 ' Start using custom I/O pins and configuration
-'   rxpin: receive pin
-'   txpin: transmit pin
-'   mode: unused; currently for compatibility only
-'   bps: bits per second/baud (-1 to attempt auto-baud)
+'   rxpin:      receive pin
+'   txpin:      transmit pin
+'   mode:       unused; currently for compatibility only
+'   bps:        bits per second/baud (-1 to attempt auto-baud)
+'   dbits:      data bits (optional; default is 8)
+'   p:          parity: NONE (0), ODD (1), EVEN (2) (optional; default is NONE)
     if ( bps == -1 )
         bitperiod := autobaud(rxpin)            ' try to detect link speed if unspecified
     else
         bitperiod := (clkfreq / bps)
 
+    _word_len := dbits-1                        ' adjust for smart-pin mode
+    _parity := p
+    if ( _parity )
+        _word_len++                             ' account for the parity bit in the word length
+
     _rx_pin := rxpin
     _tx_pin := txpin
     _bit_time := bitperiod / (clkfreq / 1_000_000)
-    bit_mode := ((bitperiod << 16) + WORDLEN)
+    bit_mode := ((bitperiod << 16) + _word_len)
 
     { start a buffer I/O manager in a new cog if buffered I/O is requested at build time,
         otherwise just return the parent cog ID+1 }
@@ -175,7 +186,12 @@ PUB char = putchar
 PUB putchar(ch)
 ' Send single-byte character (blocking)
 '   ch: character (ASCII byte value) to send
+    if ( _parity )
+        ' count the number of one bits in the byte sent
+        ' parity bit := (number of '1' bits & 1) ^ (bit 0 of _parity)
+        ch.[_word_len] := ( (ones(ch) & 1) ? 1 : 0 ) ^ _parity.[0]
     wypin(_tx_pin, ch)
+
     flush_tx()
 
 
@@ -185,19 +201,38 @@ PUB getchar(): ch
 ' Receive a single byte (blocking)
 '   Returns: $00..$FF
     repeat
-        ch := rx_check()
+        ch := getchar_noblock()
     while (ch == -1)
 
 
 PUB rxcheck = getchar_noblock
 PUB rx_check = getchar_noblock
-PUB getchar_noblock(): ch
-' Check if byte received (non-blocking)
-'   Returns:
-'       -1 if no byte, otherwise byte
+PUB getchar_noblock(): ch | p
+' Receive a single byte (non-blocking)
+'   Returns:    byte received
+'               -1 if none received
+'               -2 if parity error
     ch := -1
     if ( pinr(_rx_pin) )
-        return (rdpin(_rx_pin) >> 24)
+        ch := (rdpin(_rx_pin) >> (31-_word_len))
+        if ( _parity )
+            p := ch.[_word_len]                 ' save the parity bit
+            ch &= bmask(_word_len-1)            '   and clear it from the data byte
+            if ( (ones(ch) & 1) == (p ^ _parity.[0]) )
+                ' | ones(ch) & 1 | p | _parity.[0] | result
+                ' |      0       | 0 | 0 (EVEN)    | true (good)
+                ' |      0       | 1 | 0 (EVEN)    | false (bad)
+                ' |      1       | 0 | 0 (EVEN)    | false (bad)
+                ' |      1       | 1 | 0 (EVEN)    | true (good)
+                ' |      0       | 0 | 1 (ODD)     | false (bad)
+                ' |      0       | 1 | 1 (ODD)     | true (good)
+                ' |      1       | 0 | 1 (ODD)     | true (good)
+                ' |      1       | 1 | 1 (ODD)     | false (bad)
+                return ch
+            else
+                return -2                       ' parity error
+
+    return ch
 
 
 PUB getchar_timeout(tmout=10): ch | t
@@ -216,7 +251,8 @@ PUB getchar_timeout(tmout=10): ch | t
 
 PUB flush_tx()
 ' Flush transmit buffer
-    repeat until pinr(_tx_pin)
+    repeat
+    until pinr(_tx_pin)
 
 
 #endif
@@ -224,7 +260,7 @@ PUB flush_tx()
 
 #ifdef BUFFERED_IO
 VAR long _buffer_stack[50]
-PUB cog_buffered_io(txpin, rxpin, bit_mode)
+PUB cog_buffered_io(txpin, rxpin, bit_mode) | ch, p
 
     if ( lookdown(txpin: 0..63) )
         pinstart(txpin, (P_ASYNC_TX | P_OE), bit_mode, 0)
@@ -234,10 +270,22 @@ PUB cog_buffered_io(txpin, rxpin, bit_mode)
 
     repeat
         if ( pinr(rxpin) )                      ' if there's a char waiting, buffer it
-            rxbuff.putchar( rdpin(rxpin) >> 24 )
+            ch := rdpin(_rx_pin) >> (31-_word_len)
+            if ( _parity )
+                p := ch.[_word_len]             ' save the parity bit
+                ch &= bmask(_word_len-1)        '   and clear it from the data byte
+                if ( (ones(ch) & 1) == (p ^ _parity.[0]) )
+                    rxbuff.putchar(ch)
+            else
+                rxbuff.putchar(ch)
         if ( txbuff.available() )               ' if there's a buffered char waiting, send it
-            wypin(txpin, txbuff.getchar())
-            repeat until not (rdpin(txpin) & 1) ' wait for char to finish sending (xxx really needed?)
+            ch := txbuff.getchar()
+            if ( _parity )
+                ch.[_word_len] := ( (ones(ch) & 1) ? 1 : 0 ) ^ _parity.[0]
+            wypin(txpin, ch)
+            repeat
+            until not (rdpin(txpin) & 1)        ' wait for char to finish sending (xxx really needed?)
+
 
 #endif
 
@@ -287,7 +335,7 @@ PRI autobaud(pin): bitperiod | a, b, c, port, mask
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
