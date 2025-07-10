@@ -237,26 +237,24 @@ PUB fill(ptr_str, char): ptr
     return ptr_str
 
 
-PUB find(ptr_str, ptr_srchstr): ptr_match | i, srch_sz, mismatch
-' Find string
-'   ptr_str: string to search
-'   ptr_srchstr: string to search for
-'   Returns: pointer to string if found, or 0 if not found
-    ptr_match := mismatch := 0
-    srch_sz := strsize(ptr_srchstr)             ' get size of search string
-    if (srch_sz--)
-        repeat strsize(ptr_str--)
-            if (byte[++ptr_str] == byte[ptr_srchstr])
-            { if the current char in the source string matches the first char
-              of the search string, then it could be a match }
-                repeat i from 0 to srch_sz
-                { walk through each char of the source string to see if it
-                  matches the next char of the search string }
-                    if (byte[ptr_str][i] <> byte[ptr_srchstr][i])
-                        mismatch := true        ' no - they're different;
-                        quit                    ' set flag: there's no match
-                ifnot (mismatch~)               ' flag is clear
-                    return ptr_str              ' return updated pointer
+PUB find(p_src, p_find): p | ssz
+' Find the first occurrence of a string within another string
+'   p_src:      string to search within
+'   p_find:     string to search for
+'   Returns:    pointer to string if found, or 0 if not found
+    p := 0
+    ssz := strsize(p_src)-strsize(p_find)+1     ' get max searchable "window" within the source
+    if ( ssz <= 0 )
+        ' string at p_find is bigger than string at p_src, or the strings are empty
+        return                                  ' error
+
+    repeat
+        ' search for the string, starting further and further into the source string
+        if ( bytecomp(p_find, p_src, strsize(p_find) ) )
+            return p_src
+        p_src++
+        ssz--
+    while ssz                                   ' continue while we're still "within" the source
 
 
 PUB findchar(ptr_str, char): ptr
