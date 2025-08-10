@@ -4,7 +4,7 @@
     Description:    String processing and formatting
     Author:         Jesse Burt
     Started:        May 29, 2022
-    Updated:        Jul 10, 2025
+    Updated:        Aug 10, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 
@@ -391,18 +391,18 @@ PUB hexs(val, digits): ptr | idx
     return @_tmp_buff
 
 
-VAR byte ipstr[16]
+VAR byte _ipstr[16]
 PUB iptostr(ip): ptr | tmp, i
 ' Convert 32-bit IP address to "dotted-quad" string representation
 '   ip: 32-bit IP address (LSB-first)
 '   Returns: pointer to string
-    bytefill(@ipstr, 0, 16)
+    bytefill(@_ipstr, 0, 16)
     repeat i from 0 to 3
         tmp := itoa(ip.byte[3-i], ...           ' copy each byte to the end of the string
-                    @ipstr+strsize(@ipstr) )
+                    @_ipstr+strsize(@_ipstr) )
         if ( i < 3 )                            ' place a dot between each octet
-            append(@ipstr, @".")
-    return @ipstr
+            append(@_ipstr, @".")
+    return @_ipstr
 
 
 VAR byte ipv6str[40]
@@ -616,21 +616,21 @@ PUB left(ptr_str, count, clr_a=true): ptr_new
     return mid(ptr_str, 0, count, clr_a)
 
 
-VAR byte macstr[18]
+VAR byte _macstr[18]
 PUB mactostr(ptr_mac): ptr | tmp, i
 ' Convert 6-byte array to colon-delimited (":") string representation of a MAC address
 '   ptr_mac: pointer to 6-byte array containing integer representation of MAC address
 '   Returns: pointer to string
-    bytefill(@macstr, 0, 18)
+    bytefill(@_macstr, 0, 18)
     repeat i from 0 to 5
         itoabp( byte[ptr_mac][i], ...           ' copy each byte to
-                @macstr+strsize(@macstr), ...   '   the end of the string
+                @_macstr+strsize(@_macstr), ... '   the end of the string
                 IHEX, ...                       ' we want hexadecimal/base-16
                 2, ...                          ' pad width
                 "0")                            ' pad with 0's
         if ( i < 5 )
-            append(@macstr, @":")
-    return @macstr
+            append(@_macstr, @":")
+    return @_macstr
 
 
 PUB match(ptr_str1, ptr_str2): ismatch
@@ -1007,15 +1007,18 @@ PUB strtoip(ptr): ip | o
         ip.byte[3-o] := atoi( getfield(ptr, o, ".") )
 
 
-PUB strtomac(pstr, dest): ptr_mac | o
+var byte _macint[6]
+PUB strtomac(pstr): p | o
 ' Convert string representation of a MAC address to the equivalent array of integers
-'   pstr: pointer to MAC address string (e.g., @"01:02:03:04:05:06" )
-'   dest: destination to copy the byte array to
-'   Returns: pointer to start of integer/byte array
+'   pstr:       pointer to MAC address string (e.g., @"01:02:03:04:05:06" )
+'   Returns:    pointer to start of integer/byte array
+    bytefill(@_macint, 0, 6)
+
+    ' extract each hex octet and convert to integer
     repeat o from 0 to 5
-        byte[dest][o] := atoib( getfield(pstr, o, ":"), ...
-                                IHEX )          ' convert each hex number
-    return dest
+        _macint[o] := atoib( getfield(pstr, o, ":"), IHEX )
+
+    return @_macint
 
 
 PUB tokenize(ptr_str): ptr_strtok
