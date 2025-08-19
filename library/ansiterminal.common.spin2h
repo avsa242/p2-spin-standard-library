@@ -8,7 +8,7 @@
         putdec(num) - Output a decimal number to the terminal
     Author:         Jesse Burt
     Started:        Jun 18, 2019
-    Updated:        May 4, 2025
+    Updated:        Aug 19, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -115,20 +115,6 @@ VAR
     long _bgcolor, _fgcolor
 
 
-PUB bgcolor_24bpp(bcolor)
-' Set background color
-'   Valid values: $00_00_00_00..$ff_ff_ff_00 (RR_GG_BB 24bpp, left-justified)
-    _bgcolor := bcolor
-    csi()
-    puts(@"48;2;")                              ' BG color
-    putdec(bcolor.byte[3])                      ' R
-    putchar(";")
-    putdec(bcolor.byte[2])                      ' G
-    putchar(";")
-    putdec(bcolor.byte[1])                      ' B
-    putchar("m")
-
-
 PUB bgcolor(bcolor)
 ' Set background color
 '   Valid values:
@@ -144,6 +130,20 @@ PUB bgcolor(bcolor)
     csi()
     putchar(";")
     putdec(BG + bcolor)
+    putchar("m")
+
+
+PUB bgcolor_24bpp(bcolor)
+' Set background color
+'   Valid values: $00_00_00_00..$ff_ff_ff_00 (RR_GG_BB 24bpp, left-justified)
+    _bgcolor := bcolor
+    csi()
+    puts(@"48;2;")                              ' BG color
+    putdec(bcolor.byte[3])                      ' R
+    putchar(";")
+    putdec(bcolor.byte[2])                      ' G
+    putchar(";")
+    putdec(bcolor.byte[1])                      ' B
     putchar("m")
 
 
@@ -318,7 +318,7 @@ PUB curs_up_lines(lines)
 
 PUB cursorprevline = curs_prev_line
 PUB curs_prev_row = curs_prev_line
-PUB curs_prev_line(rows)
+PUB curs_prev_line()
 ' Move cursor to beginning of previous row
     csi()
     putdec(1)
@@ -446,7 +446,7 @@ PUB move_right()
 PUB move_right_cols(cols)
 ' Move cursor forward/right 1 or more columns
     csi()
-    putdec(columns)
+    putdec(cols)
     putchar("C")
 
 
