@@ -8,7 +8,7 @@
         putdec(num) - Output a decimal number to the terminal
     Author:         Jesse Burt
     Started:        Jun 18, 2019
-    Updated:        Aug 19, 2025
+    Updated:        Aug 20, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -325,6 +325,12 @@ PUB curs_prev_line()
     putchar("F")
 
 
+pub disable_vscroll()
+' Disable vertical scrolling
+    csi()
+    putchar("r")
+
+
 PUB encircle()
 ' Set encircle attribute
     sgr(SGR_ENCIRCLED)
@@ -552,6 +558,17 @@ PUB semi_gfx_ena(enabled=1)
         puts(string(ESC, "(", "0"))
     else
         puts(string(ESC, "(", "B"))
+
+
+pub set_vscroll_area(sr, er)
+' Set vertical scrolling area
+'   sr:     starting row
+'   er:     ending row
+    csi()
+    putdec(0 #> sr+1)
+    putchar(";")
+    putdec(0 #> er+1)
+    putchar("r")
 
 
 PUB showcursor = show_cursor
