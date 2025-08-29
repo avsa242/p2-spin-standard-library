@@ -38,7 +38,7 @@ PUB days_in_month(m, y=-1): d
 '   mon:    month to count days in
 '   yr:     (optional) year, to account for possible leap year
 '   Returns: number of days
-'   NOTE: If the year isn't specified, the value returned for Feburary will be 28.
+'   NOTE: If the year isn't specified, the value returned for Februrary will be 28.
     case m
         JAN, MAR, MAY, JUL, AUG, OCT, DEC:
             return 31
