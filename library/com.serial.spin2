@@ -4,13 +4,14 @@
     Description:    Low-level UART serial driver
     Author:         Jesse Burt
     Started:        Jun 28, 2019
-    Updated:        Aug 28, 2025
+    Updated:        Oct 5, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 
     NOTE: This is based on SmartSerial.spin,
         originally by Eric Smith.
 }
+{Spin2_v51}
 
 CON
 
@@ -20,134 +21,229 @@ CON
     SER_BAUD    = 2_000_000
 
 
-    { TX/RX buffers size (_must_ be a power of 2) }
+    ' TX/RX buffers size (_must_ be a power of 2)
 #ifndef TXBUFF_SZ
-    TXBUFF_SZ   = 64
+    TXBUFF_SZ   = 2
 #endif
 #ifndef RXBUFF_SZ
     RXBUFF_SZ   = 64
 #endif
+    TXBUFF_MASK = TXBUFF_SZ-1
+    RXBUFF_MASK = RXBUFF_SZ-1
 
     ' parity settings
     #0, NONE, ODD, EVEN
+
+    ' receive/transmit ring buffers
+    struct rxbuff_s(...
+        long head, ...
+        long tail, ...
+        byte in_use, ...
+        byte buffer[RXBUFF_SZ])
+
+    struct txbuff_s(...
+        long head, ...
+        long tail, ...
+        byte in_use, ...
+        byte buffer[TXBUFF_SZ])
 
 
 VAR
 
     long _rx_pin, _tx_pin
     long _buff_cog
-    long _bit_time
-    byte _parity, _word_len
+    byte _parity_md, _word_len                  ' parity mode, word length (bits)
+
+    rxbuff_s    rxbuff
+    txbuff_s    txbuff
 
 
-OBJ
-
-#ifdef BUFFERED_IO
-    { ring buffers }
-    txbuff: "memory.ring-buffer" | RBUFF_SZ=TXBUFF_SZ
-    rxbuff: "memory.ring-buffer" | RBUFF_SZ=RXBUFF_SZ
-#endif
-
-
-PUB start = init_def
 PUB init_def(bps=SER_BAUD): status
-' Start using P2 default serial pins
+' Start using P2 default serial pins in unbuffered mode, 8N1
     return init(RX_PIN, TX_PIN, 0, bps)
 
 
-PUB startrxtx = init
-PUB init(rxpin, txpin, mode, bps=-1, dbits=8, p=NONE): status | bitperiod, bit_mode
-' Start using custom I/O pins and configuration
+PUB init(rxpin, txpin, mode, bps=-1, dbits=8, parity_md=NONE): s | bitperiod, bit_mode
+' Start using custom I/O pins and configuration in unbuffered I/O mode
 '   rxpin:      receive pin
 '   txpin:      transmit pin
 '   mode:       unused; currently for compatibility only
 '   bps:        bits per second/baud (-1 to attempt auto-baud)
 '   dbits:      data bits (optional; default is 8)
-'   p:          parity: NONE (0), ODD (1), EVEN (2) (optional; default is NONE)
-    if ( bps == -1 )
-        bitperiod := autobaud(rxpin)            ' try to detect link speed if unspecified
-    else
-        bitperiod := (clkfreq / bps)
+'   parity_md:  parity: NONE (0), ODD (1), EVEN (2) (optional; default is NONE)
+'   Returns:    parent cog ID+1
 
-    _word_len := dbits-1                        ' adjust for smart-pin mode
-    _parity := p
-    if ( _parity )
-        _word_len++                             ' account for the parity bit in the word length
+'   NOTE:       auto-baud functionality needs to receive one character before continuing
 
-    _rx_pin := rxpin
-    _tx_pin := txpin
-    _bit_time := bitperiod / (clkfreq / 1_000_000)
-    bit_mode := ((bitperiod << 16) + _word_len)
+    stop()
 
-    { start a buffer I/O manager in a new cog if buffered I/O is requested at build time,
-        otherwise just return the parent cog ID+1 }
-#ifdef BUFFERED_IO
-    _buff_cog :=    ( cogspin(  NEWCOG, ...
-                                cog_buffered_io(txpin, rxpin, bit_mode), ...
-                                @_buffer_stack) + 1 )
-    waitms(1)
-    return _buff_cog
-#else
-
+    bit_mode := setup(rxpin, bps, dbits, parity_md)
 
     if ( lookdown(txpin: 0..63) )
         pinstart(txpin, (P_ASYNC_TX | P_OE), bit_mode, 0)
+        _tx_pin := txpin
 
     if ( lookdown(rxpin: 0..63) )
         pinstart(rxpin, P_ASYNC_RX, bit_mode, 0)
+        _rx_pin := rxpin
 
-    return (cogid() + 1)
-#endif
+    return cogid()+1
+
+
+pub init_buffered(rxpin, txpin, mode=0, bps=-1, dbits=8, parity_md=NONE): s | bit_mode
+' Start using custom I/O pins and configuration in buffered I/O mode
+'   rxpin:      receive pin
+'   txpin:      transmit pin
+'   mode:       unused; currently for compatibility only
+'   bps:        bits per second/baud (-1 to attempt auto-baud)
+'   dbits:      data bits (optional; default is 8)
+'   parity_md:        parity: NONE (0), ODD (1), EVEN (2) (optional; default is NONE)
+'   Returns:    buffer I/O cog ID+1
+
+'   NOTE:       auto-baud functionality needs to receive one character before continuing
+
+    stop()
+
+    if ( lookdown(txpin: 0..63) )
+        txbuff.in_use := 1
+        _tx_pin := txpin
+
+    if ( lookdown(rxpin: 0..63) )
+        rxbuff.in_use := 1
+        _rx_pin := rxpin
+
+    bit_mode := setup(rxpin, bps, dbits, parity_md)
+
+    if ( txbuff.in_use or rxbuff.in_use )
+        _buff_cog :=    ( cogspin(  NEWCOG, ...
+                                    cog_buffered_io(txpin, rxpin, bit_mode), ...
+                                    @_buffer_stack) + 1 )
+
+        return _buff_cog
+
+
+pri setup(rxp, bps, dbits, pty): m | fsys, bitperiod, per_i, per_frac
+' Low-level setup: buffered/unbuffered mode common initialization code
+'   rxp:        async serial RX pin
+'   bps:        bitrate
+'   dbits:      data bits
+'   pty:        parity mode
+'   Returns:    async serial smart-pin X register setting
+    fsys := clkfreq                             ' latch Fsys so all calcs below use the same value
+
+    if ( bps == -1 )
+        bitperiod := autobaud(rxp)              ' try to detect link speed if unspecified
+    else                                        '   (needs to receive one character)
+        bitperiod := (fsys / bps)
+
+    _word_len := dbits-1                        ' adjust for smart-pin mode
+    _parity_md := pty
+    if ( _parity_md )
+        _word_len++                             ' account for the parity bit in the word length
+
+    ' calculate async serial smart-pin X register (bit period and word length)
+    per_i := fsys / bps                         ' integer period based on Fsys and serial baud
+    per_frac := (fsys // bps) * 64              ' fractional part in 1/64's (X[15:10])
+    per_frac := ( per_frac + (bps / 2) ) / bps  ' now round it <0.5 down, >=0.5 up
+    if ( per_frac == 64 )                       ' fractional overflow?
+        per_i++                                 '   carry it into the integer part
+        per_frac := 0
+
+    return (per_i << 16) | (per_frac << 10) | (_word_len & $1f)
+
 
 pub stop()
-#ifdef BUFFERED_IO
-    if ( _buff_cog )
-        cogstop(_buff_cog)
-        txbuff.flush()
-        rxbuff.flush()
+' Stop the serial object
+    flush_tx()                                  ' flush buffers
+    flush_rx()
+
+    if ( _buff_cog )                            ' stop the buffer I/O cog if it's in use
+        cogstop(_buff_cog-1)
+    else
+        pinclear(_rx_pin)                       ' otherwise just free up the smart-pins
+        pinclear(_tx_pin)
 
 
-pub fifo_rx_bytes(): b
+pub fifo_rx_bytes = available
+pub available(): b
 ' Get the number of bytes waiting in the receive buffer
-'   Returns: count of bytes
-    return rxbuff.available()
+'   Returns:    count of bytes (buffered mode)
+'               0 or 1 (unbuffered mode)
+    if ( rxbuff.in_use )
+        return (rxbuff.head - rxbuff.tail) & RXBUFF_MASK
+    else
+        return ( pinr(_rx_pin) )
 
 
 PUB flush_rx()
 ' Flush receive buffer
-    rxbuff.flush()
+    if ( rxbuff.in_use )                        ' buffered mode
+        rxbuff~                                 '   reset pointers, clear buffer
+    else
+        repeat                                  ' unbuffered mode
+        until pinr(_rx_pin)
 
 
 PUB flush_tx()
 ' Flush transmit buffer
-    txbuff.flush()
+    if ( txbuff.in_use )                        ' buffered mode
+        txbuff~                                 '   reset pointers, clear buffer
+    else
+        repeat                                  ' unbuffered mode
+        until pinr(_tx_pin)
 
 
-PUB rx = getchar
-PUB charin = getchar
 PUB getchar(): ch
 ' Receive a single byte (blocking)
-'   Returns: $00..$FF
+'   Returns:    character received on success
     repeat
-        ch := rxbuff.getchar()
-    while ( ch == -1)
+        ch := getchar_noblock()
+    while ( ch == -1 )
 
 
-PUB rxcheck = getchar_noblock
-PUB rx_check = getchar_noblock
-PUB getchar_noblock(): ch
+PUB getchar_noblock(): ch | p
 ' Check if byte received (non-blocking)
-'   Returns:
-'       -1 if no byte, otherwise byte
-    return rxbuff.getchar()
+'   Returns:    character received on success
+'               -1 if no character received
+'               -2 if character received has a parity error
+    if ( rxbuff.in_use )
+        if ( rxbuff.tail <> rxbuff.head )
+            ch := rxbuff.buffer[rxbuff.tail & RXBUFF_MASK]
+            rxbuff.tail++
+            return ch
+    else
+        ch := -1
+        if ( pinr(_rx_pin) )
+            ch := (rdpin(_rx_pin) >> (31-_word_len))
+            if ( _parity_md )
+#ifdef __OUTPUT_ASM__
+                p := ch.[_word_len]             ' save the parity bit
+#else
+                p := (ch >> _word_len) & 1      ' save the parity bit
+#endif
+                ch &= bmask(_word_len-1)        '   and clear it from the data byte
+                if ( (ones(ch) & 1) == (p ^ _parity_md.[0]) )
+                    ' | ones(ch) & 1 | p | _parity_md.[0] | result
+                    ' |      0       | 0 | 0 (EVEN)    | true (good)
+                    ' |      0       | 1 | 0 (EVEN)    | false (bad)
+                    ' |      1       | 0 | 0 (EVEN)    | false (bad)
+                    ' |      1       | 1 | 0 (EVEN)    | true (good)
+                    ' |      0       | 0 | 1 (ODD)     | false (bad)
+                    ' |      0       | 1 | 1 (ODD)     | true (good)
+                    ' |      1       | 0 | 1 (ODD)     | true (good)
+                    ' |      1       | 1 | 1 (ODD)     | false (bad)
+                    return ch
+                else
+                    return -2                   ' parity error
+
+    return -1                                   ' no char ready
 
 
 PUB getchar_timeout(tmout=10): ch | t
 ' Receive a single byte (blocking, with timeout)
-'   tmout:  maximum time to wait for a valid character, in milliseconds (default: 10)
-'   Returns:
-'       0..255 on success
-'       -1 on timeout
+'   tmout:      maximum time to wait for a valid character, in milliseconds (default: 10)
+'   Returns:    character sent on success
+'               -1 on timeout
     t := getct()                                ' snapshot of current system counter
     repeat
         ch := getchar_noblock()                 ' check for a valid character
@@ -156,146 +252,82 @@ PUB getchar_timeout(tmout=10): ch | t
     until ( (getct()-t) > ( (clkfreq/1000) * tmout) )
 
 
-PUB tx = putchar
-PUB char = putchar
 PUB putchar(ch): s
 ' Send single-byte character (blocking)
-'   ch: character (ASCII byte value) to send
+'   ch:         character (ASCII byte value) to send
+'   Returns:    character sent on success
+'               -1 on failure (TX buffer full)
+
     repeat
-        s := txbuff.putchar(ch)
-    while ( s == -1 )                           ' keep trying until there's space in the TX buffer
-    waitus( _bit_time * (8+1+1) )               ' wait for the char to be sent to avoid corruption
+        s := putchar_noblock(ch)
+    while (s == -1)                             ' keep trying until there's space in the TX buffer
 
 
 PUB putchar_noblock(ch): s
 ' Send single-byte character (non-blocking)
-'   ch: character (ASCII byte value) to send
-    return txbuff.putchar(ch)
-
-
-#else
-
-
-pub available(): s
-' Flag indicating new data is available to read
-    return ( pinr(_rx_pin) )
-
-
-PUB tx = putchar
-PUB char = putchar
-PUB putchar(ch)
-' Send single-byte character (blocking)
-'   ch: character (ASCII byte value) to send
-    if ( _parity )
-        ' count the number of one bits in the byte sent
-        ' parity bit := (number of '1' bits & 1) ^ (bit 0 of _parity)
-        ch.[_word_len] := ( (ones(ch) & 1) ? 1 : 0 ) ^ _parity.[0]
-    wypin(_tx_pin, ch)
-
-    flush_tx()
-
-
-PUB rx = getchar
-PUB charin = getchar
-PUB getchar(): ch
-' Receive a single byte (blocking)
-'   Returns: $00..$FF
-    repeat
-        ch := getchar_noblock()
-    while (ch == -1)
-
-
-PUB rxcheck = getchar_noblock
-PUB rx_check = getchar_noblock
-PUB getchar_noblock(): ch | p
-' Receive a single byte (non-blocking)
-'   Returns:    byte received
-'               -1 if none received
-'               -2 if parity error
-    ch := -1
-    if ( pinr(_rx_pin) )
-        ch := (rdpin(_rx_pin) >> (31-_word_len))
-        if ( _parity )
-#ifdef __OUTPUT_ASM__
-            p := ch.[_word_len]                 ' save the parity bit
-#else
-            p := (ch >> _word_len) & 1          ' save the parity bit
-#endif
-            ch &= bmask(_word_len-1)            '   and clear it from the data byte
-            if ( (ones(ch) & 1) == (p ^ _parity.[0]) )
-                ' | ones(ch) & 1 | p | _parity.[0] | result
-                ' |      0       | 0 | 0 (EVEN)    | true (good)
-                ' |      0       | 1 | 0 (EVEN)    | false (bad)
-                ' |      1       | 0 | 0 (EVEN)    | false (bad)
-                ' |      1       | 1 | 0 (EVEN)    | true (good)
-                ' |      0       | 0 | 1 (ODD)     | false (bad)
-                ' |      0       | 1 | 1 (ODD)     | true (good)
-                ' |      1       | 0 | 1 (ODD)     | true (good)
-                ' |      1       | 1 | 1 (ODD)     | false (bad)
-                return ch
-            else
-                return -2                       ' parity error
-
-    return ch
-
-
-PUB getchar_timeout(tmout=10): ch | t
-' Receive a single byte (blocking, with timeout)
-'   tmout:  maximum time to wait for a valid character, in milliseconds (default: 10)
-'   Returns:
-'       0..255 on success
-'       -1 on timeout
-    t := getct()                                ' snapshot of current system counter
-    repeat
-        ch := getchar_noblock()                 ' check for a valid character
-        if ( ch >= 0 )                          ' got one
+'   ch:         character (ASCII byte value) to send
+'   Returns:    character sent on success
+'               -1 on failure (TX buffer full)
+    if ( txbuff.in_use )
+        if ( ( (txbuff.head-txbuff.tail) & TXBUFF_MASK) <> TXBUFF_MASK )
+            txbuff.buffer[txbuff.head & TXBUFF_MASK] := ch
+            txbuff.head++
             return ch
-    until ( (getct()-t) > ( (clkfreq/1000) * tmout) )
+    else
+        if ( _parity_md )                       ' is the parity bit used?
+            ' count the number of one bits in the byte sent
+            ' parity bit := (number of '1' bits & 1) ^ (bit 0 of _parity_md)
+            ch.[_word_len] := ( (ones(ch) & 1) ? 1 : 0 ) ^ _parity_md.[0]
+        wypin(_tx_pin, ch)
+        flush_tx()
+        return ch
+
+    return -1                                   ' buffered mode: error: TX buffer full
 
 
-PUB flush_tx()
-' Flush transmit buffer
-    repeat
-    until pinr(_tx_pin)
-
-
-#endif
-
-
-#ifdef BUFFERED_IO
 VAR long _buffer_stack[50]
-PUB cog_buffered_io(txpin, rxpin, bit_mode) | ch, p
-
+PUB cog_buffered_io(txpin, rxpin, bit_mode) | ch, p, wsh, pmode, wl, tp
+' Buffered serial I/O
+'   txpin:      transmit pin
+'   rxpin:      receive pin
+'   bit_mode:   smart-pin X-register setup (b31..16: bit period, b4..0: word length)
     if ( lookdown(txpin: 0..63) )
         pinstart(txpin, (P_ASYNC_TX | P_OE), bit_mode, 0)
 
     if ( lookdown(rxpin: 0..63) )
         pinstart(rxpin, P_ASYNC_RX, bit_mode, 0)
 
+    ' make local copies of some global variables for faster access
+    wl := _word_len
+    pmode := _parity_md
+    wsh := 31-wl                                ' calc shift position based on chosen word length
+
+    ' Transmit "primed" flag; this is needed just for the first time in the loop below
+    ' Without it, pinr(txpin) will never be true since we haven't sent anything yet.
+    tp := false                                 ' indicate this is the first run
+
     repeat
-        if ( pinr(rxpin) )                      ' if there's a char waiting, buffer it
-            ch := rdpin(_rx_pin) >> (31-_word_len)
-            if ( _parity )
-                p := ch.[_word_len]             ' save the parity bit
-                ch &= bmask(_word_len-1)        '   and clear it from the data byte
-                if ( (ones(ch) & 1) == (p ^ _parity.[0]) )
-                    rxbuff.putchar(ch)
-            else
-                rxbuff.putchar(ch)
-        if ( txbuff.available() )               ' if there's a buffered char waiting, send it
-            ch := txbuff.getchar()
-            if ( _parity )
-                ch.[_word_len] := ( (ones(ch) & 1) ? 1 : 0 ) ^ _parity.[0]
-            wypin(txpin, ch)
-            repeat
-            until not (rdpin(txpin) & 1)        ' wait for char to finish sending (xxx really needed?)
+        if ( pinr(rxpin) )                      ' new char received?
+            ch := rdpin(rxpin) >> wsh           ' grab character + parity bit
+            p := ch.[wl] ^ (pmode & 1)          ' get parity bit (bit # = word length)
+            if ( (ones(ch & $ff) & 1) == p )
+                ' if parity checks out, copy the received byte to the buffer
+                rxbuff.buffer[rxbuff.head & RXBUFF_MASK] := ch
+                rxbuff.head++
 
-
-#endif
+        if ( (txbuff.head <> txbuff.tail) and ( (tp == false) or pinr(txpin) ) )
+            ' send the next available character if there is one and the smartpin is ready
+            ch := txbuff.buffer[txbuff.tail & TXBUFF_MASK]
+            txbuff.tail++                       ' consume one byte
+            if ( pmode )                        ' set parity bit
+                ch.[wl] := (ones(ch) & 1) ^ (pmode & 1)
+            wypin(txpin, ch)                    ' send char
+            tp := true
 
 
 PRI autobaud(pin): bitperiod | a, b, c, port, mask
-
+' Determine connection bitrate based on timing of received character
+'   pin:    async serial receive pin
     pinf(pin)                                   ' set pin as input
     waitx(1000)                                 ' wait to settle
     if pin >= 32
@@ -336,6 +368,15 @@ PRI autobaud(pin): bitperiod | a, b, c, port, mask
 ' Now want to wait for idle
     waitx(16 * bitperiod)
     return bitperiod
+
+
+' legacy API method aliases
+PUB start = init_def
+PUB startrxtx = init
+PUB rx = getchar
+PUB charin = getchar
+PUB rxcheck = getchar_noblock
+PUB rx_check = getchar_noblock
 
 DAT
 {
