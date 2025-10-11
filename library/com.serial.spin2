@@ -4,7 +4,7 @@
     Description:    Low-level UART serial driver
     Author:         Jesse Burt
     Started:        Jun 28, 2019
-    Updated:        Oct 5, 2025
+    Updated:        Oct 11, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 
@@ -52,6 +52,7 @@ VAR
 
     long _rx_pin, _tx_pin
     long _buff_cog
+    long _parity_err
     byte _parity_md, _word_len                  ' parity mode, word length (bits)
 
     rxbuff_s    rxbuff
@@ -235,7 +236,8 @@ PUB getchar_noblock(): ch | p
                     return ch
                 else
                     return -2                   ' parity error
-
+            else
+                return ch
     return -1                                   ' no char ready
 
 
@@ -314,7 +316,8 @@ PUB cog_buffered_io(txpin, rxpin, bit_mode) | ch, p, wsh, pmode, wl, tp
                 ' if parity checks out, copy the received byte to the buffer
                 rxbuff.buffer[rxbuff.head & RXBUFF_MASK] := ch
                 rxbuff.head++
-
+            else
+                _parity_err++                   ' track number of parity errors
         if ( (txbuff.head <> txbuff.tail) and ( (tp == false) or pinr(txpin) ) )
             ' send the next available character if there is one and the smartpin is ready
             ch := txbuff.buffer[txbuff.tail & TXBUFF_MASK]
