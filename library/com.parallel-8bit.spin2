@@ -4,8 +4,8 @@
     Description:    8-bit parallel I/O engine for LCDs
     Author:         Jesse Burt
     Started:        Jan 10, 2022
-    Updated:        Feb 13, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Nov 2, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 }
 
@@ -135,14 +135,15 @@ PRI parallel_eng() | ptr_data, i, D_BASEPIN, CS, DC, WRX, RDX, data_mask, hb, lb
             BLKDAT:
             ' write a block of data bytes
                 ptr_buff := _ptr_buff           ' cache local copy of ptr
-                xcnt := _xfer_cnt-1             ' and number of bytes
+                xcnt := _xfer_cnt               ' and number of bytes
                 pinh(DC)
-                repeat i from 0 to xcnt         ' write data from ptr_buff
+                repeat xcnt                     ' write data from ptr_buff
                     outa := outa & !data_mask
-                    outa |= (byte[ptr_buff][i] << D_BASEPIN)
+                    outa |= (byte[ptr_buff] << D_BASEPIN)
                     waitx(4)
                     pint(WRX)
                     pint(WRX)
+                    ptr_buff++
                 _io_cmd := IDLE
             BLKWD_MSBF:
             ' write a block of MSByte-first data words
@@ -150,14 +151,15 @@ PRI parallel_eng() | ptr_data, i, D_BASEPIN, CS, DC, WRX, RDX, data_mask, hb, lb
                 xcnt := _xfer_cnt
                 pinh(DC)
                 repeat xcnt
+                    dword := word[ptr_buff]
                     outa := outa & !data_mask
-                    outa |= ((word[ptr_buff] >> 8) << D_BASEPIN)
+                    outa |= ((dword >> 8) << D_BASEPIN)
                     waitx(2)
                     pinl(WRX)
                     pinh(WRX)
                     waitx(2)
                     outa := outa & !data_mask
-                    outa |= ((word[ptr_buff] & $ff) << D_BASEPIN)
+                    outa |= ((dword & $ff) << D_BASEPIN)
                     waitx(2)
                     pinl(WRX)
                     pinh(WRX)
@@ -167,22 +169,23 @@ PRI parallel_eng() | ptr_data, i, D_BASEPIN, CS, DC, WRX, RDX, data_mask, hb, lb
             BLKWD_LSBF:
             ' write a block of LSByte-first data words
                 ptr_buff := _ptr_buff
-                xcnt := _xfer_cnt-1
+                xcnt := _xfer_cnt
                 pinh(DC)
-                repeat i from 0 to xcnt
+                repeat xcnt
+                    dword := word[ptr_buff]
                     outa := outa & !data_mask
-                    outa |= ((word[ptr_buff][i] & $ff) << D_BASEPIN)
+                    outa |= ((dword & $ff) << D_BASEPIN)
                     pint(WRX)
                     waitx(2)
                     pint(WRX)
                     waitx(2)
                     outa := outa & !data_mask
-                    outa |= ((word[ptr_buff][i] >> 8) << D_BASEPIN)
+                    outa |= ((dword >> 8) << D_BASEPIN)
                     pint(WRX)
                     waitx(2)
                     pint(WRX)
                     waitx(2)
-
+                    ptr_buff += 2
                 _io_cmd := IDLE
             WORDX_MSBF:
             ' repeatedly write the same data word, xcnt times
@@ -212,7 +215,7 @@ PRI parallel_eng() | ptr_data, i, D_BASEPIN, CS, DC, WRX, RDX, data_mask, hb, lb
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
