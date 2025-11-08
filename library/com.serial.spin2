@@ -4,7 +4,7 @@
     Description:    Low-level UART serial driver
     Author:         Jesse Burt
     Started:        Jun 28, 2019
-    Updated:        Oct 11, 2025
+    Updated:        Nov 8, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 
@@ -102,7 +102,6 @@ pub init_buffered(rxpin, txpin, mode=0, bps=-1, dbits=8, parity_md=NONE): s | bi
 '   Returns:    buffer I/O cog ID+1
 
 '   NOTE:       auto-baud functionality needs to receive one character before continuing
-
     stop()
 
     if ( lookdown(txpin: 0..63) )
@@ -155,10 +154,9 @@ pri setup(rxp, bps, dbits, pty): m | fsys, bitperiod, per_i, per_frac
 
 pub stop()
 ' Stop the serial object
-    flush_tx()                                  ' flush buffers
-    flush_rx()
-
     if ( _buff_cog )                            ' stop the buffer I/O cog if it's in use
+        flush_tx()                                  ' flush buffers
+        flush_rx()
         cogstop(_buff_cog-1)
     else
         pinclear(_rx_pin)                       ' otherwise just free up the smart-pins
