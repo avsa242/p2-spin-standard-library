@@ -1,0 +1,322 @@
+{
+----------------------------------------------------------------------------------------------------
+    Filename:       signal.synth-polyphonic.spin2
+    Description:    Polyphonic synthesizer
+        * Generators: sine, triangle, sawtooth (up/down polarity), square/PWM, noise
+    Author:         Jesse Burt
+    Started:        Jul 19, 2025
+    Updated:        Nov 23, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
+}
+{Spin2_v51}
+
+con
+
+    MAX_CHANNELS    = 8
+
+    ' function generators
+    #0, ZERO, SINE, TRI, SAW_UP, SAW_DN, SQU, NOISE
+
+    ' channel/voice structure
+    struct channel_s(...                        ' channel:
+        long function, ...                      '   pointer to sample generator function
+        long sample, ...                        '   local sample (noise, saw, sine, squ, tri)
+        long freq, ...                          '   frequency (saw, sine, squ, tri)
+        long amp, ...                           '   amplitude/volume (noise, saw, sine, squ, tri)
+        long phase,...                          '   current phase accumulator (saw, sine, squ, tri)
+        long duty, ...                          '   duty cycle (squ)
+        long duty_step...                       '   duty cycle step size (squ)
+    )
+
+
+    ' stack sizes
+    AUD_STACK_SZ    = 12
+
+
+var
+
+    channel_s   channel[MAX_CHANNELS]
+
+    long        _sample_rate
+
+
+pub start(L_PIN, R_PIN, smp_rate): c | ch
+' Start the synthesizer object
+'   L_PIN:      left audio channel I/O pin
+'   R_PIN:      right audio channel I/O pin
+'   smp_rate:   audio mixing rate
+
+'   Returns:    cog ID of audio/mixing engine+1
+
+    repeat MAX_CHANNELS with ch
+        set_ch(ch, 0, 0)                        ' init all channels to muted, 0Hz freq
+
+    c := cogspin(NEWCOG, cog_audio(l_pin, r_pin, smp_rate), @_audio_stack)+1
+    repeat
+    until _audio_started
+
+
+pub amp_dec(ch, val=1)
+' Decrease a channel's amplitude/volume
+'   ch:     audio channel
+'   val:    value to decrease amplitude/volume by (default: 1)
+    channel[ch].amp := 0 #> channel[ch].amp-val <# 32767
+
+
+pub amp_inc(ch, val=1)
+' Increase a channel's amplitude/volume
+'   ch:     audio channel
+'   val:    value to increase amplitude/volume by (default: 1)
+    channel[ch].amp := 0 #> channel[ch].amp+val <# 32767
+
+
+pub duty_dec(ch, v=1)
+' Decrease channel duty cycle (applies to pulse/square function only; ignored by other functions)
+'   ch:     audio channel
+'   v:      value to decrease by (default: 1)
+    channel[ch].duty -= v
+
+
+pub duty_inc(ch, v=1)
+' Increase channel duty cycle (applies to pulse/square function only; ignored by other functions)
+'   ch:     audio channel
+'   v:      value to increase by (default: 1)
+    channel[ch].duty += v
+
+
+pub set_amp(ch, a)
+' Set channel amplitude/volume
+'   ch:     audio channel
+'   a:      amplitude
+    channel[ch].amp := 0 #> a <# 32767
+
+
+pub set_ch(ch, a, f, ph=0, dt=32768, func=ZERO)
+' Set audio channel parameters
+'   ch:     audio channel
+'   a:      amplitude
+'   f:      frequency
+'   ph:     phase (optional; default: 0)
+'   dt:     duty (optional; default: 32768 or 50%; applies to pulse function only)
+'   func:   sample generation function (optional; default is zero/null)
+    channel[ch].amp := 0 #> a <# 32767
+    channel[ch].freq := f
+    channel[ch].phase := ph
+    channel[ch].duty := 0 #> dt <# 65535
+
+    case_fast func
+        ZERO:   channel[ch].function := @zero_tick
+        SINE:   channel[ch].function := @sine_tick
+        TRI:    channel[ch].function := @triangle_tick
+        SAW_UP: channel[ch].function := @saw_up_tick
+        SAW_DN: channel[ch].function := @saw_down_tick
+        SQU:    channel[ch].function := @square_tick
+        NOISE:  channel[ch].function := @noise_tick
+        other:  channel[ch].function := func    ' user-defined function
+
+
+pub set_duty(ch, d)
+' Set a channel's duty cycle (applies to pulse/square function only; ignored by other functions)
+'   ch:     audio channel
+'   d:      duty cycle (0..65535 = 0..100%)
+    channel[ch].duty := d
+
+
+pub set_freq(ch, f)
+' Set a channel's frequency
+'   ch:     audio channel
+'   f:      frequency in Hz
+    channel[ch].freq := f
+
+
+pub set_func(ch, p_func)
+' Seta channel's sample generator function
+'   ch:     audio channel
+'   p_func: pointer to sample generation function
+'   NOTE: User-defined functions should contain the following structure:
+
+'   OBJ synth: "signal.synth-polyphonic"
+'   PUB user_function(ch) | source
+'
+'       ' actual sample generation/source here:
+'       ' source := ...
+'       synth.channel[ch].sample := source
+'
+'   Be wary of stack usage by the mixer/audio engine - increase AUD_STACK_SZ using an OBJ override
+'       if your function needs more stack space
+
+    channel[ch].function := p_func
+
+
+pub set_phase(ch, ph)
+' Set a channel's phase accumulator value
+'   ch:     audio channel
+'   ph:     phase (0..1 << 31)
+    channel[ch].phase := ph
+
+
+pub step_duty(ch)
+' Step a channel's duty cycle by a predetermined amount
+'   (applies to pulse/square function only; ignored by other functions)
+'   ch:     audio channel
+    channel[ch].duty := channel[ch].duty + channel[ch].duty_step
+
+
+' --
+
+
+con
+
+    DACLEVEL_BIT    = 8
+    LINELEVEL_MODE  = P_DAC_DITHER_RND | P_DAC_600R_2V | P_OE | (128 << DACLEVEL_BIT)
+    INP_RISES       = %001_000000               ' event trigger
+
+var long _audio_stack[AUD_STACK_SZ], _audio_started, _sample
+pri cog_audio(l_pin, r_pin, sr) | tps, se1setup, smp, ch
+' Channel mixing and audio output
+    _sample_rate := sr
+    tps := (clkfreq / _sample_rate)             ' ticks per sample
+    se1setup := INP_RISES | l_pin               ' SE1 event: trigger on left channel rises
+    asm
+        wrpin   ##LINELEVEL_MODE, l_pin         ' Config pins for line-level output
+        wrpin   ##LINELEVEL_MODE, r_pin
+        wxpin   tps, l_pin                      ' Set sample period
+        wxpin   tps, r_pin
+        dirh    l_pin                           ' Enable smart-pins
+        dirh    r_pin
+        setse1  se1setup                        ' trigger event on every new sample period
+    endasm
+    _audio_started := true
+
+    repeat
+        ' mix all channels together
+        _sample := 0                            ' init "master" sample to 0
+        repeat MAX_CHANNELS with ch
+            channel[ch].function(ch)            ' update each channel's phase accumulator
+            _sample += channel[ch].sample       ' add the channel's sample to the master (mix)
+
+        ' send the mixed sample to the DAC
+        smp := _sample
+        asm
+            xor     smp, ##$8000
+            and     smp, ##$ffff
+            wypin   smp, l_pin                  ' output left channel
+            wypin   smp, r_pin                  ' output right channel
+            waitse1                             ' wait for sample write
+        endasm
+
+
+pri noise_tick(ch): s
+' Noise sample
+'   ch:     audio channel
+    s := (getrnd() +// 65536)
+    s := (s * channel[ch].amp) sar 15
+    channel[ch].sample := s
+
+
+pri square_tick = pulse_tick
+pri pulse_tick(ch): s
+' Step the phase accumulator: pulse/square/rectangle function
+'   ch:     audio channel
+
+    ' phase = phase + (freq << 32) / srate
+    channel[ch].phase += channel[ch].freq frac _sample_rate
+
+    if ( channel[ch].phase +< (channel[ch].duty << 16) )
+                                                '     ___
+        s := 32767                              ' ___/
+    else                                        ' ___
+        s := -32768                             '    \___
+
+    s := (s * channel[ch].amp) sar 15
+    channel[ch].sample := s
+
+    return
+
+
+pri saw_up_tick(ch): x
+' Step the phase accumulator: sawtooth up function
+'   ch:     audio channel
+
+    ' phase = phase + (freq << 32) / srate
+    channel[ch].phase += channel[ch].freq frac _sample_rate
+
+    x := (channel[ch].phase >> 16) & $ffff      ' 0..65535
+    x := x - $8000                              ' -32768..+32767
+    x := (x * channel[ch].amp) sar 15           ' apply amplitude as Q15 (0..$7FFF = 0..~1.0)
+
+    channel[ch].sample := x                     ' latch final sample after all processing above
+
+    return
+
+
+pri saw_down_tick(ch): x
+' Step the phase accumulator: sawtooth down function
+'   ch:     audio channel
+
+    ' phase = phase + (freq << 32) / srate
+    channel[ch].phase += channel[ch].freq frac _sample_rate
+
+    x := (channel[ch].phase >> 16) & $ffff      ' 0..65535
+    x := $8000-x                                ' -32768..+32767
+    x := (x * channel[ch].amp) sar 15           ' apply amplitude as Q15 (0..$7FFF = 0..~1.0)
+
+    channel[ch].sample := x                     ' latch final sample after all processing above
+
+    return
+
+
+pri sine_tick(ch): s
+' Step the phase accumulator: sine function
+'   ch:     audio channel
+    channel[ch].phase += channel[ch].freq frac _sample_rate
+    _, s := polxy(channel[ch].amp, channel[ch].phase)
+    channel[ch].sample := s
+
+    return
+
+
+pri triangle_tick(ch): s | x, y
+' Step the phase accumulator: triangle function
+'   ch:     audio channel
+    channel[ch].phase += channel[ch].freq frac _sample_rate
+    x := (channel[ch].phase >> 16) & $ffff      ' 0..65535
+
+    if (x & $8000)
+        y := $ffff - x                          ' 0..32767 (descending half)
+    else
+        y := x                                  ' 0..32767 (ascending half)
+
+    s := (y << 1) - $7fff                       ' -32767..+32767
+    s := (s * channel[ch].amp) sar 15           ' scale by amp (Q15)
+
+    channel[ch].sample := s
+    return
+
+
+pri zero_tick(ch): s
+' Zero/null sample
+    s := channel[ch].sample := 0
+
+
+dat
+{
+Copyright 2025 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+
