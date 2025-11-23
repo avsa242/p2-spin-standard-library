@@ -4,8 +4,8 @@
     Description:    8-bit parallel I/O engine for LCDs
     Author:         Jesse Burt
     Started:        Jan 10, 2022
-    Updated:        Feb 13, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Nov 2, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 }
 
@@ -37,7 +37,6 @@ PUB init(D_BASEPIN, CS_PIN, DC_PIN, WR_PIN, RD_PIN=-1): status
 '   WR_PIN: WR / WRX (write clock)
 '   RD_PIN: RD / RDX (read clock; not currently used - keep this pin high)
     deinit()                                    ' stop engine, if started
-    D_BASEPIN := (D_BASEPIN addpins 8)          ' set up data pinmask
     longmove(@_DATA, @D_BASEPIN, 4)             ' copy pin params to globals
     status := _cog := cogspin(NEWCOG, parallel_eng(), @_eng_stack)+1
 
@@ -94,15 +93,18 @@ PUB wrwordx_dat(dw, nr_words)
     _io_cmd := WORDX_MSBF
     repeat until (_io_cmd == IDLE)
 
-PRI parallel_eng() | ptr_data, i, ptr_buff, D7_0, CS, DC, WRX, RDX, xcnt
+PRI parallel_eng() | ptr_data, i, D_BASEPIN, CS, DC, WRX, RDX, data_mask, hb, lb, dword, cb, db, ptr_buff, xcnt
 ' 8-bit parallel engine
-    longmove(@D7_0, @_DATA, 5)                  ' cache local copies of pins
+    longmove(@D_BASEPIN, @_DATA, 5)             ' cache local copies of pins
+    data_mask := ($ff << D_BASEPIN)
 
     ' set I/O pins initial state
     pinh(CS)
     pinh(WRX)                                   ' write clock idles high
-    pinl(D7_0)                                  ' init data pins to 0
+    outa := outa & !data_mask
+    dira |= data_mask
     pinl(CS)
+
     repeat
         case_fast _io_cmd                       ' check for valid command
             IDLE:
@@ -110,66 +112,101 @@ PRI parallel_eng() | ptr_data, i, ptr_buff, D7_0, CS, DC, WRX, RDX, xcnt
                 next
             CMD:
             ' write a command byte
-                pinl(DC)                        ' DC low: command
-                pinw(D7_0, _ptr_buff)           ' write cmd to D7..D0
-                pint(WRX)                       ' clock out cmd byte (L)
-                pint(WRX)                       '                    (H)
+                cb := _ptr_buff
+                asm
+                    drvl    DC                  ' D/C low: command
+                    andn    outa, data_mask
+                    or      outa, cb
+                    drvnot  WRX                 ' clock out byte (H->L)
+                    drvnot  WRX                 ' (L->H)
+                endasm
                 _io_cmd := IDLE                 ' signal command complete
             DATA:
             ' write a data byte
-                pinh(DC)                        ' DC high: data
-                pinw(D7_0, _ptr_buff)           ' write data to D7..D0
-                pint(WRX)                       ' clock out data byte
-                pint(WRX)
+                db := _ptr_buff
+                asm
+                    drvh    DC                  ' D/C high: data
+                    andn    outa, data_mask
+                    or      outa, db
+                    drvnot  WRX                 ' clock out byte (H->L)
+                    drvnot  WRX                 ' (L->H)
+                endasm
                 _io_cmd := IDLE
             BLKDAT:
             ' write a block of data bytes
                 ptr_buff := _ptr_buff           ' cache local copy of ptr
-                xcnt := _xfer_cnt-1             ' and number of bytes
+                xcnt := _xfer_cnt               ' and number of bytes
                 pinh(DC)
-                repeat i from 0 to xcnt         ' write data from ptr_buff
-                    pinw(D7_0, byte[ptr_buff][i])
+                repeat xcnt                     ' write data from ptr_buff
+                    outa := outa & !data_mask
+                    outa |= (byte[ptr_buff] << D_BASEPIN)
+                    waitx(4)
                     pint(WRX)
                     pint(WRX)
+                    ptr_buff++
                 _io_cmd := IDLE
             BLKWD_MSBF:
             ' write a block of MSByte-first data words
                 ptr_buff := _ptr_buff
-                xcnt := _xfer_cnt-1
+                xcnt := _xfer_cnt
                 pinh(DC)
-                repeat i from 0 to xcnt
-                    pinw(D7_0, word[ptr_buff][i] >> 8)
-                    pint(WRX)
-                    pint(WRX)
-                    pinw(D7_0, word[ptr_buff][i] & $ff)
-                    pint(WRX)
-                    pint(WRX)
+                repeat xcnt
+                    dword := word[ptr_buff]
+                    outa := outa & !data_mask
+                    outa |= ((dword >> 8) << D_BASEPIN)
+                    waitx(2)
+                    pinl(WRX)
+                    pinh(WRX)
+                    waitx(2)
+                    outa := outa & !data_mask
+                    outa |= ((dword & $ff) << D_BASEPIN)
+                    waitx(2)
+                    pinl(WRX)
+                    pinh(WRX)
+                    waitx(2)
+                    ptr_buff += 2
                 _io_cmd := IDLE
             BLKWD_LSBF:
             ' write a block of LSByte-first data words
                 ptr_buff := _ptr_buff
-                xcnt := _xfer_cnt-1
-                pinh(DC)
-                repeat i from 0 to xcnt
-                    pinw(D7_0, word[ptr_buff][i] & $ff)
-                    pint(WRX)
-                    pint(WRX)
-                    pinw(D7_0, word[ptr_buff][i] >> 8)
-                    pint(WRX)
-                    pint(WRX)
-                _io_cmd := IDLE
-            WORDX_MSBF:
-            ' repeatedly write the same data word, xcnt times
-                ptr_buff := _ptr_buff
                 xcnt := _xfer_cnt
                 pinh(DC)
                 repeat xcnt
-                    pinw(D7_0, (ptr_buff >> 8)) ' write MSB
+                    dword := word[ptr_buff]
+                    outa := outa & !data_mask
+                    outa |= ((dword & $ff) << D_BASEPIN)
                     pint(WRX)
+                    waitx(2)
                     pint(WRX)
-                    pinw(D7_0, (ptr_buff & $ff))' write LSB
+                    waitx(2)
+                    outa := outa & !data_mask
+                    outa |= ((dword >> 8) << D_BASEPIN)
                     pint(WRX)
+                    waitx(2)
                     pint(WRX)
+                    waitx(2)
+                    ptr_buff += 2
+                _io_cmd := IDLE
+            WORDX_MSBF:
+            ' repeatedly write the same data word, xcnt times
+                xcnt := _xfer_cnt
+                hb := _ptr_buff.byte[1]
+                lb := _ptr_buff.byte[0]
+                asm
+                        drvh    DC
+                        rep     @.loop, xcnt
+                        drvnot  WRX
+                        andn    outa, data_mask ' init data pins low
+                        or      outa, hb        ' write high byte
+                        waitx   #4
+                        drvnot  WRX
+                        drvnot  WRX
+                        andn    outa, data_mask
+                        or      outa, lb        ' write low byte
+                        waitx   #4
+                        drvnot  WRX
+                .loop   waitx   #2
+                endasm
                 _io_cmd := IDLE
             other:
             ' invalid command - ignore and change state to idle
@@ -178,7 +215,7 @@ PRI parallel_eng() | ptr_data, i, ptr_buff, D7_0, CS, DC, WRX, RDX, xcnt
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
