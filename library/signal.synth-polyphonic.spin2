@@ -5,7 +5,7 @@
         * Generators: sine, triangle, sawtooth (up/down polarity), square/PWM, noise
     Author:         Jesse Burt
     Started:        Jul 19, 2025
-    Updated:        Nov 23, 2025
+    Updated:        Dec 15, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -145,8 +145,15 @@ pub set_func(ch, p_func)
 '
 '   Be wary of stack usage by the mixer/audio engine - increase AUD_STACK_SZ using an OBJ override
 '       if your function needs more stack space
-
-    channel[ch].function := p_func
+    case_fast p_func
+        ZERO:   channel[ch].function := @zero_tick
+        SINE:   channel[ch].function := @sine_tick
+        TRI:    channel[ch].function := @triangle_tick
+        SAW_UP: channel[ch].function := @saw_up_tick
+        SAW_DN: channel[ch].function := @saw_down_tick
+        SQU:    channel[ch].function := @square_tick
+        NOISE:  channel[ch].function := @noise_tick
+        other:  channel[ch].function := p_func    ' user-defined function
 
 
 pub set_phase(ch, ph)
