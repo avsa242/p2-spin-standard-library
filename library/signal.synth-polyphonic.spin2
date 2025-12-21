@@ -5,7 +5,7 @@
         * Generators: sine, triangle, sawtooth (up/down polarity), square/PWM, noise
     Author:         Jesse Burt
     Started:        Jul 19, 2025
-    Updated:        Dec 15, 2025
+    Updated:        Dec 21, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -83,6 +83,20 @@ pub duty_inc(ch, v=1)
 '   ch:     audio channel
 '   v:      value to increase by (default: 1)
     channel[ch].duty += v
+
+
+pub freq_dec(ch, v=1)
+' Decrease channel frequency
+'   ch:     audio channel
+'   v:      value to decrease by (default: 1)
+    channel[ch].freq -= v
+
+
+pub freq_inc(ch, v=1)
+' Increase channel frequency
+'   ch:     audio channel
+'   v:      value to increase by (default: 1)
+    channel[ch].freq += v
 
 
 pub set_amp(ch, a)
