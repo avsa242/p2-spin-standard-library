@@ -15,6 +15,11 @@ con
 
     MAX_CHANNELS    = 8
 
+    ' mixing modes
+    MONO_2CH        = 0
+    STEREO_2CH      = 1
+
+
     ' function generators
     #0, ZERO, SINE, TRI, SAW_UP, SAW_DN, SQU, NOISE
 
@@ -26,7 +31,8 @@ con
         long amp, ...                           '   amplitude/volume (noise, saw, sine, squ, tri)
         long phase,...                          '   current phase accumulator (saw, sine, squ, tri)
         long duty, ...                          '   duty cycle (squ)
-        long duty_step...                       '   duty cycle step size (squ)
+        long duty_step, ...                     '   duty cycle step size (squ)
+        word pan...
     )
 
 
@@ -41,18 +47,20 @@ var
     long        _sample_rate
 
 
-pub start(L_PIN, R_PIN, smp_rate): c | ch
+pub start(L_PIN, R_PIN, smp_rate, mix_md=MONO_2CH): c | ch
 ' Start the synthesizer object
 '   L_PIN:      left audio channel I/O pin
 '   R_PIN:      right audio channel I/O pin
 '   smp_rate:   audio mixing rate
-
+'   mix_md:     audio mixing mode
+'               MONO_2CH:   2-channel monaural mixing (default if unspecified)
+'               STEREO_2CH: 2-channel stereo mixing
 '   Returns:    cog ID of audio/mixing engine+1
 
     repeat MAX_CHANNELS with ch
         set_ch(ch, 0, 0)                        ' init all channels to muted, 0Hz freq
 
-    c := cogspin(NEWCOG, cog_audio(l_pin, r_pin, smp_rate), @_audio_stack)+1
+    c := cogspin(NEWCOG, cog_audio(l_pin, r_pin, smp_rate, mix_md), @_audio_stack)+1
     repeat
     until _audio_started
 
@@ -194,7 +202,7 @@ con
     INP_RISES       = %001_000000               ' event trigger
 
 var long _audio_stack[AUD_STACK_SZ], _audio_started, _sample
-pri cog_audio(l_pin, r_pin, sr) | tps, se1setup, smp, ch
+pri cog_audio(l_pin, r_pin, sr, mix_md=MONO_2CH) | tps, se1setup, smp, lsmp, rsmp, ch
 ' Channel mixing and audio output
     _sample_rate := sr
     tps := (clkfreq / _sample_rate)             ' ticks per sample
@@ -211,21 +219,51 @@ pri cog_audio(l_pin, r_pin, sr) | tps, se1setup, smp, ch
     _audio_started := true
 
     repeat
-        ' mix all channels together
-        _sample := 0                            ' init "master" sample to 0
-        repeat MAX_CHANNELS with ch
-            channel[ch].function(ch)            ' update each channel's phase accumulator
-            _sample += channel[ch].sample       ' add the channel's sample to the master (mix)
+        ' 2ch mono
+        repeat while ( mix_md == MONO_2CH )
+            ' mix all channels together
+            _sample := 0                        ' init "master" sample to 0
+            repeat MAX_CHANNELS with ch
+                channel[ch].function(ch)        ' update each channel's phase accumulator
+                _sample += channel[ch].sample   ' add the channel's sample to the master (mix)
 
-        ' send the mixed sample to the DAC
-        smp := _sample
-        asm
-            xor     smp, ##$8000
-            and     smp, ##$ffff
-            wypin   smp, l_pin                  ' output left channel
-            wypin   smp, r_pin                  ' output right channel
-            waitse1                             ' wait for sample write
-        endasm
+            ' send the mixed sample to the DAC
+            smp := _sample
+            asm
+                xor     smp, ##$8000
+                and     smp, ##$ffff
+                wypin   smp, l_pin              ' output left channel
+                wypin   smp, r_pin              ' output right channel
+                waitse1                         ' wait for sample write
+            endasm
+
+
+        ' 2ch stereo
+        repeat while ( mix_md == STEREO_2CH )
+            ' mix all channels together
+            lsmp := rsmp := 0
+            repeat MAX_CHANNELS with ch
+                channel[ch].function(ch)        ' update each channel's phase accumulator
+                ' scale the left and right samples up using this channel's pan value
+                '   < 128: more left
+                '   > 128: more right
+                lsmp += channel[ch].sample * (128-channel[ch].pan)
+                rsmp += channel[ch].sample * channel[ch].pan
+
+            ' now scale the samples back down
+            lsmp := (lsmp/128)
+            rsmp := (rsmp/128)
+
+            ' send the mixed sample to the DAC
+            asm
+                xor     lsmp, ##$8000
+                and     lsmp, ##$ffff
+                xor     rsmp, ##$8000
+                and     rsmp, ##$ffff
+                wypin   lsmp, l_pin             ' output left channel
+                wypin   rsmp, r_pin             ' output right channel
+                waitse1                         ' wait for sample write
+            endasm
 
 
 pri noise_tick(ch): s
