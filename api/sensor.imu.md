@@ -196,8 +196,8 @@ a sample in RAM.
 | `gyro_scale()`         | Set gyroscope full-scale                            |
 | `gyro_word2dps()`      | Convert gyro ADC word to degrees per second (int)   |
 | `gyro_word2dpsf()`     | Convert gyro ADC word to degrees per second (float) |
-| `gyro_word2rad_sec()`  | Convert gyro ADC word to degrees per second (int)   |
-| `gyro_word2rad_secf()` | Convert gyro ADC word to degrees per second (float) |
+| `gyro_word2rad_sec()`  | Convert gyro ADC word to radians per second (int)   |
+| `gyro_word2rad_secf()` | Convert gyro ADC word to radians per second (float) |
 | `gyro_set_bias()`      | Write gyroscope calibration offset values           |
 
 
