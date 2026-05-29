@@ -75,25 +75,25 @@ pub gyro_dps_f(gx, gy, gz) | tmp[GYRO_DOF]
 pub gyro_rad_sec(gx, gy, gz) | tmp[GYRO_DOF]
 ' Read the Gyroscope output registers and scale the outputs to micro radians per second
     gyro_data(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
-    long[gx] := gyro_word2rps(tmp[X_AXIS])
-    long[gy] := gyro_word2rps(tmp[Y_AXIS])
-    long[gz] := gyro_word2rps(tmp[Z_AXIS])
+    long[gx] := gyro_word2rad_sec(tmp[X_AXIS])
+    long[gy] := gyro_word2rad_sec(tmp[Y_AXIS])
+    long[gz] := gyro_word2rad_sec(tmp[Z_AXIS])
 
 
 pub gyro_rad_sec_f(gx, gy, gz) | tmp[GYRO_DOF]
 ' Read the Gyroscope output registers and scale the outputs to radians per second (float)
     gyro_data(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
-    long[gx] := gyro_word2rpsf(tmp[X_AXIS])
-    long[gy] := gyro_word2rpsf(tmp[Y_AXIS])
-    long[gz] := gyro_word2rpsf(tmp[Z_AXIS])
+    long[gx] := gyro_word2rad_secf(tmp[X_AXIS])
+    long[gy] := gyro_word2rad_secf(tmp[Y_AXIS])
+    long[gz] := gyro_word2rad_secf(tmp[Z_AXIS])
 
 
-pub gyro_word2rps(gyro_word): r
+pub gyro_word2rad_sec(gyro_word): r
 ' Convert gyroscope ADC word to micro-radians per second
     return (gyro_word * _gres_rads_sec)
 
 
-pub gyro_word2rpsf(gyro_word): r
+pub gyro_word2rad_secf(gyro_word): r
 ' Convert gyroscope ADC word to radians per second (float)
     return float(gyro_word) *. _gres_rads_sec_f
 

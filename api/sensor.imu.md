@@ -183,16 +183,23 @@ a sample in RAM.
 
 ## Gyroscopes
 
-| Method             | Description                                       |
-| -------------------| --------------------------------------------------|
-| `calibrate_gyro()` | Calibrate the gyroscope                           |
-| `gyro_bias()`      | Read gyroscope calibration offset values          |
-| `gyro_data()`      | Read gyroscope raw data                           |
-| `gyro_data_rate()` | Set gyroscope output data rate                    |
-| `gyro_dps()`       | Read gyroscope calibrated data                    |
-| `gyro_scale()`     | Set gyroscope full-scale                          |
-| `gyro_word2dps()`  | Convert given gyro ADC word to degrees per second |
-| `gyro_set_bias()`  | Write gyroscope calibration offset values         |
+| Method                 | Description                                         |
+| -----------------------| ----------------------------------------------------|
+| `calibrate_gyro()`     | Calibrate the gyroscope                             |
+| `gyro_bias()`          | Read gyroscope calibration offset values            |
+| `gyro_data()`          | Read gyroscope raw data                             |
+| `gyro_data_rate()`     | Set gyroscope output data rate                      |
+| `gyro_dps()`           | Read gyroscope calibrated data (µdeg/sec int)       |
+| `gyro_dps_f()`         | Read gyroscope calibrated data (deg/sec float)      |
+| `gyro_rad_sec()`       | Read gyroscope calibrated data (µrad/sec int)       |
+| `gyro_rad_sec_f()`     | Read gyroscope calibrated data (rad/sec float)      |
+| `gyro_scale()`         | Set gyroscope full-scale                            |
+| `gyro_word2dps()`      | Convert gyro ADC word to degrees per second (int)   |
+| `gyro_word2dpsf()`     | Convert gyro ADC word to degrees per second (float) |
+| `gyro_word2rad_sec()`  | Convert gyro ADC word to degrees per second (int)   |
+| `gyro_word2rad_secf()` | Convert gyro ADC word to degrees per second (float) |
+| `gyro_set_bias()`      | Write gyroscope calibration offset values           |
+
 
 `calibrate_gyro()`
 ------------------
@@ -230,7 +237,15 @@ __Set gyroscope output data rate__
 -------------------------------
 __Read gyroscope scaled data__
 * Parameters:
-	* `ptr_x, ptr_y, ptr_z`: pointers to variables to read data to (micro-degrees per second)
+	* `ptr_x, ptr_y, ptr_z`: pointers to variables to read data to (micro-degrees per second, signed integer)
+* Returns: none
+
+
+`gyro_dps_f(ptr_x, ptr_y, ptr_z)`
+---------------------------------
+__Read gyroscope scaled data__
+* Parameters:
+	* `ptr_x, ptr_y, ptr_z`: pointers to variables to read data to (degrees per second, float)
 * Returns: none
 
 
@@ -240,14 +255,39 @@ __Set gyroscope full-scale__
 * Parameters:
 	* `scale`: full-scale in degrees per second
 * Returns: currently set scale, if `scale` is outside the acceptable range
+* NOTE: `scale` is always in degrees per second
 
 
 `gyro_word2dps(gyro_word)`
 --------------------------
+__Convert given gyro ADC word to micro degrees per second__
+* Parameters:
+	* `gyro_word`: gyroscope ADC word
+* Returns: angular rate in millionths of a degree per second (signed integer)
+
+
+`gyro_word2dpsf(gyro_word)`
+---------------------------
 __Convert given gyro ADC word to degrees per second__
 * Parameters:
 	* `gyro_word`: gyroscope ADC word
-* Returns: angular rate in degrees per second
+* Returns: angular rate in degrees per second (float)
+
+
+`gyro_word2rad_sec(gyro_word)`
+------------------------------
+__Convert given gyro ADC word to micro radians per second__
+* Parameters:
+	* `gyro_word`: gyroscope ADC word
+* Returns: angular rate in millionths of a radian per second (signed integer)
+
+
+`gyro_word2rad_secf(gyro_word)`
+-------------------------------
+__Convert given gyro ADC word to radians per second__
+* Parameters:
+	* `gyro_word`: gyroscope ADC word
+* Returns: angular rate in radians per second (float)
 
 
 `gyro_set_bias(x, y, z)`
@@ -266,6 +306,7 @@ in the MCU's RAM.
 | Method              | Description                                   |
 | --------------------| ----------------------------------------------|
 | `calibrate_mag()`   | Calibrate the magnetometer                    |
+| `heading()`         | alias to `yaw()`                              |
 | `mag_bias()`        | Read magnetometer calibration offset values   |
 | `mag_data()`        | Read magnetometer raw data                    |
 | `mag_data_rate()`   | Set magnetometer output data rate             |
@@ -278,6 +319,8 @@ in the MCU's RAM.
 | `magx_word2tesla()` | Convert given mag ADC word to Teslas (X-axis) |
 | `magy_word2tesla()` | Convert given mag ADC word to Teslas (Y-axis) |
 | `magz_word2tesla()` | Convert given mag ADC word to Teslas (Z-axis) |
+| `yaw()`             | Get yaw/heading angle of magnetometer         |
+
 
 `calibrate_mag()`
 -----------------
@@ -382,6 +425,13 @@ __Convert given mag ADC word to Teslas (Z-axis)__
 	* `mag_word`: magnetometer ADC word
 * Returns: magnetic field strength in Teslas
 
+
+`yaw()`
+-------
+__Get yaw/heading angle of magnetometer, in degrees__
+* Parameters: none
+* Returns: angle in 1/1_000's degrees (e.g,, 359_123 = 359.123deg)
+* NOTE: `heading()` is also provided as an alias
 
 
 Availability of other methods vary by specific sensor type and model.
