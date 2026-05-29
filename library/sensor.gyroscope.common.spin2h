@@ -1,12 +1,12 @@
 {
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
     Filename:       sensor.gyroscope.common.spin2h
     Description:    Routines common to all sensor.gyroscope device drivers
     Author:         Jesse Burt
     Started:        Aug 31, 2022
-    Updated:        Jan 21, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
----------------------------------------------------------------------------------------------------
+    Updated:        May 29, 2026
+    Copyright (c) 2026 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 
     NOTE: This file must be included by the compiler using the
         #include preprocessor directive, _outside_ of any existing
@@ -15,11 +15,12 @@
 
 VAR
 
-    long _gres
+    long _gres, _gres_rads_sec                  ' scaling factors (int * 1_000_000)
+    long _gres_dps_f, _gres_rads_sec_f          ' scaling factors (float)
     long _gbias[GYRO_DOF]
 
 
-PUB calibrate_gyro() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[GYRO_DOF], samples
+pub calibrate_gyro() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[GYRO_DOF], samples
 ' Calibrate the gyroscope
     { save current settings }
     orig_scl := gyro_scale()
@@ -55,23 +56,61 @@ PUB calibrate_gyro() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[GYRO_DOF],
     gyro_data_rate(orig_dr)
 
 
-PUB gyro_dps(gx, gy, gz) | tmp[GYRO_DOF]
-' Read the Gyroscope output registers and scale the outputs to
-'   micro degrees per second
+pub gyro_dps(gx, gy, gz) | tmp[GYRO_DOF]
+' Read the Gyroscope output registers and scale the outputs to micro degrees per second
     gyro_data(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
     long[gx] := gyro_word2dps(tmp[X_AXIS])
     long[gy] := gyro_word2dps(tmp[Y_AXIS])
     long[gz] := gyro_word2dps(tmp[Z_AXIS])
 
 
-PUB gyro_word2dps(gyro_word): gyro_dps
-' Convert gyroscope ADC word to degrees per second
+pub gyro_dps_f(gx, gy, gz) | tmp[GYRO_DOF]
+' Read the Gyroscope output registers and scale the outputs to degrees per second (float)
+    gyro_data(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
+    long[gx] := gyro_word2dpsf(tmp[X_AXIS])
+    long[gy] := gyro_word2dpsf(tmp[Y_AXIS])
+    long[gz] := gyro_word2dpsf(tmp[Z_AXIS])
+
+
+pub gyro_rad_sec(gx, gy, gz) | tmp[GYRO_DOF]
+' Read the Gyroscope output registers and scale the outputs to micro radians per second
+    gyro_data(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
+    long[gx] := gyro_word2rps(tmp[X_AXIS])
+    long[gy] := gyro_word2rps(tmp[Y_AXIS])
+    long[gz] := gyro_word2rps(tmp[Z_AXIS])
+
+
+pub gyro_rad_sec_f(gx, gy, gz) | tmp[GYRO_DOF]
+' Read the Gyroscope output registers and scale the outputs to radians per second (float)
+    gyro_data(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
+    long[gx] := gyro_word2rpsf(tmp[X_AXIS])
+    long[gy] := gyro_word2rpsf(tmp[Y_AXIS])
+    long[gz] := gyro_word2rpsf(tmp[Z_AXIS])
+
+
+pub gyro_word2rps(gyro_word): r
+' Convert gyroscope ADC word to micro-radians per second
+    return (gyro_word * _gres_rads_sec)
+
+
+pub gyro_word2rpsf(gyro_word): r
+' Convert gyroscope ADC word to radians per second (float)
+    return float(gyro_word) *. _gres_rads_sec_f
+
+
+pub gyro_word2dps(gyro_word): d
+' Convert gyroscope ADC word to micro-degrees per second
     return (gyro_word * _gres)
+
+
+pub gyro_word2dpsf(gyro_word): d
+' Convert gyroscope ADC word to degrees per second (float)
+    return float(gyro_word) *. _gres_dps_f
 
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2026 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -87,6 +126,5 @@ NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPO
 NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 }
 
