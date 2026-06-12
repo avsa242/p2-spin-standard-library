@@ -4,8 +4,8 @@
     Description:    CANbus engine (bi-directional, 1Mbps)
     Author:         Jesse Burt
     Started:        2021
-    Updated:        May 30, 2025
-    Copyright (c) 2025 - See end of file for terms of use.
+    Updated:        Jun 12, 2026
+    Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 
     NOTE: This is based on CANbus controller.spin2 (Copyright 2021),
@@ -151,10 +151,10 @@ PUB arb_errs(): e
 PUB can_ready = can_rdy
 PUB can_rdy(): s
 ' Check engine for readiness
-' Returns:
-'   READY (-1)
-'   ERROR (-2)
-'   or values > -1 for queued messages
+'   Returns:
+'       READY (-1)
+'       ERROR (-2)
+'       or values > -1 for queued messages
     return long[@_tx_ident]
 
 
@@ -233,59 +233,84 @@ PUB rx_len(): l
     return _rx_dlc
 
 
-PUB send(ident, rtr, ide, dlc=0, d0=0, d1=0, d2=0, d3=0, d4=0, d5=0, d6=0, d7=0): result
+PUB send(ident, rtr, ide, dlc=0, d0=0, d1=0, d2=0, d3=0, d4=0, d5=0, d6=0, d7=0, wait=false): s
 ' Sends a standard or extended normal or remote frame (discrete values)
 '   ident:  CANbus ID
-'   rtr:    xxx
-'   ide:    xxx
+'   rtr:    remote transmission request
+'   ide:    standard (0) or extended (non-zero) arbitration ID flag
 '   dlc:    length of data to send (optional)
-'   d0..d7: data bytes to send (optional; only d0 through dX, where X = dlc will be sent)
+'   d0..d7: data bytes to send (optional; only d0 through dX, where X = dlc-1 will be sent)
+'   wait:   wait for engine to be ready (optional; default is to only _check_ if it's ready,
+'           and return if not)
 '   Returns:
 '       TRUE (-1) if CANbus is ready
-    if ( can_rdy() == READY )
-        _tx_dlc := dlc
-        _tx_data[0] := d0
-        _tx_data[1] := d1
-        _tx_data[2] := d2
-        _tx_data[3] := d3
-        _tx_data[4] := d4
-        _tx_data[5] := d5
-        _tx_data[6] := d6
-        _tx_data[7] := d7
-        long[@_tx_ident] :=  ident | ...
-                            (decod(RTR_BIT) & (rtr and true)) | ...
-                            (decod(IDE_BIT) & (ide and true))
-        return true
+'       FALSE (0) if CANbus is not ready (only when wait is non-zero)
+    if ( wait )                                 ' wait for engine
+        repeat
+        until ( can_rdy() == READY )
+    else                                        ' check for readiness
+        ifnot ( can_rdy() == READY )
+            return false
+
+    _tx_dlc := dlc
+    _tx_data[0] := d0
+    _tx_data[1] := d1
+    _tx_data[2] := d2
+    _tx_data[3] := d3
+    _tx_data[4] := d4
+    _tx_data[5] := d5
+    _tx_data[6] := d6
+    _tx_data[7] := d7
+    long[@_tx_ident] :=  ident | ...
+                        (decod(RTR_BIT) & (rtr and true)) | ...
+                        (decod(IDE_BIT) & (ide and true))
+    return true
 
 
-PUB send_rtr(ident, ide): result
+PUB send_rtr(ident, ide, wait=false): s
 ' Sends a standard or extended remote-transmission request
 '   ident:  CANbus ID
-'   ide:    xxx
+'   ide:    standard (0) or extended (non-zero) arbitration ID flag
+'   wait:   wait for engine to be ready (optional; default is to only _check_ if it's ready,
+'           and return if not)
 '   Returns:
 '       TRUE (-1) if CANbus is ready
-    if ( can_rdy() == READY )
-        _tx_dlc := 0
-        long[@_tx_ident] :=  ident | ...
-                            (decod RTR_BIT) | ...
-                            (decod IDE_BIT & (ide and true))
-        return true
+    if ( wait )                                 ' wait for engine
+        repeat
+        until ( can_rdy() == READY )
+    else                                        ' check for readiness
+        ifnot ( can_rdy() == READY )
+            return false
+
+    _tx_dlc := 0
+    long[@_tx_ident] :=  ident | ...
+                        (decod RTR_BIT) | ...
+                        (decod IDE_BIT & (ide and true))
+    return true
 
 
-PUB send_str(ident, ide, p_str): result
+PUB send_str(ident, ide, p_str, wait=false): result
 ' Sends a standard or extended frame with up to 8 data bytes, passed as a length-prefaced string
 '   ident:  CANbus ID
-'   ide:    xxx
+'   ide:    standard (0) or extended (non-zero) arbitration ID flag
 '   p_str:  pointer to a length-prefaced string (e.g.: string(4, $12, $34, $56, $78) )
+'   wait:   wait for engine to be ready (optional; default is to only _check_ if it's ready,
+'           and return if not)
 '   Returns:
 '       TRUE (-1) if CANbus is ready
-    if ( can_rdy() == READY )
-        bytemove(@_tx_dlc, p_str, byte[p_str] + 1)
-        long[@_tx_ident] :=  ident | ...
-                            (decod IDE_BIT & (ide and true))    ' Setting _tx_ident to other than -1
-                                                                '   signals PASM routine that a new
-                                                                '   message is ready for sending
-        return true
+    if ( wait )                                 ' wait for engine
+        repeat
+        until ( can_rdy() == READY )
+    else                                        ' check for readiness
+        ifnot ( can_rdy() == READY )
+            return false
+
+    bytemove(@_tx_dlc, p_str, byte[p_str] + 1)
+    long[@_tx_ident] :=  ident | ...
+                        (decod IDE_BIT & (ide and true))    ' Setting _tx_ident to other than -1
+                                                            '   signals PASM routine that a new
+                                                            '   message is ready for sending
+    return true
 
 
 PUB set_filters(buf_idx, type, mask, filter)
