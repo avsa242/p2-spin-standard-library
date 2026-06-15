@@ -4,8 +4,8 @@
     Description:    Routines common to all sensor.accel device drivers
     Author:         Jesse Burt
     Started:        Aug 31, 2022
-    Updated:        Jun 22, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Jun 15, 2026
+    Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 
     NOTE: This file must be included by the compiler using the
@@ -13,24 +13,29 @@
         block designators (CON, VAR, OBJ, PUB, PRI, DAT)
 }
 
+con
+
+    RAD2DEG    = 180.0 / PI                     ' scale radians to degrees
+
+
 #ifndef HAVE_MATH_INT
 #   define HAVE_MATH_INT
-OBJ math: "math.int"
+obj math: "math.int"
 #endif
 
-VAR
+var
 
     long _ares, _ares_mss
     long _abias[ACCEL_DOF]
     long _ax, _ay, _az
 
 
-PUB accel_data_cache()
+pub accel_data_cache()
 ' Cache an accelerometer data sample
     accel_data(@_ax, @_ay, @_az)
 
 
-PUB accel_g(ax, ay, az) | tmp[ACCEL_DOF]
+pub accel_g(ax, ay, az) | tmp[ACCEL_DOF]
 ' Read the Accelerometer data and scale the outputs to
 '   micro-g's (1_000_000 = 1.000000 g = 9.8 m/s/s)
     accel_data(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
@@ -39,7 +44,7 @@ PUB accel_g(ax, ay, az) | tmp[ACCEL_DOF]
     long[az] := accel_word2g(tmp[Z_AXIS])
 
 
-PUB accel_mss(ax, ay, az) | tmp[ACCEL_DOF]
+pub accel_mss(ax, ay, az) | tmp[ACCEL_DOF]
 ' Read the Accelerometer data and scale the outputs to
 '   micrometers per second squared (9_800_000 = 9.8 m/s/s = 1.000000g)
     accel_data(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
@@ -48,17 +53,17 @@ PUB accel_mss(ax, ay, az) | tmp[ACCEL_DOF]
     long[az] := accel_word2mss(tmp[Z_AXIS])
 
 
-PUB accel_word2g(accel_word): g
+pub accel_word2g(accel_word): g
 ' Convert accelerometer ADC word to g's
     return (accel_word * _ares)
 
 
-PUB accel_word2mss(accel_word): accel_g
+pub accel_word2mss(accel_word): accel_g
 ' Convert accelerometer ADC word to micrometers per second squared
     return (accel_word * _ares_mss)
 
 
-PUB calibrate_accel() | axis, orig_scl, orig_dr, tmp[ACCEL_DOF], tmpx, tmpy, tmpz, samples
+pub calibrate_accel() | axis, orig_scl, orig_dr, tmp[ACCEL_DOF], tmpx, tmpy, tmpz, samples
 ' Calibrate the accelerometer
 '   NOTE: The accelerometer must be oriented with the package top facing up
 '       for this method to be successful
@@ -94,8 +99,8 @@ PUB calibrate_accel() | axis, orig_scl, orig_dr, tmp[ACCEL_DOF], tmpx, tmpy, tmp
     accel_data_rate(orig_dr)
 
 
-PUB pitch(): a
-' Get pitch angle of accelerometer, in degrees
+pub pitch(): a
+' Get pitch angle of accelerometer, in milli-degrees (integer)
 #ifdef PITCH_INV
     return math.atan2(-_ay, _az)
 #else
@@ -103,17 +108,54 @@ PUB pitch(): a
 #endif
 
 
-PUB roll(): a
-' Get roll angle of accelerometer, in degrees
+pub pitchf(): a
+' Get pitch angle of accelerometer, in degrees (float)
+#ifdef PITCH_INV
+    return __builtin_atan2f( float(-_ay), float(_az) ) *. RAD2DEG
+#else
+    return __builtin_atan2f( float(_ay), float(_az) ) *. RAD2DEG
+#endif
+
+
+pub pitch_radsf(): a | ay, az
+' Get pitch angle of accelerometer, in radians (float)
+#ifdef PITCH_INV
+    return __builtin_atan2f( float(-_ay), float(_az) )
+#else
+    return __builtin_atan2f( float(_ay), float(_az) )
+#endif
+
+
+pub roll(): a
+' Get roll angle of accelerometer, in milli-degrees (integer)
 #ifdef ROLL_INV
     return math.atan2(-_ax, _az)
 #else
     return math.atan2(_ax, _az)
 #endif
 
-DAT
+
+pub rollf(): a
+' Get roll angle of accelerometer, in degrees (float)
+#ifdef ROLL_INV
+    return _builtin_atan2f( float(-_ax), float(_az) ) *. RAD2DEG
+#else
+    return _builtin_atan2f( float(_ax), float(_az) ) *. RAD2DEG
+#endif
+
+
+pub roll_radsf(): a
+' Get roll angle of accelerometer, in radians (float)
+#ifdef ROLL_INV
+    return _builtin_atan2f( float(-_ax), float(_az) )
+#else
+    return _builtin_atan2f( float(_ax), float(_az) )
+#endif
+
+
+dat
 {
-Copyright 2024 Jesse Burt
+Copyright 2026 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
