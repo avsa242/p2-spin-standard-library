@@ -4,8 +4,8 @@
     Description:    Routines common to all sensor.magnetometer device drivers
     Author:         Jesse Burt
     Started:        Aug 31, 2022
-    Updated:        Jun 19, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Jun 16, 2026
+    Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 
     NOTE: This file must be included by the compiler using the
@@ -14,14 +14,18 @@
 
 }
 
+con
 
-VAR
+    RAD2DEG     = 180 / PI                      ' scale radians to degrees
+
+
+var
 
     long _mres[MAG_DOF]
     long _mbias[MAG_DOF]
 
 
-PUB calibrate_mag() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[MAG_DOF], samples
+pub calibrate_mag() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[MAG_DOF], samples
 ' Calibrate the magnetometer
     { save current settings }
     orig_scl := mag_scale(-2)
@@ -55,7 +59,7 @@ PUB calibrate_mag() | axis, orig_scl, orig_dr, tmpx, tmpy, tmpz, tmp[MAG_DOF], s
     mag_data_rate(orig_dr)
 
 
-PUB mag_gauss(mx, my, mz) | tmp[MAG_DOF]
+pub mag_gauss(mx, my, mz) | tmp[MAG_DOF]
 ' magnetometer data scaled to micro-gauss
     mag_data(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
     long[mx] := magx_word2gauss(tmp[X_AXIS])
@@ -63,7 +67,7 @@ PUB mag_gauss(mx, my, mz) | tmp[MAG_DOF]
     long[mz] := magz_word2gauss(tmp[Z_AXIS])
 
 
-PUB mag_tesla(ptr_x, ptr_y, ptr_z) | tmp[MAG_DOF]
+pub mag_tesla(ptr_x, ptr_y, ptr_z) | tmp[MAG_DOF]
 ' magnetometer data scaled to micro-Teslas
     mag_data(@tmp[X_AXIS], @tmp[Y_AXIS], @tmp[Z_AXIS])
     long[ptr_x] := magx_word2tesla(tmp[X_AXIS])
@@ -71,49 +75,49 @@ PUB mag_tesla(ptr_x, ptr_y, ptr_z) | tmp[MAG_DOF]
     long[ptr_z] := magz_word2tesla(tmp[Z_AXIS])
 
 
-PUB magx_word2gauss(mag_word): mag_gauss
+pub magx_word2gauss(mag_word): mag_gauss
 ' Convert magnetometer X-axis ADC word to Gauss
     return (mag_word * _mres[X_AXIS])
 
 
-PUB magy_word2gauss(mag_word): mag_gauss
+pub magy_word2gauss(mag_word): mag_gauss
 ' Convert magnetometer Y-axis ADC word to Gauss
     return (mag_word * _mres[Y_AXIS])
 
 
-PUB magz_word2gauss(mag_word): mag_gauss
+pub magz_word2gauss(mag_word): mag_gauss
 ' Convert magnetometer Z-axis ADC word to Gauss
     return (mag_word * _mres[Z_AXIS])
 
 
-PUB magx_word2tesla(mag_word): mag_tesla
+pub magx_word2tesla(mag_word): mag_tesla
 ' Convert magnetometer X-axis ADC word to Teslas
     return (mag_word * _mres[X_AXIS]) / 10_000
 
 
-PUB magy_word2tesla(mag_word): mag_tesla
+pub magy_word2tesla(mag_word): mag_tesla
 ' Convert magnetometer Y-axis ADC word to Teslas
     return (mag_word * _mres[Y_AXIS]) / 10_000
 
 
-PUB magz_word2tesla(mag_word): mag_tesla
+pub magz_word2tesla(mag_word): mag_tesla
 ' Convert magnetometer Z-axis ADC word to Teslas
     return (mag_word * _mres[Z_AXIS]) / 10_000
 
 
 #ifndef HAVE_MATH_INT
 #   define HAVE_MATH_INT
-OBJ
+obj
 
     math:    "math.int"
 #endif
 
 
-PUB heading = yaw
-PUB yaw(): a | x, y, z
-' Get yaw/heading angle of magnetometer, in degrees
+pub heading = yaw
+pub yaw(): a | x, y, z
+' Get yaw/heading angle of magnetometer
 '   Returns: angle in 1/1_000's degrees (e.g,, 359_123 = 359.123deg)
-    longfill(@x, 0, 5)
+    longfill(@x, 0, 3)
     mag_data(@x, @y, @z)
 
     if ( x == 0 )
@@ -132,7 +136,37 @@ PUB yaw(): a | x, y, z
     return a
 
 
-DAT
+pub headingf = yaw_degf
+pub yaw_degf(): a | x, y, z
+' Get yaw/heading angle of magnetometer (float)
+'   Returns: angle in degrees
+    longfill(@x, 0, 3)
+    mag_data(@x, @y, @z)
+
+    a := __builtin_atan2f( float(y), float(x) ) *. RAD2DEG
+
+    if ( a <. 0 )
+        a := a +. 360.0
+
+    return a
+
+
+pub heading_radsf = yaw_radsf
+pub yaw_radsf(): a | x, y, z
+' Get yaw/heading angle of magnetometer (float)
+'   Returns: angle in radians
+    longfill(@x, 0, 3)
+    mag_data(@x, @y, @z)
+
+    a := __builtin_atan2f( float(y), float(x) )
+
+    if (a <. 0.0)
+        a := a +. 6.2831853
+
+    return a
+
+
+dat
 {
 Copyright 2024 Jesse Burt
 
