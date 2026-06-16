@@ -4,7 +4,7 @@
     Description:    Routines common to all sensor.accel device drivers
     Author:         Jesse Burt
     Started:        Aug 31, 2022
-    Updated:        Jun 15, 2026
+    Updated:        Jun 16, 2026
     Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 
@@ -138,7 +138,7 @@ pub roll(): a
 pub rollf(): a
 ' Get roll angle of accelerometer, in degrees (float)
 #ifdef ROLL_INV
-    return _builtin_atan2f( float(-_ax), float(_az) ) *. RAD2DEG
+    return __builtin_atan2f( float(-_ax), float(_az) ) *. RAD2DEG
 #else
     return _builtin_atan2f( float(_ax), float(_az) ) *. RAD2DEG
 #endif
@@ -147,9 +147,9 @@ pub rollf(): a
 pub roll_radsf(): a
 ' Get roll angle of accelerometer, in radians (float)
 #ifdef ROLL_INV
-    return _builtin_atan2f( float(-_ax), float(_az) )
+    return __builtin_atan2f( float(-_ax), float(_az) )
 #else
-    return _builtin_atan2f( float(_ax), float(_az) )
+    return __builtin_atan2f( float(_ax), float(_az) )
 #endif
 
 
