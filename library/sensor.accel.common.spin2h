@@ -140,7 +140,7 @@ pub rollf(): a
 #ifdef ROLL_INV
     return __builtin_atan2f( float(-_ax), float(_az) ) *. RAD2DEG
 #else
-    return _builtin_atan2f( float(_ax), float(_az) ) *. RAD2DEG
+    return __builtin_atan2f( float(_ax), float(_az) ) *. RAD2DEG
 #endif
 
 
