@@ -1,18 +1,19 @@
 {
-    --------------------------------------------
-    Filename: math.int.spin
-    Author: Jesse Burt
-    Description: Basic integer math functions
-    Copyright (c) 2022
-    Started Apr 11, 2021
-    Updated Sep 18, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       math.int.spin2
+    Description:    Basic integer math functions
+    Author:         Jesse Burt
+    Started:        Apr 11, 2021
+    Updated:        Jun 17, 2026
+    Copyright (c) 2026 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
+
 CON
 
-    SCALE       = 1_000
-    FULLCIRCLE  = (360 * SCALE)
+    SCALE           = 1_000
+    FULLCIRCLE_DEGS = (360 * SCALE)
+
 
 VAR
 
@@ -24,7 +25,8 @@ PUB null()
 PUB atan2(y, x): r | angle
 ' 2-argument arctangent
     _, angle := xypol(x, y)
-    return angle sca FULLCIRCLE
+    return angle sca FULLCIRCLE_DEGS
+
 
 PUB cos(angle): cosine
 ' Return the cosine of angle
@@ -35,15 +37,15 @@ PUB cos(angle): cosine
     end
     return
 
-PUB log2(num): l2
+PUB log2i(num): l2
 ' Return base-2 logarithm of num
     return encod(num)
 
-PUB pow(base, exp): r
+PUB powi(base, xp): r
 ' Return base raised to the power of exp
     r := base
-    exp--
-    repeat exp
+    xp--
+    repeat xp
         r *= base
 
 PUB rnd(maxval): ur
