@@ -4,8 +4,8 @@
     Description:    A collection of CRC and checksum routines
     Author:         Jesse Burt
     Started:        Nov 19, 2017
-    Updated:        Jun 28, 2025
-    Copyright (c) 2025 - See end of file for terms of use.
+    Updated:        Jul 19, 2026
+    Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
@@ -27,6 +27,19 @@ CON
 PUB asaircrc8(ptr_data, len): crc
 ' CRC8 for ASAIR temp/RH sensors
     return crc8(ptr_data, len, $ff, 0, POLY8_ASAIR, false, false)
+
+
+pub checksum8(p_src, len): c
+' 8-bit checksum
+'   p_src:      pointer to source data
+'   len:        length of data to sum
+'   Returns:    8-bit checksum
+    c := 0
+    repeat while len
+        c += byte[p_src++]                      ' sum bytes in source buffer
+        len--
+
+    return (c & $ff)                            ' discard bits >7
 
 
 PUB checksum8_twos_comp(p_buff, len): c
@@ -279,7 +292,7 @@ PUB crc32(ptr_data, data_len, init, xorout, poly, ireflect, oreflect): crc | cur
 
 DAT
 {
-Copyright 2025 Jesse Burt
+Copyright 2026 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
