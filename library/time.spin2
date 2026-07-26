@@ -14,7 +14,7 @@
 
 #include "time-common.spin2"
 
-CON
+con
 
     { limits }
     WMIN            = 381                       ' waitcnt() overhead minimum
@@ -28,12 +28,17 @@ CON
     SECS_PER_DAY    = (24 * SECS_PER_HOUR)
 
 
-VAR
+var
 
     long _sync
 
 
-PUB days_in_month(m, y=-1): d
+obj
+
+    str:    "string"
+
+
+pub days_in_month(m, y=-1): d
 ' Get number of days in a month
 '   mon:    month to count days in
 '   yr:     (optional) year, to account for possible leap year
@@ -51,7 +56,7 @@ PUB days_in_month(m, y=-1): d
                 return 28
 
 
-PUB days_in_year(y): d
+pub days_in_year(y): d
 ' Get the number of days in the specified year
     if ( is_leap_year(y) )
         return 366
@@ -83,7 +88,7 @@ pub mktime(^tm_s tm): utime | y, m
                 ((tm.tm_hour * SECS_PER_HOUR) + (tm.tm_min * SECS_PER_MINUTE) + tm.tm_sec)
 
 
-PUB dtime2utime(y, m, d, h, mn, s): utime | yt, mt
+pub dtime2utime(y, m, d, h, mn, s): utime | yt, mt
 ' Get seconds since UNIX epoch (Jan 1, 1970, 00:00:00), given date and time
 '   year, month, day, hour, minute, second: discrete time units of desired time
 '   Returns: seconds
@@ -107,7 +112,7 @@ PUB dtime2utime(y, m, d, h, mn, s): utime | yt, mt
                 ((h * 3600) + (mn * 60) + s)
 
 
-PUB is_leap_year(y): b
+pub is_leap_year(y): b
 ' Indicate if the given year is a leap-year
 '   Returns: TRUE (-1) or FALSE (0)
     ifnot ( y // 400 )                          ' evenly divisible by 400? yes
@@ -118,44 +123,63 @@ PUB is_leap_year(y): b
         return true
 
 
-PUB msleep(msecs)
+pub month_to_int(p_str): n | p, r
+' Get numeric representation of a three-letter abbreviated month string ("Jan", "Feb", etc)
+'   p_str:      month string (pointer to string; not case-sensitive)
+'   Returns:    integer (1..12) on matched month
+'               0 if input string doesn't match any month string
+
+    p := @_month_strings_short                  ' point to abbreviated month strings table
+    n := 0
+    r := 0
+    repeat
+        ifnot ( str.compare(p_str, p, false) )  ' input string matches month in table?
+            return byte[p][4]                   '   return the corresponding number
+        p += 5
+        r++
+    while (r < 12)
+
+    return 0                                    ' no match; return 0
+
+
+pub msleep(msecs)
 ' Sleep for msecs milliseconds.
     waitms(msecs)
 
 
-PUB ms_to_sys_ticks(m): s
+pub ms_to_sys_ticks(m): s
 ' Get the number of system ticks in milliseconds (at current system frequency)
 '   m:          milliseconds
 '   Returns:    system ticks
     return (m * (clkfreq / 1_000) )
 
 
-PUB setsync = set_sync
-PUB set_sync()
+pub setsync = set_sync
+pub set_sync()
 ' Set starting point for synchronized time delays
 ' Wait for the start of the next window with wait_for_sync*() methods below
     _sync := cnt
 
 
-PUB sleep(secs)
+pub sleep(secs)
 ' Sleep for secs seconds.
     waitms(secs*1_000)
 
 
-PUB us_to_sys_ticks(u): s
+pub us_to_sys_ticks(u): s
 ' Get the number of system ticks in microseconds (at current system frequency)
 '   u:          microseconds
 '   Returns:    system ticks
     return (u * (clkfreq / 1_000_000) )
 
 
-PUB usleep(usecs)
+pub usleep(usecs)
 ' Sleep for microseconds
     waitus(usecs)
 
 
-PUB gmtime = utime2dtime
-PUB utime2dtime(utime, p_dest) | y, mo, d, h, mn, s
+pub gmtime = utime2dtime
+pub utime2dtime(utime, p_dest) | y, mo, d, h, mn, s
 ' Convert seconds since UNIX epoch to discrete units of time
 '   utime:      seconds since Jan 1, 1970 00:00:00
 '   p_dest:     pointer to destination array of longs holding date/time datum
@@ -182,28 +206,28 @@ PUB utime2dtime(utime, p_dest) | y, mo, d, h, mn, s
     longmove(p_dest, @y, 6)                     ' copy date/time to destination
 
 
-PUB waitforsync = wait_for_sync
-PUB wait_for_sync(secs)
+pub waitforsync = wait_for_sync
+pub wait_for_sync(secs)
 ' Wait until start of the next seconds-long time period
 '   NOTE: set_sync() must be called before calling wait_for_sync() the first time
     waitct(_sync += ((clkfreq * secs) #> WMIN))
 
 
-PUB waitsyncmsec = wait_sync_msec
-PUB wait_sync_msec(msec)
+pub waitsyncmsec = wait_sync_msec
+pub wait_sync_msec(msec)
 ' Wait until start of the next milliseconds-long time period
 '   NOTE: set_sync() must be called before calling wait_for_sync() the first time
     waitct(_sync += (clkfreq / 1_000 * msec) #> WMIN)
 
 
-PUB waitsyncusec = wait_sync_usec
-PUB wait_sync_usec(usec)
+pub waitsyncusec = wait_sync_usec
+pub wait_sync_usec(usec)
 ' Wait until start of the next microseconds-long time period
 '   NOTE: set_sync() must be called before calling wait_for_sync() the first time
     waitct(_sync += (clkfreq / 1_000_000 * usec) #> WMIN)
 
 
-PRI days_since_unix_epoch(y): d | yt
+pri days_since_unix_epoch(y): d | yt
 ' Calculate the total number of days from the UNIX epoch (January 1, 1970)
 '   to the start of the given year
     d := 0
@@ -214,7 +238,7 @@ PRI days_since_unix_epoch(y): d | yt
                 d++
 
 
-PRI get_year(utime): y
+pri get_year(utime): y
 ' Get the year from a UNIX timestamp
     y := 1970
     repeat until ( utime < ( (days_in_year(y) * SECS_PER_DAY)) )
@@ -222,12 +246,12 @@ PRI get_year(utime): y
         y += 1
 
 
-PRI get_day(utime): d
+pri get_day(utime): d
 ' Get the day from a UNIX timestmap
     return (utime / SECS_PER_DAY) + 1
 
 
-PRI get_month(y, utime): mo
+pri get_month(y, utime): mo
 ' Get the month from a UNIX timestamp
 '   yr:     year the timestamp is within
 '   utime:  UNIX timestamp
@@ -237,7 +261,7 @@ PRI get_month(y, utime): mo
         mo += 1
 
 
-PRI days_since_year_start(y, mo): d | m
+pri days_since_year_start(y, mo): d | m
 ' Number of days from the start of the year to the start of the given month
     d := 0
     if ( mo > JANUARY )
@@ -245,9 +269,27 @@ PRI days_since_year_start(y, mo): d | m
             d += days_in_month(m, y)
 
 
-DAT
+dat
+
+    ' date strings
+    _month_strings_short                        ' three-letter abbreviated months
+        byte "JAN", 0, JAN
+        byte "FEB", 0, FEB
+        byte "MAR", 0, MAR
+        byte "APR", 0, APR
+        byte "MAY", 0, MAY
+        byte "JUN", 0, JUN
+        byte "JUL", 0, JUL
+        byte "AUG", 0, AUG
+        byte "SEP", 0, SEP
+        byte "OCT", 0, OCT
+        byte "NOV", 0, NOV
+        byte "DEC", 0, DEC
+
+
+dat
 {
-Copyright 2025 Jesse Burt
+Copyright 2026 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
