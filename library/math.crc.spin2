@@ -4,7 +4,7 @@
     Description:    A collection of CRC and checksum routines
     Author:         Jesse Burt
     Started:        Nov 19, 2017
-    Updated:        Jul 19, 2026
+    Updated:        Aug 2, 2026
     Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -91,6 +91,28 @@ PUB inet_chksum(p_buff, len, iv=0, co=true): ck | i
         return !ck & $ffff                      ' one's complement the output
     else
         return ck                               ' intermediate checksum, not complemented
+
+
+pub lfsr8(p_src, len, poly, key): d | b, db, bit
+' Linear feedback shift-register
+' (8-bit, LSByte to MSByte, MSBit to LSBit
+'   p_src:      source data (pointer)
+'   len:        length of data
+'   poly:       generator polynomial
+'   key:        key (initial state)
+'   Returns:    8-bit digest
+    d := 0
+    repeat b from 0 to len-1                    ' process LSByte to MSByte
+        db := byte[p_src][b]                    ' read current byte
+        repeat bit from 7 to 0                  ' process MSBit to LSBit
+            if ( (db >> bit) & 1)
+                d ^= key
+            if ( key & 1 )
+                key := (key >> 1) ^ poly
+            else
+                key := (key >> 1)
+
+    return d
 
 
 PUB meas_crc8(data, len): crc | currbyte, i, j
