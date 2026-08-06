@@ -7,8 +7,8 @@
             FXOS8700
     Author:         Jesse Burt
     Started:        Oct 2, 2022
-    Updated:        Jun 14, 2025
-    Copyright (c) 2025 - See end of file for terms of use.
+    Updated:        Aug 6, 2026
+    Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
@@ -774,10 +774,10 @@ PUB inact_time(): t | tr
 ' Get inactivity time
 '   Returns: milliseconds
     if ( accel_data_rate() == 1 )
-        tr := 640                         ' 640ms time step for 1Hz ODR
+        tr := 640                               ' 640ms time step for 1Hz ODR
     else
-        tr := 320                         ' 320ms time step for others
-    max_dur := (tr * 255)                 ' calc max possible duration
+        tr := 320                               ' 320ms time step for others
+    max_dur := (tr * 255)                       ' calc max possible duration
 
     t := readreg(core.ASLP_CNT)
     if ( opmode == BOTH )
@@ -794,13 +794,13 @@ PUB inact_set_time(t) | tr
 '   NOTE: Setting this to 0 will generate an interrupt when the acceleration
 '       measures less than that set with inact_set_thresh()
 #ifdef FXOS8700
-    if ( opmode == BOTH )                       ' cut the set time in half if both sensors
-        t /= 2                              '   are being used
+    if ( sensors_enabled() == BOTH )            ' cut the set time in half if both sensors
+        t /= 2                                  '   are being used
 #endif
     if ( accel_data_rate() == 1 )
-        tr := 640                         ' 640ms time step for 1Hz ODR
+        tr := 640                               ' 640ms time step for 1Hz ODR
     else
-        tr := 320                         ' 320ms time step for others
+        tr := 320                               ' 320ms time step for others
 
     cache_opmode()
     writereg(core.ASLP_CNT, ((0  #> t <# (tr * 255) ) / tr) )
@@ -922,7 +922,7 @@ PUB trans_thresh(t=-2): ct
 
 DAT
 {
-Copyright 2025 Jesse Burt
+Copyright 2026 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
