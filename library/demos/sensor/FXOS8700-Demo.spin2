@@ -1,76 +1,120 @@
 {
-    --------------------------------------------
-    Filename: FXOS8700-Demo.spin2
-    Author: Jesse Burt
-    Description: FXOS8700 driver demo (P2 version)
+----------------------------------------------------------------------------------------------------
+    Filename:       FXOS8700-Demo.spin2
+    Description:    Demo of the FXOS8700 driver
         * 6DoF data output
-    Copyright (c) 2022
-    Started Sep 19, 2020
-    Updated Nov 7, 2022
-    See end of file for terms of use.
-    --------------------------------------------
-
-    Build-time symbols supported by driver:
-        N/A
+    Author:         Jesse Burt
+    Started:        Sep 19, 2020
+    Updated:        May 31, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
-'#include "core.con.click.spin2"
 
 CON
 
-    _clkfreq    = cfg._clkfreq_def
-    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = 180_000_000
+    _xtlfreq    = 20_000_000
 
+
+#include "core.con.click.spin2"
 ' -- User-modifiable constants
-    SER_BAUD    = 2_000_000
-
-    CLICK_BASE  = 16
-
-    { I2C configuration }
-    { custom I/O pin definitions - uncomment the below, and comment out the #include
-        line above to use }
-    SCL_PIN     = 0
-    SDA_PIN     = 1
-    I2C_FREQ    = 400_000                       ' max is 400_000
-    ADDR_BITS   = %11                           ' %00..%11
-
-    RES_PIN     = -1
+    CLICK_BASE  = 16                            ' MikroE Click board base I/O pin (multiple of 16)
 '--
+
 
 OBJ
 
-    cfg: "boardcfg.p2eval"
-    sensor: "sensor.imu.6dof.fxos8700"
-    ser: "com.serial.terminal.ansi"
+    { MikroE Click boards (change CLICK_BASE above) }
+    'sensor: "sensor.imu.6dof.fxos8700" | SCL=SCL_PIN, SDA=SDA_PIN, I2C_FREQ=400_000, I2C_ADDR=%11
+
+    { custom I/O settings }
+    sensor: "sensor.imu.6dof.fxos8700" | SCL=0, SDA=1, I2C_FREQ=400_000, I2C_ADDR=%11, RST_PIN=-1
+
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+
+
+PUB main() | a[3], m[3]
+
+    setup()
+    sensor.preset_active()
+
+    repeat
+        repeat
+        until sensor.accel_data_rdy()           ' wait for new accel data
+
+        ' copy accelerometer data (micro-g's) to an array here
+        sensor.accel_g(@a[sensor.X_AXIS], @a[sensor.Y_AXIS], @a[sensor.Z_AXIS])
+
+        repeat
+        until sensor.mag_data_rdy()             ' wait for new mag data
+
+        ' copy magnetometer data (micro-Gauss) to an array here
+        sensor.mag_gauss(@m[sensor.X_AXIS], @m[sensor.Y_AXIS], @m[sensor.Z_AXIS])
+
+        ser.pos_xy(0, 3)
+        show_data(@"Accel (g):  ", a[sensor.X_AXIS], a[sensor.Y_AXIS], a[sensor.Z_AXIS])
+        show_data(@"Mag (Gs):  ", m[sensor.X_AXIS], m[sensor.Y_AXIS], m[sensor.Z_AXIS])
+
+        if ( ser.getchar_noblock() == "c" )     ' press "c" to calibrate/zero the sensors
+            cal_accel()
+            cal_mag()
+
+
+PUB show_data(p_str, x, y, z) | axis, tmp[3], sign
+
+    longmove(@tmp, @x, 3)
+
+    ser.str(p_str)
+    repeat axis from 0 to 2
+        ' The sign is normally taken from the whole part and just displayed.
+        ' Because we're showing values divided by 1_000_000, it won't show negative until the value
+        '   reaches -1_000_000 or less, so values like -0_800_000 will display without the '-',
+        '   so process the sign display separately here
+        if ( tmp[axis] < 0 )
+            sign := "-"
+        else
+            sign := " "
+        ser.printf(@"%c%d.%06.6d     ", sign, ...
+                                        abs(tmp[axis] / 1_000_000), ...
+                                        abs(tmp[axis] // 1_000_000) )
+    ser.newline()
+
+
+PUB cal_accel()
+' Calibrate the accelerometer
+    ser.pos_xy(0, 3)
+    ser.str(@"Calibrating accelerometer...")
+    sensor.calibrate_accel()
+    ser.pos_xy(0, 3)
+    ser.clear_ln()
+
+
+PUB cal_mag()
+' Calibrate the magnetometer
+    ser.pos_xy(0, 4)
+    ser.str(@"Calibrating magnetometer...")
+    sensor.calibrate_mag()
+    ser.pos_xy(0, 4)
+    ser.clear_ln()
+
 
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(10)
+    ser.start()
+
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    if (sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS, RES_PIN))
+    if ( sensor.start() )
         ser.strln(@"FXOS8700 driver started")
     else
         ser.strln(@"FXOS8700 driver failed to start - halting")
         repeat
 
-    sensor.preset_active()
-
-    repeat
-        ser.pos_xy(0, 3)
-        show_accel_data{}
-        show_mag_data{}
-        if (ser.rx_check() == "c")
-            cal_accel()
-            cal_mag()
-
-#include "acceldemo.common.spin2h"
-#include "magdemo.common.spin2h"
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
