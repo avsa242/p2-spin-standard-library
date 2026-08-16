@@ -4,8 +4,8 @@
     Description:    SPI engine (smart-pin driven) for the Propeller 2
     Author:         Jesse Burt
     Started:        Apr 15, 2020
-    Updated:        May 20, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Aug 16, 2026
+    Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 
     NOTE: This is based on excerpts of XPT2046.spin2,
@@ -24,7 +24,7 @@ VAR
 
 OBJ
 
-    sp      : "core.con.smartpins"
+    sp: "smartpins-common"
 
 PUB null()
 ' This is not a top-level object
@@ -184,7 +184,7 @@ PRI spi_clk_period(SCK_FREQ): bt
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2026 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
