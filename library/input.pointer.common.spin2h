@@ -4,90 +4,212 @@
     Description:    Code common to pointing input devices
     Author:         Jesse Burt
     Started:        Jan 2, 2024
-    Updated:        Mar 6, 2025
-    Copyright (c) 2025 - See end of file for terms of use.
+    Updated:        Aug 29, 2026
+    Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
+{Spin2_v45}
 
-CON
-
-    ' touch event structure
-    touch_s(...
-        byte    event, ...                      ' event flag (pressed, lifted, contact, none, etc)
-        word    x, y, ...                       ' coordinates
-        byte    id, ...                         ' touch ID
-        byte    weight, ...                     ' weight of touch point
-        byte    area)                           ' pixel area of touch point
+con
 
 
-VAR
+    struct s32_coord_s(...                      ' signed coordinates
+        long    x, y)
 
-    long _pointer_x, _pointer_y
-    long _pointer_x_max, _pointer_y_max, _pointer_x_min, _pointer_y_min
+    struct u16_coord_s(...                      ' unsigned coordinates
+        word    x, y)
+
+    ' pointer event structure
+    struct point_s(...
+        u16_coord_s craw, ...                   ' raw coordinates
+        u16_coord_s cabs, ...                   ' absolute coordinates (pixels)
+        s32_coord_s crel, ...                   ' relative coordinates (pixels)
+        u16_coord_s last_abs, ...               ' previous absolute coordinates (pixels)
+        u16_coord_s min, ...                    ' axis minimum coordinates
+        u16_coord_s max, ...                    ' axis maximum coordinates
+        byte        event, ...                  ' event flag (pressed, lifted, contact, none, etc)
+        byte        id, ...                     ' touch ID
+        byte        weight, ...                 ' weight of touch point
+        byte        area)                       ' pixel area of touch point
+
+
+    ' area/region struct for identifying "touched" object (touchscreens)
+    struct touch_tag_s(...
+        word xs, ys, ...
+        word xe, ye)
+
+
+var
+
     long _pointer_x_sens, _pointer_y_sens
 
+    word _width, _height
 
-PUB abs_x(): x
+    byte _mirror_x, _mirror_y
+    byte _rotation
+    byte _sample_avg
+
+
+pub abs_x(p=0): x
 ' Get the pointer absolute position, X-axis
-'   Returns: absolute X position (signed 32-bit)
-    return _pointer_x
+'   p:          pointer # (optional; default is 0 or first pointer)
+'   Returns:    pointer position (pixels)
+    if ( _mirror_x )
+        return _width-1-pointer[p].cabs.x         ' mirror the position
+    else
+        return pointer[p].cabs.x
 
 
-PUB abs_y(): y
+pub abs_y(p=0): y
 ' Get the pointer absolute position, Y-axis
-'   Returns: absolute Y position (signed 32-bit)
-    return _pointer_y
+'   p:          pointer # (optional; default is 0 or first pointer)
+'   Returns:    pointer position (pixels)
+    if ( _mirror_y )
+        return _height-1-pointer[p].cabs.y         ' mirror the position
+    else
+        return pointer[p].cabs.y
 
 
-PUB set_abs_x(x)
+pub mirror_x(m)
+' Mirror the pointer(s) X-coordinate
+    _mirror_x := (m <> 0) & 1                   ' promote nonzero to 1
+
+
+pub mirror_y(m)
+' Mirror the pointer(s) Y-coordinate
+    _mirror_y := (m <> 0) & 1                   ' promote nonzero to 1
+
+
+pub raw_x(p=0): x
+' Get the pointer raw position, X-axis
+'   p:          pointer # (optional; default is 0 or first pointer)
+'   Returns:    pointer position (ADC counts)
+    return pointer[p].craw.x
+
+
+pub raw_y(p=0): y
+' Get the pointer raw position, Y-axis
+'   p:          pointer # (optional; default is 0 or first pointer)
+'   Returns:    pointer position (ADC counts)
+    return pointer[p].craw.y
+
+
+pub rel_x(p=0): x
+' Get the pointer position relative to the previous position, X-axis
+'   p:          pointer # (optional; default is 0 or first pointer)
+'   Returns:    pointer position delta (pixels)
+    return pointer[p].crel.x
+
+
+pub rel_y(p=0): y
+' Get the pointer position relative to the previous position, Y-axis
+'   p:          pointer # (optional; default is 0 or first pointer)
+'   Returns:    pointer position delta (pixels)
+    return pointer[p].crel.y
+
+
+pub rotation(): r
+' Get current pointer rotation/orientation
+'   Returns:    rotation (degrees)
+    case _rotation
+        0:
+            return 0                            ' no rotation/original orientation
+        1:
+            return 90
+        2:
+            return 180
+        3:
+            return 270
+
+
+pub set_abs_x(x, p=0)
 ' Manually set pointer absolute position, X-axis
-    _pointer_x := x
+'   x:  pointer position (pixels)
+'   p:  pointer # (optional; default is 0 or first pointer)
+    pointer[p].cabs.x := x
 
 
-PUB set_abs_y(y)
+pub set_abs_y(y, p=0)
 ' Manually set pointer absolute position, Y-axis
-    _pointer_y := y
+'   y:  pointer position (pixels)
+'   p:  pointer # (optional; default is 0 or first pointer)
+    pointer[p].cabs.y := y
 
 
-PUB set_abs_x_max(x)
-' Set pointer absolute position X-axis maximum
-'   Valid values: negx to posx
-    _pointer_x_max := x
+pub set_x_max(x, p=0)
+' Set pointer position X-axis maximum
+'   x:  pointer position (ADC counts)
+'   p:  pointer # (optional; default is 0 or first pointer)
+    pointer[p].max.x := x
 
 
-PUB set_abs_y_max(y)
-' Set pointer absolute position Y-axis maximum
-'   Valid values: negx to posx
-    _pointer_y_max := y
+pub set_x_min(x, p=0)
+' Set pointer position X-axis maximum
+'   x:  pointer position (ADC counts)
+'   p:  pointer # (optional; default is 0 or first pointer)
+    pointer[p].min.x := x
 
 
-PUB set_abs_x_min(x)
-' Set pointer absolute position X-axis maximum
-'   Valid values: negx to posx
-    _pointer_x_min := x
+pub set_y_max(y, p=0)
+' Set pointer position Y-axis maximum
+'   y:  pointer position (ADC counts)
+'   p:  pointer # (optional; default is 0 or first pointer)
+    pointer[p].max.y := y
 
 
-PUB set_abs_y_min(y)
-' Set pointer absolute position Y-axis maximum
-'   Valid values: negx to posx
-    _pointer_y_min := y
+pub set_y_min(y, p=0)
+' Set pointer position Y-axis maximum
+'   y:  pointer position (ADC counts)
+'   p:  pointer # (optional; default is 0 or first pointer)
+    pointer[p].min.y := y
 
 
-PUB set_sensitivity_x(sx)
+pub set_dims(w, h)
+' Set touchscreen dimensions
+'   w, h:   dimensions (pixels)
+    _width := w
+    _height := h
+
+
+pub set_rotation(r) | w, h
+' Set touchscreen orientation/rotation
+'   r:  rotation (degrees; 0: no rotation, 90, 180, 270)
+    case r
+        0:
+            w := _width
+            h := _height
+            _rotation := 0
+        90:
+            w := _height
+            h := _width
+            _rotation := 1
+        180:
+            w := _width
+            h := _height
+            _rotation := 2
+        270:
+            w := _height
+            h := _width
+            _rotation := 3
+
+    set_dims(w, h)
+
+
+pub set_sensitivity_x(sx)
 ' Set pointer sensitivity, X-axis
-'   Valid values: 1 (least sensitive) .. 8 (most sensitive)
-    _pointer_x_sens := 9-(1 #> sx <# 8)
+'   sx: 0_001 .. 1_000 (= 0.001 .. 1.000)
+    _pointer_x_sens := 0_001 #> sx <# 1_000
 
 
-PUB set_sensitivity_y(sy)
-' Set pointer sensitivity, y-axis
-'   Valid values: 1 (least sensitive) .. 8 (most sensitive)
-    _pointer_y_sens := 9-(1 #> sy <# 8)
+pub set_sensitivity_y(sy)
+' Set pointer sensitivity, Y-axis
+'   sy: 0_001 .. 1_000 (= 0.001 .. 1.000)
+    _pointer_y_sens := 0_001 #> sy <# 1_000
 
 
-DAT
+dat
 {
-Copyright 2025 Jesse Burt
+Copyright 2026 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
