@@ -54,20 +54,14 @@ pub abs_x(p=0): x
 ' Get the pointer absolute position, X-axis
 '   p:          pointer # (optional; default is 0 or first pointer)
 '   Returns:    pointer position (pixels)
-    if ( _mirror_x )
-        return _width-1-pointer[p].cabs.x         ' mirror the position
-    else
-        return pointer[p].cabs.x
+    return pointer[p].cabs.x
 
 
 pub abs_y(p=0): y
 ' Get the pointer absolute position, Y-axis
 '   p:          pointer # (optional; default is 0 or first pointer)
 '   Returns:    pointer position (pixels)
-    if ( _mirror_y )
-        return _height-1-pointer[p].cabs.y         ' mirror the position
-    else
-        return pointer[p].cabs.y
+    return pointer[p].cabs.y
 
 
 pub mirror_x(m)
