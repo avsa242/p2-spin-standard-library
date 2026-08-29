@@ -1,0 +1,212 @@
+{
+----------------------------------------------------------------------------------------------------
+    Filename:       input.touchscreen.resistive.spin2
+    Description:    4-wire resistive touchscreen reader
+    Author:         Jesse Burt
+    Started:        Aug 16, 2026
+    Updated:        Aug 29, 2026
+    Copyright (c) 2026 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
+}
+
+#include "input.pointer.common.spin2"
+' NOTE: This driver uses the following methods from the common code:
+'   abs_x():    absolute X-position
+'   abs_y():    absolute Y-position
+'   rel_x():    relative (delta since last) X-position
+'   rel_y():    relative (delta since last) Y-position
+
+con
+
+    MAX_TOUCH_TAGS  = 4                         ' max 255
+
+
+var
+
+    long _xp, _xm, _yp, _ym                     ' touchscreen pins
+
+    point_s pointer                             ' coordinate/touch data storage
+
+    touch_tag_s touch_tag[MAX_TOUCH_TAGS]       ' touch tag IDs
+
+
+pub init(XP_PIN, XM_PIN, YP_PIN, YM_PIN)
+' Initialize the driver using custom I/O settings
+'   XP_PIN: touchscreen X+
+'   XM_PIN: touchscreen X-
+'   YP_PIN: touchscreen Y+
+'   YM_PIN: touchscreen Y-
+    longmove(@_xp, @XP_PIN, 4)                  ' copy pins to vars
+
+    pinf(_xp)                                   ' init all pins as input
+    pinf(_xm)
+    pinf(_yp)
+    pinf(_ym)
+
+    _sample_avg := 1                            ' default to 1 sample (no averaging)
+    _rotation := 0                              ' default to 0 deg rotation (original orientation)
+
+
+pub clear_tag_area(t)
+' Clear a previously defined tag area
+'   t:  tag ID (1..MAX_TOUCH_TAGS-1)
+    if ( (t >= 1) and (t < MAX_TOUCH_TAGS) )
+        touch_tag[t-1]~
+
+
+pub rd_pointer_position() | x, y
+' Read coordinates of current touchscreen press into pointer structure
+
+    ' -- Get X coordinate: energize across X, read from Y --
+    pinf(_ym)                                   ' Y- input
+    pinh(_xp)                                   ' X+ high (3.3V)
+    pinl(_xm)                                   ' X- low (GND)
+
+    pinstart(_yp, P_ADC|P_ADC_1X, 10-1, 0)      ' set up Y+ as ADC to read X from
+    waitus(10)                                  ' settle
+
+    x := 0
+    repeat _sample_avg
+        repeat
+        until pinr(_yp)                         ' samply ready?
+        x += rdpin(_yp)                         ' read it
+    x /= _sample_avg
+
+    pinclear(_yp)                               ' disable ADC
+    pinf(_xp)                                   ' float X+
+    pinf(_xm)                                   ' flaot X-
+    ' --
+
+    ' -- Get Y coordinate: energize across Y, read from X --
+    pinf(_xm)                                   ' X- input
+    pinh(_yp)                                   ' Y+ output high
+    pinl(_ym)                                   ' Y- output low
+
+    pinstart(_xp, P_ADC|P_ADC_1X, 10-1, 0)      ' set up X+ as ADC to read Y from
+    waitus(10)                                  ' settle
+
+    y := 0
+    repeat _sample_avg
+        repeat
+        until pinr(_xp)                         ' sample ready?
+        y += rdpin(_xp)                         ' read it
+    y /= _sample_avg
+
+    pinclear(_xp)                               ' disable ADC
+    pinf(_yp)                                   ' Y+ input
+    pinf(_ym)
+    ' --
+
+   ' rotate raw coordinates, as necessary
+    case _rotation
+        0:                                      ' 0deg
+            pointer.craw.x := x
+            pointer.craw.y := y
+        1:                                      ' 90deg
+            pointer.craw.x := y
+            pointer.craw.y := x
+        2:                                      ' 180deg
+            pointer.craw.x := x
+            pointer.craw.y := y
+        3:                                      ' 270deg
+            pointer.craw.x := y
+            pointer.craw.y := x
+
+    ' calculate absolute coordinates (scaled to screen dimensions set with set_dims() )
+    pointer.cabs.x := ( (pointer.craw.x-pointer.min.x) * (_width-1)) / (pointer.max.x-pointer.min.x)
+    pointer.cabs.y := ( (pointer.craw.y-pointer.min.y) * (_height-1)) / (pointer.max.y-pointer.min.y)
+
+    ' mirror coordinates as necessary and update relative coordinates
+    if ( _mirror_x )
+        pointer.cabs.x := _width-1-pointer.cabs.x
+        pointer.crel.x := pointer.cabs.x + pointer.last_abs.x
+    else
+        pointer.crel.x := pointer.cabs.x - pointer.last_abs.x
+
+    if ( _mirror_y )
+        pointer.cabs.y := _height-1-pointer.cabs.y
+        pointer.crel.y := pointer.last_abs.y - pointer.cabs.y
+    else
+        pointer.crel.y := pointer.last_abs.y - pointer.cabs.y
+
+    ' remember last absolute position to use for delta position
+    pointer.last_abs.x := pointer.cabs.x
+    pointer.last_abs.y := pointer.cabs.y
+
+ 
+pub set_samples_averaged(s)
+' Set the number of samples used to provide an average when sampling the ADCs
+    _sample_avg := s
+
+
+pub tag_active(): t
+' Touchscreen tag ID that is currently active (e.g., ID of the object being touched)
+'   Returns: Tag number (u8)
+'       If tag is active:       1..MAX_TOUCH_TAGS-1
+'       If no tag is active:    0
+    repeat t from 0 to MAX_TOUCH_TAGS-1
+        if (    (abs_x() >= touch_tag[t].xs) and (abs_x() <= touch_tag[t].xe) and ...
+                (abs_y() >= touch_tag[t].ys) and (abs_y() <= touch_tag[t].ye) )
+            return t+1
+
+    return 0                                    ' no tagged objects touched
+
+
+pub tag_area(t, xs, ys, w, h)
+' Define screen area to be associated with tag
+'   tag_nr: 1..MAX_TOUCH_TAGS (must be the number of a tag previously defined with tag_attach() )
+'   sx, sy: Starting coordinates of region (within your display's maximum)
+'   w, h:   width, height from sx, sy
+    if ( (t > 0) and (t < MAX_TOUCH_TAGS) )
+        ' interpret the tags as 1-based, for compatibility with EVE tag IDs,
+        '   where 0 is considered "no tagged object is touched"
+        touch_tag[t-1].xs := xs
+        touch_tag[t-1].ys := ys
+        touch_tag[t-1].xe := xs+w
+        touch_tag[t-1].ye := ys+h
+
+
+pub touched(): d
+' Check if the touchscreen is touched
+'   Returns: true (-1) or false (0)
+    pinclear(_yp)
+    pinclear(_ym)
+    pinl(_yp)                                   ' ground Y+
+    pinl(_ym)                                   ' ground Y-
+
+    pinclear(_xp)
+    wrpin(_xp, P_HIGH_15K)                      ' weak pullup on X+
+    pinh(_xp)
+
+    pinclear(_xm)
+    pinf(_xm)                                   ' float X-
+
+    waitus(10)
+
+    d := not pinr(_xp)                          ' read X+, invert the value
+
+    pinclear(_xp)                               ' reset pins
+    pinf(_yp)
+    pinf(_ym)
+
+
+dat
+{
+Copyright (c) 2026 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+
